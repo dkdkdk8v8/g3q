@@ -9,11 +9,11 @@ const userInfo = ref({
     name: '我 (帅气)',
     id: '888888',
     coins: 12580,
-    avatar: 'https://fastly.jsdelivr.net/npm/@vant/assets/cat.jpeg'
+    avatar: new URL('../assets/icon_avatar.png', import.meta.url).href
 });
 
 // 游戏模式：kanpai (看四张抢庄), bukan (不看牌抢庄)
-const currentMode = ref('kanpai');
+const currentMode = ref('bukan');
 
 const enterGame = (level) => {
   // 传递房间等级(level)和玩法模式(mode)

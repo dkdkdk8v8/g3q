@@ -2,6 +2,8 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { createDeck, shuffle, calculateHandType } from '../utils/bullfight.js'
 
+const DEFAULT_AVATAR = new URL('../assets/icon_avatar.png', import.meta.url).href;
+
 export const useGameStore = defineStore('game', () => {
   const currentPhase = ref('IDLE'); // IDLE, MATCHING, ROB_BANKER, BETTING, DEALING, SHOWDOWN, SETTLEMENT
   const players = ref([]);
@@ -17,11 +19,11 @@ export const useGameStore = defineStore('game', () => {
     gameMode.value = mode;
     // 模拟5个玩家 (5人局)
     players.value = [
-      { id: 'me', name: '我 (帅气)', avatar: 'https://fastly.jsdelivr.net/npm/@vant/assets/cat.jpeg', coins: 1000, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0 },
-      { id: 'p2', name: '张三', avatar: 'https://fastly.jsdelivr.net/npm/@vant/assets/cat.jpeg', coins: 1000, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0 },
-      { id: 'p3', name: '李四', avatar: 'https://fastly.jsdelivr.net/npm/@vant/assets/cat.jpeg', coins: 800, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0 },
-      { id: 'p4', name: '王五', avatar: 'https://fastly.jsdelivr.net/npm/@vant/assets/cat.jpeg', coins: 1200, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0 },
-      { id: 'p5', name: '赵六', avatar: 'https://fastly.jsdelivr.net/npm/@vant/assets/cat.jpeg', coins: 2000, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0 },
+      { id: 'me', name: '我 (帅气)', avatar: DEFAULT_AVATAR, coins: 1000, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0 },
+      { id: 'p2', name: '张三', avatar: DEFAULT_AVATAR, coins: 1000, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0 },
+      { id: 'p3', name: '李四', avatar: DEFAULT_AVATAR, coins: 800, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0 },
+      { id: 'p4', name: '王五', avatar: DEFAULT_AVATAR, coins: 1200, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0 },
+      { id: 'p5', name: '赵六', avatar: DEFAULT_AVATAR, coins: 2000, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0 },
     ];
     currentPhase.value = 'IDLE';
     bankerId.value = null;

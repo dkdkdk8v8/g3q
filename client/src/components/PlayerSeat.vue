@@ -43,19 +43,21 @@ const shouldShowCardFace = computed(() => {
   <div class="player-seat" :class="`seat-${position}`">
     <!-- ... (keep avatar area) -->
     <div class="avatar-area">
-      <!-- 庄家徽章 -->
-      <div v-if="player.isBanker && store.currentPhase !== 'GAME_OVER'" class="banker-badge">庄</div>
-      
       <div class="avatar-frame">
           <van-image
             round
-            width="48px"
-            height="48px"
             :src="player.avatar"
             class="avatar"
           />
       </div>
       
+      <!-- 状态浮层，移到 avatar-area 以便相对于头像定位 -->
+      <div class="status-float" v-if="store.currentPhase !== 'GAME_OVER'">
+          <div v-if="player.robMultiplier > 0" class="art-text orange">抢x{{ player.robMultiplier }}</div>
+          <div v-if="player.robMultiplier === 0" class="art-text gray">不抢</div>
+          <div v-if="player.betMultiplier > 0" class="art-text green">下x{{ player.betMultiplier }}</div>
+      </div>
+
       <div class="info-box">
         <div class="name van-ellipsis">{{ player.name }}</div>
         <div class="coins-pill">
@@ -63,13 +65,8 @@ const shouldShowCardFace = computed(() => {
             {{ player.coins }}
         </div>
       </div>
-    </div>
-
-    <!-- ... (keep status float) -->
-    <div class="status-float" v-if="store.currentPhase !== 'GAME_OVER'">
-        <div v-if="player.robMultiplier > 0" class="art-text orange">抢x{{ player.robMultiplier }}</div>
-        <div v-if="player.robMultiplier === 0" class="art-text gray">不抢</div>
-        <div v-if="player.betMultiplier > 0" class="art-text green">下x{{ player.betMultiplier }}</div>
+      <!-- 庄家徽章，现在移动到 avatar-area 内部 -->
+      <div v-if="player.isBanker && store.currentPhase !== 'GAME_OVER'" class="banker-badge">庄</div>
     </div>
     
     <!-- ... (keep score float) -->
@@ -121,6 +118,10 @@ const shouldShowCardFace = computed(() => {
 .seat-left .avatar-area { margin-bottom: 4px; }
 .seat-right .avatar-area { margin-bottom: 4px; }
 
+.avatar-area {
+    position: relative; /* Ensure absolute positioning of children is relative to this parent */
+}
+
 .ready-badge {
     position: absolute;
     bottom: 0;
@@ -136,21 +137,31 @@ const shouldShowCardFace = computed(() => {
 }
 
 .avatar-frame {
-    padding: 2px;
+    width: 52px; /* Total size: 48px image + 2*1px border + 2px "margin" on each side (simulating the previous padding) */
+    height: 52px;
     background: rgba(0,0,0,0.3);
     border-radius: 50%;
-    display: inline-block;
     border: 1px solid rgba(255,255,255,0.2);
+    overflow: hidden; /* Crucial for clipping content to the circular frame */
+    display: flex; /* Use flexbox to center the image reliably */
+    justify-content: center;
+    align-items: center;
+}
+
+/* Make the van-image fill its parent frame */
+.avatar-frame .van-image {
+    width: 100%;
+    height: 100%;
 }
 
 .avatar {
-  border: 2px solid transparent;
+  border: none; /* Remove redundant transparent border */
 }
 
 .banker-badge {
   position: absolute;
-  top: -8px;
-  right: 16px;
+  top: 0px;
+  right: 0px;
   width: 24px;
   height: 24px;
   /* 使用 flex 完美居中 */
@@ -166,6 +177,7 @@ const shouldShowCardFace = computed(() => {
   border: 1px solid #fff;
   box-shadow: 0 0 10px #fbbf24;
   animation: shine 2s infinite;
+  transform: translate(50%, -50%); /* 移动自身宽度的一半和高度的一半 */
 }
 
 @keyframes shine {
@@ -175,7 +187,7 @@ const shouldShowCardFace = computed(() => {
 }
 
 .info-box {
-  margin-top: -10px; /* 向上重叠一点 */
+  margin-top: 2px; /* Adjust to create a 2px gap from the avatar */
   position: relative;
   z-index: 5;
   width: 100%;
@@ -210,15 +222,10 @@ const shouldShowCardFace = computed(() => {
 .status-float {
     position: absolute;
     top: 0;
-    right: -20px; /* 浮动在头像旁边 */
+    left: 100%; /* 浮动在 info-box 旁边 */
     z-index: 8;
+    transform: translateX(10px); /* 稍微向右偏移 */
 }
-
-/* 状态文字位置适配 */
-.seat-bottom .status-float { top: auto; bottom: 60px; right: auto; }
-/* 左右侧恢复默认位置，或者微调 */
-.seat-left .status-float { right: -20px; top: 0; left: auto; }
-.seat-right .status-float { right: -20px; top: 0; }
 
 
 .art-text {

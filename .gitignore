@@ -1,5 +1,4 @@
 .idea/
-.vscode/
 **/.DS_Store
 **/*.log.*
 **/*.log
@@ -11,3 +10,7 @@
 **/*.apk
 **/*.rar
 **/*.zip
+**/*.exe
+**/*.tar.gz
+**/*.tar
+**/*.bin

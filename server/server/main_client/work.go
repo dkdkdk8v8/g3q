@@ -5,16 +5,17 @@ import (
 	"compoment/logrotate"
 	"compoment/uid"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"net/http"
 	"os"
 	"runtime"
 	"service/comm"
 	"service/initMain"
 	"service/mainClient"
+
+	"github.com/gin-gonic/gin"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 func cors(w http.ResponseWriter) {

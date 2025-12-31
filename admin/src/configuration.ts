@@ -12,11 +12,10 @@ import * as cool from '@cool-midway/core';
 import { ILogger } from '@midwayjs/logger';
 import * as file from '@cool-midway/file';
 import { IMidwayApplication } from '@midwayjs/core';
-import { createTunnels } from './tunnel/create_tunnel';
+import { createTunnels } from './tunnel/create';
 // import * as swagger from '@midwayjs/swagger';
 // import * as rpc from '@cool-midway/rpc';
 // import * as task from '@cool-midway/task';
-import { PuppeteerService } from './modules/scraper/service/puppeteer';
 
 @Configuration({
   imports: [
@@ -61,15 +60,9 @@ export class ContainerLifeCycle {
   // 配置加载前
   async onConfigLoad() {
     this.logger.info(`当前环境：${process.env.NODE_ENV}`);
-    await createTunnels(process.env.NODE_ENV);
+    await createTunnels();
   }
 
   async onReady() {
-    if (process.env.NODE_ENV === 'production') {
-      return;
-    }
-    const ctx = this.app.getApplicationContext();
-    const puppeteerService = await ctx.getAsync(PuppeteerService);
-    await puppeteerService.getContent('https://google.com');
   }
 }

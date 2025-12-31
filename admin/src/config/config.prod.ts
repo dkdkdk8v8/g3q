@@ -6,11 +6,11 @@ export default {
     dataSource: {
       default: {
         type: 'mysql',
-        host: 'h1',
+        host: 'database-g3q-instance-1.c1y06igkstt7.ap-east-1.rds.amazonaws.com',
         port: 3306,
-        username: '11',
-        password: '11',
-        database: '11',
+        username: 'admin',
+        password: 'S40bdYFgTy8uzz6A',
+        database: 'q3g_admin',
         // 自动建表 注意：线上部署的时候不要使用，有可能导致数据丢失
         synchronize: false,
         // 打印日志

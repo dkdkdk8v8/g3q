@@ -5,7 +5,6 @@ import { MidwayConfig } from '@midwayjs/core';
 // import { redisStore } from 'cache-manager-ioredis-yet';
 
 export default {
-  // use for cookie sign key, should change to your own and keep security
   keys: 'a0d154c4f510182bcbf52a4e9cb0d123', 
   koa: {
     port: 8001,

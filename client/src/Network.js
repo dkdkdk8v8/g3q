@@ -40,7 +40,7 @@ export default class GameClient {
      */
     connect(host, uid, token) {
         // 构造 WebSocket URL，携带 Token
-        this.url = `ws://${host}/ws?uid=${encodeURIComponent(userid)}&token=${encodeURIComponent(token)}`;
+        this.url = `ws://${host}/ws?uid=${encodeURIComponent(uid)}&token=${encodeURIComponent(token)}`;
         this.isManualClose = false;
         this._initWebSocket();
     }

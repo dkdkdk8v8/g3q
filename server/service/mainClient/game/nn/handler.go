@@ -260,9 +260,11 @@ func EnterSettling(r *game.Room) {
 		var allUserIds []string
 		r.Mu.Lock()
 
-		// 收集当前房间所有玩家ID用于更新最后游戏时间
+		// 仅收集真实玩家ID用于更新最后游戏时间，减轻数据库压力
 		for id := range r.Players {
-			allUserIds = append(allUserIds, id)
+			if !r.Players[id].IsRobot {
+				allUserIds = append(allUserIds, id)
+			}
 		}
 
 		// 机器人随机退出逻辑
@@ -286,10 +288,12 @@ func EnterSettling(r *game.Room) {
 		canStart := len(r.Players) >= r.MaxPlayers
 		r.Mu.Unlock()
 
-		// 批量记录所有玩家的最后游戏时间 (锁外执行，减少锁占用)
-		_, _ = modelClient.GetDb().QueryTable(new(modelClient.ModelUser)).
-			Filter("user_id__in", allUserIds).
-			Update(orm.Params{"last_played": time.Now()})
+		// 只有存在真实玩家时才更新数据库
+		if len(allUserIds) > 0 {
+			_, _ = modelClient.GetDb().QueryTable(new(modelClient.ModelUser)).
+				Filter("user_id__in", allUserIds).
+				Update(orm.Params{"last_played": time.Now()})
+		}
 
 		// 在锁外处理全局管理器逻辑和开始游戏，避免死锁
 		for _, id := range leftBots {

@@ -7,28 +7,25 @@ const props = defineProps({
   isSmall: Boolean
 });
 
-// 是否触发翻转动画
-const animateFlip = ref(false);
-
-const triggerFlip = () => {
-    animateFlip.value = false;
-    setTimeout(() => {
-        animateFlip.value = true;
-    }, 10);
-};
+// 控制卡片是否翻转显示正面
+const isFlipped = ref(false);
 
 onMounted(() => {
-    // 如果挂载时就有牌面（通常是自己的牌），播放翻转动画
+    // 初始状态根据是否有牌面来决定是否翻转
     if (props.card) {
-        animateFlip.value = true;
+        isFlipped.value = true;
     }
 });
 
 watch(() => props.card, (newVal) => {
     if (newVal) {
-        triggerFlip();
+        // 当card prop变为truthy时，卡片翻转到正面
+        isFlipped.value = true;
+    } else {
+        // 当card prop变为falsy时，卡片翻转到背面
+        isFlipped.value = false;
     }
-});
+}, { immediate: true }); // immediate: true 确保在组件挂载时立即运行一次watcher
 
 const isRed = computed(() => {
   return props.card && (props.card.suit === 'heart' || props.card.suit === 'diamond');
@@ -49,29 +46,33 @@ const suitSymbol = computed(() => {
 <template>
   <div 
     class="poker-card" 
-    :class="{ 'card-back': !card, 'is-red': isRed, 'is-small': isSmall, 'animate-flip': animateFlip }"
+    :class="{ 'is-small': isSmall }"
   >
-    <template v-if="card">
-      <!-- 左上角标 -->
-      <div class="corner-top-left">
-        <span class="rank">{{ card.label }}</span>
-        <span class="suit">{{ suitSymbol }}</span>
-      </div>
-      
-      <!-- 中间大花色 -->
-      <div class="card-center">
-        {{ suitSymbol }}
-      </div>
-      
-      <!-- 右下角标 (旋转180度) -->
-      <div class="corner-bottom-right">
-        <span class="rank">{{ card.label }}</span>
-        <span class="suit">{{ suitSymbol }}</span>
-      </div>
-    </template>
-    <template v-else>
-      <div class="back-pattern"></div>
-    </template>
+    <div class="card-inner" :class="{ 'is-flipped': isFlipped }">
+        <div class="card-face" :class="{ 'is-red': isRed }">
+            <template v-if="card">
+                <!-- 左上角标 -->
+                <div class="corner-top-left">
+                    <span class="rank">{{ card.label }}</span>
+                    <span class="suit">{{ suitSymbol }}</span>
+                </div>
+                
+                <!-- 中间大花色 -->
+                <div class="card-center">
+                    {{ suitSymbol }}
+                </div>
+                
+                <!-- 右下角标 (旋转180度) -->
+                <div class="corner-bottom-right">
+                    <span class="rank">{{ card.label }}</span>
+                    <span class="suit">{{ suitSymbol }}</span>
+                </div>
+            </template>
+        </div>
+        <div class="card-back-face">
+            <div class="back-pattern"></div>
+        </div>
+    </div>
   </div>
 </template>
 
@@ -79,39 +80,61 @@ const suitSymbol = computed(() => {
 .poker-card {
   width: 60px;
   height: 84px;
-  background-color: white;
   border-radius: 6px;
-  /* 优化阴影效果 */
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-  position: relative; /* 绝对定位基准 */
+  position: relative;
   box-sizing: border-box;
   font-family: 'Times New Roman', serif;
   user-select: none;
-  /* 3D 效果支持 */
-  backface-visibility: hidden; 
-}
-
-.animate-flip {
-    animation: flipEnter 0.6s ease-out;
-}
-
-@keyframes flipEnter {
-    0% { transform: rotateY(180deg); }
-    100% { transform: rotateY(0); }
+  perspective: 1000px; /* 3D 效果支持 */
 }
 
 .poker-card.is-small {
   width: 40px;
   height: 56px;
-  /* 小牌字体缩小 */
   font-size: 0.8em;
 }
 
-.poker-card.is-red {
+.card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    transition: transform 0.6s; /* 翻转动画时长 */
+    transform-style: preserve-3d; /* 保持子元素 3D 变换 */
+    transform: rotateY(180deg); /* 默认显示背面 */
+}
+
+.card-inner.is-flipped {
+    transform: rotateY(0deg); /* 当 isFlipped 为 true 时，显示正面 */
+}
+
+.card-face, .card-back-face {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden; /* 翻转时隐藏背面 */
+    border-radius: 6px;
+    box-sizing: border-box;
+}
+
+.card-face {
+    background-color: white;
+    border: 2px solid white; /* 和背面保持一致的边框 */
+}
+
+.card-back-face {
+    background: #3b5bdb; /* 蓝色背景 */
+    border: 2px solid white;
+    transform: rotateY(180deg); /* 初始旋转180度，使其背面朝外 */
+}
+
+/* 现有卡面样式调整 */
+.card-face.is-red {
   color: #d40000;
 }
 
-.poker-card:not(.is-red) {
+.card-face:not(.is-red) {
   color: #000;
 }
 
@@ -166,11 +189,6 @@ const suitSymbol = computed(() => {
 }
 .is-small .card-center {
   font-size: 20px;
-}
-
-.card-back {
-  background: #3b5bdb; /* 蓝色背景 */
-  border: 2px solid white;
 }
 
 .back-pattern {

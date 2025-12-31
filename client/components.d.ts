@@ -7,8 +7,16 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    CoinLayer: typeof import('./src/components/CoinLayer.vue')['default']
+    PlayerSeat: typeof import('./src/components/PlayerSeat.vue')['default']
+    PokerCard: typeof import('./src/components/PokerCard.vue')['default']
+    RouterLink: typeof import('vue-router')['RouterLink']
+    RouterView: typeof import('vue-router')['RouterView']
     VanButton: typeof import('vant/es')['Button']
     VanCell: typeof import('vant/es')['Cell']
     VanCellGroup: typeof import('vant/es')['CellGroup']
+    VanIcon: typeof import('vant/es')['Icon']
+    VanImage: typeof import('vant/es')['Image']
+    VanTag: typeof import('vant/es')['Tag']
   }
 }

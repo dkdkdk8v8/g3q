@@ -123,8 +123,9 @@ func (rm *RobotManager) ArrangeRobotsForRoom(room *game.Room) {
 		numToJoin := rand.Intn(maxCount-currentCount) + 1
 
 		var robots []*modelClient.ModelUser
+		// 使用随机排序，确保机器人池的均匀分布
 		_, err := modelClient.GetDb().QueryTable(new(modelClient.ModelUser)).
-			Filter("is_robot", true).
+			Filter("is_robot", true).OrderBy("?").
 			Limit(numToJoin).
 			All(&robots)
 

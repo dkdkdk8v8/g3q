@@ -50,7 +50,7 @@
             "mode": "debug",
             "program": "${file}", // 调试当前编辑器打开的那个文件
             "showLog": true,
-            "output": "${workspaceFolder}/server/ztest/zbinary",
+            "output": "${workspaceFolder}/server/ztest/zbinary"
         },
         {
             "name": "go:server:remote_client",
@@ -68,5 +68,26 @@
             "preLaunchTask": "SSH_Tunnel_Task",
             "showLog": true
         },
+        {
+            "name": "node:client",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": [
+                "run",
+                "dev"
+            ],
+            "cwd": "${workspaceFolder}/client",
+            "console": "integratedTerminal",
+            "restart": true,
+            "autoAttachChildProcesses": true
+        },
+    ],
+    "compounds": [
+        {
+            "name": "Launch All Admin",
+            "configurations": ["node:admin", "node:admin_client"],
+            "stopAll": true
+        }
     ]
 }

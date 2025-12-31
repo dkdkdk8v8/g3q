@@ -5,6 +5,8 @@
       <label for="ip-address">服务器 IP:</label>
       <input type="text" id="ip-address" v-model="ipAddress" placeholder="请输入服务器 IP 地址" />
     </div>
+    <p v-if="appId">App ID: {{ appId }}</p>
+    <p v-if="userId">User ID: {{ userId }}</p>
     <button @click="enterGame">进入游戏</button>
     <p v-if="message">{{ message }}</p>
   </div>
@@ -19,6 +21,8 @@ export default {
   name: 'LoadingPage',
   setup() {
     const ipAddress = ref('');
+    const appId = ref('');
+    const userId = ref('');
     const message = ref('');
     const router = useRouter();
     const gameClient = new GameClient(); // Create GameClient instance
@@ -26,6 +30,11 @@ export default {
     const LOCAL_STORAGE_IP_KEY = 'game_server_ip';
 
     onMounted(() => {
+      // Parse URL query parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      appId.value = urlParams.get('app') || '';
+      userId.value = urlParams.get('uid') || '';
+
       const savedIp = localStorage.getItem(LOCAL_STORAGE_IP_KEY);
       if (savedIp) {
         ipAddress.value = savedIp;
@@ -50,6 +59,16 @@ export default {
         return;
       }
 
+      if (!appId.value) {
+        message.value = 'URL 中缺少 app 参数！';
+        return;
+      }
+
+      if (!userId.value) {
+        message.value = 'URL 中缺少 uid 参数！';
+        return;
+      }
+
       message.value = `正在连接到 ${ipAddress.value}...`;
         
       // Setup GameClient callbacks
@@ -71,13 +90,15 @@ export default {
         message.value = `连接错误，请检查 IP 地址或服务器状态。`;
       };
 
-      // Connect to the WebSocket server using the entered IP
-      gameClient.connect(ipAddress.value, 'dummy_user_id', 'dummy_auth_token');
+      // Connect to the WebSocket server using the entered IP, app, and uid
+      gameClient.connect(ipAddress.value, appId.value, userId.value, 'dummy_auth_token');
     };
 
     return {
       ipAddress,
       message,
+      appId,
+      userId,
       enterGame,
     };
   },

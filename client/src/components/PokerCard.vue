@@ -1,4 +1,5 @@
 <script setup>
+import { watch } from 'vue';
 import { computed, onMounted, ref } from 'vue';
 
 const props = defineProps({
@@ -9,10 +10,23 @@ const props = defineProps({
 // 是否触发翻转动画
 const animateFlip = ref(false);
 
+const triggerFlip = () => {
+    animateFlip.value = false;
+    setTimeout(() => {
+        animateFlip.value = true;
+    }, 10);
+};
+
 onMounted(() => {
     // 如果挂载时就有牌面（通常是自己的牌），播放翻转动画
     if (props.card) {
         animateFlip.value = true;
+    }
+});
+
+watch(() => props.card, (newVal) => {
+    if (newVal) {
+        triggerFlip();
     }
 });
 

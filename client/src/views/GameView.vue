@@ -173,12 +173,21 @@ const startDealingAnimation = (isSupplemental = false) => {
         if (toDeal > 0) {
             const seatEl = seatRefs.value[p.id];
             if (seatEl) {
-                const rect = seatEl.getBoundingClientRect();
+                // 尝试获取 .hand-area 元素以获得更准确的 Y 轴位置
+                const handArea = seatEl.querySelector('.hand-area');
+                const rect = handArea ? handArea.getBoundingClientRect() : seatEl.getBoundingClientRect();
+                
+                // 判断是否是自己
+                const isMe = p.id === store.myPlayerId;
+                
                 targets.push({
                     id: p.id,
-                    x: rect.left + rect.width / 2 - 20, 
-                    y: rect.top + rect.height / 2 - 28, 
-                    count: toDeal
+                    x: rect.left + rect.width / 2, // 区域中心 X
+                    y: rect.top + rect.height / 2, // 区域中心 Y
+                    count: toDeal,
+                    startIdx: currentVisible,
+                    total: total,
+                    isMe: isMe
                 });
             }
         }
@@ -196,7 +205,20 @@ const startDealingAnimation = (isSupplemental = false) => {
 
         targets.forEach(t => {
             if (roundIndex < t.count) {
-                roundTargets.push({ x: t.x, y: t.y });
+                // 计算偏移：基于 PlayerSeat 的固定布局逻辑
+                // isMe: 宽60, margin -20 -> 步长 40
+                // !isMe: 宽40, margin -20 -> 步长 20
+                const spacing = t.isMe ? 40 : 20; 
+                
+                // 计算首牌到末牌的中心距离
+                const totalWidth = (t.total - 1) * spacing;
+                // 首牌中心 X
+                const startX = t.x - (totalWidth / 2);
+                
+                const cardIndex = t.startIdx + roundIndex;
+                const targetX = startX + cardIndex * spacing;
+
+                roundTargets.push({ x: targetX, y: t.y, isMe: t.isMe });
                 roundPlayerIds.push(t.id);
             }
         });
@@ -208,9 +230,10 @@ const startDealingAnimation = (isSupplemental = false) => {
                 visibleCounts.value[pid]++;
             });
             
+            // 下一张发牌的间隔时间
             setTimeout(() => {
                 animateRound(roundIndex + 1);
-            }, 200);
+            }, 150); // 加快节奏
         }
     };
 
@@ -247,7 +270,8 @@ const quitGame = () => {
     <div class="top-bar">
         <div class="menu-container">
             <div class="menu-btn" @click.stop="showMenu = !showMenu">
-                <van-icon name="wap-nav" size="24" color="white" />
+                <van-icon name="wap-nav" size="20" color="white" />
+                <span style="margin-left:4px;font-size:14px;">菜单</span>
             </div>
             <!-- 下拉菜单 -->
             <transition name="fade">
@@ -361,15 +385,17 @@ const quitGame = () => {
                 <div v-if="store.history.length === 0" class="empty-tip">暂无记录</div>
                 <div v-for="(item, idx) in store.history" :key="idx" class="history-item">
                     <div class="h-row top">
-                        <span class="h-mode">{{ item.mode }}</span>
                         <span class="h-time">{{ new Date(item.timestamp).toLocaleTimeString() }}</span>
+                        <span class="h-role" :class="{ banker: item.isBanker }">{{ item.isBanker ? '庄' : '闲' }}</span>
                     </div>
                     <div class="h-row main">
-                        <span class="h-role" :class="{ banker: item.isBanker }">{{ item.isBanker ? '庄' : '闲' }}</span>
-                        <span class="h-hand">{{ item.handType }} (x{{ item.multiplier }})</span>
-                        <span class="h-score" :class="item.score > 0 ? 'win' : 'lose'">
-                            {{ item.score > 0 ? '+' : '' }}{{ item.score }}
+                        <span class="h-result" :class="item.score >= 0 ? 'win' : 'lose'">
+                            {{ item.score >= 0 ? '赢' : '输' }}
                         </span>
+                        <span class="h-score" :class="item.score >= 0 ? 'win' : 'lose'">
+                            {{ item.score >= 0 ? '+' : '' }}{{ item.score }}
+                        </span>
+                        <span class="h-hand">{{ item.handType }}</span>
                     </div>
                     <div class="h-row bottom">
                         <span>余额: {{ item.balance }}</span>
@@ -496,6 +522,10 @@ const quitGame = () => {
 .h-score.win { color: #facc15; }
 .h-score.lose { color: #ef4444; }
 
+.h-result { font-weight: bold; margin-right: 6px; }
+.h-result.win { color: #facc15; }
+.h-result.lose { color: #ef4444; }
+
 @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
 /* 顶部栏 */
@@ -512,6 +542,9 @@ const quitGame = () => {
     border-radius: 8px;
     padding: 4px 8px;
     border: 1px solid rgba(255,255,255,0.2);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
 }
 
 .room-info-box {

@@ -19,36 +19,29 @@ const props = defineProps({
 
 const store = useGameStore();
 
-// 根据 visibleCardCount 截取要显示的手牌
+// 始终返回完整手牌以保持布局稳定
 const displayedHand = computed(() => {
     if (!props.player.hand) return [];
-    if (props.visibleCardCount === -1) return props.player.hand;
-    return props.player.hand.slice(0, props.visibleCardCount);
+    return props.player.hand;
 });
 
 const showCards = computed(() => {
   return displayedHand.value.length > 0;
 });
 
-// 是否应该显示牌面
-// 自己始终可以看到
-// 别人:
-// 1. 结算阶段(SETTLEMENT)可以看到
-// 2. 摊牌阶段(SHOWDOWN)且已经摊牌(isShowHand)可以看到
+// ... (keep existing shouldShowCardFace logic)
 const shouldShowCardFace = computed(() => {
     if (props.isMe) return true;
     if (store.currentPhase === 'SETTLEMENT') return true;
     if (store.currentPhase === 'SHOWDOWN' && props.player.isShowHand) return true;
     return false;
 });
-
-// 判断是否侧边布局 (左或右)
-const isSide = computed(() => props.position === 'left' || props.position === 'right');
+// ...
 </script>
 
 <template>
   <div class="player-seat" :class="`seat-${position}`">
-    <!-- 头像区域 -->
+    <!-- ... (keep avatar area) -->
     <div class="avatar-area">
       <!-- 庄家徽章 -->
       <div v-if="player.isBanker && store.currentPhase !== 'GAME_OVER'" class="banker-badge">庄</div>
@@ -72,14 +65,14 @@ const isSide = computed(() => props.position === 'left' || props.position === 'r
       </div>
     </div>
 
-    <!-- 状态标签 (抢庄/下注倍数 - 浮动艺术字效果) -->
+    <!-- ... (keep status float) -->
     <div class="status-float" v-if="store.currentPhase !== 'GAME_OVER'">
         <div v-if="player.robMultiplier > 0" class="art-text orange">抢x{{ player.robMultiplier }}</div>
         <div v-if="player.robMultiplier === 0" class="art-text gray">不抢</div>
         <div v-if="player.betMultiplier > 0" class="art-text green">下x{{ player.betMultiplier }}</div>
     </div>
     
-    <!-- 赢分提示 -->
+    <!-- ... (keep score float) -->
     <div v-if="player.roundScore !== 0 && player.state !== 'IDLE' && store.currentPhase !== 'GAME_OVER'" class="score-float" :class="player.roundScore > 0 ? 'win' : 'lose'">
         {{ player.roundScore > 0 ? '+' : '' }}{{ player.roundScore }}
     </div>
@@ -93,10 +86,13 @@ const isSide = computed(() => props.position === 'left' || props.position === 'r
           :card="shouldShowCardFace ? card : null" 
           :is-small="!isMe"
           class="hand-card"
-          :style="{ marginLeft: idx === 0 ? '0' : (isMe ? '-20px' : '-20px') }"
+          :style="{ 
+              marginLeft: idx === 0 ? '0' : '-20px',
+              opacity: (visibleCardCount === -1 || idx < visibleCardCount) ? 1 : 0
+          }"
         />
       </div>
-      <!-- 牌型结果 -->
+      <!-- ... (keep hand result) -->
       <div v-if="player.handResult && shouldShowCardFace && store.currentPhase !== 'GAME_OVER'" class="hand-result-badge">
           {{ player.handResult.typeName }} (x{{ player.handResult.multiplier }})
       </div>

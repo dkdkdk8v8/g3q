@@ -5,37 +5,47 @@ import { ref } from 'vue';
 const flyingCards = ref([]);
 
 // 执行发牌动画
-// targets: Array<{ x, y, id }> 目标位置列表
+// targets: Array<{ x, y, id, isMe }> 目标位置列表
 // count: 每人发几张
 // callback: (seatIndex, cardIndex) => void  单张卡片到达回调
 const deal = async (targets, count, callback) => {
-    const startX = window.innerWidth / 2 - 20; // 中心 X (卡片宽40的一半)
-    const startY = window.innerHeight / 2 - 28; // 中心 Y (卡片高56的一半)
+    const startX = window.innerWidth / 2; 
+    const startY = window.innerHeight / 2; 
 
     // 发牌顺序：每人一张，轮流发
     for (let c = 0; c < count; c++) {
         for (let i = 0; i < targets.length; i++) {
             const target = targets[i];
             
+            // 目标尺寸
+            const targetWidth = target.isMe ? 60 : 40;
+            const targetHeight = target.isMe ? 84 : 56;
+            
             // 创建一个飞行的卡片
             const flyId = `fly-${Date.now()}-${c}-${i}`;
             const card = {
                 id: flyId,
-                x: startX,
-                y: startY,
-                rotation: 0,
-                targetX: target.x,
-                targetY: target.y,
-                done: false
+                x: startX - targetWidth / 2, // 居中生成
+                y: startY - targetHeight / 2,
+                width: targetWidth,
+                height: targetHeight,
+                rotation: Math.random() * 60 - 30, // 初始随机角度
+                scale: 0.5, // 初始大小
+                opacity: 0,
+                targetX: target.x - targetWidth / 2, // 目标左上角
+                targetY: target.y - targetHeight / 2,
             };
             flyingCards.value.push(card);
 
             // 强制重绘后开始动画 (下一帧)
             requestAnimationFrame(() => {
-                card.x = target.x;
-                card.y = target.y;
-                // 简单的旋转效果
-                card.rotation = 360; 
+                requestAnimationFrame(() => {
+                    card.x = card.targetX;
+                    card.y = card.targetY;
+                    card.rotation = 360; // 转一圈
+                    card.scale = 1;
+                    card.opacity = 1;
+                });
             });
 
             // 等待动画结束
@@ -48,8 +58,8 @@ const deal = async (targets, count, callback) => {
                 if (callback) callback(i, c);
             }, 400); // 飞行时间 0.4s
 
-            // 间隔发下一张
-            await new Promise(r => setTimeout(r, 100));
+            // 间隔发下一张 (如果人多，发快点)
+            await new Promise(r => setTimeout(r, targets.length > 3 ? 50 : 100));
         }
     }
 };
@@ -66,7 +76,10 @@ defineExpose({
         :key="card.id"
         class="flying-card"
         :style="{ 
-            transform: `translate(${card.x}px, ${card.y}px) rotate(${card.rotation}deg)` 
+            width: card.width + 'px',
+            height: card.height + 'px',
+            transform: `translate(${card.x}px, ${card.y}px) rotate(${card.rotation}deg) scale(${card.scale})`,
+            opacity: card.opacity
         }"
     >
         <div class="card-back"></div>
@@ -89,9 +102,7 @@ defineExpose({
     position: absolute;
     top: 0;
     left: 0;
-    width: 40px;
-    height: 56px;
-    transition: transform 0.4s ease-out;
+    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.1s;
     will-change: transform;
 }
 
@@ -120,5 +131,6 @@ defineExpose({
   background-position: 0 0, 10px 10px;
   background-size: 20px 20px;
   opacity: 1;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
 }
 </style>

@@ -77,6 +77,10 @@ func (r *Room) AddPlayer(p *Player) (int, error) {
 		return 0, comm.NewMyError(500001, "房间已满")
 	}
 
+	if r.State != StateWaiting {
+		return 0, comm.NewMyError(500003, "游戏进行中，无法加入")
+	}
+
 	r.Players[p.ID] = p
 
 	// 满足人数且处于等待状态时，触发游戏开始回调

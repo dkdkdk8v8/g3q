@@ -62,10 +62,12 @@ func StartGame(r *game.Room) {
 			dealCards = p.Cards // Should not happen
 		}
 
-		_ = p.Conn.WriteJSON(comm.Response{
-			Cmd:  "nn.deal_init",
-			Data: map[string]interface{}{"cards": dealCards},
-		})
+		if p.Conn != nil {
+			_ = p.Conn.WriteJSON(comm.Response{
+				Cmd:  "nn.deal_init",
+				Data: map[string]interface{}{"cards": dealCards},
+			})
+		}
 	}
 
 	EnterCalling(r)
@@ -87,6 +89,7 @@ func EnterCalling(r *game.Room) {
 			EnterBetting(r)
 		}
 	})
+	CheckRobotActions(r)
 }
 
 func HandleCallBanker(r *game.Room, userID string, mult int) {
@@ -141,6 +144,7 @@ func EnterBetting(r *game.Room) {
 			EnterDealing(r)
 		}
 	})
+	CheckRobotActions(r)
 }
 
 func HandlePlaceBet(r *game.Room, userID string, mult int) {
@@ -177,7 +181,9 @@ func EnterDealing(r *game.Room) {
 			lastCard = p.Cards[4]
 		}
 
-		_ = p.Conn.WriteJSON(comm.Response{Cmd: "nn.deal_final", Data: map[string]interface{}{"card": lastCard}})
+		if p.Conn != nil {
+			_ = p.Conn.WriteJSON(comm.Response{Cmd: "nn.deal_final", Data: map[string]interface{}{"card": lastCard}})
+		}
 	}
 	BroadcastState(r, 5)
 	r.Timer = time.AfterFunc(5*time.Second, func() {
@@ -187,6 +193,7 @@ func EnterDealing(r *game.Room) {
 			EnterSettling(r)
 		}
 	})
+	CheckRobotActions(r)
 }
 
 func HandleShowCards(r *game.Room, userID string) {
@@ -258,6 +265,38 @@ func EnterSettling(r *game.Room) {
 			StartGame(r)
 		}
 	})
+}
+
+func CheckRobotActions(r *game.Room) {
+	for _, p := range r.Players {
+		if !p.IsRobot {
+			continue
+		}
+
+		// 为每个机器人开启独立协程模拟思考
+		go func(pid string) {
+			// 随机延迟 1-3 秒
+			time.Sleep(time.Duration(rand.Intn(2000)+1000) * time.Millisecond)
+
+			r.Mu.Lock()
+			state := r.State
+			bankerID := r.BankerID
+			r.Mu.Unlock()
+
+			switch state {
+			case StateCalling:
+				// 随机抢庄倍数 (0-3)
+				HandleCallBanker(r, pid, rand.Intn(4))
+			case StateBetting:
+				if pid != bankerID {
+					// 随机下注倍数 (1-5)
+					HandlePlaceBet(r, pid, rand.Intn(5)+1)
+				}
+			case StateDealing:
+				HandleShowCards(r, pid)
+			}
+		}(p.ID)
+	}
 }
 
 func BroadcastState(r *game.Room, timeout int) {

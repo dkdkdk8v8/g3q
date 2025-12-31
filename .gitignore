@@ -1,2 +1,13 @@
 .idea/
 .vscode/
+**/.DS_Store
+**/*.log.*
+**/*.log
+**/*.bz2
+**/*.apk
+**/*.pid
+**/*.md5
+**/*.swp
+**/*.apk
+**/*.rar
+**/*.zip

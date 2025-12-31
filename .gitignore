@@ -1,4 +1,5 @@
 .idea/
+.gemini/settings.json
 **/.DS_Store
 **/*.log.*
 **/*.log

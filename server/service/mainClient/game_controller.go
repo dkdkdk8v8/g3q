@@ -165,6 +165,12 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 			Data: gin.H{"room_id": room.ID},
 		})
 
+	case "sys.ping": // 心跳处理
+		conn.WriteJSON(comm.Response{
+			Cmd: "sys.pong",
+			Seq: msg.Seq,
+		})
+
 	default:
 		// 返回未知命令错误
 		conn.WriteJSON(comm.Response{

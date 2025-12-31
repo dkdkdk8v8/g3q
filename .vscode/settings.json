@@ -1,0 +1,19 @@
+{
+  "editor.formatOnSave": true,
+
+  "[go]": {
+    "editor.defaultFormatter": "golang.go"
+  },
+
+  "go.formatTool": "goimports",
+
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[vue]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
+}

@@ -1,9 +1,19 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 
 const props = defineProps({
   card: Object, // 如果没有card，显示背面
   isSmall: Boolean
+});
+
+// 是否触发翻转动画
+const animateFlip = ref(false);
+
+onMounted(() => {
+    // 如果挂载时就有牌面（通常是自己的牌），播放翻转动画
+    if (props.card) {
+        animateFlip.value = true;
+    }
 });
 
 const isRed = computed(() => {
@@ -25,17 +35,22 @@ const suitSymbol = computed(() => {
 <template>
   <div 
     class="poker-card" 
-    :class="{ 'card-back': !card, 'is-red': isRed, 'is-small': isSmall }"
+    :class="{ 'card-back': !card, 'is-red': isRed, 'is-small': isSmall, 'animate-flip': animateFlip }"
   >
     <template v-if="card">
-      <div class="card-top">
+      <!-- 左上角标 -->
+      <div class="corner-top-left">
         <span class="rank">{{ card.label }}</span>
         <span class="suit">{{ suitSymbol }}</span>
       </div>
+      
+      <!-- 中间大花色 -->
       <div class="card-center">
         {{ suitSymbol }}
       </div>
-      <div class="card-bottom">
+      
+      <!-- 右下角标 (旋转180度) -->
+      <div class="corner-bottom-right">
         <span class="rank">{{ card.label }}</span>
         <span class="suit">{{ suitSymbol }}</span>
       </div>
@@ -52,21 +67,29 @@ const suitSymbol = computed(() => {
   height: 84px;
   background-color: white;
   border-radius: 6px;
-  box-shadow: 1px 1px 4px rgba(0,0,0,0.3);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 4px;
+  /* 优化阴影效果 */
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  position: relative; /* 绝对定位基准 */
   box-sizing: border-box;
   font-family: 'Times New Roman', serif;
   user-select: none;
-  position: relative;
+  /* 3D 效果支持 */
+  backface-visibility: hidden; 
+}
+
+.animate-flip {
+    animation: flipEnter 0.6s ease-out;
+}
+
+@keyframes flipEnter {
+    0% { transform: rotateY(180deg); }
+    100% { transform: rotateY(0); }
 }
 
 .poker-card.is-small {
   width: 40px;
   height: 56px;
-  padding: 2px;
+  /* 小牌字体缩小 */
   font-size: 0.8em;
 }
 
@@ -78,20 +101,34 @@ const suitSymbol = computed(() => {
   color: #000;
 }
 
-.card-top, .card-bottom {
+/* 角标通用样式 */
+.corner-top-left, .corner-bottom-right {
+  position: absolute;
   display: flex;
   flex-direction: column;
   align-items: center;
   line-height: 1;
+  width: 15px; /* 限制宽度防止溢出 */
 }
 
-.card-bottom {
+.corner-top-left {
+  top: 4px;
+  left: 4px;
+}
+
+.corner-bottom-right {
+  bottom: 4px;
+  right: 4px;
   transform: rotate(180deg);
 }
+
+.is-small .corner-top-left { top: 2px; left: 2px; }
+.is-small .corner-bottom-right { bottom: 2px; right: 2px; }
 
 .rank {
   font-weight: bold;
   font-size: 16px;
+  letter-spacing: -1px;
 }
 .is-small .rank {
   font-size: 12px;
@@ -99,9 +136,11 @@ const suitSymbol = computed(() => {
 
 .suit {
   font-size: 14px;
+  margin-top: 2px;
 }
 .is-small .suit {
   font-size: 10px;
+  margin-top: 0;
 }
 
 .card-center {
@@ -109,10 +148,10 @@ const suitSymbol = computed(() => {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 24px;
+  font-size: 32px; /* 更大的中间花色 */
 }
 .is-small .card-center {
-  font-size: 16px;
+  font-size: 20px;
 }
 
 .card-back {

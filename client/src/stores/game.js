@@ -9,15 +9,19 @@ export const useGameStore = defineStore('game', () => {
   const deck = ref([]);
   const countdown = ref(0);
   const bankerId = ref(null);
+  const gameMode = ref('kanpai'); // 'kanpai' | 'bukan'
+  const history = ref([]); // 游戏记录
 
   // 初始化（模拟进入房间）
-  const initGame = () => {
-    // 模拟4个玩家
+  const initGame = (mode = 'kanpai') => {
+    gameMode.value = mode;
+    // 模拟5个玩家 (5人局)
     players.value = [
       { id: 'me', name: '我 (帅气)', avatar: 'https://fastly.jsdelivr.net/npm/@vant/assets/cat.jpeg', coins: 1000, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0 },
       { id: 'p2', name: '张三', avatar: 'https://fastly.jsdelivr.net/npm/@vant/assets/cat.jpeg', coins: 1000, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0 },
       { id: 'p3', name: '李四', avatar: 'https://fastly.jsdelivr.net/npm/@vant/assets/cat.jpeg', coins: 800, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0 },
       { id: 'p4', name: '王五', avatar: 'https://fastly.jsdelivr.net/npm/@vant/assets/cat.jpeg', coins: 1200, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0 },
+      { id: 'p5', name: '赵六', avatar: 'https://fastly.jsdelivr.net/npm/@vant/assets/cat.jpeg', coins: 2000, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0 },
     ];
     currentPhase.value = 'IDLE';
     bankerId.value = null;
@@ -26,30 +30,45 @@ export const useGameStore = defineStore('game', () => {
   // 开始游戏
   const startGame = () => {
     currentPhase.value = 'ROB_BANKER';
+    bankerId.value = null; // 重置庄家ID
     deck.value = shuffle(createDeck());
     
-    // 重置玩家状态
+    // 重置玩家状态 (清理上一局的数据：牌型、倍数、分数等)
     players.value.forEach(p => {
       p.hand = [];
       p.isBanker = false;
-      p.robMultiplier = -1;
+      p.robMultiplier = -1; // -1表示未操作
       p.betMultiplier = 0;
-      p.handResult = undefined;
+      p.handResult = undefined; // 清理牛几结果
       p.roundScore = 0;
+      p.isShowHand = false; 
       p.state = 'ROBBING_BANKER';
     });
     
-    // 模拟发牌（每人先发4张，最后一张等亮牌）
-    // 为了简化，这里一次性生成5张，但在UI上先隐藏最后一张
-    players.value.forEach(p => {
-      p.hand = deck.value.splice(0, 5);
-    });
+    // 发牌逻辑差异
+    if (gameMode.value === 'kanpai') {
+        // 看牌抢庄：先发4张
+        players.value.forEach(p => {
+            p.hand = deck.value.splice(0, 4);
+        });
+    } else {
+        // 不看牌抢庄：暂时不发牌 (或者发暗牌，这里简单处理为空，等摊牌时发齐)
+        players.value.forEach(p => {
+            p.hand = [];
+        });
+    }
 
-    startCountdown(5, () => {
-       // 倒计时结束，强制不抢
-       players.value.filter(p => p.robMultiplier === -1).forEach(p => p.robMultiplier = 0);
-       determineBanker();
-    });
+    // 等待发牌动画(约1秒)结束后，再开始倒计时
+    setTimeout(() => {
+        // 如果在动画期间已经完成了抢庄(比如用户极速操作)，则不再启动倒计时
+        if (currentPhase.value !== 'ROB_BANKER') return;
+
+        startCountdown(5, () => {
+           // 倒计时结束，强制不抢
+           players.value.filter(p => p.robMultiplier === -1).forEach(p => p.robMultiplier = 0);
+           determineBanker();
+        });
+    }, 1200);
   };
 
   // 倒计时辅助
@@ -91,6 +110,9 @@ export const useGameStore = defineStore('game', () => {
 
   // 定庄
   const determineBanker = () => {
+    // 安全清理：确保没有多余的庄家
+    players.value.forEach(p => p.isBanker = false);
+
     // 找出倍数最高的
     const maxMultiplier = Math.max(...players.value.map(p => p.robMultiplier));
     const candidates = players.value.filter(p => p.robMultiplier === maxMultiplier);
@@ -141,24 +163,79 @@ export const useGameStore = defineStore('game', () => {
   // 阶段：摊牌
   const startShowdown = () => {
       currentPhase.value = 'SHOWDOWN';
-      players.value.forEach(p => p.state = 'SHOWDOWN');
+      players.value.forEach(p => {
+          p.state = 'SHOWDOWN';
+          p.isShowHand = false;
+      });
       
-      // 计算每个人的牌型
+      // 补齐手牌
+      players.value.forEach(p => {
+          const currentHandSize = p.hand.length;
+          const need = 5 - currentHandSize;
+          if (need > 0) {
+              p.hand.push(...deck.value.splice(0, need));
+          }
+      });
+
+      // 计算每个人的牌型 (数据先算好，展示由 isShowHand 控制)
       players.value.forEach(p => {
           const result = calculateHandType(p.hand);
           p.handResult = { type: result.type, typeName: result.typeName, multiplier: result.multiplier };
-          p.hand = result.sortedCards; // 排序方便展示
+          p.hand = result.sortedCards; // 排序
       });
 
-      // 自动结算倒计时
-      startCountdown(5, () => {
-          calculateScore();
+      // 模拟其他玩家陆续摊牌
+      players.value.forEach(p => {
+          if (p.id !== myPlayerId.value) {
+              // 随机延迟 1-8秒 摊牌
+              setTimeout(() => {
+                  playerShowHand(p.id);
+              }, 1000 + Math.random() * 7000);
+          }
       });
+
+      // 等待补牌动画结束后，再开始倒计时
+      setTimeout(() => {
+          // 如果动画期间已经全部摊牌结算，不再启动倒计时
+          if (currentPhase.value !== 'SHOWDOWN') return;
+
+          // 摊牌倒计时 5秒
+          startCountdown(5, () => {
+              // 倒计时结束，强制所有未摊牌的玩家摊牌，并结算
+              players.value.forEach(p => {
+                  if (!p.isShowHand) p.isShowHand = true;
+              });
+              calculateScore();
+          });
+      }, 1200);
   };
+
+  // 玩家摊牌动作
+  const playerShowHand = (playerId) => {
+      const p = players.value.find(pl => pl.id === playerId);
+      if (p && !p.isShowHand) {
+          p.isShowHand = true;
+          checkAllShowed();
+      }
+  };
+
+  // 检查是否都摊牌了
+  const checkAllShowed = () => {
+      if (players.value.every(p => p.isShowHand)) {
+          if (timer) clearInterval(timer);
+          // 稍微停顿一下再结算，让最后一个摊牌动画播完
+          setTimeout(() => {
+              calculateScore();
+          }, 500);
+      }
+  };
+
+  // 结算
 
   // 结算
   const calculateScore = () => {
       currentPhase.value = 'SETTLEMENT';
+      countdown.value = 0; // 强制清除倒计时
       const banker = players.value.find(p => p.isBanker);
       
       players.value.forEach(p => {
@@ -195,10 +272,24 @@ export const useGameStore = defineStore('game', () => {
           }
       });
       
-      // 3秒后回到准备状态
+      // 记录本次对局历史 (针对自己)
+      const me = players.value.find(p => p.id === myPlayerId.value);
+      if (me) {
+          history.value.unshift({
+              timestamp: Date.now(),
+              mode: gameMode.value === 'kanpai' ? '看四张' : '不看牌',
+              isBanker: me.isBanker,
+              handType: me.handResult ? me.handResult.typeName : '未知',
+              multiplier: me.handResult ? me.handResult.multiplier : 1,
+              score: me.roundScore,
+              balance: me.coins
+          });
+      }
+
+      // 4秒后进入结束状态，等待用户操作下一局
       setTimeout(() => {
-          currentPhase.value = 'IDLE';
-      }, 3000);
+          currentPhase.value = 'GAME_OVER';
+      }, 4000);
   };
 
   // 辅助：牌型大小评分
@@ -216,6 +307,8 @@ export const useGameStore = defineStore('game', () => {
     startGame,
     playerRob,
     playerBet,
-    bankerId
+    playerShowHand,
+    bankerId,
+    history
   }
 })

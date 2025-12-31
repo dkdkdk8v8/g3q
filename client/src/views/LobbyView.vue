@@ -1,10 +1,26 @@
 <script setup>
 import { useRouter } from 'vue-router';
+import { ref } from 'vue';
 
 const router = useRouter();
 
-const enterGame = (mode) => {
-  router.push(`/game/${mode}`);
+// 模拟用户信息
+const userInfo = ref({
+    name: '我 (帅气)',
+    id: '888888',
+    coins: 12580,
+    avatar: 'https://fastly.jsdelivr.net/npm/@vant/assets/cat.jpeg'
+});
+
+// 游戏模式：kanpai (看四张抢庄), bukan (不看牌抢庄)
+const currentMode = ref('kanpai');
+
+const enterGame = (level) => {
+  // 传递房间等级(level)和玩法模式(mode)
+  router.push({
+      path: `/game/${level}`,
+      query: { mode: currentMode.value }
+  });
 };
 
 const rooms = [
@@ -17,12 +33,40 @@ const rooms = [
 
 <template>
   <div class="lobby">
-    <!-- 顶部标题栏 -->
-    <div class="header">
-        <div class="tab-group">
-            <div class="tab active">斗牛</div>
+    <!-- 顶部用户信息栏 -->
+    <div class="user-header">
+        <div class="user-info-left">
+            <div class="avatar-wrapper">
+                <img :src="userInfo.avatar" class="user-avatar" />
+            </div>
+            <div class="user-details">
+                <div class="user-name">{{ userInfo.name }}</div>
+                <div class="user-id">ID: {{ userInfo.id }}</div>
+            </div>
         </div>
-        <div class="close-btn">×</div>
+        <div class="user-assets">
+            <div class="coin-display">
+                <span class="coin-icon">🟡</span>
+                <span class="coin-text">{{ userInfo.coins }}</span>
+                <div class="add-btn">+</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 玩法切换 Tab -->
+    <div class="mode-tabs-container">
+        <div class="tab-group-pill">
+            <div 
+                class="tab-item" 
+                :class="{ 'active-purple': currentMode === 'bukan' }"
+                @click="currentMode = 'bukan'"
+            >不看牌抢庄</div>
+            <div 
+                class="tab-item" 
+                :class="{ 'active-cyan': currentMode === 'kanpai' }"
+                @click="currentMode = 'kanpai'"
+            >看四张抢庄</div>
+        </div>
     </div>
 
     <!-- 房间列表 -->
@@ -62,56 +106,140 @@ const rooms = [
   background: radial-gradient(circle at center, #1e3a8a 0%, #0f172a 100%);
   display: flex;
   flex-direction: column;
-  padding: 20px;
   box-sizing: border-box;
-  font-family: sans-serif;
+  font-family: system-ui, -apple-system, sans-serif;
   color: white;
+  padding-bottom: 20px; /* 底部留白 */
 }
 
-.header {
+/* 用户信息栏 */
+.user-header {
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
-    position: relative;
-    margin-bottom: 30px;
-    height: 50px;
+    padding: 15px 20px;
+    background: rgba(0,0,0,0.2);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 
-.tab-group {
-    background: rgba(0,0,0,0.3);
-    border-radius: 20px;
-    padding: 4px;
+.user-info-left {
     display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
-.tab {
-    padding: 6px 20px;
-    border-radius: 16px;
+.avatar-wrapper {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+
+.user-avatar {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-name {
+    font-size: 16px;
     font-weight: bold;
-    color: #94a3b8;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
 
-.tab.active {
-    background: linear-gradient(to bottom, #2dd4bf, #0f766e);
-    color: white;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+.user-id {
+    font-size: 12px;
+    color: #cbd5e1;
+    margin-top: 2px;
 }
 
-.close-btn {
-    position: absolute;
-    right: 0;
-    width: 36px;
-    height: 36px;
-    background: linear-gradient(to bottom, #3b82f6, #1d4ed8);
+.user-assets {
+    display: flex;
+    align-items: center;
+}
+
+.coin-display {
+    background: rgba(0,0,0,0.5);
+    border-radius: 20px;
+    padding: 4px 4px 4px 12px;
+    display: flex;
+    align-items: center;
+    border: 1px solid rgba(255,255,255,0.2);
+    gap: 6px;
+}
+
+.coin-icon {
+    font-size: 14px;
+}
+
+.coin-text {
+    font-weight: bold;
+    font-size: 14px;
+    color: #fcd34d;
+    margin-right: 4px;
+}
+
+.add-btn {
+    width: 24px;
+    height: 24px;
+    background: linear-gradient(to bottom, #22c55e, #15803d);
     border-radius: 50%;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 24px;
     font-weight: bold;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-    border: 2px solid rgba(255,255,255,0.3);
+    font-size: 16px;
     cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+/* 模式切换栏 */
+.mode-tabs-container {
+    display: flex;
+    justify-content: center;
+    padding: 15px 0;
+}
+
+.tab-group-pill {
+    display: flex;
+    background: rgba(0,0,0,0.3);
+    border-radius: 24px;
+    padding: 4px;
+    width: 80%; /* 宽度控制 */
+    max-width: 300px;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.tab-item {
+    flex: 1;
+    text-align: center;
+    padding: 8px 0;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: bold;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.tab-item.active-purple {
+    background: linear-gradient(135deg, #c084fc 0%, #7e22ce 100%);
+    color: white;
+    box-shadow: 0 2px 8px rgba(126, 34, 206, 0.4);
+}
+
+.tab-item.active-cyan {
+    background: linear-gradient(135deg, #2dd4bf 0%, #0f766e 100%);
+    color: white;
+    box-shadow: 0 2px 8px rgba(15, 118, 110, 0.4);
 }
 
 .room-container {
@@ -120,6 +248,7 @@ const rooms = [
     gap: 16px;
     flex: 1;
     overflow-y: auto;
+    padding: 0 20px;
 }
 
 .room-card {
@@ -197,7 +326,7 @@ const rooms = [
 }
 
 .quick-start-btn {
-    background: linear-gradient(to bottom, #60a5fa, #2563eb);
+    background: linear-gradient(to bottom, #f59e0b, #d97706); /* 改为橙色，更显眼 */
     width: 80%;
     height: 50px;
     border-radius: 25px;
@@ -206,7 +335,7 @@ const rooms = [
     align-items: center;
     font-size: 18px;
     font-weight: bold;
-    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.5);
+    box-shadow: 0 4px 10px rgba(217, 119, 6, 0.5);
     border: 2px solid rgba(255,255,255,0.3);
 }
 </style>

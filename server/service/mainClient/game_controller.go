@@ -26,8 +26,7 @@ func WSEntry(c *gin.Context) {
 	// 确保函数退出时关闭连接
 	defer conn.CloseNormal("handler exit")
 
-	// 获取用户信息（假设已经过 MidToken 中间件）
-	userId := c.GetString(comm.TokenId)
+	userId := c.Query("uid")
 
 	// 如果中间件未提取到 UserID (WebSocket 握手通常通过 URL Query 传递 Token)
 	if userId == "" {

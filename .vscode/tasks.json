@@ -1,0 +1,31 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "SSH_Tunnel_Task",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "${workspaceFolder}/.vscode/debug_remote_sshtunnel.sh",
+                "8082",
+                "18082"
+            ],
+            "isBackground": true,
+            "problemMatcher": {
+                "pattern": [
+                    {
+                        "regexp": "^(\\[ScriptError\\]): (.*)$",
+                        "file": 1,
+                        "message": 2,
+                        "kind": "file"
+                    }
+                ],
+                "background": {
+                "activeOnStart": true,
+                "beginsPattern": "Starting SSH tunnel...",
+                "endsPattern": "Tunnel ready" // 匹配脚本输出的这一行
+                }
+            }
+        }
+    ]
+}

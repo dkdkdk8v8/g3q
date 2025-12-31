@@ -1,0 +1,46 @@
+[
+  {
+    "month": {
+      "from": 4,
+      "to": 4
+    },
+    "day": {
+      "from": 3,
+      "to": 3
+    },
+    "week": {
+      "from": 0,
+      "to": 6
+    },
+    "hour": {
+      "from": 12,
+      "to": 23
+    },
+    "minute": {
+      "from": 0,
+      "to": 59
+    }
+  },
+  {
+    "month": {
+      "from": 4,
+      "to": 4
+    },
+    "day": {
+      "from": 4,
+      "to": 4
+    },
+    "week": {
+      "from": 0,
+      "to": 6
+    },
+    "hour": {
+      "from": 0,
+      "to": 11
+    },
+    "minute": {
+      "from": 0,
+      "to": 59
+    }
+  }
+]

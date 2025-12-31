@@ -1,0 +1,313 @@
+{
+  "development": {
+    "gate": [
+      {
+        "id": "gate",
+        "host": "127.0.0.1",
+        "clientPort": 55014,
+        "frontend": true,
+        "cHost": "127.0.0.1",
+        "cPort": 55010
+      }
+    ],
+    "loginsvr": [
+      {
+        "id": "login-server",
+        "host": "127.0.0.1",
+        "port": 55000
+      }
+    ],
+    "gmsvr": [
+      {
+        "id": "gm-server",
+        "host": "127.0.0.1",
+        "port": 55001,
+        "clientPort": 55151,
+        "frontend": true
+      }
+    ],
+    "connector": [
+      {
+        "id": "connector-server-1",
+        "host": "127.0.0.1",
+        "port": 55002,
+        "clientPort": 55010,
+        "frontend": true
+      }
+    ],
+    "auth": [
+      {
+        "id": "auth-server-1",
+        "host": "127.0.0.1",
+        "port": 55003
+      }
+    ],
+    "singlesvr": [
+      {
+        "id": "redPackage-server",
+        "host": "127.0.0.1",
+        "port": 55004
+      }
+    ],
+    "desknamesvr": [
+      {
+        "id": "deskname-server-1",
+        "host": "127.0.0.1",
+        "port": 55005
+      }
+    ],
+    "lobbysvr": [
+      {
+        "id": "lobby-server-1",
+        "host": "127.0.0.1",
+        "port": 55006
+      }
+    ],
+    "usersvr": [
+      {
+        "id": "user-server-1",
+        "host": "127.0.0.1",
+        "port": 55107
+      }
+    ],
+    "proxysvr": [
+      {
+        "id": "proxy-server-1",
+        "host": "127.0.0.1",
+        "port": 55008,
+        "clientPort": 55009,
+        "frontend": true
+      }
+    ],
+    "chatsvr": [
+      {
+        "id": "chat-server",
+        "host": "127.0.0.1",
+        "port": 55109
+      }
+    ],
+    "gameNiuNiu": [
+      {
+        "id": "gameNiuNiu-server-1",
+        "host": "127.0.0.1",
+        "port": 55013
+      }
+    ],
+    "coinNiuNiu4": [
+      {
+        "id": "coinNiuNiu4-server-1",
+        "host": "127.0.0.1",
+        "port": 55018
+      }
+    ],
+    "robotMaster": [
+      {
+        "id": "robotMaster-server-1",
+        "host": "127.0.0.1",
+        "port": 55020
+      }
+    ],
+    "robotClient": [
+      {
+        "id": "robotClient-server-1",
+        "host": "127.0.0.1",
+        "port": 55021
+      }
+    ],
+    "clubsvr": [
+      {
+        "id": "clubsvr-server-1",
+        "host": "127.0.0.1",
+        "port": 55022
+      }
+    ],
+    "matchsvr": [
+      {
+        "id": "matchsvr-server-1",
+        "host": "127.0.0.1",
+        "port": 55023
+      }
+    ],
+    "websvr": [
+      {
+        "id": "websvr-1",
+        "host": "127.0.0.1",
+        "port": 55024
+      }
+    ]
+  },
+  "production": {
+    "gate": [
+      {
+        "id": "gate-01",
+        "host": "10.30.232.212",
+        "clientPort": 33014,
+        "frontend": true,
+        "cHost": "gate1.ihwqp.net",
+        "cPort": 33010
+      },
+      {
+        "id": "gate-02",
+        "host": "10.30.43.71",
+        "clientPort": 33014,
+        "frontend": true,
+        "cHost": "gate2.ihwqp.net",
+        "cPort": 33010
+      },
+      {
+        "id": "gate-03",
+        "host": "10.30.34.86",
+        "clientPort": 33014,
+        "frontend": true,
+        "cHost": "gate3.ihwqp.net",
+        "cPort": 33010
+      },
+      {
+        "id": "gate-04",
+        "host": "10.31.23.11",
+        "clientPort": 33014,
+        "frontend": true,
+        "cHost": "private1.ihwqp.net",
+        "cPort": 33010
+      },
+      {
+        "id": "gate-05",
+        "host": "10.30.90.120",
+        "clientPort": 33014,
+        "frontend": true,
+        "cHost": "gate5.ihwqp.net",
+        "cPort": 33010
+      }
+    ],
+    "loginsvr": [
+      {
+        "id": "login-server",
+        "host": "10.31.22.57",
+        "port": 34000
+      }
+    ],
+    "gmsvr": [
+      {
+        "id": "gm-server",
+        "host": "10.31.22.57",
+        "port": 34001,
+        "clientPort": 33016,
+        "frontend": true
+      }
+    ],
+    "connector": [
+      {
+        "id": "connector-01",
+        "host": "10.30.232.212",
+        "port": 34002,
+        "clientPort": 33010,
+        "frontend": true,
+        "desc": "阿里-1"
+      },
+      {
+        "id": "connector-02",
+        "host": "10.30.43.71",
+        "port": 34002,
+        "clientPort": 33010,
+        "frontend": true,
+        "desc": "阿里-1"
+      },
+      {
+        "id": "connector-03",
+        "host": "10.30.34.86",
+        "port": 34002,
+        "clientPort": 33010,
+        "frontend": true,
+        "desc": "阿里-1"
+      },
+      {
+        "id": "connector-04",
+        "host": "10.31.23.11",
+        "port": 34002,
+        "clientPort": 33010,
+        "frontend": true,
+        "desc": "阿里-1"
+      },
+      {
+        "id": "connector-05",
+        "host": "10.30.90.120",
+        "port": 34002,
+        "clientPort": 33010,
+        "frontend": true,
+        "desc": "阿里-1"
+      }
+    ],
+    "proxysvr": [
+      {
+        "id": "proxy-server-1",
+        "host": "10.31.22.57",
+        "port": 34003,
+        "clientPort": 33009,
+        "frontend": true
+      }
+    ],
+    "auth": [
+      {
+        "id": "auth-server-1",
+        "host": "10.31.22.57",
+        "port": 34004
+      }
+    ],
+    "singlesvr": [
+      {
+        "id": "redPackage-server",
+        "host": "10.31.22.57",
+        "port": 34005
+      }
+    ],
+    "desknamesvr": [
+      {
+        "id": "deskname-server-1",
+        "host": "10.31.22.57",
+        "port": 34006
+      }
+    ],
+    "lobbysvr": [
+      {
+        "id": "lobby-server-1",
+        "host": "10.31.22.57",
+        "port": 34007
+      }
+    ],
+    "usersvr": [
+      {
+        "id": "user-server-1",
+        "host": "10.31.22.57",
+        "port": 34008
+      }
+    ],
+    "chatsvr": [
+      {
+        "id": "chat-server",
+        "host": "10.31.22.57",
+        "port": 34009
+      }
+    ],
+    "gameNiuNiu": [
+      {
+        "id": "gameNiuNiu-server-1",
+        "host": "10.31.22.57",
+        "port": 34010
+      }
+    ],
+    "coinNiuNiu4": [
+      {
+        "id": "coinNiuNiu4-server-1",
+        "host": "127.0.0.1",
+        "port": 34018
+      }
+    ],
+    "websvr": [
+      {
+        "id": "websvr-1",
+        "host": "127.0.0.1",
+        "port": 34020
+      }
+    ]
+  }
+}

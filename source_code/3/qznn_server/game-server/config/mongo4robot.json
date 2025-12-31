@@ -1,0 +1,17 @@
+{
+    "development": {
+      "host" : "127.0.0.1",
+      "port" : "27017",
+      "database" : "game_xq_robot",
+      "user" : "robot",
+      "password" : "robot123"
+    },
+  
+    "production": {
+      "host" : "127.0.0.1",
+      "port" : "27017",
+      "database" : "robot",
+      "user" : "robot",
+      "password" : "123"
+    }
+  }

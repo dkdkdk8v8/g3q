@@ -1,0 +1,8 @@
+{
+    "coinNiuNiu4": [
+      {"baseCoin": 200, "minCoin": 4000, "maxCoin": 0, "deskNum": 10, "name": "初级房", "maxPlayer": 5, "deskType": 3, "roomIndex": 1, "status": 0},
+      {"baseCoin": 900, "minCoin": 18000, "maxCoin": 0, "deskNum": 10, "name": "中级房", "maxPlayer": 5, "deskType": 3, "roomIndex": 2, "status": 0},
+      {"baseCoin": 3000, "minCoin": 60000, "maxCoin": 0, "deskNum": 10, "name": "高级房", "maxPlayer": 5, "deskType": 3, "roomIndex": 3, "status": 0},
+      {"baseCoin": 20000, "minCoin": 400000, "maxCoin": 0, "deskNum": 10, "name": "精英房", "maxPlayer": 5, "deskType": 3, "roomIndex": 4, "status": 0}
+    ]
+}

@@ -1,0 +1,65 @@
+/**
+ * Created by Administrator on 2016/8/4.
+ */
+
+function WatchCard_1(arr) {
+    var length = arr.length;
+    for(var index = 0; index < length; index ++){
+        var value = index + Math.floor((length - index)*Math.random());
+
+        var temp = arr[index];
+        arr[index] = arr[value];
+        arr[value] = temp;
+    }
+}
+
+function WatchCard_2(cards) {
+    var tmp = cards.concat([]);
+    cards.length = 0;
+    while(1) {
+        var length = tmp.length;
+        if (length == 0)
+            break;
+        var index = Math.floor(Math.random()*length);
+        cards.push(tmp[index]);
+        tmp[index] = tmp[length-1];
+        tmp.pop();
+    }
+}
+
+
+/**
+ * 创建一副扑克牌
+ * @param type
+ */
+
+var cardSet = function (type) {
+    var data = [
+        0x0001, 0x0002 ,0x0003, 0x0004, 0x0005, 0x0006, 0x0007, 0x0008, 0x0009, 0x000A, 0x000B, 0x000C, 0x000D,		//方块 A - K
+        0x0101, 0x0102 ,0x0103, 0x0104, 0x0105, 0x0106, 0x0107, 0x0108, 0x0109, 0x010A, 0x010B, 0x010C, 0x010D,		//梅花 A - K
+        0x0201, 0x0202 ,0x0203, 0x0204, 0x0205, 0x0206, 0x0207, 0x0208, 0x0209, 0x020A, 0x020B, 0x020C, 0x020D,		//红桃 A - K
+        0x0301, 0x0302 ,0x0303, 0x0304, 0x0305, 0x0306, 0x0307, 0x0308, 0x0309, 0x030A, 0x030B, 0x030C, 0x030D		//黑桃 A - K
+    ];
+    WatchCard_2(data);
+    // var data = [
+    //     0x0001, 0x0002 ,0x0003, 0x0004, 0x0005, 0x0006, 0x0007, 0x0008, 0x0009, 0x000A, 0x000B, 0x000C, 0x000D,
+    //     0x0101, 0x0102 ,0x0103, 0x0104, 0x0105, 0x0106, 0x0107, 0x0108, 0x0109, 0x010A, 0x010B, 0x010C, 0x010D,
+    //     0x0201, 0x0202 ,0x0203, 0x0204, 0x0205, 0x0206, 0x0207, 0x0208, 0x0209, 0x020A, 0x020B, 0x020C, 0x020D,
+    //     0x0308, 0x0309, 0x0107, 0x0008 ,0x020B, 0x0201, 0x0305, 0x0009, 0x000D,
+    //
+    //     0x010C, 0x020C, 0x030C, 0x030D
+    // ];
+    this.card = data;
+};
+
+module.exports = cardSet;
+
+var handler = cardSet.prototype;
+
+handler.getCard = function (num) {
+    var resCard = [];
+    for (var i = 0; i < num; i++) {
+        resCard.push(this.card.pop());
+    }
+    return resCard;
+};

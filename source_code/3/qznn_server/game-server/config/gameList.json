@@ -1,0 +1,42 @@
+{
+  "gameTexasPoker":{
+    "name":"德州扑克",
+    "index":1
+  },
+  "gameDDZ": {
+    "name":"斗地主",
+    "index":2
+  },
+  "gameNiuNiu":{
+    "name":"牛牛",
+    "index":3
+  },
+  "gameSSS":{
+    "name":"十三水",
+    "index":6
+  },
+  "gamePDK": {
+    "name":"跑得快",
+    "index":9
+  },
+  "gameMaJiang_nd":{
+    "name":"宁都麻将",
+    "index":25
+  },
+  "gameMaJiang_gtz":{
+    "name":"滚筒子",
+    "index":26
+  },
+  "coinMaJiang_nd":{
+    "name":"宁都麻将金币场",
+    "index":100
+  },
+  "coinNiuNiu4":{
+    "name":"4人牛牛金币场",
+    "index":101
+  },
+  "coinDDZ":{
+    "name":"斗地主金币场",
+    "index":102
+  }
+}

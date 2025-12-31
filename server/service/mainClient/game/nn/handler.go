@@ -5,6 +5,8 @@ import (
 	"service/comm"
 	"service/mainClient/game"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -252,8 +254,20 @@ func EnterSettling(r *game.Room) {
 	}
 	r.Broadcast(comm.Response{Cmd: "nn.settle", Data: map[string]interface{}{"scores": playerScores, "results": results, "banker": r.BankerID}})
 	r.Timer = time.AfterFunc(5*time.Second, func() {
+		var leftBots []string
 		r.Mu.Lock()
-		defer r.Mu.Unlock()
+
+		// 机器人随机退出逻辑 (例如 30% 概率退出)
+		for id, p := range r.Players {
+			if p.IsRobot && rand.Intn(100) < 30 {
+				leftBots = append(leftBots, id)
+			}
+		}
+		for _, id := range leftBots {
+			delete(r.Players, id)
+			r.Broadcast(comm.Response{Cmd: "nn.player_leave", Data: map[string]interface{}{"uid": id}})
+		}
+
 		r.State = game.StateWaiting
 		for _, p := range r.Players {
 			p.Cards = nil
@@ -261,7 +275,16 @@ func EnterSettling(r *game.Room) {
 			p.BetMult = 0
 			p.IsShow = false
 		}
-		if len(r.Players) >= r.MaxPlayers {
+		canStart := len(r.Players) >= r.MaxPlayers
+		r.Mu.Unlock()
+
+		// 在锁外处理全局管理器逻辑和开始游戏，避免死锁
+		for _, id := range leftBots {
+			game.GetMgr().RemovePlayer(id)
+			logrus.WithFields(logrus.Fields{"room": r.ID, "bot": id}).Info("Robot-Left-Room")
+		}
+
+		if canStart {
 			StartGame(r)
 		}
 	})

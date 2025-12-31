@@ -74,6 +74,12 @@ func (rm *RoomManager) SetPlayerRoom(userID string, roomID string) {
 	rm.playerRoom[userID] = roomID
 }
 
+func (rm *RoomManager) RemovePlayer(userID string) {
+	rm.mu.Lock()
+	defer rm.mu.Unlock()
+	delete(rm.playerRoom, userID)
+}
+
 func (rm *RoomManager) GetRoomByPlayerID(userID string) *Room {
 	rm.mu.RLock()
 	defer rm.mu.RUnlock()

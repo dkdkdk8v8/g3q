@@ -5,12 +5,7 @@ import (
 	"compoment/uid"
 	"compoment/util"
 	"fmt"
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-	"math"
 	"math/rand"
-	"reflect"
-	"service/modelClient"
 	"strings"
 )
 
@@ -133,37 +128,6 @@ func GetClientVersionNum(version string) []int {
 	return ret
 }
 
-type HSXSClick struct {
-	Type modelClient.ClickType
-	Arg  interface{}
-}
-
-func BuildClickEvent(tp modelClient.ClickType, param interface{}) HSXSClick {
-	ret := HSXSClick{}
-	ret.Type = tp
-	ret.Arg = param
-	var err error
-	switch ret.Type {
-	case modelClient.ClickTypeOpenWeb, modelClient.ClickTypeInnerWeb:
-		switch reflect.TypeOf(param).Kind() {
-		case reflect.String:
-			ret.Arg = param
-		default:
-			err = errors.New("invalidClickType")
-		}
-	case modelClient.ClickTypePlayList:
-		//tod check
-	case modelClient.ClickTypeVideoDetail:
-		//tod check
-	}
-	if err != nil {
-		logrus.WithField("!", nil).WithField(
-			"clickType", tp).WithField("param", param).WithError(err).Error("HSXSClickBuild-Fail")
-		ret.Type = modelClient.ClickTypeNone
-	}
-	return ret
-}
-
 func PlayVideo265(plat int) bool {
 	// 平台标识// 0：未知；
 	// 1：app-android；// 2：app-ios ；
@@ -200,44 +164,4 @@ func GetCdnPrefixPath(cft CdnForType, relativePath string) string {
 	default:
 		return "/error/" + relativePath
 	}
-}
-
-func AdSamePositionSelect(s []*modelClient.ModelAdCommon) []*modelClient.ModelAdCommon {
-	//pre check
-	bSamePos := false
-	lastPos := math.MinInt16
-	for _, ad := range s {
-		if lastPos == int(ad.Position) {
-			bSamePos = true
-			break
-		}
-		lastPos = int(ad.Position)
-	}
-	if !bSamePos {
-		return s
-	}
-	//select by weight
-	var ret []*modelClient.ModelAdCommon
-	var tempSamePositionMap = make(map[int][]*modelClient.ModelAdCommon, len(s))
-	for _, ad := range s {
-		tArr, ok := tempSamePositionMap[int(ad.Position)]
-		if !ok {
-			tArr = make([]*modelClient.ModelAdCommon, 0)
-		}
-		tArr = append(tArr, ad)
-		tempSamePositionMap[int(ad.Position)] = tArr
-	}
-	for _, samePosArr := range tempSamePositionMap {
-		if len(samePosArr) > 1 {
-			selectOneAd := util.WeightedRandSimple(samePosArr, func(common *modelClient.ModelAdCommon) int {
-				return int(common.Weight)
-			})
-			ret = append(ret, selectOneAd)
-		} else if len(samePosArr) == 1 {
-			ret = append(ret, samePosArr[0])
-		} else {
-			//pass,todo log
-		}
-	}
-	return ret
 }

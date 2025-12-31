@@ -307,24 +307,27 @@ const quitGame = () => {
     </div>
 
     <div class="table-center" ref="tableCenterRef">
-        <!-- 倒计时闹钟 -->
-        <div class="alarm-clock" v-if="store.countdown > 0 && ['ROB_BANKER', 'BETTING', 'SHOWDOWN'].includes(store.currentPhase)">
-            <div class="alarm-body">
-                <div class="alarm-time">{{ store.countdown < 10 ? '0' + store.countdown : store.countdown }}</div>
+        <!-- 闹钟和阶段提示信息的容器 -->
+        <div v-if="store.countdown > 0 && ['ROB_BANKER', 'BETTING', 'SHOWDOWN'].includes(store.currentPhase)" class="clock-and-info-wrapper">
+            <!-- 倒计时闹钟 -->
+            <div class="alarm-clock">
+                <div class="alarm-body">
+                    <div class="alarm-time">{{ store.countdown < 10 ? '0' + store.countdown : store.countdown }}</div>
+                </div>
+                <div class="alarm-ears left"></div>
+                <div class="alarm-ears right"></div>
             </div>
-            <div class="alarm-ears left"></div>
-            <div class="alarm-ears right"></div>
+
+            <!-- 阶段提示信息，统一显示在倒计时下方并样式类似“结算中...” -->
+            <div class="phase-info">
+                <span v-if="store.currentPhase === 'ROB_BANKER'">看牌抢庄</span>
+                <span v-else-if="store.currentPhase === 'BETTING'">闲家下注</span>
+                <span v-else-if="store.currentPhase === 'SHOWDOWN'">摊牌比拼</span>
+            </div>
         </div>
 
-        <div class="phase-banner" v-if="store.currentPhase !== 'IDLE' && store.currentPhase !== 'SETTLEMENT'">
-            <span v-if="store.currentPhase === 'ROB_BANKER'">看牌抢庄</span>
-            <span v-else-if="store.currentPhase === 'BETTING'">闲家下注</span>
-            <span v-else-if="store.currentPhase === 'SHOWDOWN'">摊牌比拼</span>
-        </div>
-        
-        <div v-if="store.currentPhase === 'SETTLEMENT'" class="phase-tip">
-            结算中...
-        </div>
+        <!-- 仅当闹钟不显示时，显示结算中 -->
+        <div v-if="store.currentPhase === 'SETTLEMENT' && store.countdown === 0" class="phase-info settlement-info">结算中...</div>
 
         <!-- 重新开始按钮 -->
         <div v-if="store.currentPhase === 'GAME_OVER'" class="restart-btn" @click="store.startGame()">
@@ -604,7 +607,7 @@ const quitGame = () => {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
+    /* Removed gap: 10px; as it will be managed by clock-and-info-wrapper */
     width: 200px;
     min-height: 120px; /* 允许高度自适应，防止挤压 */
     height: auto;
@@ -612,11 +615,19 @@ const quitGame = () => {
     z-index: 1000; /* 确保在金币层之下，但需要在发牌层之上吗？不需要，只有闹钟需要 */
 }
 
+.clock-and-info-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px; /* This handles the 3px distance between clock and phase info */
+    pointer-events: auto; /* Allow interaction with children if needed */
+}
+
 .alarm-clock {
     position: relative;
     width: 60px;
     height: 60px;
-    pointer-events: auto; 
+    /* pointer-events: auto; moved to wrapper */
     z-index: 1002; /* 必须高于发牌层(999) */
 }
 .alarm-body {
@@ -640,27 +651,28 @@ const quitGame = () => {
 }
 .alarm-ears {
     position: absolute;
-    top: -5px;
-    width: 20px;
-    height: 20px;
+    /* top: -6px; Removed to allow individual positioning */
+    width: 16px;
+    height: 16px;
     background: #f97316;
     border-radius: 50%;
     z-index: 1;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
-.alarm-ears.left { left: 0; transform: rotate(-30deg); }
-.alarm-ears.right { right: 0; transform: rotate(30deg); }
+.alarm-ears.left { top: -6px; left: 2px; transform: rotate(-15deg); } /* Keep original top for left ear */
+.alarm-ears.right { top: -5px; right: -5px; transform: rotate(15deg); } /* Move right 5px, up 2px */
 
-.phase-banner {
-    color: rgba(255,255,255,0.2);
-    font-size: 40px;
-    font-weight: 900;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) scale(2);
-    white-space: nowrap;
-    z-index: 0;
-    pointer-events: none;
+.phase-info {
+    background: rgba(0,0,0,0.6);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+    margin-top: 10px;
+}
+
+.phase-info.settlement-info { /* Added for the independent settlement info */
+    margin-top: 10px; /* To maintain some distance from other elements if not in wrapper */
 }
 
 .phase-tip {

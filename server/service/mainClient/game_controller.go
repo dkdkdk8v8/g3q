@@ -26,27 +26,29 @@ func WSEntry(c *gin.Context) {
 	// 确保函数退出时关闭连接
 	defer conn.CloseNormal("handler exit")
 
-	userId := c.Query("uid")
+	appUserId := c.Query("uid")
+	appId := c.Query("app")
 
 	// 如果中间件未提取到 UserID (WebSocket 握手通常通过 URL Query 传递 Token)
-	if userId == "" {
-		token := c.Query("token")
-		// 使用 comm.VerifyToken 进行验证，它包含了解密、签名校验和过期检查
-		if t, err := comm.VerifyToken(token); err != nil {
-			logrus.WithError(err).Error("WS-Auth-Fail")
-			return
-		} else {
-			userId = t.ID
-		}
-	}
+	// todo 客户端以后加token验证逻辑后，再开启注释
+	// if userId == "" {
+	// 	token := c.Query("token")
+	// 	// 使用 comm.VerifyToken 进行验证，它包含了解密、签名校验和过期检查
+	// 	if t, err := comm.VerifyToken(token); err != nil {
+	// 		logrus.WithError(err).Error("WS-Auth-Fail")
+	// 		return
+	// 	} else {
+	// 		userId = t.ID
+	// 	}
+	// }
 
 	// 1.5 查询数据库校验用户是否存在，不存在则自动注册
-	user, err := modelClient.GetOrCreateUser(userId)
+	user, err := modelClient.GetOrCreateUser(appId, appUserId)
 	if err != nil {
-		logrus.WithError(err).WithField("uid", userId).Error("WS-GetOrCreateUser-Fail")
+		logrus.WithError(err).WithField("appUserId", appUserId).Error("WS-GetOrCreateUser-Fail")
 		return
 	}
-	userId = user.UserId
+	userId := user.UserId
 
 	logrus.WithField("uid", userId).Info("WS-Client-Connected")
 

@@ -1,8 +1,6 @@
 package modelClient
 
 import (
-	"compoment/uid"
-	"compoment/util"
 	"time"
 )
 
@@ -41,16 +39,19 @@ func (a *ModelUser) TableIndex() [][]string {
 	}
 }
 
-func GetOrCreateUser(userId string) (*ModelUser, error) {
+func GetOrCreateUser(appId string, appUserId string) (*ModelUser, error) {
+	//todo redis locking，防止并发创建同一用户
 	var user ModelUser
-	err := GetDb().QueryTable(new(ModelUser)).Filter("user_id", userId, "is_robot", false).One(&user)
+	err := GetDb().QueryTable(new(ModelUser)).Filter(
+		"app_id", appId).Filter(
+		"app_user_id", appUserId).Filter(
+		"is_robot", false).One(&user)
 	if err == nil {
 		return &user, nil
 	}
 
 	// 用户不存在，执行自动注册逻辑
-	appUserId := util.EncodeToBase36(uid.Generate())
-	newUserId := AppIdMain + "_" + appUserId
+	newUserId := AppIdMain + appUserId
 
 	user = ModelUser{
 		UserId:    newUserId,

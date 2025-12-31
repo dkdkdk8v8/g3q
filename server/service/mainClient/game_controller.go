@@ -7,6 +7,7 @@ import (
 	"service/mainClient/game"
 	"service/mainClient/game/brnn"
 	"service/mainClient/game/nn"
+	"service/modelClient"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -27,6 +28,15 @@ func WSEntry(c *gin.Context) {
 
 	// 获取用户信息（假设已经过 MidToken 中间件）
 	userId := c.GetString(comm.TokenId)
+
+	// 1.5 查询数据库校验用户是否存在，不存在则自动注册
+	user, err := modelClient.GetOrCreateUser(userId)
+	if err != nil {
+		logrus.WithError(err).WithField("uid", userId).Error("WS-GetOrCreateUser-Fail")
+		return
+	}
+	userId = user.UserId
+
 	logrus.WithField("uid", userId).Info("WS-Client-Connected")
 
 	// 2. 进入消息处理循环

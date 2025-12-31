@@ -21,3 +21,4 @@ secrets.json
 
 # 忽略参考源码
 source_code/
+server/third_code/

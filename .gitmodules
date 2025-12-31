@@ -1,0 +1,6 @@
+[submodule "server/compoment"]
+	path = server/compoment
+	url = git@github.com:dkdkdk8v8/compoment.git
+[submodule "server/thirdcode"]
+	path = server/thirdcode
+	url = git@github.com:dkdkdk8v8/thirdcode.git

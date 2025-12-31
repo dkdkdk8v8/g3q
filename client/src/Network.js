@@ -38,9 +38,9 @@ export default class GameClient {
      * @param {string} host - 服务器地址 (e.g., "127.0.0.1:8080")
      * @param {string} token - 用户鉴权 Token
      */
-    connect(host, token) {
+    connect(host, userid, token) {
         // 构造 WebSocket URL，携带 Token
-        this.url = `ws://${host}/ws?token=${encodeURIComponent(token)}`;
+        this.url = `ws://${host}/ws?userid=${encodeURIComponent(userid)}&token=${encodeURIComponent(token)}`;
         this.isManualClose = false;
         this._initWebSocket();
     }
@@ -198,5 +198,5 @@ client.on("nn.match_res", (msg) => {
     }
 });
 
-client.connect("127.0.0.1:8080", "YOUR_TOKEN_HERE");
+client.connect("127.0.0.1:8080", "testId", "YOUR_TOKEN_HERE");
 */

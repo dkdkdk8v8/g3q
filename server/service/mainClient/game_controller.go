@@ -29,6 +29,18 @@ func WSEntry(c *gin.Context) {
 	// 获取用户信息（假设已经过 MidToken 中间件）
 	userId := c.GetString(comm.TokenId)
 
+	// 如果中间件未提取到 UserID (WebSocket 握手通常通过 URL Query 传递 Token)
+	if userId == "" {
+		token := c.Query("token")
+		// 使用 comm.VerifyToken 进行验证，它包含了解密、签名校验和过期检查
+		if t, err := comm.VerifyToken(token); err != nil {
+			logrus.WithError(err).Error("WS-Auth-Fail")
+			return
+		} else {
+			userId = t.ID
+		}
+	}
+
 	// 1.5 查询数据库校验用户是否存在，不存在则自动注册
 	user, err := modelClient.GetOrCreateUser(userId)
 	if err != nil {

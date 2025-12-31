@@ -14,6 +14,9 @@ const (
 	StateSettle  = 2
 )
 
+// RobotExitRate 机器人退出概率，由 mainClient 初始化
+var RobotExitRate = 30
+
 // Player 代表房间内的一个玩家
 type Player struct {
 	ID       string

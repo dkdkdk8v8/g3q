@@ -171,7 +171,7 @@ func (w *mainClientWork) Start(baseCtx *initMain.BaseCtx) error {
 	}
 	logrus.Info("startNetServer")
 
-	// 初始化机器人管理器并开启余额监控
+	// 初始化机器人管理器
 	mainClient.GetRobotMgr().InitRobots()
 
 	go func() {

@@ -1,9 +1,11 @@
 package nn
 
 import (
+	"beego/v2/client/orm"
 	"math/rand"
 	"service/comm"
 	"service/mainClient/game"
+	"service/modelClient"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -255,11 +257,17 @@ func EnterSettling(r *game.Room) {
 	r.Broadcast(comm.Response{Cmd: "nn.settle", Data: map[string]interface{}{"scores": playerScores, "results": results, "banker": r.BankerID}})
 	r.Timer = time.AfterFunc(5*time.Second, func() {
 		var leftBots []string
+		var allUserIds []string
 		r.Mu.Lock()
 
-		// 机器人随机退出逻辑 (例如 30% 概率退出)
+		// 收集当前房间所有玩家ID用于更新最后游戏时间
+		for id := range r.Players {
+			allUserIds = append(allUserIds, id)
+		}
+
+		// 机器人随机退出逻辑
 		for id, p := range r.Players {
-			if p.IsRobot && rand.Intn(100) < 30 {
+			if p.IsRobot && rand.Intn(100) < game.RobotExitRate {
 				leftBots = append(leftBots, id)
 			}
 		}
@@ -277,6 +285,11 @@ func EnterSettling(r *game.Room) {
 		}
 		canStart := len(r.Players) >= r.MaxPlayers
 		r.Mu.Unlock()
+
+		// 批量记录所有玩家的最后游戏时间 (锁外执行，减少锁占用)
+		_, _ = modelClient.GetDb().QueryTable(new(modelClient.ModelUser)).
+			Filter("user_id__in", allUserIds).
+			Update(orm.Params{"last_played": time.Now()})
 
 		// 在锁外处理全局管理器逻辑和开始游戏，避免死锁
 		for _, id := range leftBots {

@@ -10,10 +10,10 @@ export default {
       default: {
         type: 'mysql',
         host: '127.0.0.1',
-        port: 13306,
-        username: '11',
-        password: '11',
-        database: 'hsxs_admin',
+        port: 3306,
+        username: 'admin',
+        password: 'S40bdYFgTy8uzz6A',
+        database: 'g3q_admin',
         // 自动建表 注意：线上部署的时候不要使用，有可能导致数据丢失
         synchronize: true,
         // 打印日志

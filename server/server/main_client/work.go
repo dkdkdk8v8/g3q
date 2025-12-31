@@ -3,6 +3,7 @@ package main
 import (
 	"compoment/alert"
 	"compoment/logrotate"
+	"compoment/ormutil"
 	"compoment/uid"
 	"fmt"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"service/comm"
 	"service/initMain"
 	"service/mainClient"
+	"service/modelClient"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
@@ -144,6 +146,23 @@ func (w *mainClientWork) Start(baseCtx *initMain.BaseCtx) error {
 	//		return err
 	//	}
 	//}
+
+	logrus.Info("regModel")
+	ormutil.RegOrmModel(modelClient.RegModels, modelClient.ServerDB, modelClient.ServerDB,
+		w.cfg.MysqlHost, w.cfg.MysqlPort,
+		w.cfg.MysqlUser, w.cfg.MysqlPwd,
+		w.cfg.MysqlConn, w.cfg.MysqlIdle)
+
+	logrus.Info("syncModel")
+	if err := ormutil.RunSyncModel(); err != nil {
+		logrus.WithError(err).Error("syncModel-Fail")
+		return err
+	}
+	logrus.Info("initModel")
+	if err := ormutil.InitModel(); err != nil {
+		logrus.WithError(err).Error("initModel-Fail")
+		return err
+	}
 
 	logrus.Info("ipDb")
 	if err := comm.InitIpDataBase(); err != nil {

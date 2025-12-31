@@ -39,7 +39,7 @@
     "uuid": "^9.0.1",
     "ws": "^8.17.0",
     "node-telegram-bot-api": "^0.66.0",
-    "tunnel-ssh": "^4.1.4",
+    "ssh2": "^1.11.0",
     "kill-port": "^1.6.1"
   },
   "devDependencies": {
@@ -61,7 +61,6 @@
   "scripts": {
     "start": "NODE_ENV=production node ./bootstrap.js",
     "dev": "mwtsc --cleanOutDir && NODE_ENV=local node ./bootstrap.js",
-    "cron": "cross-env NODE_ENV=cron mwtsc --watch --run @midwayjs/mock/app.js --keepalive",
     "cov": "jest --coverage",
     "lint": "mwts check",
     "lint:fix": "mwts fix",

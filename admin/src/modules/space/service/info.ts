@@ -5,7 +5,6 @@ import { InjectEntityModel } from '@midwayjs/typeorm';
 import { Repository } from 'typeorm';
 import { PluginService } from '../../plugin/service/info';
 import { Utils } from '../../../comm/utils';
-import { SettingConfigInfoService } from '../../setting/service/config/info';
 
 /**
  * 文件信息
@@ -20,9 +19,6 @@ export class SpaceInfoService extends BaseService {
 
   @Inject()
   util: Utils;
-
-  @Inject()
-  configService: SettingConfigInfoService;
 
   /**
    * 新增
@@ -39,10 +35,4 @@ export class SpaceInfoService extends BaseService {
     }
   }
 
-  async page(query, option, connectionName) {
-    const host = await this.configService.getString('admin_cdn_host');
-    const result = await super.page(query, option, connectionName);
-    result?.list?.map(item => (item.url = `${host}/${item.url}`));
-    return result;
-  }
 }

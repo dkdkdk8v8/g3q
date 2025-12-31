@@ -78,13 +78,19 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 	case "nn.match": // 抢庄牛牛匹配
 		// 处理抢庄牛牛匹配逻辑
 		p := &game.Player{
-			ID:   userId,
-			Conn: conn,
+			ID:      userId,
+			Conn:    conn,
+			IsRobot: false,
 		}
 		room, err := game.GetMgr().JoinOrCreateRoom("nn", p, nn.StartGame)
 		if err != nil {
 			conn.WriteJSON(comm.Response{Cmd: msg.Cmd, Seq: msg.Seq, Code: -1, Msg: err.Error()})
 			return
+		}
+
+		// 如果是真实玩家进入，安排机器人
+		if !p.IsRobot {
+			GetRobotMgr().ArrangeRobotsForRoom(room)
 		}
 
 		// 成功加入，通知客户端房间信息
@@ -138,14 +144,21 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 
 	case "brnn.match": // 百人牛牛进入房间
 		p := &game.Player{
-			ID:   userId,
-			Conn: conn,
+			ID:      userId,
+			Conn:    conn,
+			IsRobot: false,
 		}
 		room, err := game.GetMgr().JoinOrCreateRoom("brnn", p, brnn.StartGame)
 		if err != nil {
 			conn.WriteJSON(comm.Response{Cmd: msg.Cmd, Seq: msg.Seq, Code: -1, Msg: err.Error()})
 			return
 		}
+
+		// 如果是真实玩家进入，安排机器人
+		if !p.IsRobot {
+			GetRobotMgr().ArrangeRobotsForRoom(room)
+		}
+
 		conn.WriteJSON(comm.Response{
 			Cmd:  "brnn.match_res",
 			Seq:  msg.Seq,

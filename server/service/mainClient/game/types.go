@@ -22,6 +22,7 @@ type Player struct {
 	CallMult int   // 抢庄倍数
 	BetMult  int   // 下注倍数
 	IsShow   bool  // 是否已亮牌
+	IsRobot  bool  // 是否机器人
 }
 
 // Room 代表一个游戏房间
@@ -85,7 +86,9 @@ func (r *Room) AddPlayer(p *Player) (int, error) {
 
 func (r *Room) Broadcast(msg interface{}) {
 	for _, p := range r.Players {
-		_ = p.Conn.WriteJSON(msg)
+		if p.Conn != nil {
+			_ = p.Conn.WriteJSON(msg)
+		}
 	}
 }
 

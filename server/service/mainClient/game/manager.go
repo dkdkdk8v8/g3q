@@ -45,9 +45,11 @@ func (rm *RoomManager) JoinOrCreateRoom(gameType string, player *Player, onStart
 
 	for _, room := range rm.rooms {
 		if room.Type == gameType && len(room.Players) < room.MaxPlayers {
-			_, err := room.AddPlayer(player)
+			if _, err := room.AddPlayer(player); err != nil {
+				return nil, err
+			}
 			rm.playerRoom[player.ID] = room.ID
-			return room, err
+			return room, nil
 		}
 	}
 
@@ -64,6 +66,18 @@ func (rm *RoomManager) JoinOrCreateRoom(gameType string, player *Player, onStart
 	rm.playerRoom[player.ID] = roomID
 
 	return newRoom, nil
+}
+
+func (rm *RoomManager) SetPlayerRoom(userID string, roomID string) {
+	rm.mu.Lock()
+	defer rm.mu.Unlock()
+	rm.playerRoom[userID] = roomID
+}
+
+func (rm *RoomManager) RemovePlayer(userID string) {
+	rm.mu.Lock()
+	defer rm.mu.Unlock()
+	delete(rm.playerRoom, userID)
 }
 
 func (rm *RoomManager) GetRoomByPlayerID(userID string) *Room {

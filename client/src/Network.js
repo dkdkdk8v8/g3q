@@ -132,7 +132,7 @@ export default class GameClient {
         this.seq++;
         const packet = {
             cmd: cmd,
-            seq: this.seq.toString(),
+            seq: this.seq,
             data: data
         };
         this.ws.send(JSON.stringify(packet));

@@ -51,11 +51,11 @@ func GetOrCreateUser(appId string, appUserId string) (*ModelUser, error) {
 	}
 
 	// 用户不存在，执行自动注册逻辑
-	newUserId := AppIdMain + appUserId
+	newUserId := appId + appUserId
 
 	user = ModelUser{
 		UserId:    newUserId,
-		AppId:     AppIdMain,
+		AppId:     appId,
 		AppUserId: appUserId,
 		Enable:    true,
 	}

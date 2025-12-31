@@ -1,0 +1,23 @@
+# 忽略依赖目录
+node_modules/
+vendor/
+
+# 忽略编译输出
+dist/
+build/
+out/
+*.exe
+*.dll
+
+# 忽略日志和临时文件
+*.log
+tmp/
+.cache/
+
+# 忽略敏感信息
+.env
+secrets.json
+*.pem
+
+# 忽略参考源码
+source_code/

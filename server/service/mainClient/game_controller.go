@@ -49,8 +49,18 @@ func WSEntry(c *gin.Context) {
 		return
 	}
 	userId := user.UserId
-
 	logrus.WithField("uid", userId).Info("WS-Client-Connected")
+
+	// 发送用户信息给客户端
+	conn.WriteJSON(comm.Response{
+		Cmd: "user.allinfo",
+		Seq: 0,
+		Data: gin.H{
+			"balance":   user.Balance,
+			"nick_name": user.NickName,
+			"avatar":    user.Avatar,
+		},
+	})
 
 	// 2. 进入消息处理循环
 	handleConnection(conn, userId)

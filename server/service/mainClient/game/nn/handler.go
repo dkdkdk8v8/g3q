@@ -18,6 +18,10 @@ const (
 	StateSettling = 4
 )
 
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
 func StartGame(r *game.Room) {
 	r.Mu.Lock()
 	defer r.Mu.Unlock()
@@ -222,7 +226,13 @@ func EnterSettling(r *game.Room) {
 		results[id] = CalcNiu(p.Cards)
 	}
 	bankerRes := results[r.BankerID]
-	bankerMult := r.Players[r.BankerID].CallMult
+
+	// 修复：防止庄家中途异常消失导致 Panic
+	bankerMult := 1
+	if banker, ok := r.Players[r.BankerID]; ok {
+		bankerMult = banker.CallMult
+	}
+
 	if bankerMult <= 0 {
 		bankerMult = 1
 	}
@@ -273,6 +283,11 @@ func EnterSettling(r *game.Room) {
 				leftBots = append(leftBots, id)
 			}
 		}
+
+		if len(r.Players)-len(leftBots) < r.MaxPlayers {
+			leftBots = nil
+		}
+
 		for _, id := range leftBots {
 			delete(r.Players, id)
 			r.Broadcast(comm.Response{Cmd: "nn.player_leave", Data: map[string]interface{}{"uid": id}})

@@ -68,7 +68,16 @@ func CalcNiu(cards []int) game.CardResult {
 	for _, r := range ranks {
 		rankCounts[r]++
 		if rankCounts[r] == 4 {
-			return game.CardResult{Niu: NiuBomb, Mult: 6, MaxCard: maxCard}
+			// 修复：炸弹牛比较大小时，应比较炸弹的牌值，而不是手牌最大值
+			// 例如 3333K (炸弹3) < 44442 (炸弹4)，但 K > 4
+			var bombCard int
+			for _, c := range cards {
+				if c/4 == r {
+					bombCard = c
+					break
+				}
+			}
+			return game.CardResult{Niu: NiuBomb, Mult: 6, MaxCard: bombCard}
 		}
 	}
 
@@ -144,11 +153,21 @@ func GetCardsByNiu(availableCards []int, targetNiu int) []int {
 
 	// 策略1: 如果目标是无牛 (0)，尝试随机寻找 (因为无牛概率高，暴力组合效率低)
 	if targetNiu == NiuNone {
+		limit := n - 5
+		if limit <= 0 {
+			hand := make([]int, 5)
+			copy(hand, availableCards)
+			if CalcNiu(hand).Niu == NiuNone {
+				return hand
+			}
+			return nil
+		}
+
 		for i := 0; i < 200; i++ {
 			// 简单的伪随机抽取5张验证
 			// 注意：这里仅做演示，实际应避免重复索引。为性能考虑，这里假设 availableCards 已经洗牌
 			// 我们直接取连续的5张做多次尝试即可，或者使用 sliding window
-			start := i % (n - 5)
+			start := i % limit
 			hand := make([]int, 5)
 			copy(hand, availableCards[start:start+5])
 			if CalcNiu(hand).Niu == NiuNone {

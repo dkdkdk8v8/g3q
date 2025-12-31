@@ -50,7 +50,7 @@ func GetOrCreateUser(userId string) (*ModelUser, error) {
 
 	// 用户不存在，执行自动注册逻辑
 	appUserId := util.EncodeToBase36(uid.Generate())
-	newUserId := AppIdMain + "_" + appUserId
+	newUserId := AppIdMain + appUserId
 
 	user = ModelUser{
 		UserId:    newUserId,

@@ -9,12 +9,6 @@ import (
 	"strings"
 )
 
-const (
-	AppId91XJ = "91xj"
-	AppIdSgui = "sgui"
-	AppIdYase = "yase"
-)
-
 func BuildUserId() string {
 	snowId := uid.Generate()
 	return util.EncodeToBase36(snowId)

@@ -25,8 +25,8 @@ type Player struct {
 	IsRobot  bool  // 是否机器人
 }
 
-// RoomConfig 房间配置
-type RoomConfig struct {
+// LobbyConfig 大厅配置
+type LobbyConfig struct {
 	Level      int    `json:"level"`       // 房间等级ID
 	Name       string `json:"name"`        // 房间名称
 	MinBalance int64  `json:"min_balance"` // 最低入场金额
@@ -55,7 +55,7 @@ type Room struct {
 
 	// 百人牛牛特有字段
 	BRNNBets map[int]map[string]int64 // 区域ID(0-3) -> 玩家ID -> 下注金额
-	Config   RoomConfig               // 房间配置
+	Config   LobbyConfig              // 房间配置
 }
 
 // CardResult 牌型计算结果

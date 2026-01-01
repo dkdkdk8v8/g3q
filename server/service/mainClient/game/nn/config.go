@@ -5,14 +5,14 @@ import "service/mainClient/game"
 // RobotExitRate 机器人退出概率
 var RobotExitRate = 30
 
-var Configs = []game.RoomConfig{
+var Configs = []game.LobbyConfig{
 	{Level: 1, Name: "初级场", MinBalance: 600, BaseBet: 100},
 	{Level: 2, Name: "中级场", MinBalance: 3000, BaseBet: 500},
 	{Level: 3, Name: "高级场", MinBalance: 6000, BaseBet: 1000},
 	{Level: 4, Name: "豪华场", MinBalance: 1200, BaseBet: 2000},
 }
 
-func GetConfig(level int) *game.RoomConfig {
+func GetConfig(level int) *game.LobbyConfig {
 	for _, c := range Configs {
 		if c.Level == level {
 			// 返回副本以防修改原配置

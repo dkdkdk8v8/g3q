@@ -34,7 +34,7 @@ func (rm *RoomManager) SetDrainMode(enable bool) {
 	rm.isDraining = enable
 }
 
-func (rm *RoomManager) JoinOrCreateRoom(gameType string, player *Player, onStart func(*Room), config *RoomConfig) (*Room, error) {
+func (rm *RoomManager) JoinOrCreateRoom(gameType string, player *Player, onStart func(*Room), config *LobbyConfig) (*Room, error) {
 	rm.mu.Lock()
 	defer rm.mu.Unlock()
 

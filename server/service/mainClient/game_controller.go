@@ -71,24 +71,6 @@ func WSEntry(c *gin.Context) {
 	userId := user.UserId
 	logrus.WithField("uid", userId).Info("WS-Client-Connected")
 
-	nickName := user.NickName
-	if nickName == "" {
-		nickName = user.UserId
-	}
-
-	// 发送用户信息给客户端
-	conn.WriteJSON(comm.Response{
-		Cmd: "user.allinfo",
-		Seq: 0,
-		Data: gin.H{
-			"user_id":      user.UserId,
-			"balance":      user.Balance,
-			"nick_name":    nickName,
-			"avatar":       user.Avatar,
-			"room_configs": nn.Configs,
-		},
-	})
-
 	// 2. 进入消息处理循环
 	handleConnection(conn, userId)
 }
@@ -271,6 +253,36 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 		conn.WriteJSON(comm.Response{
 			Cmd: "sys.pong",
 			Seq: msg.Seq,
+		})
+
+	case "user.info": // 用户信息请求
+		var user modelClient.ModelUser
+		if err := modelClient.GetDb().QueryTable(new(modelClient.ModelUser)).Filter("user_id", userId).One(&user); err != nil {
+			conn.WriteJSON(comm.Response{Cmd: msg.Cmd, Seq: msg.Seq, Code: -1, Msg: "获取用户信息失败"})
+			return
+		}
+		nickName := user.NickName
+		if nickName == "" {
+			nickName = user.UserId
+		}
+		conn.WriteJSON(comm.Response{
+			Cmd: msg.Cmd,
+			Seq: msg.Seq,
+			Data: gin.H{
+				"user_id":   user.UserId,
+				"balance":   user.Balance,
+				"nick_name": nickName,
+				"avatar":    user.Avatar,
+			},
+		})
+
+	case "nn.lobby_config": // 大厅配置请求
+		conn.WriteJSON(comm.Response{
+			Cmd: msg.Cmd,
+			Seq: msg.Seq,
+			Data: gin.H{
+				"lobby_configs": nn.Configs,
+			},
 		})
 
 	default:

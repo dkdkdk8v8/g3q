@@ -3,12 +3,13 @@ package game
 import (
 	"fmt"
 	"service/comm"
+	"service/mainClient/game/nn"
 	"sync"
 )
 
 type RoomManager struct {
-	rooms      map[string]*Room
-	playerRoom map[string]string // userID -> roomID
+	rooms      map[string]*nn.QZNNRoom
+	//playerRoom map[string]string // userID -> roomID
 	mu         sync.RWMutex      `json:"-"`
 	isDraining bool              // 是否处于排空模式（无感知更新用）
 }
@@ -21,8 +22,7 @@ var (
 func GetMgr() *RoomManager {
 	once.Do(func() {
 		DefaultMgr = &RoomManager{
-			rooms:      make(map[string]*Room),
-			playerRoom: make(map[string]string),
+			rooms:      make(map[string]*nn.QZNNRoom),
 		}
 	})
 	return DefaultMgr
@@ -34,7 +34,29 @@ func (rm *RoomManager) SetDrainMode(enable bool) {
 	rm.isDraining = enable
 }
 
-func (rm *RoomManager) JoinOrCreateRoom(gameType string, player *Player, onStart func(*Room), config *LobbyConfig) (*Room, error) {
+func (rm *RoomManager) GetPlayerRoom(userID string) *nn.QZNNRoom {
+	rm.mu.RLock()
+	defer rm.mu.RUnlock()
+	for _, room := range rm.rooms {
+		for _, player := range room.Players {
+			if player.ID == userID {
+				return room
+			}
+		}
+	}
+	return nil
+}
+
+func (rm *RoomManager) GetRoomByRoomId(roomId string) *nn.QZNNRoom {	
+	rm.mu.RLock()
+	defer rm.mu.RUnlock()
+	return rm.rooms[roomId]
+}
+
+
+
+func (rm *RoomManager) JoinOrCreateNNRoom(gameType string, player *nn.Player, onStart func(*nn.QZNNRoom),
+	config *nn.LobbyConfig) (*nn.QZNNRoom, error) {
 	rm.mu.Lock()
 	defer rm.mu.Unlock()
 
@@ -44,11 +66,10 @@ func (rm *RoomManager) JoinOrCreateRoom(gameType string, player *Player, onStart
 	}
 
 	for _, room := range rm.rooms {
-		if room.Type == gameType && len(room.Players) < room.MaxPlayers {
+		if room.Type == gameType && len(room.Players) < room.GetPlayerCap() {
 			if _, err := room.AddPlayer(player); err != nil {
 				return nil, err
 			}
-			rm.playerRoom[player.ID] = room.ID
 			return room, nil
 		}
 	}
@@ -59,40 +80,17 @@ func (rm *RoomManager) JoinOrCreateRoom(gameType string, player *Player, onStart
 		playerMax = 1000
 	}
 
-	newRoom := NewRoom(roomID, gameType, playerMax)
+	newRoom := nn.NewRoom(roomID, gameType, playerMax)
 	if config != nil {
 		newRoom.Config = *config
 	}
 	newRoom.OnStart = onStart
 	newRoom.AddPlayer(player)
 	rm.rooms[roomID] = newRoom
-	rm.playerRoom[player.ID] = roomID
 
 	return newRoom, nil
 }
 
-func (rm *RoomManager) SetPlayerRoom(userID string, roomID string) {
-	rm.mu.Lock()
-	defer rm.mu.Unlock()
-	rm.playerRoom[userID] = roomID
-}
-
-func (rm *RoomManager) RemovePlayer(userID string) {
-	rm.mu.Lock()
-	defer rm.mu.Unlock()
-	delete(rm.playerRoom, userID)
-}
-
-func (rm *RoomManager) GetRoomByPlayerID(userID string) *Room {
-	rm.mu.RLock()
-	defer rm.mu.RUnlock()
-
-	roomID, ok := rm.playerRoom[userID]
-	if !ok {
-		return nil
-	}
-	return rm.rooms[roomID]
-}
 
 // GetRoomCount 获取当前活跃房间数
 func (rm *RoomManager) GetRoomCount() int {

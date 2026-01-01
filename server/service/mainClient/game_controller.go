@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"service/comm"
 	"service/mainClient/game"
-	"service/mainClient/game/brnn"
 	"service/mainClient/game/nn"
 	"service/modelClient"
 	"sync/atomic"
@@ -111,7 +110,7 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 	// }
 
 	switch msg.Cmd {
-	case "nn.match": // 抢庄牛牛匹配
+	case "nn.join": // 抢庄牛牛匹配
 		var req struct {
 			Level      int `json:"level"`
 			BankerType int `json:"banker_type"`
@@ -149,7 +148,7 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 		}
 
 		// 处理抢庄牛牛匹配逻辑
-		p := &game.Player{
+		p := &nn.Player{
 			ID:      userId,
 			Conn:    conn,
 			IsRobot: false,
@@ -160,7 +159,7 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 		roomConfig := *cfg
 		roomConfig.BankerType = req.BankerType
 
-		room, err := game.GetMgr().JoinOrCreateRoom(roomType, p, nn.StartGame, &roomConfig)
+		room, err := game.GetMgr().JoinOrCreateNNRoom(roomType, p, nn.StartGame, &roomConfig)
 		if err != nil {
 			conn.WriteJSON(comm.Response{Cmd: msg.Cmd, Seq: msg.Seq, Code: -1, Msg: err.Error()})
 			return
@@ -177,71 +176,75 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 			Seq: msg.Seq,
 			Data: gin.H{
 				"room_id": room.ID,
-				"players": len(room.Players),
 			},
 		})
 
 		// 广播给房间内其他人
-		room.Broadcast(comm.Response{Cmd: "nn.player_join", Data: gin.H{"uid": userId}})
+		room.Broadcast(comm.Response{Cmd: "nn.player_join", Data: gin.H{"players": room.Players}})
 
 	case "nn.call_banker": // 抢庄请求
 		var req struct {
-			Mult int `json:"mult"`
+			RoomId string `json:"room_id"`
+			Mult   int    `json:"mult"`
 		}
 		if err := json.Unmarshal(msg.Data, &req); err == nil {
-			if room := game.GetMgr().GetRoomByPlayerID(userId); room != nil {
+			if room := game.GetMgr().GetRoomByRoomId(req.RoomId); room != nil {
 				nn.HandleCallBanker(room, userId, req.Mult)
 			}
 		}
 
 	case "nn.place_bet": // 下注请求
 		var req struct {
-			Mult int `json:"mult"`
+			RoomId string `json:"room_id"`
+			Mult   int    `json:"mult"`
 		}
 		if err := json.Unmarshal(msg.Data, &req); err == nil {
-			if room := game.GetMgr().GetRoomByPlayerID(userId); room != nil {
+			if room := game.GetMgr().GetRoomByRoomId(req.RoomId); room != nil {
 				nn.HandlePlaceBet(room, userId, req.Mult)
 			}
 		}
 
 	case "nn.show_cards": // 亮牌请求
-		if room := game.GetMgr().GetRoomByPlayerID(userId); room != nil {
+		var req struct {
+			RoomId string `json:"room_id"`
+		}
+		if room := game.GetMgr().GetRoomByRoomId(req.RoomId); room != nil {
 			nn.HandleShowCards(room, userId)
 		}
 
-	case "brnn.bet":
-		var req struct {
-			Area   int   `json:"area"`
-			Amount int64 `json:"amount"`
-		}
-		if err := json.Unmarshal(msg.Data, &req); err == nil {
-			if room := game.GetMgr().GetRoomByPlayerID(userId); room != nil {
-				brnn.HandleBet(room, userId, req.Area, req.Amount)
-			}
-		}
+	// case "brnn.bet":
+	// var req struct {
+	// 	Area   int   `json:"area"`
+	// 	Amount int64 `json:"amount"`
+	// }
+	// if err := json.Unmarshal(msg.Data, &req); err == nil {
+	// 	if room := game.GetMgr().GetRoomByPlayerID(userId); room != nil {
+	// 		brnn.HandleBet(room, userId, req.Area, req.Amount)
+	// 	}
+	// }
 
-	case "brnn.match": // 百人牛牛进入房间
-		p := &game.Player{
-			ID:      userId,
-			Conn:    conn,
-			IsRobot: false,
-		}
-		room, err := game.GetMgr().JoinOrCreateRoom("brnn", p, brnn.StartGame, nil)
-		if err != nil {
-			conn.WriteJSON(comm.Response{Cmd: msg.Cmd, Seq: msg.Seq, Code: -1, Msg: err.Error()})
-			return
-		}
+	// case "brnn.match": // 百人牛牛进入房间
+	// 	p := &game.Player{
+	// 		ID:      userId,
+	// 		Conn:    conn,
+	// 		IsRobot: false,
+	// 	}
+	// 	room, err := game.GetMgr().JoinOrCreateRoom("brnn", p, brnn.StartGame, nil)
+	// 	if err != nil {
+	// 		conn.WriteJSON(comm.Response{Cmd: msg.Cmd, Seq: msg.Seq, Code: -1, Msg: err.Error()})
+	// 		return
+	// 	}
 
-		// 如果是真实玩家进入，安排机器人
-		if !p.IsRobot {
-			GetRobotMgr().ArrangeRobotsForRoom(room)
-		}
+	// 	// 如果是真实玩家进入，安排机器人
+	// 	if !p.IsRobot {
+	// 		GetRobotMgr().ArrangeRobotsForRoom(room)
+	// 	}
 
-		conn.WriteJSON(comm.Response{
-			Cmd:  "brnn.match_res",
-			Seq:  msg.Seq,
-			Data: gin.H{"room_id": room.ID},
-		})
+	// 	conn.WriteJSON(comm.Response{
+	// 		Cmd:  "brnn.match_res",
+	// 		Seq:  msg.Seq,
+	// 		Data: gin.H{"room_id": room.ID},
+	// 	})
 
 	case "sys.ping": // 心跳处理
 		conn.WriteJSON(comm.Response{

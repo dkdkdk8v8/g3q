@@ -176,6 +176,8 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 			Seq: msg.Seq,
 			Data: gin.H{
 				"room_id": room.ID,
+				"duration": room.StateLeftSec,
+				"state":    room.State,
 			},
 		})
 

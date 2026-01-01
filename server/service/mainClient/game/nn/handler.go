@@ -124,7 +124,7 @@ func EnterCalling(r *QZNNRoom) {
 	r.StopTimer()
 	r.State = StateCalling
 	BroadcastState(r, 10)
-	r.Timer = time.AfterFunc(10*time.Second, func() {
+	r.StartTimer(10, func() {
 		r.Mu.Lock()
 		defer r.Mu.Unlock()
 		if r.State == StateCalling {
@@ -177,7 +177,7 @@ func EnterBetting(r *QZNNRoom) {
 	r.BankerID = candidates[rand.Intn(len(candidates))]
 	r.Broadcast(comm.Response{Cmd: "nn.banker_confirm", Data: map[string]interface{}{"banker_id": r.BankerID, "mult": maxMult}})
 	BroadcastState(r, 10)
-	r.Timer = time.AfterFunc(10*time.Second, func() {
+	r.StartTimer(10, func() {
 		r.Mu.Lock()
 		defer r.Mu.Unlock()
 		if r.State == StateBetting {
@@ -234,7 +234,7 @@ func EnterDealing(r *QZNNRoom) {
 		}
 	}
 	BroadcastState(r, 5)
-	r.Timer = time.AfterFunc(5*time.Second, func() {
+	r.StartTimer(5, func() {
 		r.Mu.Lock()
 		defer r.Mu.Unlock()
 		if r.State == StateDealing {
@@ -305,7 +305,7 @@ func EnterSettling(r *QZNNRoom) {
 		}
 	}
 	r.Broadcast(comm.Response{Cmd: "nn.settle", Data: map[string]interface{}{"scores": playerScores, "results": results, "banker": r.BankerID}})
-	r.Timer = time.AfterFunc(5*time.Second, func() {
+	r.StartTimer(5, func() {
 		var leftBots []string
 		var allUserIds []string
 		r.Mu.Lock()

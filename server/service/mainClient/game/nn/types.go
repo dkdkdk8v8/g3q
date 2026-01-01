@@ -43,9 +43,12 @@ type QZNNRoom struct {
 	Type    string
 	Players []*Player
 
-	State    int             // 当前游戏状态
-	StateMu  sync.RWMutex    // 保护 State, Timer
+	State        int          // 当前游戏状态
+	StateMu      sync.RWMutex // 保护 State, Timer
+	StateLeftSec int          // 当前状态剩余秒数
+
 	Timer    *time.Timer     // 状态切换定时器
+	Ticker   *time.Ticker    // 倒计时定时器
 	Mu       sync.Mutex      // 保护房间数据并发安全
 	PlayerMu sync.RWMutex    // 保护 Players
 	OnStart  func(*QZNNRoom) // 游戏开始回调
@@ -168,4 +171,40 @@ func (r *QZNNRoom) StopTimer() {
 		r.Timer.Stop()
 		r.Timer = nil
 	}
+	if r.Ticker != nil {
+		r.Ticker.Stop()
+		r.Ticker = nil
+	}
+}
+
+func (r *QZNNRoom) StartTimer(seconds int, onFinish func()) {
+	r.StopTimer()
+
+	r.StateMu.Lock()
+	r.StateLeftSec = seconds
+	r.Ticker = time.NewTicker(1 * time.Second)
+	currentTicker := r.Ticker
+	r.StateMu.Unlock()
+
+	go func() {
+		defer currentTicker.Stop()
+		for range currentTicker.C {
+			r.StateMu.Lock()
+			if r.Ticker != currentTicker {
+				r.StateMu.Unlock()
+				return
+			}
+			r.StateLeftSec--
+			left := r.StateLeftSec
+			r.StateMu.Unlock()
+
+			if left <= 0 {
+				r.StopTimer()
+				if onFinish != nil {
+					onFinish()
+				}
+				return
+			}
+		}
+	}()
 }

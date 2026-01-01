@@ -90,53 +90,53 @@ func (r *QZNNRoom) prepareDeck() {
 	}
 }
 
-func (r *QZNNRoom) drvierLogicTick() {
-	for {
-		time.Sleep(100 * time.Millisecond)
-		r.logicTick()
-	}
-}
+// func (r *QZNNRoom) drvierLogicTick() {
+// 	for {
+// 		time.Sleep(200 * time.Millisecond)
+// 		r.logicTick()
+// 	}
+// }
 
 func (r *QZNNRoom) logicTick() {
-	
-		switch r.State {
-		case StateWaiting:
-			countExistPlayerNum := r.GetPlayerCount()
-			//加入已经有2个人在房间，可以进行倒计时开始游戏
-			if countExistPlayerNum >= 2 {
-				_ = r.SetStatus(StatePrepare)
-				r.Broadcast(comm.Response{
-					Cmd:  "nn.state_prepare",
-					Data: gin.H{"room": r}})
-			}
 
-		case StatePrepare:
-			// 倒计时等待开始
-			countExistPlayerNum := r.GetPlayerCount()
-			//加入已经有2个人在房间，可以进行倒计时开始游戏
-			if countExistPlayerNum < 2 {
-				_ = r.SetStatus(StateWaiting)
-				r.Broadcast(comm.Response{
-					Cmd:  "nn.state_waiting",
-					Data: gin.H{"room": r}})
-			}
-
-		case StatePreCard:
-			// 预发牌状态，无需处理
-		case StateBanking:
-			// 抢庄状态，无需处理
-			if r.CheckAllCallDone() {
-				//
-			}
-
-		case StateBetting:
-			// 下注状态，无需处理
-		case StateDealing:
-			// 发牌状态，无需处理
-		case StateSettling:
-			// 结算状态，无需处理
+	switch r.State {
+	case StateWaiting:
+		countExistPlayerNum := r.GetPlayerCount()
+		//加入已经有2个人在房间，可以进行倒计时开始游戏
+		if countExistPlayerNum >= 2 {
+			_ = r.SetStatus(StatePrepare)
+			r.Broadcast(comm.Response{
+				Cmd:  "nn.state_prepare",
+				Data: gin.H{"room": r}})
 		}
 
+	case StatePrepare:
+		// 倒计时等待开始
+		countExistPlayerNum := r.GetPlayerCount()
+		//加入已经有2个人在房间，可以进行倒计时开始游戏
+		if countExistPlayerNum < 2 {
+			_ = r.SetStatus(StateWaiting)
+			r.Broadcast(comm.Response{
+				Cmd:  "nn.state_waiting",
+				Data: gin.H{"room": r}})
+		}
+
+	case StatePreCard:
+		// 预发牌状态，无需处理
+	case StateBanking:
+		// 抢庄状态，无需处理
+		if r.CheckAllCallDone() {
+			//
+		}
+
+	case StateBetting:
+		// 下注状态，无需处理
+	case StateDealing:
+		// 发牌状态，无需处理
+	case StateSettling:
+		// 结算状态，无需处理
+	}
+}
 
 func (r *QZNNRoom) StartGame() {
 	if !(r.CheckStatus(StateWaiting) || r.CheckStatus(StateWaitingTimer)) {
@@ -173,7 +173,6 @@ func (r *QZNNRoom) StartGame() {
 
 	//开始抢10s
 	r.WaitTimer(10)
-	r.Ticker()
 
 	//非庄家投注
 	if !r.SetStatus(StateBetting) {

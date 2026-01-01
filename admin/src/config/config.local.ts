@@ -25,6 +25,24 @@ export default {
         // 实体路径
         entities: ['**/modules/*/entity'],
       },
+      game: {
+        type: 'mysql',
+        host: '127.0.0.1',
+        port: 3306,
+        username: 'admin',
+        password: 'S40bdYFgTy8uzz6A',
+        database: 'g3q_server',
+        // 自动建表 注意：线上部署的时候不要使用，有可能导致数据丢失
+        synchronize: false,
+        // 打印日志
+        logging: false,
+        // 字符集
+        charset: 'utf8mb4',
+        // 是否开启缓存
+        cache: true,
+        // 实体路径
+        entities: ['**/modules/*/entityGame'],
+      },
     },
   },
   midwayLogger: {

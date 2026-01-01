@@ -1,4 +1,4 @@
-import { DictInfoEntity } from './../../entity/info';
+import { DictInfoEntity } from '../../entity/info';
 import { Body, Inject, Post, Provide } from '@midwayjs/decorator';
 import { CoolController, BaseController } from '@cool-midway/core';
 import { DictInfoService } from '../../service/info';

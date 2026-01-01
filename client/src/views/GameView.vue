@@ -14,6 +14,11 @@ const dealingLayer = ref(null);
 const seatRefs = ref({}); // 存储所有座位的引用 key: playerId
 const tableCenterRef = ref(null); // 桌面中心元素引用
 
+// Banker selection animation state
+const currentlyHighlightedPlayerId = ref(null);
+let animationIntervalId = null;
+let candidateIndex = 0;
+
 // 菜单和弹窗控制
 const showMenu = ref(false);
 const showHistory = ref(false);
@@ -95,7 +100,7 @@ watch(() => store.players.map(p => ({ id: p.id, bet: p.betMultiplier })), (newVa
 }, { deep: true });
 
 // 监听游戏阶段，触发发牌动画及结算动画
-watch(() => store.currentPhase, async (newPhase) => {
+watch(() => store.currentPhase, async (newPhase, oldPhase) => {
     if (newPhase === 'IDLE' || newPhase === 'GAME_OVER') {
         visibleCounts.value = {};
         lastBetStates.value = {};
@@ -111,7 +116,32 @@ watch(() => store.currentPhase, async (newPhase) => {
         setTimeout(() => {
              startDealingAnimation(true); 
         }, 100);
+    } else if (newPhase === 'BANKER_SELECTION_ANIMATION') {
+        // Start sequential highlighting animation
+        const candidates = [...store.bankerCandidates]; // Get a copy
+        if (candidates.length > 0) {
+            candidateIndex = 0;
+            currentlyHighlightedPlayerId.value = candidates[candidateIndex];
+
+            // Clear any existing interval
+            if (animationIntervalId) clearInterval(animationIntervalId);
+            
+            animationIntervalId = setInterval(() => {
+                candidateIndex = (candidateIndex + 1) % candidates.length;
+                currentlyHighlightedPlayerId.value = candidates[candidateIndex];
+            }, 100); // Highlight every 100ms
+        }
     }
+    
+    // Clear animation when phase changes from BANKER_SELECTION_ANIMATION
+    if (oldPhase === 'BANKER_SELECTION_ANIMATION' && newPhase !== 'BANKER_SELECTION_ANIMATION') {
+        if (animationIntervalId) {
+            clearInterval(animationIntervalId);
+            animationIntervalId = null;
+        }
+        currentlyHighlightedPlayerId.value = null;
+    }
+
     
     if (newPhase === 'SETTLEMENT' && tableCenterRef.value && coinLayer.value) {
         // 找到庄家位置
@@ -159,7 +189,7 @@ watch(() => store.currentPhase, async (newPhase) => {
             });
         }, 1200); // 增加延迟，让第一波飞完
     }
-});
+}, { immediate: true });
 
 // 执行发牌动画
 const startDealingAnimation = (isSupplemental = false) => {
@@ -304,6 +334,7 @@ const quitGame = () => {
             :position="getLayoutType(index)"
             :visible-card-count="visibleCounts[p.id] !== undefined ? visibleCounts[p.id] : 0"
             :is-ready="p.isReady"
+            :is-animating-highlight="p.id === currentlyHighlightedPlayerId"
         />
     </div>
 
@@ -327,6 +358,9 @@ const quitGame = () => {
                 <span v-else-if="store.currentPhase === 'SHOWDOWN'">摊牌比拼</span>
             </div>
         </div>
+
+        <!-- 选庄动画提示 -->
+        <div v-if="store.currentPhase === 'BANKER_SELECTION_ANIMATION'" class="phase-info settlement-info">正在选庄...</div>
 
         <!-- 仅当闹钟不显示时，显示结算中 -->
         <div v-if="store.currentPhase === 'SETTLEMENT' && store.countdown === 0" class="phase-info settlement-info">结算中...</div>
@@ -382,6 +416,7 @@ const quitGame = () => {
             position="bottom"
             :visible-card-count="visibleCounts[myPlayer.id] !== undefined ? visibleCounts[myPlayer.id] : 0"
             :is-ready="myPlayer.isReady"
+            :is-animating-highlight="myPlayer.id === currentlyHighlightedPlayerId"
         />
     </div>
 

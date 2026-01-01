@@ -6,7 +6,7 @@ import gameClient from '../socket.js'
 const DEFAULT_AVATAR = new URL('../assets/icon_avatar.png', import.meta.url).href;
 
 export const useGameStore = defineStore('game', () => {
-    const currentPhase = ref('IDLE'); // IDLE, READY_COUNTDOWN, MATCHING, ROB_BANKER, BETTING, DEALING, SHOWDOWN, SETTLEMENT
+    const currentPhase = ref('IDLE'); // IDLE, READY_COUNTDOWN, MATCHING, ROB_BANKER, BANKER_SELECTION_ANIMATION, BETTING, DEALING, SHOWDOWN, SETTLEMENT
     const players = ref([]);
     const myPlayerId = ref('me'); // 模拟当前玩家ID
     const deck = ref([]);
@@ -14,6 +14,7 @@ export const useGameStore = defineStore('game', () => {
     const bankerId = ref(null);
     const gameMode = ref(0); // 0: Bukan, 1: Kan3, 2: Kan4
     const history = ref([]); // 游戏记录
+    const bankerCandidates = ref([]); // Store IDs of players who are candidates for banker
 
   // 加入房间
   const joinRoom = (level, banker_type) => {
@@ -221,27 +222,58 @@ export const useGameStore = defineStore('game', () => {
         // 找出倍数最高的
         const maxMultiplier = Math.max(...players.value.map(p => p.robMultiplier));
         const candidates = players.value.filter(p => p.robMultiplier === maxMultiplier);
-        // 随机选一个
-        const winner = candidates[Math.floor(Math.random() * candidates.length)];
+        
+        if (candidates.length > 1) { // If there's a tie, trigger animation
+            bankerCandidates.value = candidates.map(p => p.id); // Store IDs for animation
+            currentPhase.value = 'BANKER_SELECTION_ANIMATION';
 
-        winner.isBanker = true;
-        bankerId.value = winner.id;
-        currentPhase.value = 'BETTING';
+            // Animate selection for 2 seconds, then pick a winner
+            setTimeout(() => {
+                const winner = candidates[Math.floor(Math.random() * candidates.length)];
+                
+                winner.isBanker = true;
+                bankerId.value = winner.id;
+                currentPhase.value = 'BETTING'; // Transition to betting phase
 
-        // 庄家不需要下注，其他人下注
-        players.value.forEach(p => {
-            if (p.id !== winner.id) {
-                p.state = 'BETTING';
-            } else {
-                p.state = 'IDLE'; // 庄家等待
-            }
-        });
+                bankerCandidates.value = []; // Clear candidates after selection
 
-        startCountdown(5, () => {
-            // 强制下注1倍
-            players.value.filter(p => !p.isBanker && p.betMultiplier === 0).forEach(p => p.betMultiplier = 1);
-            startShowdown();
-        });
+                // 庄家不需要下注，其他人下注
+                players.value.forEach(p => {
+                    if (p.id !== winner.id) {
+                        p.state = 'BETTING';
+                    } else {
+                        p.state = 'IDLE'; // 庄家等待
+                    }
+                });
+
+                startCountdown(5, () => {
+                    // 强制下注1倍
+                    players.value.filter(p => !p.isBanker && p.betMultiplier === 0).forEach(p => p.betMultiplier = 1);
+                    startShowdown();
+                });
+            }, 2000); // 2 second animation delay
+        } else { // No tie, directly select the banker
+            const winner = candidates[0]; // Only one winner
+
+            winner.isBanker = true;
+            bankerId.value = winner.id;
+            currentPhase.value = 'BETTING'; // Transition to betting phase
+
+            // 庄家不需要下注，其他人下注
+            players.value.forEach(p => {
+                if (p.id !== winner.id) {
+                    p.state = 'BETTING';
+                } else {
+                    p.state = 'IDLE'; // 庄家等待
+                }
+            });
+
+            startCountdown(5, () => {
+                // 强制下注1倍
+                players.value.filter(p => !p.isBanker && p.betMultiplier === 0).forEach(p => p.betMultiplier = 1);
+                startShowdown();
+            });
+        }
     };
 
     // 玩家操作：下注
@@ -422,6 +454,7 @@ export const useGameStore = defineStore('game', () => {
         bankerId,
         history,
         joinRoom,
-        autoReadyRobots // Added autoReadyRobots
+        autoReadyRobots,
+        bankerCandidates // Added bankerCandidates
     }
 })

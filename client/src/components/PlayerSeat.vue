@@ -15,7 +15,8 @@ const props = defineProps({
           type: Number,
           default: -1
       },
-      isReady: Boolean // Add isReady prop
+      isReady: Boolean, // Add isReady prop
+      isAnimatingHighlight: Boolean // New prop for sequential highlight animation
   });
   
   const store = useGameStore();
@@ -93,7 +94,7 @@ const shouldShowBadge = computed(() => {
   <div class="player-seat" :class="`seat-${position}`">
     <!-- ... (keep avatar area) -->
     <div class="avatar-area">
-      <div class="avatar-frame">
+      <div class="avatar-frame" :class="{ 'banker-candidate-highlight': isAnimatingHighlight }">
           <van-image
             round
             :src="player.avatar"
@@ -199,6 +200,18 @@ const shouldShowBadge = computed(() => {
     display: flex; /* Use flexbox to center the image reliably */
     justify-content: center;
     align-items: center;
+    transition: box-shadow 0.2s ease-in-out; /* Smooth transition for highlight */
+}
+
+.avatar-frame.banker-candidate-highlight {
+    box-shadow: 0 0 15px 5px #facc15, 0 0 8px 2px #d97706; /* Golden glow */
+    border-color: #facc15;
+    animation: pulse-border-glow 1s infinite alternate;
+}
+
+@keyframes pulse-border-glow {
+    from { box-shadow: 0 0 15px 5px #facc15, 0 0 8px 2px #d97706; }
+    to { box-shadow: 0 0 20px 8px #fcd34d, 0 0 10px 3px #fbbf24; }
 }
 
 /* Make the van-image fill its parent frame */

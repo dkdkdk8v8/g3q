@@ -1,71 +1,154 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, nextTick } from 'vue';
 
 // 飞行的卡片列表
 const flyingCards = ref([]);
 
-// 执行发牌动画
-// targets: Array<{ x, y, id, isMe }> 目标位置列表
-// count: 每人发几张
-// callback: (seatIndex, cardIndex) => void  单张卡片到达回调
-const deal = async (targets, count, callback) => {
+// 执行发牌动画：针对单个玩家的一组牌
+// targets: Array<{ x, y, id, isMe }> 该玩家这一组牌的最终位置列表
+// callback: () => void  整组发完后的回调
+const dealToPlayer = async (targets, callback) => {
+    if (!targets || targets.length === 0) return;
+
     const startX = window.innerWidth / 2; 
     const startY = window.innerHeight / 2; 
 
-    // 发牌顺序：每人一张，轮流发
-    for (let c = 0; c < count; c++) {
-        for (let i = 0; i < targets.length; i++) {
-            const target = targets[i];
-            
-            // 目标尺寸
-            const targetWidth = target.isMe ? 60 : 40;
-            const targetHeight = target.isMe ? 84 : 56;
-            
-            // 创建一个飞行的卡片
-            const flyId = `fly-${Date.now()}-${c}-${i}`;
-            const card = {
-                id: flyId,
-                x: startX - targetWidth / 2, // 居中生成
-                y: startY - targetHeight / 2,
-                width: targetWidth,
-                height: targetHeight,
-                rotation: Math.random() * 60 - 30, // 初始随机角度
-                scale: 0.5, // 初始大小
-                opacity: 0,
-                targetX: target.x - targetWidth / 2, // 目标左上角
-                targetY: target.y - targetHeight / 2,
-            };
-            flyingCards.value.push(card);
+    // 判断是单张补牌还是批量发牌
+    const isBulk = targets.length > 1;
 
-            // 强制重绘后开始动画 (下一帧)
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    card.x = card.targetX;
-                    card.y = card.targetY;
-                    card.rotation = 360; // 转一圈
+    // 批量发牌时，"最左侧"位置作为跳水目标
+    // 注意：这里的 targets[0] 是这批牌里的第一张
+    const jumpTargetX = targets[0].x - (targets[0].isMe ? 30 : 20); // 居中修正 (width/2)
+    const jumpTargetY = targets[0].y - (targets[0].isMe ? 42 : 28); // 居中修正 (height/2)
+
+    // 创建这组卡片
+    const newCards = targets.map((t, index) => {
+        const targetWidth = t.isMe ? 60 : 40;
+        const targetHeight = t.isMe ? 84 : 56;
+        
+        return {
+            id: `deal-${Date.now()}-${index}-${Math.random()}`,
+            // 初始状态：屏幕中心
+            x: startX - targetWidth / 2,
+            y: startY - targetHeight / 2,
+            width: targetWidth,
+            height: targetHeight,
+            rotation: Math.random() * 60 - 30, 
+            scale: 1, // 初始大小为 1，无缩放动画
+            opacity: 0,
+            
+            // 目标参数
+            finalX: t.x - targetWidth / 2,
+            finalY: t.y - targetHeight / 2,
+            
+            // 批量模式下的中间跳点 (全部飞到第一张牌的位置)
+            jumpX: jumpTargetX,
+            jumpY: jumpTargetY,
+            
+            isMe: t.isMe,
+            index: index,
+            
+            transition: 'none',
+            zIndex: 100 + index
+        };
+    });
+
+    flyingCards.value.push(...newCards);
+    await nextTick(); // 确保 DOM 渲染，初始位置生效
+
+    // 关键修复：获取 flyingCards 数组中对应的响应式代理对象
+    // push 进去的是普通对象，newCards 依然是普通对象引用
+    // 必须操作 flyingCards.value 里的 Proxy 才能触发视图更新
+    const startIndex = flyingCards.value.length - newCards.length;
+    const reactiveCards = flyingCards.value.slice(startIndex);
+
+    if (isBulk) {
+        // === 批量发牌模式：依次跳水到最左侧 -> 展开 ===
+        
+        // 1. 依次跳水 (Jump)
+        const jumpInterval = 100; // 每张间隔
+        const jumpDuration = 500; // 飞行时长
+
+        const jumpPromises = reactiveCards.map((card, idx) => {
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    card.transition = `all ${jumpDuration/1000}s cubic-bezier(0.18, 0.89, 0.32, 1.28)`;
+                    card.x = card.jumpX;
+                    card.y = card.jumpY;
                     card.scale = 1;
                     card.opacity = 1;
-                });
+                    card.rotation = 0; // 摆正
+                    setTimeout(resolve, jumpDuration);
+                }, idx * jumpInterval);
             });
+        });
 
-            // 等待动画结束
-            setTimeout(() => {
-                // 移除该飞行卡片
-                const idx = flyingCards.value.findIndex(f => f.id === flyId);
-                if (idx > -1) flyingCards.value.splice(idx, 1);
+        // 等待所有牌都跳到了最左侧
+        await Promise.all(jumpPromises);
+
+        // 2. 展开 (Spread)
+        // 需求：跳水完成后，所有牌"同时"开始展开，无需每张牌之间的延迟
+        // 视觉上就是一叠牌直接散开
+        const spreadPromises = reactiveCards.map((card, idx) => {
+            return new Promise(resolve => {
+                // 不再使用 idx * 80 的延迟，直接开始
+                // 为了确保 transition 切换生效，还是保留 nextTick 逻辑
                 
-                // 触发回调：第 i 个座位的 第 c 张牌到了
-                if (callback) callback(i, c);
-            }, 400); // 飞行时间 0.4s
+                (async () => {
+                    // 1. 设置移动的 transition
+                    card.transition = 'transform 0.4s ease-out';
+                    
+                    // 等待 DOM 更新
+                    await nextTick();
+                        
+                    // 2. 执行移动
+                    card.x = card.finalX;
+                    card.y = card.finalY;
 
-            // 间隔发下一张 (如果人多，发快点)
-            await new Promise(r => setTimeout(r, targets.length > 3 ? 50 : 100));
+                    // 监听 transitionend 事件 或者用 setTimeout 确保移动完成
+                    const moveDuration = 400;
+
+                    setTimeout(() => {
+                        // 移动完成
+                        resolve();
+                    }, moveDuration);
+                })();
+            });
+        });
+        
+        await Promise.all(spreadPromises);
+
+    } else {
+        // === 单张发牌模式：直接飞到目标 ===
+        // 类似之前的效果
+        const card = reactiveCards[0];
+        
+        card.transition = 'all 0.6s cubic-bezier(0.18, 0.89, 0.32, 1.28)';
+        card.x = card.finalX;
+        card.y = card.finalY;
+        card.scale = 1;
+        card.opacity = 1;
+        card.rotation = 0;
+
+        await new Promise(r => setTimeout(r, 600));
+
+        if (card.isMe) {
+            card.transition = 'all 0.4s ease-in-out';
+            card.rotation = 360;
+            await new Promise(r => setTimeout(r, 400));
         }
     }
+
+    // 清理
+    await new Promise(r => setTimeout(r, 200));
+    const removeIds = reactiveCards.map(c => c.id);
+    flyingCards.value = flyingCards.value.filter(c => !removeIds.includes(c.id));
+    
+    if (callback) callback();
 };
 
 defineExpose({
-    deal
+    dealToPlayer
 });
 </script>
 
@@ -79,7 +162,9 @@ defineExpose({
             width: card.width + 'px',
             height: card.height + 'px',
             transform: `translate(${card.x}px, ${card.y}px) rotate(${card.rotation}deg) scale(${card.scale})`,
-            opacity: card.opacity
+            opacity: card.opacity,
+            transition: card.transition,
+            zIndex: card.zIndex
         }"
     >
         <div class="card-back"></div>

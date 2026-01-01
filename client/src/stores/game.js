@@ -180,6 +180,7 @@ export const useGameStore = defineStore('game', () => {
   // 阶段：摊牌
   const startShowdown = () => {
       currentPhase.value = 'SHOWDOWN';
+      countdown.value = 0; // 显式重置倒计时，防止提前显示
       players.value.forEach(p => {
           p.state = 'SHOWDOWN';
           p.isShowHand = false;
@@ -204,14 +205,14 @@ export const useGameStore = defineStore('game', () => {
       // 模拟其他玩家陆续摊牌
       players.value.forEach(p => {
           if (p.id !== myPlayerId.value) {
-              // 随机延迟 1-8秒 摊牌
+              // 随机延迟 0.5-1.5秒 摊牌，加快节奏
               setTimeout(() => {
                   playerShowHand(p.id);
-              }, 1000 + Math.random() * 7000);
+              }, 500 + Math.random() * 1000);
           }
       });
 
-      // 等待补牌动画结束后，再开始倒计时
+      // 等待发牌开始 2秒 后，启动摊牌倒计时
       setTimeout(() => {
           // 如果动画期间已经全部摊牌结算，不再启动倒计时
           if (currentPhase.value !== 'SHOWDOWN') return;
@@ -224,7 +225,7 @@ export const useGameStore = defineStore('game', () => {
               });
               calculateScore();
           });
-      }, 1200);
+      }, 2000);
   };
 
   // 玩家摊牌动作

@@ -134,8 +134,6 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 
 		// 如果客户端未传 BankerType 或者 传入错误的值都是用配置默认值
 		if req.BankerType != nn.BankerTypeNoLook && req.BankerType != nn.BankerTypeLook3 && req.BankerType != nn.BankerTypeLook4 {
-			req.BankerType = cfg.BankerType
-		} else {
 			conn.WriteJSON(comm.Response{Cmd: msg.Cmd, Seq: msg.Seq, Code: -1, Msg: "无效的抢庄类型"})
 		}
 
@@ -146,7 +144,7 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 			return
 		}
 		if user.Balance < cfg.MinBalance {
-			conn.WriteJSON(comm.Response{Cmd: msg.Cmd, Seq: msg.Seq, Code: -1, Msg: fmt.Sprintf("余额不足，进入该房间需要 %d 金币", cfg.MinBalance)})
+			conn.WriteJSON(comm.Response{Cmd: msg.Cmd, Seq: msg.Seq, Code: -1, Msg: "余额不足！"})
 			return
 		}
 
@@ -175,7 +173,7 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 
 		// 成功加入，通知客户端房间信息
 		conn.WriteJSON(comm.Response{
-			Cmd: "nn.match_res",
+			Cmd: msg.Cmd,
 			Seq: msg.Seq,
 			Data: gin.H{
 				"room_id": room.ID,

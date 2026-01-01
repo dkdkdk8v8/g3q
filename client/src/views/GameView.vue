@@ -23,7 +23,10 @@ const visibleCounts = ref({});
 
 // 当前玩法模式名称
 const modeName = computed(() => {
-    return route.query.mode === 'bukan' ? '不看牌抢庄' : '看四张抢庄';
+    const m = parseInt(route.query.mode);
+    if (m === 0) return '不看牌抢庄';
+    if (m === 1) return '看三张抢庄';
+    return '看四张抢庄';
 });
 
 // 辅助函数：设置座位 Ref
@@ -241,7 +244,7 @@ const startDealingAnimation = (isSupplemental = false) => {
 };
 
 onMounted(() => {
-    const gameMode = route.query.mode || 'kanpai';
+    const gameMode = route.query.mode !== undefined ? route.query.mode : 0;
     store.initGame(gameMode);
     setTimeout(() => {
         if(store.currentPhase === 'IDLE') store.startGame();
@@ -257,7 +260,7 @@ const onBet = (multiplier) => {
 };
 
 const quitGame = () => {
-    router.push('/');
+    router.push('/lobby');
 };
 </script>
 
@@ -277,7 +280,7 @@ const quitGame = () => {
             <transition name="fade">
                 <div v-if="showMenu" class="menu-dropdown" @click.stop>
                     <div class="menu-item" @click="showHistory = true; showMenu = false">
-                        <van-icon name="balance-list-o" /> 押注记录
+                        <van-icon name="balance-list-o" /> 投注记录
                     </div>
                     <div class="menu-divider"></div>
                     <div class="menu-item danger" @click="quitGame">
@@ -340,10 +343,10 @@ const quitGame = () => {
     <div class="my-area" v-if="myPlayer">
         <div class="controls-container">
             <div v-if="store.currentPhase === 'ROB_BANKER' && myPlayer.robMultiplier === -1" class="btn-group">
+                <div class="game-btn blue" @click="onRob(0)">不抢</div>
                 <div class="game-btn orange" @click="onRob(1)">1倍</div>
                 <div class="game-btn orange" @click="onRob(2)">2倍</div>
                 <div class="game-btn orange" @click="onRob(3)">3倍</div>
-                <div class="game-btn blue" @click="onRob(0)">不抢</div>
             </div>
 
             <div v-if="store.currentPhase === 'BETTING' && !myPlayer.isBanker && myPlayer.betMultiplier === 0" class="btn-group">
@@ -381,7 +384,7 @@ const quitGame = () => {
     <div v-if="showHistory" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>对局记录</h3>
+                <h3>投注记录</h3>
                 <div class="close-icon" @click="showHistory = false">×</div>
             </div>
             <div class="history-list">

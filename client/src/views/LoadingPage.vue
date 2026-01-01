@@ -15,7 +15,8 @@
 <script>
 import { ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import GameClient from '../Network.js'; // Import GameClient
+import gameClient from '../socket.js'; // Use singleton
+import { useUserStore } from '../stores/user.js';
 
 export default {
   name: 'LoadingPage',
@@ -25,7 +26,7 @@ export default {
     const userId = ref('');
     const message = ref('');
     const router = useRouter();
-    const gameClient = new GameClient(); // Create GameClient instance
+    const userStore = useUserStore();
 
     const LOCAL_STORAGE_IP_KEY = 'game_server_ip';
 
@@ -74,8 +75,8 @@ export default {
       // Setup GameClient callbacks
       gameClient.onConnect = () => {
         console.log("[LoadingPage] WebSocket connected!");
-        message.value = `连接成功！进入游戏...`;
-        router.push('/lobby'); // Navigate to LobbyView on successful connection
+        message.value = `连接成功！等待服务器数据...`;
+        // Do not navigate immediately, wait for user.allinfo
       };
 
       gameClient.onClose = (event) => {
@@ -89,6 +90,18 @@ export default {
         console.error("[LoadingPage] WebSocket error:", error);
         message.value = `连接错误，请检查 IP 地址或服务器状态。`;
       };
+      
+      // Register handler for user.allinfo
+      gameClient.on('user.allinfo', (msg) => {
+          if (msg.code === 0) {
+              console.log("[LoadingPage] Received user info:", msg.data);
+              userStore.setUserInfo(msg.data);
+              message.value = `获取数据成功，进入大厅...`;
+              router.push('/lobby');
+          } else {
+              message.value = `获取数据失败: ${msg.msg}`;
+          }
+      });
 
       // Connect to the WebSocket server using the entered IP, app, and uid
       gameClient.connect(ipAddress.value, appId.value, userId.value, 'dummy_auth_token');

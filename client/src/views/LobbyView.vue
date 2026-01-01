@@ -1,34 +1,50 @@
 <script setup>
 import { useRouter } from 'vue-router';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
+import { useUserStore } from '../stores/user.js';
 
 const router = useRouter();
+const userStore = useUserStore();
 
-// 模拟用户信息
-const userInfo = ref({
-    name: '我 (帅气)',
-    id: '888888',
-    coins: 12580,
-    avatar: new URL('../assets/icon_avatar.png', import.meta.url).href
+// 模拟用户信息 - map from store
+const userInfo = computed(() => {
+    return {
+        name: userStore.userInfo.nick_name || '未知用户',
+        id: userStore.userInfo.user_id || '---',
+        coins: userStore.userInfo.balance || 0,
+        avatar: userStore.userInfo.avatar || new URL('../assets/icon_avatar.png', import.meta.url).href
+    }
 });
 
-// 游戏模式：kanpai (看四张抢庄), bukan (不看牌抢庄)
-const currentMode = ref('bukan');
+// 游戏模式：kanpai (看四张抢庄-type 2), bukan (不看牌抢庄-type 0)
+// type 1 (看三张) 暂时不在UI体现
+const currentMode = ref(0); // Default to 0 (bukan)
 
 const enterGame = (level) => {
   // 传递房间等级(level)和玩法模式(mode)
+  console.log(`Preparing to enter room: Level ${level}, Mode ${currentMode.value}`);
   router.push({
       path: `/game/${level}`,
       query: { mode: currentMode.value }
   });
 };
 
-const rooms = [
-    { type: 'primary', name: '初级场', base: 200, min: 4000, players: 83, colorClass: 'room-cyan' },
-    { type: 'medium', name: '中级场', base: 900, min: 18000, players: 46, colorClass: 'room-blue' },
-    { type: 'advanced', name: '高级场', base: 3000, min: 60000, players: 24, colorClass: 'room-purple' },
-    { type: 'elite', name: '精英场', base: 20000, min: 400000, players: 9, colorClass: 'room-red' },
-];
+// Map server room configs to UI
+const rooms = computed(() => {
+    const configs = userStore.roomConfigs || [];
+    const colorClasses = ['room-cyan', 'room-blue', 'room-purple', 'room-red'];
+    
+    return configs.map((cfg, index) => {
+        return {
+            level: cfg.level,
+            name: cfg.name,
+            base: cfg.base_bet,
+            min: cfg.min_balance,
+            players: Math.floor(Math.random() * 100), // Mock player count for now
+            colorClass: colorClasses[index % colorClasses.length]
+        };
+    });
+});
 </script>
 
 <template>
@@ -58,13 +74,18 @@ const rooms = [
         <div class="tab-group-pill">
             <div 
                 class="tab-item" 
-                :class="{ 'active-purple': currentMode === 'bukan' }"
-                @click="currentMode = 'bukan'"
+                :class="{ 'active-purple': currentMode === 0 }"
+                @click="currentMode = 0"
             >不看牌抢庄</div>
+             <div 
+                class="tab-item" 
+                :class="{ 'active-blue': currentMode === 1 }"
+                @click="currentMode = 1"
+            >看三张抢庄</div>
             <div 
                 class="tab-item" 
-                :class="{ 'active-cyan': currentMode === 'kanpai' }"
-                @click="currentMode = 'kanpai'"
+                :class="{ 'active-cyan': currentMode === 2 }"
+                @click="currentMode = 2"
             >看四张抢庄</div>
         </div>
     </div>
@@ -73,10 +94,10 @@ const rooms = [
     <div class="room-container">
         <div 
             v-for="room in rooms" 
-            :key="room.type" 
+            :key="room.level" 
             class="room-card" 
             :class="room.colorClass"
-            @click="enterGame(room.type)"
+            @click="enterGame(room.level)"
         >
             <div class="room-title">{{ room.name }}</div>
             <div class="room-info">
@@ -91,11 +112,6 @@ const rooms = [
                 </div>
             </div>
         </div>
-    </div>
-    
-    <!-- 底部按钮 -->
-    <div class="footer-action">
-        <div class="quick-start-btn">快速开始</div>
     </div>
   </div>
 </template>
@@ -234,6 +250,12 @@ const rooms = [
     background: linear-gradient(135deg, #c084fc 0%, #7e22ce 100%);
     color: white;
     box-shadow: 0 2px 8px rgba(126, 34, 206, 0.4);
+}
+
+.tab-item.active-blue {
+    background: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%);
+    color: white;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
 }
 
 .tab-item.active-cyan {

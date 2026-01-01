@@ -11,12 +11,12 @@ export const useGameStore = defineStore('game', () => {
   const deck = ref([]);
   const countdown = ref(0);
   const bankerId = ref(null);
-  const gameMode = ref('kanpai'); // 'kanpai' | 'bukan'
+  const gameMode = ref(0); // 0: Bukan, 1: Kan3, 2: Kan4
   const history = ref([]); // 游戏记录
 
   // 初始化（模拟进入房间）
-  const initGame = (mode = 'kanpai') => {
-    gameMode.value = mode;
+  const initGame = (mode = 0) => {
+    gameMode.value = parseInt(mode); // Ensure number
     // 模拟5个玩家 (5人局)
     players.value = [
       { id: 'me', name: '我 (帅气)', avatar: DEFAULT_AVATAR, coins: 1000, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0 },
@@ -48,13 +48,18 @@ export const useGameStore = defineStore('game', () => {
     });
     
     // 发牌逻辑差异
-    if (gameMode.value === 'kanpai') {
-        // 看牌抢庄：先发4张
+    if (gameMode.value === 2) {
+        // 看四张抢庄：先发4张
         players.value.forEach(p => {
             p.hand = deck.value.splice(0, 4);
         });
+    } else if (gameMode.value === 1) {
+        // 看三张抢庄：先发3张
+        players.value.forEach(p => {
+            p.hand = deck.value.splice(0, 3);
+        });
     } else {
-        // 不看牌抢庄：暂时不发牌 (或者发暗牌，这里简单处理为空，等摊牌时发齐)
+        // 不看牌抢庄 (mode 0)：暂时不发牌
         players.value.forEach(p => {
             p.hand = [];
         });
@@ -277,9 +282,13 @@ export const useGameStore = defineStore('game', () => {
       // 记录本次对局历史 (针对自己)
       const me = players.value.find(p => p.id === myPlayerId.value);
       if (me) {
+          let modeName = '不看牌';
+          if (gameMode.value === 1) modeName = '看三张';
+          if (gameMode.value === 2) modeName = '看四张';
+
           history.value.unshift({
               timestamp: Date.now(),
-              mode: gameMode.value === 'kanpai' ? '看四张' : '不看牌',
+              mode: modeName,
               isBanker: me.isBanker,
               handType: me.handResult ? me.handResult.typeName : '未知',
               multiplier: me.handResult ? me.handResult.multiplier : 1,

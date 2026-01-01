@@ -128,11 +128,10 @@ export default class GameClient {
      */
     send(cmd, data = {}) {
         const loadingStore = useLoadingStore();
-        loadingStore.startLoading();
         
         if (!this.isConnected) {
             console.warn("[Network] Cannot send, not connected");
-            loadingStore.hideLoading(); // Hide loading if not connected
+            // If not connected, we don't start loading, so no need to hide it either
             return;
         }
 
@@ -142,21 +141,27 @@ export default class GameClient {
             seq: this.seq,
             data: data
         };
-        console.log("[Network] Send:", packet);
+        
+        if (cmd !== "sys.ping") {
+            loadingStore.startLoading();
+            console.log("[Network] Send:", packet);
+        }
+        
         this.ws.send(JSON.stringify(packet));
     }
 
     _handleMessage(msg) {
         // msg 结构: {cmd, seq, code, msg, data}
-        const loadingStore = useLoadingStore();
-        loadingStore.hideLoading();
         
         // 拦截心跳回包，不向上层分发
         if (msg.cmd === "sys.pong") {
+            // No loading for ping/pong
             return;
         }
 
-        console.log("[Network] Recv:", msg);
+        const loadingStore = useLoadingStore();
+        loadingStore.hideLoading(); // Hide loading for all non-pong responses
+        console.log("[Network] Recv:", msg); // Log all non-pong responses
 
         // 通用错误处理：如果 code != 0，弹出提示
         if (msg.code !== 0) {

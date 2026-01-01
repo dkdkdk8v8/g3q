@@ -1,43 +1,93 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { createDeck, shuffle, calculateHandType } from '../utils/bullfight.js'
 import gameClient from '../socket.js'
+import { useUserStore } from './user.js'
 
 const DEFAULT_AVATAR = new URL('../assets/icon_avatar.png', import.meta.url).href;
 
 export const useGameStore = defineStore('game', () => {
+  const userStore = useUserStore(); // 获取用户store实例
   const currentPhase = ref('IDLE'); // IDLE, MATCHING, ROB_BANKER, BETTING, DEALING, SHOWDOWN, SETTLEMENT
   const players = ref([]);
-  const myPlayerId = ref('me'); // 模拟当前玩家ID
+  const myPlayerId = computed(() => userStore.userInfo.user_id); 
   const deck = ref([]);
   const countdown = ref(0);
   const bankerId = ref(null);
   const gameMode = ref(0); // 0: Bukan, 1: Kan3, 2: Kan4
   const history = ref([]); // 游戏记录
+  const currentRoom = ref(null); // 新增：存储当前房间信息
 
-  // 发送加入房间协议
-  const joinRoom = (level, mode) => {
-    gameMode.value = mode;
-    gameClient.send('nn.match', {
-        level: level,
-        banker_type: mode
-    });
-  };
+  // 监听 nn.join_res 协议
+  gameClient.on('nn.join_res', (msg) => {
+    if (msg.code === 0) {
+      console.log('nn.join_res received:', msg.data);
+      currentRoom.value = msg.data.room_info;
+      gameMode.value = currentRoom.value.banker_type; // 更新游戏模式
+
+      const serverPlayers = msg.data.user_data; // 这是一个包含空槽的数组
+      const currentPlayerId = userStore.userInfo.user_id;
+
+      if (!currentPlayerId) {
+        console.error("User ID not found in userStore.userInfo.");
+        return;
+      }
+
+      // 找到自己的位置
+      let myIndex = -1;
+      for (let i = 0; i < serverPlayers.length; i++) {
+        if (serverPlayers[i] && serverPlayers[i].user_id === currentPlayerId) {
+          myIndex = i;
+          break;
+        }
+      }
+
+      if (myIndex === -1) {
+        console.error("Current player not found in user_data from server.");
+        return;
+      }
+
+      // 重新排序玩家数组，确保自己总是在逻辑上的第一个位置 (即屏幕底部)
+      const reorderedPlayers = new Array(serverPlayers.length).fill(null);
+      for (let i = 0; i < serverPlayers.length; i++) {
+        const originalIndex = (myIndex + i) % serverPlayers.length;
+        if (serverPlayers[originalIndex]) {
+          reorderedPlayers[i] = {
+            id: serverPlayers[originalIndex].user_id,
+            name: serverPlayers[originalIndex].nick_name,
+            avatar: serverPlayers[originalIndex].avatar_url || DEFAULT_AVATAR,
+            coins: serverPlayers[originalIndex].balance,
+            isBanker: false, 
+            hand: [], 
+            state: 'IDLE', 
+            robMultiplier: -1, 
+            betMultiplier: 0,
+            seatIndex: originalIndex // 保留原始座位索引
+          };
+        }
+      }
+      players.value = reorderedPlayers; // 不再过滤掉空座位
+      currentPhase.value = 'IDLE'; // 或者 'WAITING_FOR_PLAYERS'
+
+      // 导航到游戏页面应由 LobbyView 负责，此处不进行路由跳转
+    } else {
+      console.error('Failed to join room:', msg.msg);
+      // TODO: 显示错误提示
+    }
+  });
+
 
   // 初始化（模拟进入房间）
+  // 这个函数现在可能不再需要，或者需要调整为只初始化游戏状态
   const initGame = (mode = 0) => {
     gameMode.value = parseInt(mode); // Ensure number
-    // 模拟5个玩家 (5人局)
-    players.value = [
-      { id: 'me', name: '我 (帅气)', avatar: DEFAULT_AVATAR, coins: 1000, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0 },
-      { id: 'p2', name: '张三', avatar: DEFAULT_AVATAR, coins: 1000, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0 },
-      { id: 'p3', name: '李四', avatar: DEFAULT_AVATAR, coins: 800, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0 },
-      { id: 'p4', name: '王五', avatar: DEFAULT_AVATAR, coins: 1200, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0 },
-      { id: 'p5', name: '赵六', avatar: DEFAULT_AVATAR, coins: 2000, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0 },
-    ];
+    // 模拟5个玩家 (5人局) - 现在玩家数据来自服务器
+    players.value = [];
     currentPhase.value = 'IDLE';
     bankerId.value = null;
   };
+
+  // ... (rest of the store actions and getters)
 
   // 开始游戏
   const startGame = () => {
@@ -81,9 +131,13 @@ export const useGameStore = defineStore('game', () => {
         if (currentPhase.value !== 'ROB_BANKER') return;
 
         startCountdown(5, () => {
-           // 倒计时结束，强制不抢
-           players.value.filter(p => p.robMultiplier === -1).forEach(p => p.robMultiplier = 0);
-           determineBanker();
+           // 倒计时结束，强制不抢 - 机器人逻辑已禁用，等待服务器通知或真实玩家操作
+        players.value.forEach(p => {
+            if (p.robMultiplier === -1) {
+                p.robMultiplier = 0; // 默认不抢庄
+            }
+        });
+        determineBanker();
         });
     }, 1200);
   };
@@ -113,11 +167,11 @@ export const useGameStore = defineStore('game', () => {
 
   // 检查是否都抢庄完毕
   const checkAllRobbed = () => {
-    // 简单模拟其他机器人随机抢庄
-    players.value.filter(p => p.id !== myPlayerId.value && p.robMultiplier === -1).forEach(p => {
-        if (Math.random() > 0.5) p.robMultiplier = 0; // 一半概率不抢
-        else p.robMultiplier = Math.floor(Math.random() * 3) + 1; // 1-3倍
-    });
+    // 机器人逻辑已禁用，等待服务器通知或真实玩家操作
+    // players.value.filter(p => p.id !== myPlayerId.value && p.robMultiplier === -1).forEach(p => {
+    //     if (Math.random() > 0.5) p.robMultiplier = 0; // 一半概率不抢
+    //     else p.robMultiplier = Math.floor(Math.random() * 3) + 1; // 1-3倍
+    // });
 
     if (players.value.every(p => p.robMultiplier !== -1)) {
       if (timer) clearInterval(timer);
@@ -166,10 +220,10 @@ export const useGameStore = defineStore('game', () => {
   };
 
   const checkAllBetted = () => {
-      // 模拟机器人下注
-      players.value.filter(p => p.id !== myPlayerId.value && !p.isBanker && p.betMultiplier === 0).forEach(p => {
-          p.betMultiplier = Math.floor(Math.random() * 3) + 1;
-      });
+      // 机器人逻辑已禁用，等待服务器通知或真实玩家操作
+      // players.value.filter(p => p.id !== myPlayerId.value && !p.isBanker && p.betMultiplier === 0).forEach(p => {
+      //     p.betMultiplier = Math.floor(Math.random() * 3) + 1;
+      // });
 
       if (players.value.filter(p => !p.isBanker).every(p => p.betMultiplier > 0)) {
           if (timer) clearInterval(timer);
@@ -207,15 +261,15 @@ export const useGameStore = defineStore('game', () => {
           // 如果动画期间已经全部摊牌结算，不再启动倒计时
           if (currentPhase.value !== 'SHOWDOWN') return;
 
-          // 模拟其他玩家陆续摊牌 (在倒计时开始后才行动)
-          players.value.forEach(p => {
-              if (p.id !== myPlayerId.value) {
-                  // 随机延迟 1-4秒 摊牌
-                  setTimeout(() => {
-                      playerShowHand(p.id);
-                  }, 1000 + Math.random() * 3000);
-              }
-          });
+          // 模拟其他玩家陆续摊牌 (在倒计时开始后才行动) - 机器人逻辑已禁用
+          // players.value.forEach(p => {
+          //     if (p.id !== myPlayerId.value) {
+          //         // 随机延迟 1-4秒 摊牌
+          //         setTimeout(() => {
+          //             playerShowHand(p.id);
+          //         }, 1000 + Math.random() * 3000);
+          //     }
+          // });
 
           // 摊牌倒计时 5秒
           startCountdown(5, () => {
@@ -332,6 +386,5 @@ export const useGameStore = defineStore('game', () => {
     playerShowHand,
     bankerId,
     history,
-    joinRoom
   }
 })

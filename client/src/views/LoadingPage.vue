@@ -31,10 +31,21 @@ export default {
     const LOCAL_STORAGE_IP_KEY = 'game_server_ip';
 
     onMounted(() => {
-      // Parse URL query parameters
       const urlParams = new URLSearchParams(window.location.search);
-      appId.value = urlParams.get('app') || '';
-      userId.value = urlParams.get('uid') || '';
+      let currentAppId = urlParams.get('app');
+      let currentUserId = urlParams.get('uid');
+
+    
+
+      if (!currentAppId) {
+        currentAppId = '91xj';
+      }
+      if (!currentUserId) {
+        currentUserId = 'dk6';
+      }
+
+      appId.value = currentAppId;
+      userId.value = currentUserId;
 
       const savedIp = localStorage.getItem(LOCAL_STORAGE_IP_KEY);
       if (savedIp) {

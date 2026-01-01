@@ -37,38 +37,15 @@ const setSeatRef = (el, playerId) => {
 };
 
 // 简单的布局计算：将玩家数组拆分为 自己 和 其他人
-const myPlayer = computed(() => store.players.find(p => p.id === store.myPlayerId));
-const otherPlayers = computed(() => {
-    const meIndex = store.players.findIndex(p => p.id === store.myPlayerId);
-    if (meIndex === -1) return [];
-    const others = [];
-    // 从自己下家开始顺时针找
-    for(let i = 1; i < store.players.length; i++) {
-        others.push(store.players[(meIndex + i) % store.players.length]);
-    }
-    return others;
-});
-
-// 计算对手的位置布局类型
-const getLayoutType = (index) => {
-    const totalOthers = otherPlayers.value.length;
-    if (totalOthers === 4) {
-        if (index === 0) return 'right'; // 右侧玩家
-        if (index === 3) return 'left';  // 左侧玩家
-    }
-    return 'top'; // 顶部玩家
-};
+const myPlayer = computed(() => store.players[0]); // 约定 store.players[0] 总是当前玩家
+const otherPlayers = computed(() => store.players.slice(1)); // 其他玩家
 
 // 计算对手的位置 Class
 const getOpponentClass = (index) => {
-    const totalOthers = otherPlayers.value.length;
-    if (totalOthers === 4) {
-        if (index === 0) return 'seat-right';
-        if (index === 1) return 'seat-right-top';
-        if (index === 2) return 'seat-left-top';
-        if (index === 3) return 'seat-left';
-    }
-    return '';
+    // 根据其他玩家在 otherPlayers 数组中的索引来分配座位
+    // 假设最多4个其他玩家 (总共5人桌)
+    const classes = ['seat-right', 'seat-right-top', 'seat-left-top', 'seat-left'];
+    return classes[index] || '';
 };
 
 // 监听下注：玩家下注时，金币从玩家飞向中心
@@ -296,13 +273,13 @@ const quitGame = () => {
     <div class="opponents-layer">
         <PlayerSeat 
             v-for="(p, index) in otherPlayers" 
-            :key="p.id" 
+            :key="p ? p.id : `empty-seat-${index + 1}`" 
             :player="p" 
-            :ref="(el) => setSeatRef(el, p.id)"
+            :ref="p ? (el) => setSeatRef(el, p.id) : null"
             class="opponent-seat-abs"
             :class="getOpponentClass(index)"
             :position="getLayoutType(index)"
-            :visible-card-count="visibleCounts[p.id] !== undefined ? visibleCounts[p.id] : 0"
+            :visible-card-count="p && visibleCounts[p.id] !== undefined ? visibleCounts[p.id] : 0"
         />
     </div>
 
@@ -320,7 +297,7 @@ const quitGame = () => {
 
             <!-- 阶段提示信息，统一显示在倒计时下方并样式类似“结算中...” -->
             <div class="phase-info">
-                <span v-if="store.currentPhase === 'ROB_BANKER'">看牌抢庄</span>
+                <span v-if="store.currentPhase === 'ROB_BANKER'">{{ modeName }}</span>
                 <span v-else-if="store.currentPhase === 'BETTING'">闲家下注</span>
                 <span v-else-if="store.currentPhase === 'SHOWDOWN'">摊牌比拼</span>
             </div>
@@ -336,36 +313,36 @@ const quitGame = () => {
     </div>
 
     <!-- 自己区域 -->
-
     <div class="my-area" v-if="myPlayer">
         <div class="controls-container">
-            <div v-if="store.currentPhase === 'ROB_BANKER' && myPlayer.robMultiplier === -1" class="btn-group">
+            <div v-if="store.currentPhase === 'ROB_BANKER' && myPlayer && myPlayer.robMultiplier === -1" class="btn-group">
                 <div class="game-btn blue" @click="onRob(0)">不抢</div>
                 <div class="game-btn orange" @click="onRob(1)">1倍</div>
                 <div class="game-btn orange" @click="onRob(2)">2倍</div>
                 <div class="game-btn orange" @click="onRob(3)">3倍</div>
             </div>
 
-            <div v-if="store.currentPhase === 'BETTING' && !myPlayer.isBanker && myPlayer.betMultiplier === 0" class="btn-group">
+            <div v-if="store.currentPhase === 'BETTING' && myPlayer && !myPlayer.isBanker && myPlayer.betMultiplier === 0" class="btn-group">
                 <div class="game-btn orange" @click="onBet(1)">1倍</div>
                 <div class="game-btn orange" @click="onBet(2)">2倍</div>
                 <div class="game-btn orange" @click="onBet(5)">5倍</div>
             </div>
             
-            <div v-if="myPlayer.robMultiplier > -1 && store.currentPhase === 'ROB_BANKER'" class="waiting-text">
+            <div v-if="myPlayer && myPlayer.robMultiplier > -1 && store.currentPhase === 'ROB_BANKER'" class="waiting-text">
                 已选择，等待其他玩家...
             </div>
-            <div v-if="myPlayer.betMultiplier > 0 && store.currentPhase === 'BETTING'" class="waiting-text">
+            <div v-if="myPlayer && myPlayer.betMultiplier > 0 && store.currentPhase === 'BETTING'" class="waiting-text">
                 已下注，等待开牌...
             </div>
             
             <!-- 摊牌按钮 -->
-            <div v-if="store.currentPhase === 'SHOWDOWN' && !myPlayer.isShowHand && store.countdown > 0" class="btn-group">
+            <div v-if="store.currentPhase === 'SHOWDOWN' && myPlayer && !myPlayer.isShowHand && store.countdown > 0" class="btn-group">
                 <div class="game-btn orange" style="width: 100px" @click="store.playerShowHand(myPlayer.id)">摊牌</div>
             </div>
         </div>
 
         <PlayerSeat 
+            v-if="myPlayer"
             :player="myPlayer" 
             :is-me="true" 
             :ref="(el) => setSeatRef(el, myPlayer.id)"
@@ -579,7 +556,7 @@ const quitGame = () => {
 .seat-right {
     top: 45%; /* 向上调整位置 */
     right: 10px;
-    transform: translateY(-50%) scale(0.85);
+    transform: translateY(-50%);
 }
 
 .seat-right-top {
@@ -595,7 +572,7 @@ const quitGame = () => {
 .seat-left {
     top: 45%; /* 向上调整位置 */
     left: 10px;
-    transform: translateY(-50%) scale(0.85);
+    transform: translateY(-50%);
 }
 
 .table-center {

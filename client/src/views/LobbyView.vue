@@ -1,6 +1,6 @@
 <script setup>
 import { useRouter } from 'vue-router';
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, onActivated } from 'vue'; // Added onActivated
 import { useUserStore } from '../stores/user.js';
 import { useGameStore } from '../stores/game.js';
 import gameClient from '../socket.js';
@@ -34,7 +34,7 @@ const enterGame = (level) => {
   
   // 发送匹配协议
   // gameStore.joinRoom(level, currentMode.value);
-  gameClient.send("nn.match", {
+  gameClient.send("nn.join", {
       level: level,
       banker_type: currentMode.value
   });
@@ -62,19 +62,13 @@ const rooms = computed(() => {
     });
 });
 
-onMounted(() => {
-    // 拦截发送方法以打印日志（忽略心跳包）
-    if (!gameClient._loggingHooked) {
-        const originalSend = gameClient.send;
-        gameClient.send = function(protocol, data) {
-            if (protocol !== 'heartbeat') {
-                console.log('⬆️ SEND:', protocol, data);
-            }
-            originalSend.call(this, protocol, data);
-        };
-        gameClient._loggingHooked = true;
-    }
+const fetchData = () => {
+    // 主动获取数据
+    gameClient.send("user.info");
+    gameClient.send("nn.lobby_config");
+};
 
+onMounted(() => {
     // 注册消息监听
     gameClient.on('user.info', (msg) => {
         if (msg.code === 0) {
@@ -88,9 +82,11 @@ onMounted(() => {
         }
     });
 
-    // 主动获取数据
-    gameClient.send("user.info");
-    gameClient.send("nn.lobby_config");
+    fetchData(); // Initial fetch when mounted
+});
+
+onActivated(() => {
+    fetchData(); // Re-fetch data when activated (e.g., returning from game)
 });
 
 onUnmounted(() => {

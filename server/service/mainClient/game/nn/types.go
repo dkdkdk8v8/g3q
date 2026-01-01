@@ -208,3 +208,18 @@ func (r *QZNNRoom) StartTimer(seconds int, onFinish func()) {
 		}
 	}()
 }
+
+func (r *QZNNRoom) GetPlayerCount() int {
+	// Players 是定长切片，需要统计非 nil 的数量
+	currentCount := 0
+	for _, p := range r.Players {
+		if p != nil {
+			currentCount++
+		}
+	}
+	return currentCount
+}
+
+func (r *QZNNRoom) IsPlaying() bool {
+	return r.State != StateWaiting
+}

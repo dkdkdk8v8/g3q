@@ -114,7 +114,7 @@ func (rm *RobotManager) ArrangeRobotsForQZNN(room *nn.QZNNRoom) {
 			bot := robots[0]
 
 			// 判断是否能进入房间
-			if !room.IsPlaying() || room.GetPlayerCount() >= room.GetPlayerCap() {
+			if !room.IsWaiting() || room.GetPlayerCount() >= room.GetPlayerCap() {
 				break
 			}
 
@@ -124,8 +124,15 @@ func (rm *RobotManager) ArrangeRobotsForQZNN(room *nn.QZNNRoom) {
 			}
 
 			// 派发前检查余额，不足则充值 (按需充值逻辑)
-			if bot.Balance < RobotRechargeLimit {
-				rechargeAmount := int64(rand.Intn(RobotMaxRecharge-RobotMinRecharge+1) + RobotMinRecharge)
+			// 充值需满足房间最低进入标准
+			minEntry := room.Config.MinBalance
+			if bot.Balance < minEntry {
+				minRecharge := minEntry + int64(RobotMinRecharge)
+				maxRecharge := int64(RobotMaxRecharge)
+				if maxRecharge < minRecharge {
+					maxRecharge = minRecharge * 10
+				}
+				rechargeAmount := rand.Int63n(maxRecharge-minRecharge+1) + minRecharge
 				bot.Balance = rechargeAmount
 				if _, err := modelClient.UpdateUser(bot); err != nil {
 					logrus.WithError(err).WithField("uid", bot.UserId).Error("RobotManager-Arrange-Recharge-Fail")

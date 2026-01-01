@@ -220,6 +220,6 @@ func (r *QZNNRoom) GetPlayerCount() int {
 	return currentCount
 }
 
-func (r *QZNNRoom) IsPlaying() bool {
-	return r.State != StateWaiting
+func (r *QZNNRoom) IsWaiting() bool {
+	return r.State == StateWaiting
 }

@@ -221,7 +221,7 @@ const startDealingAnimation = (isSupplemental = false) => {
             });
         }
 
-        // 稍微错开不同玩家的发牌时间 (比如每人间隔 0.15s)
+        // 稍微错开不同玩家的发牌时间 (比如每人间隔 0.08s)
         setTimeout(() => {
             dealingLayer.value.dealToPlayer(cardTargets, () => {
                 // 回调：更新可见数量 (一次性加完，或者在 dealToPlayer 内部做更细致的回调)
@@ -229,7 +229,7 @@ const startDealingAnimation = (isSupplemental = false) => {
                 if (!visibleCounts.value[t.id]) visibleCounts.value[t.id] = 0;
                 visibleCounts.value[t.id] += t.count;
             });
-        }, pIndex * 150);
+        }, pIndex * 80);
     });
 };
 

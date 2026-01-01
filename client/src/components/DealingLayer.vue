@@ -68,8 +68,8 @@ const dealToPlayer = async (targets, callback) => {
         // === 批量发牌模式：依次跳水到最左侧 -> 展开 ===
         
         // 1. 依次跳水 (Jump)
-        const jumpInterval = 100; // 每张间隔
-        const jumpDuration = 500; // 飞行时长
+        const jumpInterval = 60; // 每张间隔
+        const jumpDuration = 350; // 飞行时长
 
         const jumpPromises = reactiveCards.map((card, idx) => {
             return new Promise(resolve => {
@@ -100,7 +100,7 @@ const dealToPlayer = async (targets, callback) => {
                 
                 (async () => {
                     // 1. 设置移动的 transition
-                    card.transition = 'transform 0.4s ease-out';
+                    card.transition = 'transform 0.3s ease-out';
                     
                     // 等待 DOM 更新
                     await nextTick();
@@ -111,7 +111,7 @@ const dealToPlayer = async (targets, callback) => {
                     // scale 保持 finalScale
 
                     // 监听 transitionend 事件 或者用 setTimeout 确保移动完成
-                    const moveDuration = 400;
+                    const moveDuration = 300;
 
                     setTimeout(() => {
                         // 移动完成
@@ -135,7 +135,7 @@ const dealToPlayer = async (targets, callback) => {
         card.opacity = 1;
         card.rotation = 0;
 
-        await new Promise(r => setTimeout(r, 600));
+        await new Promise(r => setTimeout(r, 400));
 
         if (card.isMe) {
             card.transition = 'all 0.4s ease-in-out';

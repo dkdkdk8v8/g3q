@@ -253,12 +253,12 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 			},
 		})
 
-	case "nn.room_config": // 房间配置请求
+	case "nn.lobby_config": // 大厅配置请求
 		conn.WriteJSON(comm.Response{
 			Cmd: msg.Cmd,
 			Seq: msg.Seq,
 			Data: gin.H{
-				"room_configs": nn.Configs,
+				"lobby_configs": nn.Configs,
 			},
 		})
 

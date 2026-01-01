@@ -1,4 +1,4 @@
-import { CoolController, BaseController } from '@cool-midway/core';
+import {CoolController, BaseController} from '@cool-midway/core';
 
 import {Provide} from "@midwayjs/decorator";
 

@@ -34,7 +34,7 @@ func (rm *RoomManager) SetDrainMode(enable bool) {
 	rm.isDraining = enable
 }
 
-func (rm *RoomManager) JoinOrCreateRoom(gameType string, player *Player, onStart func(*Room)) (*Room, error) {
+func (rm *RoomManager) JoinOrCreateRoom(gameType string, player *Player, onStart func(*Room), config *RoomConfig) (*Room, error) {
 	rm.mu.Lock()
 	defer rm.mu.Unlock()
 
@@ -60,6 +60,9 @@ func (rm *RoomManager) JoinOrCreateRoom(gameType string, player *Player, onStart
 	}
 
 	newRoom := NewRoom(roomID, gameType, playerMax)
+	if config != nil {
+		newRoom.Config = *config
+	}
 	newRoom.OnStart = onStart
 	newRoom.AddPlayer(player)
 	rm.rooms[roomID] = newRoom

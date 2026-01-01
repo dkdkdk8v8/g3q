@@ -3,6 +3,7 @@ package mainClient
 import (
 	"compoment/ws"
 	"encoding/json"
+	"fmt"
 	"service/comm"
 	"service/mainClient/game"
 	"service/mainClient/game/brnn"
@@ -51,14 +52,21 @@ func WSEntry(c *gin.Context) {
 	userId := user.UserId
 	logrus.WithField("uid", userId).Info("WS-Client-Connected")
 
+	nickName := user.NickName
+	if nickName == "" {
+		nickName = user.UserId
+	}
+
 	// 发送用户信息给客户端
 	conn.WriteJSON(comm.Response{
 		Cmd: "user.allinfo",
 		Seq: 0,
 		Data: gin.H{
-			"balance":   user.Balance,
-			"nick_name": user.NickName,
-			"avatar":    user.Avatar,
+			"user_id":      user.UserId,
+			"balance":      user.Balance,
+			"nick_name":    nickName,
+			"avatar":       user.Avatar,
+			"room_configs": nn.Configs,
 		},
 	})
 
@@ -99,13 +107,61 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 
 	switch msg.Cmd {
 	case "nn.match": // 抢庄牛牛匹配
+		var req struct {
+			Level      int `json:"level"`
+			BankerType int `json:"banker_type"`
+		}
+		// 默认进入初级场
+		req.Level = 1
+		req.BankerType = -1 // 默认值，用于检测客户端是否传递
+
+		if err := json.Unmarshal(msg.Data, &req); err == nil {
+			if req.Level <= 0 {
+				req.Level = 1
+			}
+		}
+
+		cfg := nn.GetConfig(req.Level)
+		if cfg == nil {
+			conn.WriteJSON(comm.Response{Cmd: msg.Cmd, Seq: msg.Seq, Code: -1, Msg: "无效的房间类型"})
+			return
+		}
+
+		// 如果客户端未传 BankerType，使用配置默认值
+		if req.BankerType == -1 {
+			req.BankerType = cfg.BankerType
+		}
+
+		// 校验 BankerType (0:不看牌, 1:看3张, 2:看4张)
+		if req.BankerType < nn.BankerTypeNoLook || req.BankerType > nn.BankerTypeLook4 {
+			conn.WriteJSON(comm.Response{Cmd: msg.Cmd, Seq: msg.Seq, Code: -1, Msg: "无效的抢庄类型"})
+			return
+		}
+
+		// 检查余额
+		var user modelClient.ModelUser
+		if err := modelClient.GetDb().QueryTable(new(modelClient.ModelUser)).Filter("user_id", userId).One(&user); err != nil {
+			conn.WriteJSON(comm.Response{Cmd: msg.Cmd, Seq: msg.Seq, Code: -1, Msg: "获取用户信息失败"})
+			return
+		}
+		if user.Balance < cfg.MinBalance {
+			conn.WriteJSON(comm.Response{Cmd: msg.Cmd, Seq: msg.Seq, Code: -1, Msg: fmt.Sprintf("余额不足，进入该房间需要 %d 金币", cfg.MinBalance)})
+			return
+		}
+
 		// 处理抢庄牛牛匹配逻辑
 		p := &game.Player{
 			ID:      userId,
 			Conn:    conn,
 			IsRobot: false,
 		}
-		room, err := game.GetMgr().JoinOrCreateRoom("nn", p, nn.StartGame)
+		// 房间类型包含等级和抢庄类型，确保隔离 (例如: nn_1_0, nn_1_2)
+		roomType := fmt.Sprintf("nn_%d_%d", req.Level, req.BankerType)
+
+		roomConfig := *cfg
+		roomConfig.BankerType = req.BankerType
+
+		room, err := game.GetMgr().JoinOrCreateRoom(roomType, p, nn.StartGame, &roomConfig)
 		if err != nil {
 			conn.WriteJSON(comm.Response{Cmd: msg.Cmd, Seq: msg.Seq, Code: -1, Msg: err.Error()})
 			return
@@ -171,7 +227,7 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 			Conn:    conn,
 			IsRobot: false,
 		}
-		room, err := game.GetMgr().JoinOrCreateRoom("brnn", p, brnn.StartGame)
+		room, err := game.GetMgr().JoinOrCreateRoom("brnn", p, brnn.StartGame, nil)
 		if err != nil {
 			conn.WriteJSON(comm.Response{Cmd: msg.Cmd, Seq: msg.Seq, Code: -1, Msg: err.Error()})
 			return

@@ -6,7 +6,7 @@ import gameClient from '../socket.js'
 const DEFAULT_AVATAR = new URL('../assets/icon_avatar.png', import.meta.url).href;
 
 export const useGameStore = defineStore('game', () => {
-    const currentPhase = ref('IDLE'); // IDLE, MATCHING, ROB_BANKER, BETTING, DEALING, SHOWDOWN, SETTLEMENT
+    const currentPhase = ref('IDLE'); // IDLE, READY_COUNTDOWN, MATCHING, ROB_BANKER, BETTING, DEALING, SHOWDOWN, SETTLEMENT
     const players = ref([]);
     const myPlayerId = ref('me'); // 模拟当前玩家ID
     const deck = ref([]);
@@ -26,23 +26,98 @@ export const useGameStore = defineStore('game', () => {
         gameMode.value = parseInt(mode); // Ensure number
         // 模拟5个玩家 (5人局)
         players.value = [
-            { id: 'me', name: '我 (帅气)', avatar: DEFAULT_AVATAR, coins: 1000, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0 },
-            { id: 'p2', name: '张三', avatar: DEFAULT_AVATAR, coins: 1000, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0 },
-            { id: 'p3', name: '李四', avatar: DEFAULT_AVATAR, coins: 800, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0 },
-            { id: 'p4', name: '王五', avatar: DEFAULT_AVATAR, coins: 1200, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0 },
-            { id: 'p5', name: '赵六', avatar: DEFAULT_AVATAR, coins: 2000, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0 },
+            { id: 'me', name: '我 (帅气)', avatar: DEFAULT_AVATAR, coins: 1000, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0, isReady: false },
+            { id: 'p2', name: '张三', avatar: DEFAULT_AVATAR, coins: 1000, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0, isReady: false },
+            { id: 'p3', name: '李四', avatar: DEFAULT_AVATAR, coins: 800, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0, isReady: false },
+            { id: 'p4', name: '王五', avatar: DEFAULT_AVATAR, coins: 1200, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0, isReady: false },
+            { id: 'p5', name: '赵六', avatar: DEFAULT_AVATAR, coins: 2000, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0, isReady: false },
         ];
         currentPhase.value = 'IDLE';
         bankerId.value = null;
+
+        // Optimistically update local state for myPlayerId. This will be confirmed by server broadcast.
+        players.value.forEach(p => p.isReady = false);
+
+        // Register server listeners for readiness updates
+        gameClient.on('nn.player_ready_update', (msg) => {
+            if (msg.code === 0 && msg.data && msg.data.players) {
+                msg.data.players.forEach(updatedPlayer => {
+                    const player = players.value.find(p => p.id === updatedPlayer.uid);
+                    if (player) {
+                        player.isReady = updatedPlayer.is_ready;
+                    }
+                });
+                // Only check and potentially proceed if currently in READY_COUNTDOWN
+                if (currentPhase.value === 'READY_COUNTDOWN') {
+                    checkAllPlayersReady();
+                }
+            }
+        });
+
+        // Register listener for server initiating game start (after ready phase)
+        gameClient.on('nn.game_start', (msg) => {
+            if (msg.code === 0) {
+                _proceedToRobBankerPhase();
+            }
+        });
     };
 
-    // 开始游戏
+    // 玩家操作：准备
+    const playerReady = () => {
+        const me = players.value.find(p => p.id === myPlayerId.value);
+        if (me && currentPhase.value === 'READY_COUNTDOWN' && !me.isReady) {
+            gameClient.send('nn.ready', { is_ready: true });
+            me.isReady = true; // Optimistically update local state
+            checkAllPlayersReady();
+        }
+    };
+
+    // 检查所有玩家是否都准备好了
+    const checkAllPlayersReady = () => {
+        if (players.value.every(p => p.isReady)) {
+            // All players are ready, stop countdown and proceed to ROB_BANKER phase
+            if (timer) clearInterval(timer);
+            if (currentPhase.value === 'READY_COUNTDOWN') {
+                _proceedToRobBankerPhase();
+            }
+        }
+    };
+
+    // 新的游戏开始入口：进入准备倒计时阶段
     const startGame = () => {
+        // 重置玩家状态 (清理上一局的数据，以便在READY_COUNTDOWN阶段显示干净的状态)
+        players.value.forEach(p => {
+            p.isReady = false; // Always reset readiness
+            p.isBanker = false;
+            p.robMultiplier = -1; // -1表示未操作
+            p.betMultiplier = 0;
+            p.handResult = undefined; // 清理牛几结果
+            p.roundScore = 0;
+            p.isShowHand = false;
+            p.state = 'IDLE'; // Reset state to IDLE for the ready phase
+            p.hand = []; // Clear hand
+        });
+
+        currentPhase.value = 'READY_COUNTDOWN';
+        bankerId.value = null; // 重置庄家ID
+
+        // Start 10-second ready countdown
+        startCountdown(10, () => {
+            // Countdown finished, always proceed to game
+            _proceedToRobBankerPhase();
+        });
+
+        // Trigger auto-ready for robots
+        autoReadyRobots();
+    };
+
+    // 内部函数：正式开始抢庄阶段的游戏逻辑
+    const _proceedToRobBankerPhase = () => {
         currentPhase.value = 'ROB_BANKER';
         bankerId.value = null; // 重置庄家ID
         deck.value = shuffle(createDeck());
 
-        // 重置玩家状态 (清理上一局的数据：牌型、倍数、分数等)
+        // 重置玩家状态 (清理上一局的数据：牌型、倍数、分数、isReady等)
         players.value.forEach(p => {
             p.hand = [];
             p.isBanker = false;
@@ -52,6 +127,7 @@ export const useGameStore = defineStore('game', () => {
             p.roundScore = 0;
             p.isShowHand = false;
             p.state = 'ROBBING_BANKER';
+            p.isReady = false; // Reset ready state for next round if applicable
         });
 
         // 发牌逻辑差异
@@ -72,17 +148,32 @@ export const useGameStore = defineStore('game', () => {
             });
         }
 
-        // 等待发牌动画(约1秒)结束后，再开始倒计时
+        // 等待发牌动画(约1秒)结束后，再开始抢庄倒计时
         setTimeout(() => {
             // 如果在动画期间已经完成了抢庄(比如用户极速操作)，则不再启动倒计时
             if (currentPhase.value !== 'ROB_BANKER') return;
 
             startCountdown(5, () => {
-                // 倒计时结束，强制不抢
+                // 倒计时结束，强制未抢庄的玩家不抢
                 players.value.filter(p => p.robMultiplier === -1).forEach(p => p.robMultiplier = 0);
                 determineBanker();
             });
         }, 1200);
+    };
+
+    // 自动模拟机器人准备
+    const autoReadyRobots = () => {
+        players.value.filter(p => p.id !== myPlayerId.value).forEach(p => {
+            // 模拟机器人随机准备
+            if (!p.isReady) {
+                setTimeout(() => {
+                    p.isReady = true; // Mark as ready
+                    // In a real scenario, this would also involve sending a message to the server
+                    // gameClient.send('nn.ready', { uid: p.id, is_ready: true });
+                    checkAllPlayersReady(); // Check readiness after this robot is ready
+                }, Math.random() * 5000 + 1000); // 1 to 6 seconds random delay
+            }
+        });
     };
 
     // 倒计时辅助
@@ -324,11 +415,13 @@ export const useGameStore = defineStore('game', () => {
         countdown,
         initGame,
         startGame,
+        playerReady, // Added playerReady
         playerRob,
         playerBet,
         playerShowHand,
         bankerId,
         history,
-        joinRoom
+        joinRoom,
+        autoReadyRobots // Added autoReadyRobots
     }
 })

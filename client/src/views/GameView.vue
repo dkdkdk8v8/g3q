@@ -303,12 +303,13 @@ const quitGame = () => {
             :class="getOpponentClass(index)"
             :position="getLayoutType(index)"
             :visible-card-count="visibleCounts[p.id] !== undefined ? visibleCounts[p.id] : 0"
+            :is-ready="p.isReady"
         />
     </div>
 
     <div class="table-center" ref="tableCenterRef">
         <!-- 闹钟和阶段提示信息的容器 -->
-        <div v-if="store.countdown > 0 && ['ROB_BANKER', 'BETTING', 'SHOWDOWN'].includes(store.currentPhase)" class="clock-and-info-wrapper">
+        <div v-if="store.countdown > 0 && ['READY_COUNTDOWN', 'ROB_BANKER', 'BETTING', 'SHOWDOWN'].includes(store.currentPhase)" class="clock-and-info-wrapper">
             <!-- 倒计时闹钟 -->
             <div class="alarm-clock">
                 <div class="alarm-body">
@@ -320,7 +321,8 @@ const quitGame = () => {
 
             <!-- 阶段提示信息，统一显示在倒计时下方并样式类似“结算中...” -->
             <div class="phase-info">
-                <span v-if="store.currentPhase === 'ROB_BANKER'">看牌抢庄</span>
+                <span v-if="store.currentPhase === 'READY_COUNTDOWN'">等待玩家准备</span>
+                <span v-else-if="store.currentPhase === 'ROB_BANKER'">看牌抢庄</span>
                 <span v-else-if="store.currentPhase === 'BETTING'">闲家下注</span>
                 <span v-else-if="store.currentPhase === 'SHOWDOWN'">摊牌比拼</span>
             </div>
@@ -339,6 +341,14 @@ const quitGame = () => {
 
     <div class="my-area" v-if="myPlayer">
         <div class="controls-container">
+            <!-- 准备按钮 -->
+            <div v-if="store.currentPhase === 'READY_COUNTDOWN' && !myPlayer.isReady" class="btn-group">
+                <div class="game-btn orange" style="width: 120px;" @click="store.playerReady()">确认准备</div>
+            </div>
+            <div v-else-if="store.currentPhase === 'READY_COUNTDOWN' && myPlayer.isReady" class="waiting-text">
+                已准备，等待其他玩家...
+            </div>
+
             <div v-if="store.currentPhase === 'ROB_BANKER' && myPlayer.robMultiplier === -1" class="btn-group">
                 <div class="game-btn blue" @click="onRob(0)">不抢</div>
                 <div class="game-btn orange" @click="onRob(1)">1倍</div>
@@ -371,6 +381,7 @@ const quitGame = () => {
             :ref="(el) => setSeatRef(el, myPlayer.id)"
             position="bottom"
             :visible-card-count="visibleCounts[myPlayer.id] !== undefined ? visibleCounts[myPlayer.id] : 0"
+            :is-ready="myPlayer.isReady"
         />
     </div>
 

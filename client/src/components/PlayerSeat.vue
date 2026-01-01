@@ -11,31 +11,31 @@ const props = defineProps({
       type: String,
       default: 'top'
   },
-  visibleCardCount: { // 控制显示几张牌，-1为全部显示
-      type: Number,
-      default: -1
-  }
-});
-
-const store = useGameStore();
-
-// 始终返回完整手牌以保持布局稳定
-const displayedHand = computed(() => {
-    if (!props.player.hand) return [];
-    return props.player.hand;
-});
-
-const showCards = computed(() => {
-  return displayedHand.value.length > 0;
-});
-
-const shouldShowCardFace = computed(() => {
-    if (props.isMe) return true;
-    if (store.currentPhase === 'SETTLEMENT') return true;
-    if (store.currentPhase === 'SHOWDOWN' && props.player.isShowHand) return true;
-    return false;
-});
-
+      visibleCardCount: { // 控制显示几张牌，-1为全部显示
+          type: Number,
+          default: -1
+      },
+      isReady: Boolean // Add isReady prop
+  });
+  
+  const store = useGameStore();
+  
+  // 始终返回完整手牌以保持布局稳定
+  const displayedHand = computed(() => {
+      if (!props.player.hand) return [];
+      return props.player.hand;
+  });
+  
+  const showCards = computed(() => {
+    return displayedHand.value.length > 0;
+  });
+  
+  const shouldShowCardFace = computed(() => {
+      if (props.isMe) return true;
+      if (store.currentPhase === 'SETTLEMENT') return true;
+      if (store.currentPhase === 'SHOWDOWN' && props.player.isShowHand) return true;
+      return false;
+  });
 // 控制高亮显示的延迟开关 (为了等翻牌动画结束)
 const enableHighlight = ref(false);
 
@@ -75,7 +75,9 @@ const isBullPart = (index) => {
 };
 
 const shouldShowBadge = computed(() => {
-    if (!props.player.handResult || store.currentPhase === 'GAME_OVER') return false;
+    if (!props.player.handResult) return false;
+    // Hide badge during IDLE, READY_COUNTDOWN and GAME_OVER phases
+    if (['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)) return false;
     
     if (props.isMe) {
         // 自己：必须点了摊牌(isShowHand) 或 结算阶段 才显示牌型结果
@@ -100,7 +102,7 @@ const shouldShowBadge = computed(() => {
       </div>
       
       <!-- 状态浮层，移到 avatar-area 以便相对于头像定位 -->
-      <div class="status-float" v-if="store.currentPhase !== 'GAME_OVER'">
+      <div class="status-float" v-if="!['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)">
           <div v-if="player.robMultiplier > 0" class="art-text orange">抢x{{ player.robMultiplier }}</div>
           <div v-if="player.robMultiplier === 0" class="art-text gray">不抢</div>
           <div v-if="player.betMultiplier > 0" class="art-text green">下x{{ player.betMultiplier }}</div>
@@ -114,11 +116,13 @@ const shouldShowBadge = computed(() => {
         </div>
       </div>
       <!-- 庄家徽章，现在移动到 avatar-area 内部 -->
-      <div v-if="player.isBanker && store.currentPhase !== 'GAME_OVER'" class="banker-badge">庄</div>
+      <div v-if="player.isBanker && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)" class="banker-badge">庄</div>
+      <!-- Ready Badge -->
+      <div v-if="player.isReady && store.currentPhase === 'READY_COUNTDOWN'" class="ready-badge">✔ 准备</div>
     </div>
     
     <!-- ... (keep score float) -->
-    <div v-if="player.roundScore !== 0 && player.state !== 'IDLE' && store.currentPhase !== 'GAME_OVER'" class="score-float" :class="player.roundScore > 0 ? 'win' : 'lose'">
+    <div v-if="player.roundScore !== 0 && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)" class="score-float" :class="player.roundScore > 0 ? 'win' : 'lose'">
         {{ player.roundScore > 0 ? '+' : '' }}{{ player.roundScore }}
     </div>
 

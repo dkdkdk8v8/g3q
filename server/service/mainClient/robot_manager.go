@@ -142,6 +142,7 @@ func (rm *RobotManager) RobotEnterRoom(room *nn.QZNNRoom) {
 				ID:      bot.UserId,
 				IsRobot: true,
 				Conn:    nil, // 机器人无真实连接
+				Balance: bot.Balance,
 			}
 			room.AddPlayer(p)
 		}

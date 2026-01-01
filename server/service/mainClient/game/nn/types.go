@@ -16,6 +16,7 @@ type CardResult struct {
 // Player 代表房间内的一个玩家
 type Player struct {
 	ID       string
+	Balance  int64      `json:"balance"`   // 玩家余额,单位分
 	Cards    []int      `json:"cards"`     // 手牌 (0-51)
 	CallMult int        `json:"call_mult"` // 抢庄倍数
 	BetMult  int        `json:"bet_mult"`  // 下注倍数
@@ -24,6 +25,39 @@ type Player struct {
 	IsReady  bool       `json:"is_ready"`  // 是否已准备
 	IsRobot  bool       `json:"-"`
 	Conn     *ws.WSConn `json:"-"` // WebSocket 连接
+}
+
+func (p *Player) GetClientPlayer(cardNum int, secret bool) *Player {
+	n := &Player{
+		ID:       p.ID,
+		Balance:  p.Balance,
+		CallMult: p.CallMult,
+		BetMult:  p.BetMult,
+		IsShow:   p.IsShow,
+		SeatNum:  p.SeatNum,
+		IsReady:  p.IsReady,
+	}
+	if cardNum != 0 {
+		n.Cards = p.Cards[:cardNum]
+	} else if cardNum == 0 {
+		n.Cards = nil
+	} else {
+		n.Cards = p.Cards
+	}
+	if secret {
+		for _, c := range n.Cards {
+			n.Cards[c] = -1
+		}
+	}
+
+	return n
+}
+
+func (p *Player) reset() {
+	p.Cards = nil
+	p.CallMult = 0
+	p.BetMult = 0
+	p.IsShow = false
 }
 
 // LobbyConfig 大厅配置
@@ -35,6 +69,19 @@ type LobbyConfig struct {
 	BankerType int    `json:"-"`           // 抢庄类型
 }
 
+func (cfg *LobbyConfig) GetPreCard() int {
+	switch cfg.BankerType {
+	case BankerTypeNoLook:
+		return 0
+	case BankerTypeLook3:
+		return 3
+	case BankerTypeLook4:
+		return 4
+	default:
+		return 5
+	}
+}
+
 // Room 代表一个游戏房间
 type QZNNRoom struct {
 	ID            string          `json:"ID"`
@@ -44,7 +91,6 @@ type QZNNRoom struct {
 	BankerID      string          `json:"BankerID"`
 	Players       []*Player       `json:"Players"`
 	StateMu       sync.RWMutex    `json:"-"` // 保护 State, Timer
-	Timer         *time.Timer     `json:"-"` // 状态切换定时器
 	Ticker        *time.Ticker    `json:"-"` // 倒计时定时器
 	Mu            sync.Mutex      `json:"-"` // 保护房间数据并发安全
 	PlayerMu      sync.RWMutex    `json:"-"` // 保护 Players
@@ -53,4 +99,20 @@ type QZNNRoom struct {
 	TargetResults map[string]int  `json:"-"` // 记录每个玩家本局被分配的目标分数 (牛几)
 	TotalBet      int64           `json:"-"` // 本局总下注额，用于更新库存
 	Config        LobbyConfig     `json:"-"` // 房间配置
+}
+
+func (r *QZNNRoom) GetClientRoom(preCard int, secret bool) *QZNNRoom {
+	n := &QZNNRoom{
+		ID:           r.ID,
+		Type:         r.Type,
+		State:        r.State,
+		StateLeftSec: r.StateLeftSec,
+		BankerID:     r.BankerID,
+	}
+	r.PlayerMu.RLock()
+	defer r.PlayerMu.RUnlock()
+	for _, p := range r.Players {
+		n.Players = append(n.Players, p.GetClientPlayer(preCard, secret))
+	}
+	return n
 }

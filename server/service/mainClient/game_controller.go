@@ -152,6 +152,7 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 			ID:      userId,
 			Conn:    conn,
 			IsRobot: false,
+			Balance: user.Balance,
 		}
 		// 房间类型包含等级和抢庄类型，确保隔离 (例如: nn_1_0, nn_1_2)
 		roomType := fmt.Sprintf("nn_%d_%d", req.Level, req.BankerType)
@@ -159,7 +160,7 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 		roomConfig := *cfg
 		roomConfig.BankerType = req.BankerType
 
-		room, err := game.GetMgr().JoinOrCreateNNRoom(roomType, p, nn.StartGame, &roomConfig)
+		room, err := game.GetMgr().JoinOrCreateNNRoom(roomType, p, &roomConfig)
 		if err != nil {
 			conn.WriteJSON(comm.Response{Cmd: msg.Cmd, Seq: msg.Seq, Code: -1, Msg: err.Error()})
 			return

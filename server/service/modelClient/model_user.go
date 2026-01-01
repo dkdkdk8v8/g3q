@@ -94,10 +94,7 @@ func CreateRobot(user *ModelUser) (int64, error) {
 func GetRandomRobots(limit int) ([]*ModelUser, error) {
 	var robots []*ModelUser
 	// OrderBy("?") 是 MySQL 的随机排序
-	_, err := GetDb().QueryTable(new(ModelUser)).
-		Filter("is_robot", true).OrderBy("?").
-		Limit(limit).
-		All(&robots)
+	_, err := GetDb().Raw("SELECT * FROM g3q_user WHERE is_robot = 1 ORDER BY RAND() LIMIT ?", limit).QueryRows(&robots)
 	return robots, err
 }
 

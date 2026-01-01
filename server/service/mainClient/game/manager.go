@@ -39,6 +39,9 @@ func (rm *RoomManager) GetPlayerRoom(userID string) *nn.QZNNRoom {
 	defer rm.mu.RUnlock()
 	for _, room := range rm.rooms {
 		for _, player := range room.Players {
+			if player == nil {
+				continue
+			}
 			if player.ID == userID {
 				return room
 			}
@@ -53,8 +56,7 @@ func (rm *RoomManager) GetRoomByRoomId(roomId string) *nn.QZNNRoom {
 	return rm.rooms[roomId]
 }
 
-func (rm *RoomManager) JoinOrCreateNNRoom(gameType string, player *nn.Player, onStart func(*nn.QZNNRoom),
-	config *nn.LobbyConfig) (*nn.QZNNRoom, error) {
+func (rm *RoomManager) JoinOrCreateNNRoom(gameType string, player *nn.Player, config *nn.LobbyConfig) (*nn.QZNNRoom, error) {
 	rm.mu.Lock()
 	defer rm.mu.Unlock()
 
@@ -79,7 +81,6 @@ func (rm *RoomManager) JoinOrCreateNNRoom(gameType string, player *nn.Player, on
 	if config != nil {
 		newRoom.Config = *config
 	}
-	newRoom.OnStart = onStart
 	newRoom.AddPlayer(player)
 	rm.rooms[roomID] = newRoom
 

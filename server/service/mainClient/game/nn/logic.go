@@ -31,21 +31,21 @@ func (r *QZNNRoom) SetStatus(state int) bool {
 	return true
 }
 
-func (r *QZNNRoom) IsSecretByStatus(state int) bool {
-	r.StateMu.RLock()
-	defer r.StateMu.RUnlock()
-	switch state {
-	case StateWaiting, StateWaitingTimer:
-		return false
-	case StateCalling, StateBetting, StateDealing:
-		return true
-	case StateSettling:
-		return false
-	default:
-		//防止未知状态，全部给数据，避免前端出错
-		return true
-	}
-}
+// func (r *QZNNRoom) IsSecretByStatus(state int) bool {
+// 	r.StateMu.RLock()
+// 	defer r.StateMu.RUnlock()
+// 	switch state {
+// 	case StateWaiting, StateWaitingTimer:
+// 		return false
+// 	case StateBanking, StateBetting, StateDealing:
+// 		return true
+// 	case StateSettling:
+// 		return false
+// 	default:
+// 		//防止未知状态，全部给数据，避免前端出错
+// 		return true
+// 	}
+// }
 
 func (r *QZNNRoom) CheckIsBanker(bankerID string) bool {
 	r.Mu.Lock()
@@ -123,22 +123,6 @@ func (r *QZNNRoom) AddPlayer(p *Player) (int, error) {
 
 	r.Broadcast(comm.Response{Cmd: "nn.player_join", Data: gin.H{"players": r.Players}})
 
-	//加入已经有2个人在房间，可以进行倒计时开始游戏
-	if countExistPlayerNum >= 2 && r.CheckStatus(StateWaiting) {
-		go func() {
-			time.Sleep(5 * time.Second)
-			if !r.CheckStatus(StateWaiting) {
-				return
-			}
-			if r.SetStatus(StateWaitingTimer) {
-				r.StartTimer(StateWaiting2StartSec, func() {
-					r.OnStart(r)
-				})
-				r.Broadcast(comm.Response{Cmd: "nn.player_join", Data: gin.H{"room": r}})
-			}
-		}()
-	}
-
 	return emptySeat, nil
 }
 
@@ -152,7 +136,7 @@ func (r *QZNNRoom) Broadcast(msg interface{}) {
 	}
 }
 
-func (r *QZNNRoom) BroadcastWithFunc(getMsg func(*Player) interface{}) {
+func (r *QZNNRoom) BroadcastWithPlayer(getMsg func(*Player) interface{}) {
 	r.PlayerMu.RLock()
 	defer r.PlayerMu.RUnlock()
 	for _, p := range r.Players {
@@ -179,46 +163,32 @@ func (r *QZNNRoom) BroadcastExclude(msg interface{}, excludeId string) {
 func (r *QZNNRoom) StopTimer() {
 	r.StateMu.Lock()
 	defer r.StateMu.Unlock()
-	if r.Timer != nil {
-		r.Timer.Stop()
-		r.Timer = nil
-	}
+	r.StateLeftSec = 0
 	if r.Ticker != nil {
 		r.Ticker.Stop()
 		r.Ticker = nil
 	}
 }
 
-func (r *QZNNRoom) StartTimer(seconds int, onFinish func()) {
+func (r *QZNNRoom) WaitTimer(seconds int) {
 	r.StopTimer()
-
 	r.StateMu.Lock()
 	r.StateLeftSec = seconds
-	r.Ticker = time.NewTicker(1 * time.Second)
-	currentTicker := r.Ticker
 	r.StateMu.Unlock()
 
-	go func() {
-		defer currentTicker.Stop()
-		for range currentTicker.C {
-			r.StateMu.Lock()
-			if r.Ticker != currentTicker {
-				r.StateMu.Unlock()
-				return
-			}
-			r.StateLeftSec--
-			left := r.StateLeftSec
-			r.StateMu.Unlock()
+	r.Ticker = time.NewTicker(time.Second)
+	defer r.Ticker.Stop()
 
-			if left <= 0 {
-				r.StopTimer()
-				if onFinish != nil {
-					onFinish()
-				}
-				return
-			}
-		}
-	}()
+	for i := 0; i < seconds; i++ {
+		//外部关闭ticker，提前退出loop
+		<-r.Ticker.C
+		r.StateMu.Lock()
+		r.StateLeftSec--
+		r.StateMu.Unlock()
+	}
+	if r.Ticker != nil {
+		r.logicTick()
+	}
 }
 
 // Leave 玩家离开房间

@@ -7,23 +7,25 @@ import (
 	"service/modelClient"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
 
 const (
-	StateWaiting  = iota //房间等待中
-	StateWaitingTimer // 房间倒计时中，马上开始
-	StateCalling  
-	StateBetting  
-	StateDealing  
-	StateSettling 
+	StateWaiting = iota //房间等待中
+	StatePrepare        //房间倒计时中，马上开始
+	StatePreCard        //预先发牌
+	StateBanking        //抢庄中
+	StateBetting        //下注中
+	StateDealing
+	StateSettling
 )
 
 const (
 	StateWaiting2StartSec = 6
-	StateCallingSec = 10
-	StateBettingSec = 10
-	StateDealingSec = 5
+	StateCallingSec       = 10
+	StateBettingSec       = 10
+	StateDealingSec       = 5
 )
 
 func init() {
@@ -51,23 +53,17 @@ func HandlePlayerReady(r *QZNNRoom, userID string) {
 	}
 	r.PlayerMu.RUnlock()
 	if allReady {
-		StartGame(r)
+		r.StartGame()
 	}
 }
 
-func StartGame(r *QZNNRoom) {
-	r.Mu.Lock()
-	defer r.Mu.Unlock()
-
-	if r.State != StateWaiting {
-		return
-	}
-
+func (r *QZNNRoom) prepareDeck() {
 	// 1. 洗牌
 	r.Deck = rand.Perm(52)
 
 	// 2. 发牌逻辑
 	for _, p := range r.Players {
+		p.reset()
 		// 决定输赢概率 (目标牛几)
 		targetScore := GetArithmetic().DecideOutcome(p.ID, 0)
 		r.TargetResults[p.ID] = targetScore
@@ -87,61 +83,113 @@ func StartGame(r *QZNNRoom) {
 				r.Deck = r.Deck[5:]
 			} else {
 				// 极端情况：牌不够了（理论上不应发生，除非人数过多）
-				p.Cards = []int{0, 1, 2, 3, 4} // 错误保护
+				//p.Cards = []int{0, 1, 2, 3, 4} // 错误保护
+				panic("")
 			}
-		}
-
-		p.CallMult = -1
-		p.BetMult = 0
-		p.IsShow = false
-
-		// 发送前4张牌
-		// 根据房间配置决定发送几张牌
-		// BankerType: 0:不看牌(0张), 1:看3张, 2:看4张
-		dealCount := 0
-		if r.Config.BankerType == BankerTypeLook3 {
-			dealCount = 3
-		} else if r.Config.BankerType == BankerTypeLook4 {
-			dealCount = 4
-		}
-
-		var dealCards []int
-		if len(p.Cards) >= dealCount {
-			dealCards = p.Cards[:dealCount]
-		}
-
-		if p.Conn != nil {
-			_ = p.Conn.WriteJSON(comm.Response{
-				Cmd:  "nn.deal_init",
-				Data: map[string]interface{}{"cards": dealCards},
-			})
 		}
 	}
-
-	EnterCalling(r)
 }
 
-func EnterCalling(r *QZNNRoom) {
-	r.StopTimer()
-	r.State = StateCalling
-	BroadcastState(r, 10)
-	r.StartTimer(10, func() {
-		r.Mu.Lock()
-		defer r.Mu.Unlock()
-		if r.State == StateCalling {
-			for _, p := range r.Players {
-				if p.CallMult == -1 {
-					p.CallMult = 0
-				}
+func (r *QZNNRoom) drvierLogicTick() {
+	for {
+		time.Sleep(100 * time.Millisecond)
+		r.logicTick()
+	}
+}
+
+func (r *QZNNRoom) logicTick() {
+	
+		switch r.State {
+		case StateWaiting:
+			countExistPlayerNum := r.GetPlayerCount()
+			//加入已经有2个人在房间，可以进行倒计时开始游戏
+			if countExistPlayerNum >= 2 {
+				_ = r.SetStatus(StatePrepare)
+				r.Broadcast(comm.Response{
+					Cmd:  "nn.state_prepare",
+					Data: gin.H{"room": r}})
 			}
-			EnterBetting(r)
+
+		case StatePrepare:
+			// 倒计时等待开始
+			countExistPlayerNum := r.GetPlayerCount()
+			//加入已经有2个人在房间，可以进行倒计时开始游戏
+			if countExistPlayerNum < 2 {
+				_ = r.SetStatus(StateWaiting)
+				r.Broadcast(comm.Response{
+					Cmd:  "nn.state_waiting",
+					Data: gin.H{"room": r}})
+			}
+
+		case StatePreCard:
+			// 预发牌状态，无需处理
+		case StateBanking:
+			// 抢庄状态，无需处理
+			if r.CheckAllCallDone() {
+				//
+			}
+
+		case StateBetting:
+			// 下注状态，无需处理
+		case StateDealing:
+			// 发牌状态，无需处理
+		case StateSettling:
+			// 结算状态，无需处理
 		}
+
+
+func (r *QZNNRoom) StartGame() {
+	if !(r.CheckStatus(StateWaiting) || r.CheckStatus(StateWaitingTimer)) {
+		return
+	}
+	go CheckRobotActions(r)
+	//准备牌堆并发牌
+	r.prepareDeck()
+
+	if BankerTypeNoLook != r.Config.BankerType {
+		//预发牌
+		if !r.SetStatus(StatePreCards) {
+			logrus.WithField("room_id", r.ID).Error("QZNNRoom-StatusChange-Fail-preGiveCards")
+		}
+		r.BroadcastWithPlayer(func(p *Player) interface{} {
+			return comm.Response{
+				Cmd:  "nn.precard",
+				Data: gin.H{"room": r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID)}}
+		})
+
+		//预先发牌，看3s后
+		r.WaitTimer(3)
+	}
+	//抢庄
+	if !r.SetStatus(StateBanking) {
+		logrus.WithField("room_id", r.ID).Error("QZNNRoom-StatusChange-Fail-callBanker")
+		return
+	}
+	r.BroadcastWithPlayer(func(p *Player) interface{} {
+		return comm.Response{
+			Cmd:  "nn.callbanking",
+			Data: gin.H{"room": r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID)}}
 	})
-	CheckRobotActions(r)
+
+	//开始抢10s
+	r.WaitTimer(10)
+	r.Ticker()
+
+	//非庄家投注
+	if !r.SetStatus(StateBetting) {
+		logrus.WithField("room_id", r.ID).Error("QZNNRoom-StatusChange-Fail-betting")
+		return
+	}
+
+	//开始投注10s
+	r.WaitTimer(10, nil)
+
+	EnterBetting(r)
+
 }
 
 func HandleCallBanker(r *QZNNRoom, userID string, mult int) {
-	if r.State != StateCalling {
+	if r.State != StateBanking {
 		return
 	}
 	p, ok := r.GetPlayerByID(userID)
@@ -163,8 +211,8 @@ func HandleCallBanker(r *QZNNRoom, userID string, mult int) {
 }
 
 func EnterBetting(r *QZNNRoom) {
-	r.StopTimer()
 	r.State = StateBetting
+
 	maxMult := -1
 	var candidates []string
 	for _, p := range r.Players {
@@ -242,7 +290,6 @@ func EnterDealing(r *QZNNRoom) {
 			EnterSettling(r)
 		}
 	})
-	CheckRobotActions(r)
 }
 
 func HandleShowCards(r *QZNNRoom, userID string) {
@@ -352,7 +399,7 @@ func EnterSettling(r *QZNNRoom) {
 		}
 
 		if canStart {
-			StartGame(r)
+			r.StartGame()
 		}
 	})
 }
@@ -374,7 +421,7 @@ func CheckRobotActions(r *QZNNRoom) {
 			r.Mu.Unlock()
 
 			switch state {
-			case StateCalling:
+			case StateBanking:
 				// 随机抢庄倍数 (0-3)
 				HandleCallBanker(r, pid, rand.Intn(4))
 			case StateBetting:

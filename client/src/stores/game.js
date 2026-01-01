@@ -202,20 +202,20 @@ export const useGameStore = defineStore('game', () => {
           p.hand = result.sortedCards; // 排序
       });
 
-      // 模拟其他玩家陆续摊牌
-      players.value.forEach(p => {
-          if (p.id !== myPlayerId.value) {
-              // 随机延迟 0.5-1.5秒 摊牌，加快节奏
-              setTimeout(() => {
-                  playerShowHand(p.id);
-              }, 500 + Math.random() * 1000);
-          }
-      });
-
-      // 等待发牌开始 2秒 后，启动摊牌倒计时
+      // 等待发牌开始 2.5秒 后，启动摊牌倒计时
       setTimeout(() => {
           // 如果动画期间已经全部摊牌结算，不再启动倒计时
           if (currentPhase.value !== 'SHOWDOWN') return;
+
+          // 模拟其他玩家陆续摊牌 (在倒计时开始后才行动)
+          players.value.forEach(p => {
+              if (p.id !== myPlayerId.value) {
+                  // 随机延迟 1-4秒 摊牌
+                  setTimeout(() => {
+                      playerShowHand(p.id);
+                  }, 1000 + Math.random() * 3000);
+              }
+          });
 
           // 摊牌倒计时 5秒
           startCountdown(5, () => {

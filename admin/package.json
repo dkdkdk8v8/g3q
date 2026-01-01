@@ -1,7 +1,7 @@
 {
-  "name": "hsxs-admin",
+  "name": "g3q-admin",
   "version": "7.1.1",
-  "description": "HSXS后台管理系统",
+  "description": "游戏管理系统",
   "private": true,
   "dependencies": {
     "@cool-midway/core": "^7.1.20",

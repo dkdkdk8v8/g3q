@@ -1,6 +1,6 @@
 <script setup>
 import { watch } from 'vue';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, nextTick } from 'vue';
 
 const props = defineProps({
   card: Object, // 如果没有card，显示背面
@@ -10,22 +10,29 @@ const props = defineProps({
 // 控制卡片是否翻转显示正面
 const isFlipped = ref(false);
 
-onMounted(() => {
-    // 初始状态根据是否有牌面来决定是否翻转
+onMounted(async () => {
+    // 初始状态先为背面，延迟一小段时间后再翻转，以展示翻转动画
     if (props.card) {
-        isFlipped.value = true;
+        await nextTick();
+        setTimeout(() => {
+            isFlipped.value = true;
+        }, 100);
     }
 });
 
-watch(() => props.card, (newVal) => {
+watch(() => props.card, async (newVal) => {
     if (newVal) {
-        // 当card prop变为truthy时，卡片翻转到正面
-        isFlipped.value = true;
+        // 当card prop变为truthy时，先确保是背面，然后延迟翻转
+        isFlipped.value = false;
+        await nextTick();
+        setTimeout(() => {
+            isFlipped.value = true;
+        }, 100);
     } else {
         // 当card prop变为falsy时，卡片翻转到背面
         isFlipped.value = false;
     }
-}, { immediate: true }); // immediate: true 确保在组件挂载时立即运行一次watcher
+}); // 移除 immediate: true，逻辑由 onMounted 接管初始状态
 
 const isRed = computed(() => {
   return props.card && (props.card.suit === 'heart' || props.card.suit === 'diamond');

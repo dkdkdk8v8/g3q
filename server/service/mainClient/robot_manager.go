@@ -99,8 +99,7 @@ func (rm *RobotManager) InitRobots() {
 	}
 }
 
-// ArrangeRobotsForQZNN 安排机器人进入抢庄牛牛房间伪装真实用户
-func (rm *RobotManager) ArrangeRobotsForQZNN(room *nn.QZNNRoom) {
+func (rm *RobotManager) RobotEnterRoom(room *nn.QZNNRoom) {
 	go func() {
 		for {
 			// 随机等待 1-3 秒
@@ -147,6 +146,26 @@ func (rm *RobotManager) ArrangeRobotsForQZNN(room *nn.QZNNRoom) {
 			room.AddPlayer(p)
 		}
 	}()
+}
+
+func (rm *RobotManager) RobotLeaveRoom(room *nn.QZNNRoom) {
+	var robots []*nn.Player
+	room.PlayerMu.RLock()
+	for _, p := range room.Players {
+		if p != nil && p.IsRobot {
+			robots = append(robots, p)
+		}
+	}
+	room.PlayerMu.RUnlock()
+
+	for _, bot := range robots {
+		if rand.Intn(100) < RobotExitRate {
+			go func(p *nn.Player) {
+				time.Sleep(time.Duration(rand.Intn(3)+1) * time.Second)
+				room.Leave(p)
+			}(bot)
+		}
+	}
 }
 
 // ArrangeRobotsForBRNN 安排机器人进入百人牛牛房间

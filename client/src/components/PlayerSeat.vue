@@ -80,7 +80,7 @@ const shouldShowCardFace = computed(() => {
         <PokerCard 
           v-for="(card, idx) in displayedHand" 
           :key="idx" 
-          :card="shouldShowCardFace ? card : null" 
+          :card="(shouldShowCardFace && (visibleCardCount === -1 || idx < visibleCardCount)) ? card : null" 
           :is-small="!isMe"
           class="hand-card"
           :style="{ 

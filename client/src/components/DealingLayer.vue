@@ -16,7 +16,6 @@ const dealToPlayer = async (targets, callback, forceBulkAnimation = false) => {
     // 判断是单张补牌还是批量发牌
     const isBulk = targets.length > 1 || forceBulkAnimation;
 
-
     // 批量发牌时，"最左侧"位置作为跳水目标
     // 注意：这里的 targets[0] 是这批牌里的第一张
     const jumpTargetX = targets[0].x - (targets[0].isMe ? 30 : 20); // 居中修正 (width/2)
@@ -134,15 +133,9 @@ const dealToPlayer = async (targets, callback, forceBulkAnimation = false) => {
         card.y = card.finalY;
         card.scale = card.finalScale; // 动画缩放到目标大小
         card.opacity = 1;
-        card.rotation = 0;
+        card.rotation = 0; // Ensures no rotation
 
         await new Promise(r => setTimeout(r, 400));
-
-        if (card.isMe) {
-            // card.transition = 'all 0.4s ease-in-out'; // No longer needed if no rotation
-            // card.rotation = 360; // Removed rotation
-            await new Promise(r => setTimeout(r, 400));
-        }
     }
 
     // 清理

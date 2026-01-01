@@ -99,8 +99,7 @@ func (rm *RobotManager) InitRobots() {
 	}
 }
 
-// ArrangeRobotsForQZNN 安排机器人进入抢庄牛牛房间伪装真实用户
-func (rm *RobotManager) ArrangeRobotsForQZNN(room *nn.QZNNRoom) {
+func (rm *RobotManager) RobotEnterRoom(room *nn.QZNNRoom) {
 	go func() {
 		for {
 			// 随机等待 1-3 秒

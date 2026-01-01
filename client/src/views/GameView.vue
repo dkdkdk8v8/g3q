@@ -260,12 +260,14 @@ const onBet = (multiplier) => {
 };
 
 const openHistory = () => {
+    console.log("Opening history modal");
     showMenu.value = false;
     showHistory.value = true;
 };
 
 const quitGame = () => {
-    router.push('/lobby');
+    console.log("Quitting game, returning to lobby");
+    router.replace('/lobby');
 };
 </script>
 

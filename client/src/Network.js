@@ -137,6 +137,7 @@ export default class GameClient {
             seq: this.seq,
             data: data
         };
+        console.log("[Network] Send:", packet);
         this.ws.send(JSON.stringify(packet));
     }
 

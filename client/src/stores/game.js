@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { createDeck, shuffle, calculateHandType } from '../utils/bullfight.js'
+import gameClient from '../socket.js'
 
 const DEFAULT_AVATAR = new URL('../assets/icon_avatar.png', import.meta.url).href;
 
@@ -13,6 +14,15 @@ export const useGameStore = defineStore('game', () => {
   const bankerId = ref(null);
   const gameMode = ref(0); // 0: Bukan, 1: Kan3, 2: Kan4
   const history = ref([]); // 游戏记录
+
+  // 发送加入房间协议
+  const joinRoom = (level, mode) => {
+    gameMode.value = mode;
+    gameClient.send('nn.match', {
+        level: level,
+        banker_type: mode
+    });
+  };
 
   // 初始化（模拟进入房间）
   const initGame = (mode = 0) => {
@@ -320,6 +330,7 @@ export const useGameStore = defineStore('game', () => {
     playerBet,
     playerShowHand,
     bankerId,
-    history
+    history,
+    joinRoom
   }
 })

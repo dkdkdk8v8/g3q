@@ -8,10 +8,10 @@ import (
 )
 
 type RoomManager struct {
-	rooms      map[string]*nn.QZNNRoom
+	rooms map[string]*nn.QZNNRoom
 	//playerRoom map[string]string // userID -> roomID
-	mu         sync.RWMutex      `json:"-"`
-	isDraining bool              // 是否处于排空模式（无感知更新用）
+	mu         sync.RWMutex `json:"-"`
+	isDraining bool         // 是否处于排空模式（无感知更新用）
 }
 
 var (
@@ -22,7 +22,7 @@ var (
 func GetMgr() *RoomManager {
 	once.Do(func() {
 		DefaultMgr = &RoomManager{
-			rooms:      make(map[string]*nn.QZNNRoom),
+			rooms: make(map[string]*nn.QZNNRoom),
 		}
 	})
 	return DefaultMgr
@@ -47,13 +47,11 @@ func (rm *RoomManager) GetPlayerRoom(userID string) *nn.QZNNRoom {
 	return nil
 }
 
-func (rm *RoomManager) GetRoomByRoomId(roomId string) *nn.QZNNRoom {	
+func (rm *RoomManager) GetRoomByRoomId(roomId string) *nn.QZNNRoom {
 	rm.mu.RLock()
 	defer rm.mu.RUnlock()
 	return rm.rooms[roomId]
 }
-
-
 
 func (rm *RoomManager) JoinOrCreateNNRoom(gameType string, player *nn.Player, onStart func(*nn.QZNNRoom),
 	config *nn.LobbyConfig) (*nn.QZNNRoom, error) {
@@ -76,9 +74,6 @@ func (rm *RoomManager) JoinOrCreateNNRoom(gameType string, player *nn.Player, on
 
 	roomID := fmt.Sprintf("R_%s_%d", gameType, len(rm.rooms)+1)
 	playerMax := 5
-	if gameType == "brnn" {
-		playerMax = 1000
-	}
 
 	newRoom := nn.NewRoom(roomID, gameType, playerMax)
 	if config != nil {
@@ -90,7 +85,6 @@ func (rm *RoomManager) JoinOrCreateNNRoom(gameType string, player *nn.Player, on
 
 	return newRoom, nil
 }
-
 
 // GetRoomCount 获取当前活跃房间数
 func (rm *RoomManager) GetRoomCount() int {

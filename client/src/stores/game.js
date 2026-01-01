@@ -16,11 +16,11 @@ export const useGameStore = defineStore('game', () => {
     const history = ref([]); // 游戏记录
     const bankerCandidates = ref([]); // Store IDs of players who are candidates for banker
 
-  // 加入房间
-  const joinRoom = (level, banker_type) => {
-    // console.log(`Attempting to join room: ${room_id}, app: ${app_id}, uid: ${uid}`); // app_id and uid are not part of nn.join payload
-    gameClient.send('nn.join', { level: level, banker_type: banker_type });
-  };
+    // 加入房间
+    const joinRoom = (level, banker_type) => {
+        // console.log(`Attempting to join room: ${room_id}, app: ${app_id}, uid: ${uid}`); // app_id and uid are not part of nn.join payload
+        gameClient.send('nn.join', { level: level, banker_type: banker_type });
+    };
 
     // 初始化（模拟进入房间）
     const initGame = (mode = 0) => {
@@ -103,7 +103,7 @@ export const useGameStore = defineStore('game', () => {
         bankerId.value = null; // 重置庄家ID
 
         // Start 10-second ready countdown
-        startCountdown(10, () => {
+        startCountdown(5, () => {
             // Countdown finished, always proceed to game
             _proceedToRobBankerPhase();
         });
@@ -222,7 +222,7 @@ export const useGameStore = defineStore('game', () => {
         // 找出倍数最高的
         const maxMultiplier = Math.max(...players.value.map(p => p.robMultiplier));
         const candidates = players.value.filter(p => p.robMultiplier === maxMultiplier);
-        
+
         if (candidates.length > 1) { // If there's a tie, trigger animation
             bankerCandidates.value = candidates.map(p => p.id); // Store IDs for animation
             currentPhase.value = 'BANKER_SELECTION_ANIMATION';
@@ -230,7 +230,7 @@ export const useGameStore = defineStore('game', () => {
             // Animate selection for 2 seconds, then pick a winner
             setTimeout(() => {
                 const winner = candidates[Math.floor(Math.random() * candidates.length)];
-                
+
                 winner.isBanker = true;
                 bankerId.value = winner.id;
                 currentPhase.value = 'BETTING'; // Transition to betting phase

@@ -101,7 +101,7 @@ func (rm *RobotManager) InitRobots() {
 }
 
 // ArrangeRobotsForRoom 安排机器人进入房间伪装真实用户
-func (rm *RobotManager) ArrangeRobotsForRoom(room *game.Room) {
+func (rm *RobotManager) ArrangeRobotsForRoom(room *nn.QZNNRoom) {
 	// 百人场机器人逻辑通常由房间内部定时器控制，这里主要针对匹配场
 	if room.Type == "brnn" {
 		return
@@ -113,7 +113,7 @@ func (rm *RobotManager) ArrangeRobotsForRoom(room *game.Room) {
 
 		room.Mu.Lock()
 		currentCount := len(room.Players)
-		maxCount := room.MaxPlayers
+		maxCount := room.GetPlayerCap()
 		room.Mu.Unlock()
 
 		if currentCount >= maxCount {
@@ -136,7 +136,8 @@ func (rm *RobotManager) ArrangeRobotsForRoom(room *game.Room) {
 
 		for _, bot := range robots {
 			// 检查机器人是否已经在其他房间
-			if game.GetMgr().GetRoomByPlayerID(bot.UserId) != nil {
+			// todo 优化：可以批量查询多个机器人是否在房间中，减少锁竞争
+			if game.GetMgr().GetPlayerRoom(bot.UserId) != nil {
 				continue
 			}
 
@@ -149,14 +150,13 @@ func (rm *RobotManager) ArrangeRobotsForRoom(room *game.Room) {
 				}
 			}
 
-			p := &game.Player{
+			p := &nn.Player{
 				ID:      bot.UserId,
 				IsRobot: true,
 				Conn:    nil, // 机器人无真实连接
 			}
 
 			if _, err := room.AddPlayer(p); err == nil {
-				game.GetMgr().SetPlayerRoom(p.ID, room.ID)
 
 				logrus.WithFields(logrus.Fields{
 					"room": room.ID,

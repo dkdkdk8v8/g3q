@@ -4,14 +4,12 @@ import (
 	"beego/v2/client/orm"
 	"math/rand"
 	"service/comm"
-	"service/mainClient/game"
 	"service/modelClient"
 	"time"
-
-	"github.com/sirupsen/logrus"
 )
 
 const (
+	StateWaiting  = 0
 	StateCalling  = 1
 	StateBetting  = 2
 	StateDealing  = 3
@@ -22,11 +20,11 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-func StartGame(r *game.Room) {
+func StartGame(r *QZNNRoom) {
 	r.Mu.Lock()
 	defer r.Mu.Unlock()
 
-	if r.State != game.StateWaiting {
+	if r.State != StateWaiting {
 		return
 	}
 
@@ -36,7 +34,7 @@ func StartGame(r *game.Room) {
 	// 2. 发牌逻辑
 	for _, p := range r.Players {
 		// 决定输赢概率 (目标牛几)
-		targetScore := game.GetArithmetic().DecideOutcome(p.ID, 0)
+		targetScore := GetArithmetic().DecideOutcome(p.ID, 0)
 		r.TargetResults[p.ID] = targetScore
 
 		// 尝试从剩余牌堆中寻找符合目标分数的牌
@@ -45,7 +43,7 @@ func StartGame(r *game.Room) {
 		if foundCards != nil {
 			p.Cards = foundCards
 			// 从牌堆中移除这些牌
-			r.RemoveCardsFromDeck(foundCards)
+			RemoveCardsFromDeck(r.Deck, foundCards)
 		} else {
 			// 兜底：如果找不到符合条件的牌（概率极低），直接发牌堆顶端的5张
 			if len(r.Deck) >= 5 {
@@ -88,7 +86,7 @@ func StartGame(r *game.Room) {
 	EnterCalling(r)
 }
 
-func EnterCalling(r *game.Room) {
+func EnterCalling(r *QZNNRoom) {
 	r.StopTimer()
 	r.State = StateCalling
 	BroadcastState(r, 10)
@@ -107,13 +105,11 @@ func EnterCalling(r *game.Room) {
 	CheckRobotActions(r)
 }
 
-func HandleCallBanker(r *game.Room, userID string, mult int) {
-	r.Mu.Lock()
-	defer r.Mu.Unlock()
+func HandleCallBanker(r *QZNNRoom, userID string, mult int) {
 	if r.State != StateCalling {
 		return
 	}
-	p, ok := r.Players[userID]
+	p, ok := r.GetPlayerByID(userID)
 	if !ok || p.CallMult != -1 {
 		return
 	}
@@ -131,17 +127,17 @@ func HandleCallBanker(r *game.Room, userID string, mult int) {
 	}
 }
 
-func EnterBetting(r *game.Room) {
+func EnterBetting(r *QZNNRoom) {
 	r.StopTimer()
 	r.State = StateBetting
 	maxMult := -1
 	var candidates []string
-	for id, p := range r.Players {
+	for _, p := range r.Players {
 		if p.CallMult > maxMult {
 			maxMult = p.CallMult
-			candidates = []string{id}
+			candidates = []string{p.ID}
 		} else if p.CallMult == maxMult {
-			candidates = append(candidates, id)
+			candidates = append(candidates, p.ID)
 		}
 	}
 	r.BankerID = candidates[rand.Intn(len(candidates))]
@@ -151,8 +147,8 @@ func EnterBetting(r *game.Room) {
 		r.Mu.Lock()
 		defer r.Mu.Unlock()
 		if r.State == StateBetting {
-			for id, p := range r.Players {
-				if id != r.BankerID && p.BetMult == 0 {
+			for _, p := range r.Players {
+				if p.ID != r.BankerID && p.BetMult == 0 {
 					p.BetMult = 1
 				}
 			}
@@ -162,21 +158,20 @@ func EnterBetting(r *game.Room) {
 	CheckRobotActions(r)
 }
 
-func HandlePlaceBet(r *game.Room, userID string, mult int) {
-	r.Mu.Lock()
-	defer r.Mu.Unlock()
+func HandlePlaceBet(r *QZNNRoom, userID string, mult int) {
+
 	if r.State != StateBetting || userID == r.BankerID {
 		return
 	}
-	p, ok := r.Players[userID]
+	p, ok := r.GetPlayerByID(userID)
 	if !ok || p.BetMult != 0 {
 		return
 	}
 	p.BetMult = mult
 	r.Broadcast(comm.Response{Cmd: "nn.place_bet_res", Data: map[string]interface{}{"uid": userID, "mult": mult}})
 	allDone := true
-	for id, player := range r.Players {
-		if id != r.BankerID && player.BetMult == 0 {
+	for _, player := range r.Players {
+		if player.ID != r.BankerID && player.BetMult == 0 {
 			allDone = false
 			break
 		}
@@ -186,7 +181,7 @@ func HandlePlaceBet(r *game.Room, userID string, mult int) {
 	}
 }
 
-func EnterDealing(r *game.Room) {
+func EnterDealing(r *QZNNRoom) {
 	r.StopTimer()
 	r.State = StateDealing
 	for _, p := range r.Players {
@@ -211,13 +206,13 @@ func EnterDealing(r *game.Room) {
 	CheckRobotActions(r)
 }
 
-func HandleShowCards(r *game.Room, userID string) {
+func HandleShowCards(r *QZNNRoom, userID string) {
 	r.Mu.Lock()
 	defer r.Mu.Unlock()
 	if r.State != StateDealing {
 		return
 	}
-	p, ok := r.Players[userID]
+	p, ok := r.GetPlayerByID(userID)
 	if !ok || p.IsShow {
 		return
 	}
@@ -225,18 +220,18 @@ func HandleShowCards(r *game.Room, userID string) {
 	r.Broadcast(comm.Response{Cmd: "nn.show_cards_res", Data: map[string]interface{}{"uid": userID, "cards": p.Cards}})
 }
 
-func EnterSettling(r *game.Room) {
+func EnterSettling(r *QZNNRoom) {
 	r.StopTimer()
 	r.State = StateSettling
-	results := make(map[string]game.CardResult)
-	for id, p := range r.Players {
-		results[id] = CalcNiu(p.Cards)
+	results := make(map[string]CardResult)
+	for _, p := range r.Players {
+		results[p.ID] = CalcNiu(p.Cards)
 	}
 	bankerRes := results[r.BankerID]
 
 	// 修复：防止庄家中途异常消失导致 Panic
 	bankerMult := 1
-	if banker, ok := r.Players[r.BankerID]; ok {
+	if banker, ok := r.GetPlayerByID(r.BankerID); ok {
 		bankerMult = banker.CallMult
 	}
 
@@ -244,16 +239,16 @@ func EnterSettling(r *game.Room) {
 		bankerMult = 1
 	}
 	playerScores := make(map[string]int)
-	for id := range r.Players {
-		playerScores[id] = 0
+	for _, player := range r.Players {
+		playerScores[player.ID] = 0
 	}
 
 	const TaxRate = 0.05 // 5% 税率
-	for id, p := range r.Players {
-		if id == r.BankerID {
+	for _, p := range r.Players {
+		if p.ID == r.BankerID {
 			continue
 		}
-		playerRes := results[id]
+		playerRes := results[p.ID]
 		isPlayerWin := CompareCards(playerRes, bankerRes)
 		baseScore := 1
 		var score int
@@ -261,11 +256,11 @@ func EnterSettling(r *game.Room) {
 			score = baseScore * bankerMult * p.BetMult * playerRes.Mult
 			// 闲家赢，扣税
 			realScore := int(float64(score) * (1 - TaxRate))
-			playerScores[id] += realScore
+			playerScores[p.ID] += realScore
 			playerScores[r.BankerID] -= score
 		} else {
 			score = baseScore * bankerMult * p.BetMult * bankerRes.Mult
-			playerScores[id] -= score
+			playerScores[p.ID] -= score
 			// 庄家赢，扣税
 			realScore := int(float64(score) * (1 - TaxRate))
 			playerScores[r.BankerID] += realScore
@@ -278,36 +273,36 @@ func EnterSettling(r *game.Room) {
 		r.Mu.Lock()
 
 		// 仅收集真实玩家ID用于更新最后游戏时间，减轻数据库压力
-		for id := range r.Players {
-			if !r.Players[id].IsRobot {
-				allUserIds = append(allUserIds, id)
+		for _, p := range r.Players {
+			if p.IsRobot {
+				allUserIds = append(allUserIds, p.ID)
 			}
 		}
 
 		// 机器人随机退出逻辑
-		for id, p := range r.Players {
+		for seatNum, p := range r.Players {
 			if p.IsRobot && rand.Intn(100) < RobotExitRate {
-				leftBots = append(leftBots, id)
+				leftBots = append(leftBots, p.ID)
+				r.Players[seatNum] = nil
 			}
 		}
 
-		if len(r.Players)-len(leftBots) < r.MaxPlayers {
+		if len(r.Players)-len(leftBots) < r.GetPlayerCap() {
 			leftBots = nil
 		}
 
-		for _, id := range leftBots {
-			delete(r.Players, id)
-			r.Broadcast(comm.Response{Cmd: "nn.player_leave", Data: map[string]interface{}{"uid": id}})
+		for _, p := range leftBots {
+			r.Broadcast(comm.Response{Cmd: "nn.player_leave", Data: map[string]interface{}{"uid": p}})
 		}
 
-		r.State = game.StateWaiting
+		r.State = StateWaiting
 		for _, p := range r.Players {
 			p.Cards = nil
 			p.CallMult = -1
 			p.BetMult = 0
 			p.IsShow = false
 		}
-		canStart := len(r.Players) >= r.MaxPlayers
+		canStart := len(r.Players) >= r.GetPlayerCap()
 		r.Mu.Unlock()
 
 		// 只有存在真实玩家时才更新数据库
@@ -317,19 +312,13 @@ func EnterSettling(r *game.Room) {
 				Update(orm.Params{"last_played": time.Now()})
 		}
 
-		// 在锁外处理全局管理器逻辑和开始游戏，避免死锁
-		for _, id := range leftBots {
-			game.GetMgr().RemovePlayer(id)
-			logrus.WithFields(logrus.Fields{"room": r.ID, "bot": id}).Info("Robot-Left-Room")
-		}
-
 		if canStart {
 			StartGame(r)
 		}
 	})
 }
 
-func CheckRobotActions(r *game.Room) {
+func CheckRobotActions(r *QZNNRoom) {
 	for _, p := range r.Players {
 		if !p.IsRobot {
 			continue
@@ -361,6 +350,6 @@ func CheckRobotActions(r *game.Room) {
 	}
 }
 
-func BroadcastState(r *game.Room, timeout int) {
+func BroadcastState(r *QZNNRoom, timeout int) {
 	r.Broadcast(comm.Response{Cmd: "nn.state_change", Data: map[string]interface{}{"state": r.State, "timeout": timeout, "room_id": r.ID}})
 }

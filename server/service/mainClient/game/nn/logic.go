@@ -1,7 +1,5 @@
 package nn
 
-import "service/mainClient/game"
-
 const (
 	// NiuNone 0:没牛 1-9:牛1-9 10:牛牛
 	NiuNone      = 0  // 无牛
@@ -26,9 +24,9 @@ const (
 	BankerTypeLook4  = 2 // 看四张牌抢庄
 )
 
-func CalcNiu(cards []int) game.CardResult {
+func CalcNiu(cards []int) CardResult {
 	if len(cards) < 5 {
-		return game.CardResult{}
+		return CardResult{}
 	}
 
 	maxCard := -1
@@ -63,7 +61,7 @@ func CalcNiu(cards []int) game.CardResult {
 	}
 	if isFiveFlower {
 		// 使用 NiuFace (11) 代表五花牛，倍率设为 6
-		return game.CardResult{Niu: NiuFace, Mult: GetCardMultiplier(NiuFace), MaxCard: maxCard}
+		return CardResult{Niu: NiuFace, Mult: GetCardMultiplier(NiuFace), MaxCard: maxCard}
 	}
 
 	// 五小牛判断
@@ -75,7 +73,7 @@ func CalcNiu(cards []int) game.CardResult {
 		}
 	}
 	if isFiveSmall && sumPoints <= 10 {
-		return game.CardResult{Niu: NiuFiveSmall, Mult: GetCardMultiplier(NiuFiveSmall), MaxCard: maxCard}
+		return CardResult{Niu: NiuFiveSmall, Mult: GetCardMultiplier(NiuFiveSmall), MaxCard: maxCard}
 	}
 
 	// 炸弹牛判断
@@ -92,7 +90,7 @@ func CalcNiu(cards []int) game.CardResult {
 					break
 				}
 			}
-			return game.CardResult{Niu: NiuBomb, Mult: GetCardMultiplier(NiuBomb), MaxCard: bombCard}
+			return CardResult{Niu: NiuBomb, Mult: GetCardMultiplier(NiuBomb), MaxCard: bombCard}
 		}
 	}
 
@@ -119,10 +117,10 @@ func CalcNiu(cards []int) game.CardResult {
 		}
 	}
 
-	return game.CardResult{Niu: niu, Mult: GetCardMultiplier(niu), MaxCard: maxCard}
+	return CardResult{Niu: niu, Mult: GetCardMultiplier(niu), MaxCard: maxCard}
 }
 
-func CompareCards(a, b game.CardResult) bool {
+func CompareCards(a, b CardResult) bool {
 	if a.Niu != b.Niu {
 		return a.Niu > b.Niu
 	}
@@ -230,4 +228,23 @@ func GetCardsByNiu(availableCards []int, targetNiu int) []int {
 		}
 	}
 	return nil
+}
+
+
+// RemoveCardsFromDeck 从牌堆中移除指定的牌
+func RemoveCardsFromDeck(deck []int, cardsToRemove []int) []int {
+	if len(cardsToRemove) == 0 {
+		return cardsToRemove
+	}
+	toRemove := make(map[int]bool)
+	for _, c := range cardsToRemove {
+		toRemove[c] = true
+	}
+	newDeck := make([]int, 0, len(deck))
+	for _, c := range deck {
+		if !toRemove[c] {
+			newDeck = append(newDeck, c)
+		}
+	}
+	return newDeck
 }

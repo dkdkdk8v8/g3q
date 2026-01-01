@@ -149,6 +149,26 @@ func (rm *RobotManager) ArrangeRobotsForQZNN(room *nn.QZNNRoom) {
 	}()
 }
 
+func (rm *RobotManager) RobotLeaveRoom(room *nn.QZNNRoom) {
+	var robots []*nn.Player
+	room.PlayerMu.RLock()
+	for _, p := range room.Players {
+		if p != nil && p.IsRobot {
+			robots = append(robots, p)
+		}
+	}
+	room.PlayerMu.RUnlock()
+
+	for _, bot := range robots {
+		if rand.Intn(100) < RobotExitRate {
+			go func(p *nn.Player) {
+				time.Sleep(time.Duration(rand.Intn(3)+1) * time.Second)
+				room.Leave(p)
+			}(bot)
+		}
+	}
+}
+
 // ArrangeRobotsForBRNN 安排机器人进入百人牛牛房间
 func (rm *RobotManager) ArrangeRobotsForBRNN(room *nn.QZNNRoom) {
 	// 百人牛牛的机器人逻辑暂未实现，后续补充

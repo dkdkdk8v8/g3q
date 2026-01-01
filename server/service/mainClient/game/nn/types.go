@@ -71,18 +71,3 @@ type QZNNRoom struct {
 	TotalBet      int64           `json:"-"` // 本局总下注额，用于更新库存
 	Config        LobbyConfig     `json:"-"` // 房间配置
 }
-
-func (r *QZNNRoom) GetPlayerCount() int {
-	// Players 是定长切片，需要统计非 nil 的数量
-	currentCount := 0
-	for _, p := range r.Players {
-		if p != nil {
-			currentCount++
-		}
-	}
-	return currentCount
-}
-
-func (r *QZNNRoom) IsWaiting() bool {
-	return r.State == StateWaiting
-}

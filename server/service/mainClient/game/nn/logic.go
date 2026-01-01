@@ -39,6 +39,21 @@ func (r *QZNNRoom) CheckIsBanker(bankerID string) bool {
 func (r *QZNNRoom) GetPlayerCap() int {
 	return cap(r.Players)
 }
+
+func (r *QZNNRoom) GetPlayerCount() int {
+	currentCount := 0
+	for _, p := range r.Players {
+		if p != nil {
+			currentCount++
+		}
+	}
+	return currentCount
+}
+
+func (r *QZNNRoom) IsWaiting() bool {
+	return r.State == StateWaiting
+}
+
 func (r *QZNNRoom) GetPlayerByID(userID string) (*Player, bool) {
 	r.PlayerMu.RLock()
 	defer r.PlayerMu.RUnlock()
@@ -172,4 +187,34 @@ func (r *QZNNRoom) StartTimer(seconds int, onFinish func()) {
 			}
 		}
 	}()
+}
+
+// Leave 玩家离开房间
+func (r *QZNNRoom) Leave(p *Player) {
+	if p == nil {
+		return
+	}
+	r.PlayerMu.Lock()
+	found := false
+	count := 0
+	for i, pl := range r.Players {
+		if pl != nil {
+			if pl.ID == p.ID {
+				r.Players[i] = nil
+				found = true
+			} else {
+				count++
+			}
+		}
+	}
+	r.PlayerMu.Unlock()
+
+	if found {
+		r.Broadcast(comm.Response{Cmd: "nn.player_leave", Data: gin.H{"uid": p.ID}})
+
+		if count < 2 && r.CheckStatus(StateWaitingTimer) {
+			r.StopTimer()
+			r.SetStatus(StateWaiting)
+		}
+	}
 }

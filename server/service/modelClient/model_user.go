@@ -64,3 +64,13 @@ func GetOrCreateUser(appId string, appUserId string) (*ModelUser, error) {
 	_, err = WrapInsert(&user)
 	return &user, err
 }
+
+// GetUserByUserId 根据UserId获取用户信息
+func GetUserByUserId(userId string) (*ModelUser, error) {
+	var user ModelUser
+	err := GetDb().QueryTable(new(ModelUser)).Filter("user_id", userId).One(&user)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}

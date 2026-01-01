@@ -9,10 +9,29 @@ import (
 	"service/mainClient/game/brnn"
 	"service/mainClient/game/nn"
 	"service/modelClient"
+	"sync/atomic"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
+
+var (
+	pingCount int64
+)
+
+func init() {
+	go func() {
+		ticker := time.NewTicker(10 * time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			c := atomic.SwapInt64(&pingCount, 0)
+			if c > 0 {
+				logrus.WithField("count", c).Info("WS-Ping-Statistics-10s")
+			}
+		}
+	}()
+}
 
 // WSEntry 是 WebSocket 的入口点
 func WSEntry(c *gin.Context) {
@@ -73,10 +92,14 @@ func handleConnection(conn *ws.WSConn, userId string) {
 }
 
 func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
-	logrus.WithFields(logrus.Fields{
-		"cmd": msg.Cmd,
-		"uid": userId,
-	}).Info("WS-Receive-Message")
+	if msg.Cmd == "sys.ping" {
+		atomic.AddInt64(&pingCount, 1)
+	} else {
+		logrus.WithFields(logrus.Fields{
+			"cmd": msg.Cmd,
+			"uid": userId,
+		}).Info("WS-Receive-Message")
+	}
 
 	// 检查全局维护状态（实际应从 Redis 或配置中心读取）
 	// if GlobalMaintenanceConfig.IsActive() {
@@ -109,25 +132,19 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 			return
 		}
 
-		// 如果客户端未传 BankerType，使用配置默认值
-		if req.BankerType == -1 {
-			req.BankerType = cfg.BankerType
-		}
-
-		// 校验 BankerType (0:不看牌, 1:看3张, 2:看4张)
-		if req.BankerType < nn.BankerTypeNoLook || req.BankerType > nn.BankerTypeLook4 {
+		// 如果客户端未传 BankerType 或者 传入错误的值都是用配置默认值
+		if req.BankerType != nn.BankerTypeNoLook && req.BankerType != nn.BankerTypeLook3 && req.BankerType != nn.BankerTypeLook4 {
 			conn.WriteJSON(comm.Response{Cmd: msg.Cmd, Seq: msg.Seq, Code: -1, Msg: "无效的抢庄类型"})
-			return
 		}
 
 		// 检查余额
-		var user modelClient.ModelUser
-		if err := modelClient.GetDb().QueryTable(new(modelClient.ModelUser)).Filter("user_id", userId).One(&user); err != nil {
+		user, err := modelClient.GetUserByUserId(userId)
+		if err != nil {
 			conn.WriteJSON(comm.Response{Cmd: msg.Cmd, Seq: msg.Seq, Code: -1, Msg: "获取用户信息失败"})
 			return
 		}
 		if user.Balance < cfg.MinBalance {
-			conn.WriteJSON(comm.Response{Cmd: msg.Cmd, Seq: msg.Seq, Code: -1, Msg: fmt.Sprintf("余额不足，进入该房间需要 %d 金币", cfg.MinBalance)})
+			conn.WriteJSON(comm.Response{Cmd: msg.Cmd, Seq: msg.Seq, Code: -1, Msg: "余额不足！"})
 			return
 		}
 
@@ -156,7 +173,7 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 
 		// 成功加入，通知客户端房间信息
 		conn.WriteJSON(comm.Response{
-			Cmd: "nn.match_res",
+			Cmd: msg.Cmd,
 			Seq: msg.Seq,
 			Data: gin.H{
 				"room_id": room.ID,
@@ -233,8 +250,8 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 		})
 
 	case "user.info": // 用户信息请求
-		var user modelClient.ModelUser
-		if err := modelClient.GetDb().QueryTable(new(modelClient.ModelUser)).Filter("user_id", userId).One(&user); err != nil {
+		user, err := modelClient.GetUserByUserId(userId)
+		if err != nil {
 			conn.WriteJSON(comm.Response{Cmd: msg.Cmd, Seq: msg.Seq, Code: -1, Msg: "获取用户信息失败"})
 			return
 		}

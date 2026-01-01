@@ -228,7 +228,7 @@ const startDealingAnimation = (isSupplemental = false) => {
                 // 这里为了简单，动画做完后更新计数
                 if (!visibleCounts.value[t.id]) visibleCounts.value[t.id] = 0;
                 visibleCounts.value[t.id] += t.count;
-            });
+            }, isSupplemental && store.gameMode === 2);
         }, pIndex * 80);
     });
 };

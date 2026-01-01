@@ -198,49 +198,37 @@ const startDealingAnimation = (isSupplemental = false) => {
 
     if (targets.length === 0) return;
 
-    const maxCount = Math.max(...targets.map(t => t.count));
-    
-    const animateRound = (roundIndex) => {
-        if (roundIndex >= maxCount) return;
+    if (targets.length === 0) return;
 
-        const roundTargets = [];
-        const roundPlayerIds = [];
+    // 对每个玩家执行发牌 (并发或稍微错开)
+    targets.forEach((t, pIndex) => {
+        // 构建该玩家所有需要发的牌的位置信息
+        const cardTargets = [];
+        const spacing = t.isMe ? 40 : 20; 
+        const totalWidth = (t.total - 1) * spacing;
+        const startX = t.x - (totalWidth / 2);
 
-        targets.forEach(t => {
-            if (roundIndex < t.count) {
-                // 计算偏移：基于 PlayerSeat 的固定布局逻辑
-                // isMe: 宽60, margin -20 -> 步长 40
-                // !isMe: 宽40, margin -20 -> 步长 20
-                const spacing = t.isMe ? 40 : 20; 
-                
-                // 计算首牌到末牌的中心距离
-                const totalWidth = (t.total - 1) * spacing;
-                // 首牌中心 X
-                const startX = t.x - (totalWidth / 2);
-                
-                const cardIndex = t.startIdx + roundIndex;
-                const targetX = startX + cardIndex * spacing;
-
-                roundTargets.push({ x: targetX, y: t.y, isMe: t.isMe });
-                roundPlayerIds.push(t.id);
-            }
-        });
-
-        if (roundTargets.length > 0) {
-            dealingLayer.value.deal(roundTargets, 1, (seatIndex) => {
-                const pid = roundPlayerIds[seatIndex];
-                if (!visibleCounts.value[pid]) visibleCounts.value[pid] = 0;
-                visibleCounts.value[pid]++;
+        for (let i = 0; i < t.count; i++) {
+            const cardIndex = t.startIdx + i;
+            const targetX = startX + cardIndex * spacing;
+            cardTargets.push({ 
+                x: targetX, 
+                y: t.y, 
+                isMe: t.isMe,
+                index: cardIndex
             });
-            
-            // 下一张发牌的间隔时间
-            setTimeout(() => {
-                animateRound(roundIndex + 1);
-            }, 150); // 加快节奏
         }
-    };
 
-    animateRound(0);
+        // 稍微错开不同玩家的发牌时间 (比如每人间隔 0.15s)
+        setTimeout(() => {
+            dealingLayer.value.dealToPlayer(cardTargets, () => {
+                // 回调：更新可见数量 (一次性加完，或者在 dealToPlayer 内部做更细致的回调)
+                // 这里为了简单，动画做完后更新计数
+                if (!visibleCounts.value[t.id]) visibleCounts.value[t.id] = 0;
+                visibleCounts.value[t.id] += t.count;
+            });
+        }, pIndex * 150);
+    });
 };
 
 onMounted(() => {
@@ -260,12 +248,14 @@ const onBet = (multiplier) => {
 };
 
 const openHistory = () => {
+    console.log("Opening history modal");
     showMenu.value = false;
     showHistory.value = true;
 };
 
 const quitGame = () => {
-    router.push('/lobby');
+    console.log("Quitting game, returning to lobby");
+    router.replace('/lobby');
 };
 </script>
 
@@ -368,7 +358,7 @@ const quitGame = () => {
             </div>
             
             <!-- 摊牌按钮 -->
-            <div v-if="store.currentPhase === 'SHOWDOWN' && !myPlayer.isShowHand" class="btn-group">
+            <div v-if="store.currentPhase === 'SHOWDOWN' && !myPlayer.isShowHand && store.countdown > 0" class="btn-group">
                 <div class="game-btn orange" style="width: 100px" @click="store.playerShowHand(myPlayer.id)">摊牌</div>
             </div>
         </div>

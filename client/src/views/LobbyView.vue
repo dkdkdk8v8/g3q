@@ -1,10 +1,13 @@
 <script setup>
 import { useRouter } from 'vue-router';
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useUserStore } from '../stores/user.js';
+import { useGameStore } from '../stores/game.js';
+import gameClient from '../socket.js';
 
 const router = useRouter();
 const userStore = useUserStore();
+const gameStore = useGameStore();
 
 // 模拟用户信息 - map from store
 const userInfo = computed(() => {
@@ -18,15 +21,26 @@ const userInfo = computed(() => {
 
 // 游戏模式：kanpai (看四张抢庄-type 2), bukan (不看牌抢庄-type 0)
 // type 1 (看三张)
-const currentMode = ref(userStore.lastSelectedMode); // Initialize from store
+const savedMode = localStorage.getItem('lastSelectedMode');
+const initialMode = savedMode !== null ? parseInt(savedMode) : (userStore.lastSelectedMode || 0);
+const currentMode = ref(initialMode); 
 
 watch(currentMode, (newVal) => {
     userStore.lastSelectedMode = newVal;
+    localStorage.setItem('lastSelectedMode', newVal);
 });
 
 const enterGame = (level) => {
   // 传递房间等级(level)和玩法模式(mode)
   console.log(`Preparing to enter room: Level ${level}, Mode ${currentMode.value}`);
+  
+  // 发送匹配协议
+  // gameStore.joinRoom(level, currentMode.value);
+  gameClient.send("nn.match", {
+      level: level,
+      banker_type: currentMode.value
+  });
+
   router.push({
       path: `/game/${level}`,
       query: { mode: currentMode.value }
@@ -48,6 +62,41 @@ const rooms = computed(() => {
             colorClass: colorClasses[index % colorClasses.length]
         };
     });
+});
+
+onMounted(() => {
+    // 拦截发送方法以打印日志（忽略心跳包）
+    if (!gameClient._loggingHooked) {
+        const originalSend = gameClient.send;
+        gameClient.send = function(protocol, data) {
+            if (protocol !== 'heartbeat') {
+                console.log('⬆️ SEND:', protocol, data);
+            }
+            originalSend.call(this, protocol, data);
+        };
+        gameClient._loggingHooked = true;
+    }
+
+    // 注册消息监听
+    gameClient.on('user.info', (msg) => {
+        if (msg.code === 0) {
+            userStore.updateUserInfo(msg.data);
+        }
+    });
+
+    gameClient.on('nn.lobby_config', (msg) => {
+        if (msg.code === 0) {
+            userStore.updateRoomConfigs(msg.data.lobby_configs);
+        }
+    });
+
+    // 主动获取数据
+    gameClient.send("user.info");
+    gameClient.send("nn.lobby_config");
+});
+
+onUnmounted(() => {
+    // 可选：移除监听，或者保留给其他页面复用（Network.js 是单例，handle会被覆盖）
 });
 </script>
 
@@ -343,25 +392,5 @@ const rooms = computed(() => {
 
 .entry-limit {
     font-weight: bold;
-}
-
-.footer-action {
-    margin-top: 20px;
-    display: flex;
-    justify-content: center;
-}
-
-.quick-start-btn {
-    background: linear-gradient(to bottom, #f59e0b, #d97706); /* 改为橙色，更显眼 */
-    width: 80%;
-    height: 50px;
-    border-radius: 25px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 18px;
-    font-weight: bold;
-    box-shadow: 0 4px 10px rgba(217, 119, 6, 0.5);
-    border: 2px solid rgba(255,255,255,0.3);
 }
 </style>

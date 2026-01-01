@@ -13,15 +13,17 @@ const throwCoins = async (startRect, endRect, count = 10) => {
     
     // 桌面中心稍微随机一点，不要全部聚集成一个点
     const centerRandom = 40; 
+    const coinDelayStep = 0.04; // 每个金币间隔 0.04s
 
     for (let i = 0; i < count; i++) {
         const id = coinIdCounter++;
-        const duration = 0.5 + Math.random() * 0.3; // 0.5s - 0.8s 随机时长
+        const duration = 0.5 + Math.random() * 0.3; // 0.5s - 0.8s 随机飞行时长
+        const delay = i * coinDelayStep + Math.random() * 0.05; // 线性延迟 + 少量随机
         
         // 初始位置 (起点)
         // 稍微加一点随机偏移，让金币看起来不是一条线
-        const startX = startRect.left + startRect.width / 2 - 10 + (Math.random() * 20 - 10);
-        const startY = startRect.top + startRect.height / 2 - 10 + (Math.random() * 20 - 10);
+        const startX = startRect.left + startRect.width / 2 - 10 + (Math.random() * 40 - 20); // 增加起点随机范围
+        const startY = startRect.top + startRect.height / 2 - 10 + (Math.random() * 40 - 20);
 
         // 目标位置 (终点)
         const endX = endRect.left + endRect.width / 2 - 10 + (Math.random() * centerRandom - centerRandom/2);
@@ -38,7 +40,8 @@ const throwCoins = async (startRect, endRect, count = 10) => {
             },
             endX,
             endY,
-            duration
+            duration,
+            delay
         });
     }
 
@@ -56,16 +59,20 @@ const throwCoins = async (startRect, endRect, count = 10) => {
                 target.style = {
                     transform: `translate(${coin.endX}px, ${coin.endY}px) scale(1)`,
                     opacity: 1,
-                    transition: `all ${coin.duration}s cubic-bezier(0.25, 0.46, 0.45, 0.94)` // 缓动效果
+                    // 增加 delay 参数
+                    transition: `all ${coin.duration}s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${coin.delay}s` 
                 };
             }
         });
     });
 
     // 动画结束后清理金币 DOM，防止内存泄漏
+    // 计算最大总耗时 = 最大延迟 + 最大飞行时间 (0.8s) + 安全余量
+    const maxTotalTime = (count * coinDelayStep + 0.1) + 0.8 + 0.2; 
+    
     setTimeout(() => {
         coins.value = coins.value.filter(c => !newCoins.find(nc => nc.id === c.id));
-    }, 1000); // 最长动画时间后清理
+    }, maxTotalTime * 1000);
 };
 
 defineExpose({

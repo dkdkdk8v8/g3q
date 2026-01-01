@@ -66,8 +66,7 @@ func (rm *RobotManager) generateNickname(userId string) string {
 
 // InitRobots 检查并初始化机器人池
 func (rm *RobotManager) InitRobots() {
-	var robots []*modelClient.ModelUser
-	_, err := modelClient.GetDb().QueryTable(new(modelClient.ModelUser)).Filter("is_robot", true).All(&robots)
+	robots, err := modelClient.GetAllRobots()
 	if err != nil {
 		logrus.WithError(err).Error("RobotManager-InitRobots-Query-Fail")
 		return
@@ -91,7 +90,7 @@ func (rm *RobotManager) InitRobots() {
 				CreateAt:  time.Now(),
 				UpdateAt:  time.Now(),
 			}
-			_, err := modelClient.WrapInsert(newRobot)
+			_, err := modelClient.CreateRobot(newRobot)
 			if err != nil {
 				logrus.WithError(err).Error("RobotManager-InitRobots-Insert-Fail")
 			}
@@ -123,12 +122,7 @@ func (rm *RobotManager) ArrangeRobotsForRoom(room *nn.QZNNRoom) {
 		// 随机决定拉几个机器人 (1 到 剩余空位)
 		numToJoin := rand.Intn(maxCount-currentCount) + 1
 
-		var robots []*modelClient.ModelUser
-		// 使用随机排序，确保机器人池的均匀分布
-		_, err := modelClient.GetDb().QueryTable(new(modelClient.ModelUser)).
-			Filter("is_robot", true).OrderBy("?").
-			Limit(numToJoin).
-			All(&robots)
+		robots, err := modelClient.GetRandomRobots(numToJoin)
 
 		if err != nil {
 			return
@@ -145,7 +139,7 @@ func (rm *RobotManager) ArrangeRobotsForRoom(room *nn.QZNNRoom) {
 			if bot.Balance < RobotRechargeLimit {
 				rechargeAmount := int64(rand.Intn(RobotMaxRecharge-RobotMinRecharge+1) + RobotMinRecharge)
 				bot.Balance = rechargeAmount
-				if _, err := modelClient.WrapUpdate(bot); err != nil {
+				if _, err := modelClient.UpdateUser(bot); err != nil {
 					logrus.WithError(err).WithField("uid", bot.UserId).Error("RobotManager-Arrange-Recharge-Fail")
 				}
 			}

@@ -175,14 +175,12 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 			Cmd: msg.Cmd,
 			Seq: msg.Seq,
 			Data: gin.H{
-				"room_id": room.ID,
+				"room_id":  room.ID,
 				"duration": room.StateLeftSec,
 				"state":    room.State,
 			},
 		})
 
-		// 广播给房间内其他人
-		room.Broadcast(comm.Response{Cmd: "nn.player_join", Data: gin.H{"players": room.Players}})
 	case "nn.ready": // 房间准备
 		var req struct {
 			RoomId string `json:"room_id"`
@@ -192,6 +190,10 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 				nn.HandlePlayerReady(room, userId)
 			}
 		}
+		conn.WriteJSON(comm.Response{
+			Cmd: msg.Cmd,
+			Seq: msg.Seq,
+		})
 
 	case "nn.call_banker": // 抢庄请求
 		var req struct {
@@ -203,7 +205,10 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 				nn.HandleCallBanker(room, userId, req.Mult)
 			}
 		}
-
+		conn.WriteJSON(comm.Response{
+			Cmd: msg.Cmd,
+			Seq: msg.Seq,
+		})
 	case "nn.place_bet": // 下注请求
 		var req struct {
 			RoomId string `json:"room_id"`
@@ -214,7 +219,10 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 				nn.HandlePlaceBet(room, userId, req.Mult)
 			}
 		}
-
+		conn.WriteJSON(comm.Response{
+			Cmd: msg.Cmd,
+			Seq: msg.Seq,
+		})
 	case "nn.show_cards": // 亮牌请求
 		var req struct {
 			RoomId string `json:"room_id"`

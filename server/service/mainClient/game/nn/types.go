@@ -2,7 +2,6 @@ package nn
 
 import (
 	"compoment/ws"
-	"service/comm"
 	"sync"
 	"time"
 )
@@ -14,18 +13,33 @@ type CardResult struct {
 	MaxCard int `json:"max_card"` // 最大单牌，用于同牌型比大小
 }
 
+type Player2Client struct {
+	Cards    []int `json:"cards"`     // 手牌 (0-51)
+	CallMult int   `json:"call_mult"` // 抢庄倍数
+	BetMult  int   `json:"bet_mult"`  // 下注倍数
+	IsShow   bool  `json:"is_show"`   // 是否已亮牌
+	IsRobot  bool  `json:"is_robot"`  // 是否机器人
+	SeatNum  int   `json:"seat_num"`  // 座位号
+	IsReady  bool  `json:"is_ready"`  // 是否已准备
+	//BetArea  int    `json:"bet_area"`  // 下注区域（百人牛牛专用）
+}
+
 // Player 代表房间内的一个玩家
 type Player struct {
-	ID       string
-	Conn     *ws.WSConn
-	Cards    []int // 手牌 (0-51)
-	CallMult int   // 抢庄倍数
-	BetMult  int   // 下注倍数
-	IsShow   bool  // 是否已亮牌
-	IsRobot  bool  // 是否机器人
-	SeatNum  int   // 座位号
-	IsReady  bool  // 是否已准备
-	//BetArea  int   // 下注区域（百人牛牛专用）
+	ID      string
+	Conn    *ws.WSConn `json:"-"` // WebSocket 连接
+	IsRobot bool       `json:"-"`
+	Player2Client
+}
+
+func (p *Player) SecretForOther(selfId string) Player2Client {
+	if p.ID == selfId {
+		return p.Player2Client
+	} else {
+		var pcopy Player2Client = p.Player2Client
+		pcopy.Cards = []int{}
+		return pcopy
+	}
 }
 
 // LobbyConfig 大厅配置
@@ -39,172 +53,21 @@ type LobbyConfig struct {
 
 // Room 代表一个游戏房间
 type QZNNRoom struct {
-	ID      string
-	Type    string
-	Players []*Player
+	ID           string
+	Type         string
+	Players      []*Player
+	State        int    // 当前游戏状态
+	StateLeftSec int    // 当前状态剩余秒数
+	BankerID     string // 庄ID
 
-	State        int          // 当前游戏状态
-	StateMu      sync.RWMutex // 保护 State, Timer
-	StateLeftSec int          // 当前状态剩余秒数
-
-	Timer    *time.Timer     // 状态切换定时器
-	Ticker   *time.Ticker    // 倒计时定时器
-	Mu       sync.Mutex      // 保护房间数据并发安全
-	PlayerMu sync.RWMutex    // 保护 Players
-	OnStart  func(*QZNNRoom) // 游戏开始回调
-
-	BankerID string // 庄ID
-	Deck     []int
-
-	// 控制相关字段
-	TargetResults map[string]int // 记录每个玩家本局被分配的目标分数 (牛几)
-	TotalBet      int64          // 本局总下注额，用于更新库存
-
-	// 百人牛牛特有字段
-	// BRNNBets map[int]map[string]int64 // 区域ID(0-3) -> 玩家ID -> 下注金额
-	Config LobbyConfig // 房间配置
-}
-
-func NewRoom(id string, gameType string, max int) *QZNNRoom {
-	return &QZNNRoom{
-		ID:      id,
-		Type:    gameType,
-		Players: make([]*Player, max),
-		State:   StateWaiting,
-	}
-}
-func (r *QZNNRoom) CheckStatus(state int) bool {
-	r.StateMu.RLock()
-	defer r.StateMu.RUnlock()
-	return r.State == state
-}
-func (r *QZNNRoom) CheckIsBanker(bankerID string) bool {
-	r.Mu.Lock()
-	defer r.Mu.Unlock()
-	return r.BankerID == bankerID
-}
-
-func (r *QZNNRoom) GetPlayerCap() int {
-	return cap(r.Players)
-}
-func (r *QZNNRoom) GetPlayerByID(userID string) (*Player, bool) {
-	r.PlayerMu.RLock()
-	defer r.PlayerMu.RUnlock()
-	for _, p := range r.Players {
-		if p != nil && p.ID == userID {
-			return p, true
-		}
-	}
-	return nil, false
-}
-
-func (r *QZNNRoom) AddPlayer(p *Player) (int, error) {
-	r.StateMu.RLock()
-	defer r.StateMu.RUnlock()
-	if r.State != StateWaiting {
-		return 0, comm.NewMyError(500003, "游戏进行中，无法加入")
-	}
-
-	r.PlayerMu.Lock()
-	defer r.PlayerMu.Unlock()
-
-	// 检查玩家是否已在房间
-	for seatNum, existingPlayer := range r.Players {
-		if existingPlayer != nil && existingPlayer.ID == p.ID {
-			return seatNum, nil
-		}
-	}
-
-	// 寻找空位
-	emptySeat := -1
-	countExistPlayerNum := 0
-	for i, pl := range r.Players {
-		if pl != nil {
-			countExistPlayerNum++
-		} else if emptySeat == -1 {
-			emptySeat = i
-		}
-	}
-
-	if countExistPlayerNum >= cap(r.Players) || emptySeat == -1 {
-		return 0, comm.NewMyError(500001, "房间已满")
-	}
-
-	r.Players[emptySeat] = p
-	countExistPlayerNum++
-
-	// 满足人数且处于等待状态时，触发游戏开始回调
-	if countExistPlayerNum >= cap(r.Players) && r.OnStart != nil && r.State == StateWaiting {
-		go r.OnStart(r)
-	}
-
-	return emptySeat, nil
-}
-
-func (r *QZNNRoom) Broadcast(msg interface{}) {
-	r.PlayerMu.RLock()
-	defer r.PlayerMu.RUnlock()
-	for _, p := range r.Players {
-		if p != nil && p.Conn != nil {
-			_ = p.Conn.WriteJSON(msg)
-		}
-	}
-}
-
-func (r *QZNNRoom) BroadcastExclude(msg interface{}, excludeId string) {
-	r.PlayerMu.RLock()
-	defer r.PlayerMu.RUnlock()
-	for _, p := range r.Players {
-		if p == nil || p.ID == excludeId {
-			continue
-		}
-		if p.Conn != nil {
-			_ = p.Conn.WriteJSON(msg)
-		}
-	}
-}
-
-func (r *QZNNRoom) StopTimer() {
-	r.StateMu.Lock()
-	defer r.StateMu.Unlock()
-	if r.Timer != nil {
-		r.Timer.Stop()
-		r.Timer = nil
-	}
-	if r.Ticker != nil {
-		r.Ticker.Stop()
-		r.Ticker = nil
-	}
-}
-
-func (r *QZNNRoom) StartTimer(seconds int, onFinish func()) {
-	r.StopTimer()
-
-	r.StateMu.Lock()
-	r.StateLeftSec = seconds
-	r.Ticker = time.NewTicker(1 * time.Second)
-	currentTicker := r.Ticker
-	r.StateMu.Unlock()
-
-	go func() {
-		defer currentTicker.Stop()
-		for range currentTicker.C {
-			r.StateMu.Lock()
-			if r.Ticker != currentTicker {
-				r.StateMu.Unlock()
-				return
-			}
-			r.StateLeftSec--
-			left := r.StateLeftSec
-			r.StateMu.Unlock()
-
-			if left <= 0 {
-				r.StopTimer()
-				if onFinish != nil {
-					onFinish()
-				}
-				return
-			}
-		}
-	}()
+	StateMu       sync.RWMutex    `json:"-"` // 保护 State, Timer
+	Timer         *time.Timer     `json:"-"` // 状态切换定时器
+	Ticker        *time.Ticker    `json:"-"` // 倒计时定时器
+	Mu            sync.Mutex      `json:"-"` // 保护房间数据并发安全
+	PlayerMu      sync.RWMutex    `json:"-"` // 保护 Players
+	OnStart       func(*QZNNRoom) `json:"-"` // 游戏开始回调
+	Deck          []int           `json:"-"` // 牌堆
+	TargetResults map[string]int  `json:"-"` // 记录每个玩家本局被分配的目标分数 (牛几)
+	TotalBet      int64           `json:"-"` // 本局总下注额，用于更新库存
+	Config        LobbyConfig     `json:"-"` // 房间配置
 }

@@ -1,12 +1,9 @@
 {
   "editor.formatOnSave": true,
-
   "[go]": {
     "editor.defaultFormatter": "golang.go"
   },
-
   "go.formatTool": "goimports",
-
   "[javascript]": {
     "editor.defaultFormatter": "vscode.typescript-language-features"
   },

@@ -11,11 +11,12 @@ import (
 )
 
 const (
-	StateWaiting  = 0
-	StateCalling  = 1
-	StateBetting  = 2
-	StateDealing  = 3
-	StateSettling = 4
+	StateWaiting  = iota //房间等待中
+	StateWaitingTimer // 房间倒计时中，马上开始
+	StateCalling  
+	StateBetting  
+	StateDealing  
+	StateSettling 
 )
 
 const (

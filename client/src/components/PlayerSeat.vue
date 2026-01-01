@@ -227,6 +227,15 @@ const shouldShowCardFace = computed(() => {
     transform: translateX(10px); /* 稍微向右偏移 */
 }
 
+/* 右侧玩家的状态浮层显示在左侧 */
+.seat-right .status-float {
+    left: auto;
+    right: 100%;
+    transform: translateX(-10px);
+    text-align: right;
+    align-items: flex-end;
+}
+
 
 .art-text {
     font-size: 16px;

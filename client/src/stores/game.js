@@ -270,7 +270,7 @@ export const useGameStore = defineStore('game', () => {
           }
 
           // 分数计算 = 底分 * 庄倍数 * 闲倍数 * 牌型倍数(赢家牌型)
-          const baseScore = 10;
+          const baseScore = 50;
           const bankerRobM = banker.robMultiplier === 0 ? 1 : banker.robMultiplier; 
           
           let score = 0;

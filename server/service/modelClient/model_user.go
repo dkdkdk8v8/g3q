@@ -42,6 +42,9 @@ func (a *ModelUser) TableIndex() [][]string {
 func GetOrCreateUser(appId string, appUserId string) (*ModelUser, error) {
 	//todo redis locking，防止并发创建同一用户
 	var user ModelUser
+	if appId == "" {
+		appId = AppIdMain
+	}
 	err := GetDb().QueryTable(new(ModelUser)).Filter(
 		"app_id", appId).Filter(
 		"app_user_id", appUserId).Filter(

@@ -33,11 +33,7 @@ const enterGame = (level) => {
   console.log(`Preparing to enter room: Level ${level}, Mode ${currentMode.value}`);
   
   // 发送匹配协议
-  // gameStore.joinRoom(level, currentMode.value);
-  gameClient.send("nn.join", {
-      level: level,
-      banker_type: currentMode.value
-  });
+  gameStore.joinRoom(level, currentMode.value);
 
   router.push({
       path: `/game/${level}`,

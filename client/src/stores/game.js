@@ -15,14 +15,11 @@ export const useGameStore = defineStore('game', () => {
     const gameMode = ref(0); // 0: Bukan, 1: Kan3, 2: Kan4
     const history = ref([]); // 游戏记录
 
-    // 发送加入房间协议
-    const joinRoom = (level, mode) => {
-        gameMode.value = mode;
-        gameClient.send('nn.match', {
-            level: level,
-            banker_type: mode
-        });
-    };
+  // 加入房间
+  const joinRoom = (level, banker_type) => {
+    // console.log(`Attempting to join room: ${room_id}, app: ${app_id}, uid: ${uid}`); // app_id and uid are not part of nn.join payload
+    gameClient.send('nn.join', { level: level, banker_type: banker_type });
+  };
 
     // 初始化（模拟进入房间）
     const initGame = (mode = 0) => {

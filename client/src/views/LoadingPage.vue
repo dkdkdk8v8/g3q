@@ -71,12 +71,25 @@ export default {
       }
 
       message.value = `正在连接到 ${ipAddress.value}...`;
+      
+      let hasUserInfo = false;
+      let hasLobbyConfig = false;
+
+      const checkReady = () => {
+          if (hasUserInfo && hasLobbyConfig) {
+              message.value = `获取数据成功，进入大厅...`;
+              router.push('/lobby');
+          }
+      };
         
       // Setup GameClient callbacks
       gameClient.onConnect = () => {
         console.log("[LoadingPage] WebSocket connected!");
-        message.value = `连接成功！等待服务器数据...`;
-        // Do not navigate immediately, wait for user.allinfo
+        message.value = `连接成功！正在获取大厅数据...`;
+        
+        // Send requests separately
+        gameClient.send("user.info");
+        gameClient.send("nn.lobby_config");
       };
 
       gameClient.onClose = (event) => {
@@ -91,15 +104,28 @@ export default {
         message.value = `连接错误，请检查 IP 地址或服务器状态。`;
       };
       
-      // Register handler for user.allinfo
-      gameClient.on('user.allinfo', (msg) => {
+      // Register handler for user.info
+      gameClient.on('user.info', (msg) => {
           if (msg.code === 0) {
               console.log("[LoadingPage] Received user info:", msg.data);
-              userStore.setUserInfo(msg.data);
-              message.value = `获取数据成功，进入大厅...`;
-              router.push('/lobby');
+              userStore.updateUserInfo(msg.data);
+              hasUserInfo = true;
+              checkReady();
           } else {
-              message.value = `获取数据失败: ${msg.msg}`;
+              message.value = `获取用户数据失败: ${msg.msg}`;
+          }
+      });
+
+      // Register handler for nn.lobby_config
+      gameClient.on('nn.lobby_config', (msg) => {
+          if (msg.code === 0) {
+              console.log("[LoadingPage] Received lobby config:", msg.data);
+              // Map lobby_configs from server to store
+              userStore.updateRoomConfigs(msg.data.lobby_configs);
+              hasLobbyConfig = true;
+              checkReady();
+          } else {
+              message.value = `获取大厅配置失败: ${msg.msg}`;
           }
       });
 

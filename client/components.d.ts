@@ -9,6 +9,7 @@ declare module 'vue' {
   export interface GlobalComponents {
     CoinLayer: typeof import('./src/components/CoinLayer.vue')['default']
     DealingLayer: typeof import('./src/components/DealingLayer.vue')['default']
+    GlobalLoading: typeof import('./src/components/GlobalLoading.vue')['default']
     PlayerSeat: typeof import('./src/components/PlayerSeat.vue')['default']
     PokerCard: typeof import('./src/components/PokerCard.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']

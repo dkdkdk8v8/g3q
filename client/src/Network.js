@@ -5,6 +5,7 @@
  */
 
 import { showToast } from 'vant';
+import { useLoadingStore } from './stores/loading';
 
 const CONFIG = {
     RECONNECT_MAX_ATTEMPTS: 10, // 最大重连次数
@@ -126,8 +127,12 @@ export default class GameClient {
      * @param {object} data - 业务数据
      */
     send(cmd, data = {}) {
+        const loadingStore = useLoadingStore();
+        loadingStore.startLoading();
+        
         if (!this.isConnected) {
             console.warn("[Network] Cannot send, not connected");
+            loadingStore.hideLoading(); // Hide loading if not connected
             return;
         }
 
@@ -143,6 +148,8 @@ export default class GameClient {
 
     _handleMessage(msg) {
         // msg 结构: {cmd, seq, code, msg, data}
+        const loadingStore = useLoadingStore();
+        loadingStore.hideLoading();
         
         // 拦截心跳回包，不向上层分发
         if (msg.cmd === "sys.pong") {

@@ -114,7 +114,7 @@ func (rm *RobotManager) ArrangeRobotsForQZNN(room *nn.QZNNRoom) {
 			bot := robots[0]
 
 			// 判断是否能进入房间
-			if !room.IsWaiting() || room.GetPlayerCount() >= room.GetPlayerCap() {
+			if !room.CheckStatus(nn.StateWaiting) || room.GetPlayerCount() >= room.GetPlayerCap() {
 				break
 			}
 

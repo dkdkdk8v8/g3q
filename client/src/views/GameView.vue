@@ -204,7 +204,8 @@ const startDealingAnimation = (isSupplemental = false) => {
     targets.forEach((t, pIndex) => {
         // 构建该玩家所有需要发的牌的位置信息
         const cardTargets = [];
-        const spacing = t.isMe ? 40 : 20; 
+        const scale = t.isMe ? 1 : 0.85; // 引入缩放比例
+        const spacing = (t.isMe ? 40 : 20) * scale; // 调整间距
         const totalWidth = (t.total - 1) * spacing;
         const startX = t.x - (totalWidth / 2);
 
@@ -215,6 +216,7 @@ const startDealingAnimation = (isSupplemental = false) => {
                 x: targetX, 
                 y: t.y, 
                 isMe: t.isMe,
+                scale: scale, // 传递缩放比例
                 index: cardIndex
             });
         }

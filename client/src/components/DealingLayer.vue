@@ -25,6 +25,7 @@ const dealToPlayer = async (targets, callback) => {
     const newCards = targets.map((t, index) => {
         const targetWidth = t.isMe ? 60 : 40;
         const targetHeight = t.isMe ? 84 : 56;
+        const finalScale = t.scale || 1; // 获取目标缩放比例
         
         return {
             id: `deal-${Date.now()}-${index}-${Math.random()}`,
@@ -40,6 +41,7 @@ const dealToPlayer = async (targets, callback) => {
             // 目标参数
             finalX: t.x - targetWidth / 2,
             finalY: t.y - targetHeight / 2,
+            finalScale: finalScale, // 存储目标缩放
             
             // 批量模式下的中间跳点 (全部飞到第一张牌的位置)
             jumpX: jumpTargetX,
@@ -77,7 +79,7 @@ const dealToPlayer = async (targets, callback) => {
                     card.transition = `all ${jumpDuration/1000}s cubic-bezier(0.18, 0.89, 0.32, 1.28)`;
                     card.x = card.jumpX;
                     card.y = card.jumpY;
-                    card.scale = 1;
+                    card.scale = card.finalScale; // 动画缩放到目标大小
                     card.opacity = 1;
                     card.rotation = 0; // 摆正
                     setTimeout(resolve, jumpDuration);
@@ -106,6 +108,7 @@ const dealToPlayer = async (targets, callback) => {
                     // 2. 执行移动
                     card.x = card.finalX;
                     card.y = card.finalY;
+                    // scale 保持 finalScale
 
                     // 监听 transitionend 事件 或者用 setTimeout 确保移动完成
                     const moveDuration = 400;
@@ -128,7 +131,7 @@ const dealToPlayer = async (targets, callback) => {
         card.transition = 'all 0.6s cubic-bezier(0.18, 0.89, 0.32, 1.28)';
         card.x = card.finalX;
         card.y = card.finalY;
-        card.scale = 1;
+        card.scale = card.finalScale; // 动画缩放到目标大小
         card.opacity = 1;
         card.rotation = 0;
 
@@ -169,7 +172,9 @@ defineExpose({
             zIndex: card.zIndex
         }"
     >
-        <div class="card-back"></div>
+        <div class="card-back">
+            <div class="back-pattern"></div>
+        </div>
     </div>
   </div>
 </template>
@@ -199,6 +204,14 @@ defineExpose({
   background: #3b5bdb;
   border: 2px solid white;
   border-radius: 4px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  position: relative; /* Ensure child absolute positioning works if needed */
+  box-sizing: border-box;
+}
+
+.back-pattern {
+  width: 100%;
+  height: 100%;
   background-image: repeating-linear-gradient(
     45deg,
     #60a5fa 25%,
@@ -217,7 +230,7 @@ defineExpose({
   );
   background-position: 0 0, 10px 10px;
   background-size: 20px 20px;
-  opacity: 1;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  opacity: 0.5;
+  border-radius: 2px; /* Slightly smaller than parent to fit */
 }
 </style>

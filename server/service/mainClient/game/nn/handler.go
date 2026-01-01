@@ -6,6 +6,8 @@ import (
 	"service/comm"
 	"service/modelClient"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -16,8 +18,40 @@ const (
 	StateSettling = 4
 )
 
+const (
+	StateWaitingSec = 6
+	StateCallingSec = 10
+	StateBettingSec = 10
+	StateDealingSec = 5
+)
+
 func init() {
 	rand.Seed(time.Now().UnixNano())
+}
+
+func HandlePlayerReady(r *QZNNRoom, userID string) {
+	if !r.CheckStatus(StateWaiting) {
+		return
+	}
+	p, ok := r.GetPlayerByID(userID)
+	if !ok || p.IsReady {
+		return
+	}
+	p.IsReady = true
+	r.Broadcast(comm.Response{Cmd: "nn.player_ready", Data: map[string]interface{}{"uid": userID}})
+	allReady := true
+
+	r.PlayerMu.RLock()
+	for _, player := range r.Players {
+		if player != nil && !player.IsReady {
+			allReady = false
+			break
+		}
+	}
+	r.PlayerMu.RUnlock()
+	if allReady {
+		StartGame(r)
+	}
 }
 
 func StartGame(r *QZNNRoom) {
@@ -159,12 +193,16 @@ func EnterBetting(r *QZNNRoom) {
 }
 
 func HandlePlaceBet(r *QZNNRoom, userID string, mult int) {
-
-	if r.State != StateBetting || userID == r.BankerID {
+	if !r.CheckStatus(StateBetting) {
+		logrus.WithField("room_id", r.ID).WithField("user_id", userID).Error("HandlePlaceBet_InvalidState")
+		return
+	}
+	if r.CheckIsBanker(userID) {
+		logrus.WithField("room_id", r.ID).WithField("user_id", userID).Error("HandlePlaceBet_BanerCannotBet")
 		return
 	}
 	p, ok := r.GetPlayerByID(userID)
-	if !ok || p.BetMult != 0 {
+	if !ok || p == nil || p.BetMult != 0 {
 		return
 	}
 	p.BetMult = mult

@@ -181,6 +181,15 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 
 		// 广播给房间内其他人
 		room.Broadcast(comm.Response{Cmd: "nn.player_join", Data: gin.H{"players": room.Players}})
+	case "nn.ready": // 房间准备
+		var req struct {
+			RoomId string `json:"room_id"`
+		}
+		if err := json.Unmarshal(msg.Data, &req); err == nil {
+			if room := game.GetMgr().GetRoomByRoomId(req.RoomId); room != nil {
+				nn.HandlePlayerReady(room, userId)
+			}
+		}
 
 	case "nn.call_banker": // 抢庄请求
 		var req struct {

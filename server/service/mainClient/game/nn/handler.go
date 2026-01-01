@@ -20,7 +20,7 @@ const (
 )
 
 const (
-	StateWaitingSec = 6
+	StateWaiting2StartSec = 6
 	StateCallingSec = 10
 	StateBettingSec = 10
 	StateDealingSec = 5

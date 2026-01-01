@@ -13,33 +13,17 @@ type CardResult struct {
 	MaxCard int `json:"max_card"` // 最大单牌，用于同牌型比大小
 }
 
-type Player2Client struct {
-	Cards    []int `json:"cards"`     // 手牌 (0-51)
-	CallMult int   `json:"call_mult"` // 抢庄倍数
-	BetMult  int   `json:"bet_mult"`  // 下注倍数
-	IsShow   bool  `json:"is_show"`   // 是否已亮牌
-	IsRobot  bool  `json:"is_robot"`  // 是否机器人
-	SeatNum  int   `json:"seat_num"`  // 座位号
-	IsReady  bool  `json:"is_ready"`  // 是否已准备
-	//BetArea  int    `json:"bet_area"`  // 下注区域（百人牛牛专用）
-}
-
 // Player 代表房间内的一个玩家
 type Player struct {
-	ID      string
-	Conn    *ws.WSConn `json:"-"` // WebSocket 连接
-	IsRobot bool       `json:"-"`
-	Player2Client
-}
-
-func (p *Player) SecretForOther(selfId string) Player2Client {
-	if p.ID == selfId {
-		return p.Player2Client
-	} else {
-		var pcopy Player2Client = p.Player2Client
-		pcopy.Cards = []int{}
-		return pcopy
-	}
+	ID       string
+	Cards    []int      `json:"cards"`     // 手牌 (0-51)
+	CallMult int        `json:"call_mult"` // 抢庄倍数
+	BetMult  int        `json:"bet_mult"`  // 下注倍数
+	IsShow   bool       `json:"is_show"`   // 是否已亮牌
+	SeatNum  int        `json:"seat_num"`  // 座位号
+	IsReady  bool       `json:"is_ready"`  // 是否已准备
+	IsRobot  bool       `json:"-"`
+	Conn     *ws.WSConn `json:"-"` // WebSocket 连接
 }
 
 // LobbyConfig 大厅配置
@@ -53,13 +37,12 @@ type LobbyConfig struct {
 
 // Room 代表一个游戏房间
 type QZNNRoom struct {
-	ID           string
-	Type         string
-	Players      []*Player
-	State        int    // 当前游戏状态
-	StateLeftSec int    // 当前状态剩余秒数
-	BankerID     string // 庄ID
-
+	ID            string          `json:"ID"`
+	Type          string          `json:"Type"`
+	State         int             `json:"State"`
+	StateLeftSec  int             `json:"StateLeftSec"`
+	BankerID      string          `json:"BankerID"`
+	Players       []*Player       `json:"Players"`
 	StateMu       sync.RWMutex    `json:"-"` // 保护 State, Timer
 	Timer         *time.Timer     `json:"-"` // 状态切换定时器
 	Ticker        *time.Ticker    `json:"-"` // 倒计时定时器
@@ -70,19 +53,4 @@ type QZNNRoom struct {
 	TargetResults map[string]int  `json:"-"` // 记录每个玩家本局被分配的目标分数 (牛几)
 	TotalBet      int64           `json:"-"` // 本局总下注额，用于更新库存
 	Config        LobbyConfig     `json:"-"` // 房间配置
-}
-
-func (r *QZNNRoom) GetPlayerCount() int {
-	// Players 是定长切片，需要统计非 nil 的数量
-	currentCount := 0
-	for _, p := range r.Players {
-		if p != nil {
-			currentCount++
-		}
-	}
-	return currentCount
-}
-
-func (r *QZNNRoom) IsWaiting() bool {
-	return r.State == StateWaiting
 }

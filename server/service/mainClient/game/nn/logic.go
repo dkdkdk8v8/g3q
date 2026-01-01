@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 func NewRoom(id string, gameType string, max int) *QZNNRoom {
@@ -30,6 +31,22 @@ func (r *QZNNRoom) SetStatus(state int) bool {
 	return true
 }
 
+func (r *QZNNRoom) IsSecretByStatus(state int) bool {
+	r.StateMu.RLock()
+	defer r.StateMu.RUnlock()
+	switch state {
+	case StateWaiting, StateWaitingTimer:
+		return false
+	case StateCalling, StateBetting, StateDealing:
+		return true
+	case StateSettling:
+		return false
+	default:
+		//防止未知状态，全部给数据，避免前端出错
+		return true
+	}
+}
+
 func (r *QZNNRoom) CheckIsBanker(bankerID string) bool {
 	r.Mu.Lock()
 	defer r.Mu.Unlock()
@@ -39,6 +56,23 @@ func (r *QZNNRoom) CheckIsBanker(bankerID string) bool {
 func (r *QZNNRoom) GetPlayerCap() int {
 	return cap(r.Players)
 }
+
+func (r *QZNNRoom) GetPlayerCount() int {
+	r.PlayerMu.RLock()
+	defer r.PlayerMu.RUnlock()
+	currentCount := 0
+	for _, p := range r.Players {
+		if p != nil {
+			currentCount++
+		}
+	}
+	return currentCount
+}
+
+func (r *QZNNRoom) IsWaiting() bool {
+	return r.State == StateWaiting
+}
+
 func (r *QZNNRoom) GetPlayerByID(userID string) (*Player, bool) {
 	r.PlayerMu.RLock()
 	defer r.PlayerMu.RUnlock()
@@ -58,11 +92,11 @@ func (r *QZNNRoom) AddPlayer(p *Player) (int, error) {
 	}
 
 	r.PlayerMu.Lock()
-	defer r.PlayerMu.Unlock()
 
 	// 检查玩家是否已在房间
 	for seatNum, existingPlayer := range r.Players {
 		if existingPlayer != nil && existingPlayer.ID == p.ID {
+			r.PlayerMu.Unlock()
 			return seatNum, nil
 		}
 	}
@@ -79,11 +113,13 @@ func (r *QZNNRoom) AddPlayer(p *Player) (int, error) {
 	}
 
 	if countExistPlayerNum >= cap(r.Players) || emptySeat == -1 {
+		r.PlayerMu.Unlock()
 		return 0, comm.NewMyError(500001, "房间已满")
 	}
 
 	r.Players[emptySeat] = p
 	countExistPlayerNum++
+	r.PlayerMu.Unlock()
 
 	r.Broadcast(comm.Response{Cmd: "nn.player_join", Data: gin.H{"players": r.Players}})
 
@@ -95,10 +131,10 @@ func (r *QZNNRoom) AddPlayer(p *Player) (int, error) {
 				return
 			}
 			if r.SetStatus(StateWaitingTimer) {
-				r.StartTimer(6, func() {
+				r.StartTimer(StateWaiting2StartSec, func() {
 					r.OnStart(r)
 				})
-				r.Broadcast(comm.Response{Cmd: "nn.room", Data: gin.H{"room": r}})
+				r.Broadcast(comm.Response{Cmd: "nn.player_join", Data: gin.H{"room": r}})
 			}
 		}()
 	}
@@ -111,6 +147,17 @@ func (r *QZNNRoom) Broadcast(msg interface{}) {
 	defer r.PlayerMu.RUnlock()
 	for _, p := range r.Players {
 		if p != nil && p.Conn != nil {
+			_ = p.Conn.WriteJSON(msg)
+		}
+	}
+}
+
+func (r *QZNNRoom) BroadcastWithFunc(getMsg func(*Player) interface{}) {
+	r.PlayerMu.RLock()
+	defer r.PlayerMu.RUnlock()
+	for _, p := range r.Players {
+		if p != nil && p.Conn != nil {
+			msg := getMsg(p)
 			_ = p.Conn.WriteJSON(msg)
 		}
 	}
@@ -172,4 +219,36 @@ func (r *QZNNRoom) StartTimer(seconds int, onFinish func()) {
 			}
 		}
 	}()
+}
+
+// Leave 玩家离开房间
+func (r *QZNNRoom) Leave(p *Player) {
+	if p == nil {
+		return
+	}
+	r.PlayerMu.Lock()
+	found := false
+	count := 0
+	for i, pl := range r.Players {
+		if pl != nil {
+			if pl.ID == p.ID {
+				r.Players[i] = nil
+				found = true
+			} else {
+				count++
+			}
+		}
+	}
+	r.PlayerMu.Unlock()
+
+	if found {
+		r.Broadcast(comm.Response{Cmd: "nn.player_leave", Data: gin.H{"uid": p.ID}})
+
+		if count < 2 && r.CheckStatus(StateWaitingTimer) {
+			r.StopTimer()
+			if !r.SetStatus(StateWaiting) {
+				logrus.Error("QZNNRoom-Leave-SetStatus-Fail")
+			}
+		}
+	}
 }

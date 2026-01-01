@@ -74,3 +74,31 @@ func GetUserByUserId(userId string) (*ModelUser, error) {
 	}
 	return &user, nil
 }
+
+// GetAllRobots 获取所有机器人
+func GetAllRobots() ([]*ModelUser, error) {
+	var robots []*ModelUser
+	_, err := GetDb().QueryTable(new(ModelUser)).Filter("is_robot", true).All(&robots)
+	return robots, err
+}
+
+// CreateRobot 创建机器人
+func CreateRobot(user *ModelUser) (int64, error) {
+	return WrapInsert(user)
+}
+
+// GetRandomRobots 随机获取指定数量的机器人
+func GetRandomRobots(limit int) ([]*ModelUser, error) {
+	var robots []*ModelUser
+	// OrderBy("?") 是 MySQL 的随机排序
+	_, err := GetDb().QueryTable(new(ModelUser)).
+		Filter("is_robot", true).OrderBy("?").
+		Limit(limit).
+		All(&robots)
+	return robots, err
+}
+
+// UpdateUser 更新用户信息
+func UpdateUser(user *ModelUser) (int64, error) {
+	return WrapUpdate(user)
+}

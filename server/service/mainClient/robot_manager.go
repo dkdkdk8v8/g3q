@@ -5,6 +5,7 @@ import (
 	"compoment/util"
 	"math/rand"
 	"service/mainClient/game"
+	"service/mainClient/game/nn"
 	"service/modelClient"
 	"sync"
 	"time"
@@ -46,7 +47,7 @@ func GetRobotMgr() *RobotManager {
 	robotOnce.Do(func() {
 		robotMgr = &RobotManager{}
 		// 将配置同步到 game 层，供游戏逻辑使用
-		game.RobotExitRate = RobotExitRate
+		nn.RobotExitRate = RobotExitRate
 	})
 	return robotMgr
 }

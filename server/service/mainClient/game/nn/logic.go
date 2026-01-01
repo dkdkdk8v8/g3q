@@ -4,11 +4,26 @@ import "service/mainClient/game"
 
 const (
 	// NiuNone 0:没牛 1-9:牛1-9 10:牛牛
-	NiuNone      = 0
-	NiuNiu       = 10
-	NiuGold      = 12
-	NiuBomb      = 13
-	NiuFiveSmall = 14
+	NiuNone      = 0  // 无牛
+	NiuOne       = 1  // 牛1
+	NiuTwo       = 2  // 牛2
+	NiuThree     = 3  // 牛3
+	NiuFour      = 4  // 牛4
+	NiuFive      = 5  // 牛5
+	NiuSix       = 6  // 牛6
+	NiuSeven     = 7  // 牛7
+	NiuEight     = 8  // 牛8
+	NiuNine      = 9  // 牛9
+	NiuNiu       = 10 // 牛牛
+	NiuFace      = 11 // 五花牛
+	NiuBomb      = 12 // 炸弹牛
+	NiuFiveSmall = 13 // 五小牛
+)
+
+const (
+	BankerTypeNoLook = 0 // 无看牌抢庄
+	BankerTypeLook3  = 1 // 看三张牌抢庄
+	BankerTypeLook4  = 2 // 看四张牌抢庄
 )
 
 func CalcNiu(cards []int) game.CardResult {
@@ -47,8 +62,8 @@ func CalcNiu(cards []int) game.CardResult {
 		}
 	}
 	if isFiveFlower {
-		// 使用 NiuGold (12) 代表五花牛/金牛，倍率设为 5
-		return game.CardResult{Niu: NiuGold, Mult: 5, MaxCard: maxCard}
+		// 使用 NiuFace (11) 代表五花牛，倍率设为 6
+		return game.CardResult{Niu: NiuFace, Mult: GetCardMultiplier(NiuFace), MaxCard: maxCard}
 	}
 
 	// 五小牛判断
@@ -60,7 +75,7 @@ func CalcNiu(cards []int) game.CardResult {
 		}
 	}
 	if isFiveSmall && sumPoints <= 10 {
-		return game.CardResult{Niu: NiuFiveSmall, Mult: 8, MaxCard: maxCard}
+		return game.CardResult{Niu: NiuFiveSmall, Mult: GetCardMultiplier(NiuFiveSmall), MaxCard: maxCard}
 	}
 
 	// 炸弹牛判断
@@ -77,7 +92,7 @@ func CalcNiu(cards []int) game.CardResult {
 					break
 				}
 			}
-			return game.CardResult{Niu: NiuBomb, Mult: 6, MaxCard: bombCard}
+			return game.CardResult{Niu: NiuBomb, Mult: GetCardMultiplier(NiuBomb), MaxCard: bombCard}
 		}
 	}
 
@@ -104,14 +119,7 @@ func CalcNiu(cards []int) game.CardResult {
 		}
 	}
 
-	mult := 1
-	if niu == 10 {
-		mult = 3
-	} else if niu >= 7 {
-		mult = 2
-	}
-
-	return game.CardResult{Niu: niu, Mult: mult, MaxCard: maxCard}
+	return game.CardResult{Niu: niu, Mult: GetCardMultiplier(niu), MaxCard: maxCard}
 }
 
 func CompareCards(a, b game.CardResult) bool {

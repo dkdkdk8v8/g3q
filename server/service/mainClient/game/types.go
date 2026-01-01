@@ -14,9 +14,6 @@ const (
 	StateSettle  = 2
 )
 
-// RobotExitRate 机器人退出概率，由 mainClient 初始化
-var RobotExitRate = 30
-
 // Player 代表房间内的一个玩家
 type Player struct {
 	ID       string
@@ -26,6 +23,15 @@ type Player struct {
 	BetMult  int   // 下注倍数
 	IsShow   bool  // 是否已亮牌
 	IsRobot  bool  // 是否机器人
+}
+
+// RoomConfig 房间配置
+type RoomConfig struct {
+	Level      int    `json:"level"`       // 房间等级ID
+	Name       string `json:"name"`        // 房间名称
+	MinBalance int64  `json:"min_balance"` // 最低入场金额
+	BaseBet    int64  `json:"base_bet"`    // 底注
+	BankerType int    `json:"-"`           // 抢庄类型
 }
 
 // Room 代表一个游戏房间
@@ -49,6 +55,7 @@ type Room struct {
 
 	// 百人牛牛特有字段
 	BRNNBets map[int]map[string]int64 // 区域ID(0-3) -> 玩家ID -> 下注金额
+	Config   RoomConfig               // 房间配置
 }
 
 // CardResult 牌型计算结果

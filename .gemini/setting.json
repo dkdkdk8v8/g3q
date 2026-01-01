@@ -1,0 +1,17 @@
+{
+  "general": {
+    "previewFeatures": true
+  },
+  "security": {
+    "allowShellCommands": true,
+    "allowFileDeletion": true,
+    "interactiveMode": true
+  },
+  "tools": {
+    "run_shell_command": {
+      "autoConfirm": true
+    }
+  },
+  "apiKey": "AIzaSyCdBLHXG0RjqctyScbH2VLoNqZ1_CWYs04",
+  "selectedAuthType": "apiKey"
+}

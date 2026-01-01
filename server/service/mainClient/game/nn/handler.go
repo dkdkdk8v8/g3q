@@ -63,11 +63,18 @@ func StartGame(r *game.Room) {
 		p.IsShow = false
 
 		// 发送前4张牌
+		// 根据房间配置决定发送几张牌
+		// BankerType: 0:不看牌(0张), 1:看3张, 2:看4张
+		dealCount := 0
+		if r.Config.BankerType == BankerTypeLook3 {
+			dealCount = 3
+		} else if r.Config.BankerType == BankerTypeLook4 {
+			dealCount = 4
+		}
+
 		var dealCards []int
-		if len(p.Cards) >= 4 {
-			dealCards = p.Cards[:4]
-		} else {
-			dealCards = p.Cards // Should not happen
+		if len(p.Cards) >= dealCount {
+			dealCards = p.Cards[:dealCount]
 		}
 
 		if p.Conn != nil {
@@ -279,7 +286,7 @@ func EnterSettling(r *game.Room) {
 
 		// 机器人随机退出逻辑
 		for id, p := range r.Players {
-			if p.IsRobot && rand.Intn(100) < game.RobotExitRate {
+			if p.IsRobot && rand.Intn(100) < RobotExitRate {
 				leftBots = append(leftBots, id)
 			}
 		}

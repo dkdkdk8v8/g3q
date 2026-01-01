@@ -4,6 +4,8 @@
  * 功能：WebSocket连接、心跳保活、断线重连、消息分发
  */
 
+import { showToast } from 'vant';
+
 const CONFIG = {
     RECONNECT_MAX_ATTEMPTS: 10, // 最大重连次数
     RECONNECT_DELAY: 3000,      // 重连延迟 (ms)
@@ -147,6 +149,16 @@ export default class GameClient {
         }
 
         console.log("[Network] Recv:", msg);
+
+        // 通用错误处理：如果 code != 0，弹出提示
+        if (msg.code !== 0) {
+            if (msg.msg) {
+                showToast({
+                    message: msg.msg,
+                    duration: 3000,
+                });
+            }
+        }
         
         // 路由分发
         if (this.handlers.has(msg.cmd)) {

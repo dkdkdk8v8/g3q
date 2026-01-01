@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 func NewRoom(id string, gameType string, max int) *QZNNRoom {
@@ -57,6 +58,8 @@ func (r *QZNNRoom) GetPlayerCap() int {
 }
 
 func (r *QZNNRoom) GetPlayerCount() int {
+	r.PlayerMu.RLock()
+	defer r.PlayerMu.RUnlock()
 	currentCount := 0
 	for _, p := range r.Players {
 		if p != nil {
@@ -243,7 +246,9 @@ func (r *QZNNRoom) Leave(p *Player) {
 
 		if count < 2 && r.CheckStatus(StateWaitingTimer) {
 			r.StopTimer()
-			r.SetStatus(StateWaiting)
+			if !r.SetStatus(StateWaiting) {
+				logrus.Error("QZNNRoom-Leave-SetStatus-Fail")
+			}
 		}
 	}
 }

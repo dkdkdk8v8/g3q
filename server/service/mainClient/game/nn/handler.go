@@ -6,6 +6,8 @@ import (
 	"service/comm"
 	"service/modelClient"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -16,8 +18,40 @@ const (
 	StateSettling = 4
 )
 
+const (
+	StateWaitingSec = 6
+	StateCallingSec = 10
+	StateBettingSec = 10
+	StateDealingSec = 5
+)
+
 func init() {
 	rand.Seed(time.Now().UnixNano())
+}
+
+func HandlePlayerReady(r *QZNNRoom, userID string) {
+	if !r.CheckStatus(StateWaiting) {
+		return
+	}
+	p, ok := r.GetPlayerByID(userID)
+	if !ok || p.IsReady {
+		return
+	}
+	p.IsReady = true
+	r.Broadcast(comm.Response{Cmd: "nn.player_ready", Data: map[string]interface{}{"uid": userID}})
+	allReady := true
+
+	r.PlayerMu.RLock()
+	for _, player := range r.Players {
+		if player != nil && !player.IsReady {
+			allReady = false
+			break
+		}
+	}
+	r.PlayerMu.RUnlock()
+	if allReady {
+		StartGame(r)
+	}
 }
 
 func StartGame(r *QZNNRoom) {
@@ -90,7 +124,7 @@ func EnterCalling(r *QZNNRoom) {
 	r.StopTimer()
 	r.State = StateCalling
 	BroadcastState(r, 10)
-	r.Timer = time.AfterFunc(10*time.Second, func() {
+	r.StartTimer(10, func() {
 		r.Mu.Lock()
 		defer r.Mu.Unlock()
 		if r.State == StateCalling {
@@ -143,7 +177,7 @@ func EnterBetting(r *QZNNRoom) {
 	r.BankerID = candidates[rand.Intn(len(candidates))]
 	r.Broadcast(comm.Response{Cmd: "nn.banker_confirm", Data: map[string]interface{}{"banker_id": r.BankerID, "mult": maxMult}})
 	BroadcastState(r, 10)
-	r.Timer = time.AfterFunc(10*time.Second, func() {
+	r.StartTimer(10, func() {
 		r.Mu.Lock()
 		defer r.Mu.Unlock()
 		if r.State == StateBetting {
@@ -159,12 +193,16 @@ func EnterBetting(r *QZNNRoom) {
 }
 
 func HandlePlaceBet(r *QZNNRoom, userID string, mult int) {
-
-	if r.State != StateBetting || userID == r.BankerID {
+	if !r.CheckStatus(StateBetting) {
+		logrus.WithField("room_id", r.ID).WithField("user_id", userID).Error("HandlePlaceBet_InvalidState")
+		return
+	}
+	if r.CheckIsBanker(userID) {
+		logrus.WithField("room_id", r.ID).WithField("user_id", userID).Error("HandlePlaceBet_BanerCannotBet")
 		return
 	}
 	p, ok := r.GetPlayerByID(userID)
-	if !ok || p.BetMult != 0 {
+	if !ok || p == nil || p.BetMult != 0 {
 		return
 	}
 	p.BetMult = mult
@@ -196,7 +234,7 @@ func EnterDealing(r *QZNNRoom) {
 		}
 	}
 	BroadcastState(r, 5)
-	r.Timer = time.AfterFunc(5*time.Second, func() {
+	r.StartTimer(5, func() {
 		r.Mu.Lock()
 		defer r.Mu.Unlock()
 		if r.State == StateDealing {
@@ -267,7 +305,7 @@ func EnterSettling(r *QZNNRoom) {
 		}
 	}
 	r.Broadcast(comm.Response{Cmd: "nn.settle", Data: map[string]interface{}{"scores": playerScores, "results": results, "banker": r.BankerID}})
-	r.Timer = time.AfterFunc(5*time.Second, func() {
+	r.StartTimer(5, func() {
 		var leftBots []string
 		var allUserIds []string
 		r.Mu.Lock()

@@ -21,9 +21,7 @@ const userInfo = computed(() => {
 
 // 游戏模式：kanpai (看四张抢庄-type 2), bukan (不看牌抢庄-type 0)
 // type 1 (看三张)
-const savedMode = localStorage.getItem('lastSelectedMode');
-const initialMode = savedMode !== null ? parseInt(savedMode) : (userStore.lastSelectedMode || 0);
-const currentMode = ref(initialMode); 
+const currentMode = ref(0); // 强制默认不看牌抢庄
 
 watch(currentMode, (newVal) => {
     userStore.lastSelectedMode = newVal;

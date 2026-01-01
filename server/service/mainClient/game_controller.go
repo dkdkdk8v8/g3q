@@ -8,10 +8,29 @@ import (
 	"service/mainClient/game/brnn"
 	"service/mainClient/game/nn"
 	"service/modelClient"
+	"sync/atomic"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
+
+var (
+	pingCount int64
+)
+
+func init() {
+	go func() {
+		ticker := time.NewTicker(10 * time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			c := atomic.SwapInt64(&pingCount, 0)
+			if c > 0 {
+				logrus.WithField("count", c).Info("WS-Ping-Statistics-10s")
+			}
+		}
+	}()
+}
 
 // WSEntry 是 WebSocket 的入口点
 func WSEntry(c *gin.Context) {
@@ -83,10 +102,14 @@ func handleConnection(conn *ws.WSConn, userId string) {
 }
 
 func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
-	logrus.WithFields(logrus.Fields{
-		"cmd": msg.Cmd,
-		"uid": userId,
-	}).Info("WS-Receive-Message")
+	if msg.Cmd == "sys.ping" {
+		atomic.AddInt64(&pingCount, 1)
+	} else {
+		logrus.WithFields(logrus.Fields{
+			"cmd": msg.Cmd,
+			"uid": userId,
+		}).Info("WS-Receive-Message")
+	}
 
 	// 检查全局维护状态（实际应从 Redis 或配置中心读取）
 	// if GlobalMaintenanceConfig.IsActive() {

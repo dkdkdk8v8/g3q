@@ -99,38 +99,26 @@ func (rm *RobotManager) InitRobots() {
 	}
 }
 
-// ArrangeRobotsForRoom 安排机器人进入房间伪装真实用户
-func (rm *RobotManager) ArrangeRobotsForRoom(room *nn.QZNNRoom) {
-	// 百人场机器人逻辑通常由房间内部定时器控制，这里主要针对匹配场
-	if room.Type == "brnn" {
-		return
-	}
-
+// ArrangeRobotsForQZNN 安排机器人进入抢庄牛牛房间伪装真实用户
+func (rm *RobotManager) ArrangeRobotsForQZNN(room *nn.QZNNRoom) {
 	go func() {
-		// 随机延迟 1-3 秒，模拟真人进入
-		time.Sleep(time.Duration(rand.Intn(3)+1) * time.Second)
+		for {
+			// 随机等待 1-3 秒
+			time.Sleep(time.Duration(rand.Intn(3)+1) * time.Second)
 
-		room.Mu.Lock()
-		currentCount := len(room.Players)
-		maxCount := room.GetPlayerCap()
-		room.Mu.Unlock()
+			// 派出一个机器人
+			robots, err := modelClient.GetRandomRobots(1)
+			if err != nil || len(robots) == 0 {
+				break
+			}
+			bot := robots[0]
 
-		if currentCount >= maxCount {
-			return
-		}
+			// 判断是否能进入房间
+			if !room.IsPlaying() || room.GetPlayerCount() >= room.GetPlayerCap() {
+				break
+			}
 
-		// 随机决定拉几个机器人 (1 到 剩余空位)
-		numToJoin := rand.Intn(maxCount-currentCount) + 1
-
-		robots, err := modelClient.GetRandomRobots(numToJoin)
-
-		if err != nil {
-			return
-		}
-
-		for _, bot := range robots {
 			// 检查机器人是否已经在其他房间
-			// todo 优化：可以批量查询多个机器人是否在房间中，减少锁竞争
 			if game.GetMgr().GetPlayerRoom(bot.UserId) != nil {
 				continue
 			}
@@ -149,14 +137,12 @@ func (rm *RobotManager) ArrangeRobotsForRoom(room *nn.QZNNRoom) {
 				IsRobot: true,
 				Conn:    nil, // 机器人无真实连接
 			}
-
-			if _, err := room.AddPlayer(p); err == nil {
-
-				logrus.WithFields(logrus.Fields{
-					"room": room.ID,
-					"bot":  bot.UserId,
-				}).Info("Robot-Joined-Room")
-			}
+			room.AddPlayer(p)
 		}
 	}()
+}
+
+// ArrangeRobotsForBRNN 安排机器人进入百人牛牛房间
+func (rm *RobotManager) ArrangeRobotsForBRNN(room *nn.QZNNRoom) {
+	// 百人牛牛的机器人逻辑暂未实现，后续补充
 }

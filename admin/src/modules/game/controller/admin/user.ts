@@ -1,4 +1,4 @@
-import { CoolController, BaseController } from '@cool-midway/core';
+import {CoolController, BaseController} from '@cool-midway/core';
 
 import {Provide} from "@midwayjs/decorator";
 
@@ -9,7 +9,7 @@ import {GameUserEntity} from '../../entityGame/user';
     api: ['add', 'update', 'info', 'page', 'delete'],
     entity: GameUserEntity,
     pageQueryOp: {
-        fieldEq: ['app_id', 'enable', 'user_id'],
+        fieldEq: ['app_id', 'enable', 'user_id','is_robot'],
     },
 })
 export class GameUserController extends BaseController {

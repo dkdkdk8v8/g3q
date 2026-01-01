@@ -79,7 +79,7 @@ const shouldShowCardFace = computed(() => {
       <div class="cards" :style="{ visibility: showCards ? 'visible' : 'hidden' }">
         <PokerCard 
           v-for="(card, idx) in displayedHand" 
-          :key="card ? card.id : idx" 
+          :key="idx" 
           :card="shouldShowCardFace ? card : null" 
           :is-small="!isMe"
           class="hand-card"

@@ -71,6 +71,8 @@ const dealToPlayer = async (targets, callback) => {
 
         const jumpPromises = reactiveCards.map((card, idx) => {
             return new Promise(resolve => {
+                // 增加 50ms 基础延迟，确保第一张牌的初始位置先被渲染出来，避免瞬移
+                const delay = idx * jumpInterval + 50;
                 setTimeout(() => {
                     card.transition = `all ${jumpDuration/1000}s cubic-bezier(0.18, 0.89, 0.32, 1.28)`;
                     card.x = card.jumpX;
@@ -79,7 +81,7 @@ const dealToPlayer = async (targets, callback) => {
                     card.opacity = 1;
                     card.rotation = 0; // 摆正
                     setTimeout(resolve, jumpDuration);
-                }, idx * jumpInterval);
+                }, delay);
             });
         });
 

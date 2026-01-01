@@ -259,6 +259,11 @@ const onBet = (multiplier) => {
     store.playerBet(multiplier);
 };
 
+const openHistory = () => {
+    showMenu.value = false;
+    showHistory.value = true;
+};
+
 const quitGame = () => {
     router.push('/lobby');
 };
@@ -279,7 +284,7 @@ const quitGame = () => {
             <!-- 下拉菜单 -->
             <transition name="fade">
                 <div v-if="showMenu" class="menu-dropdown" @click.stop>
-                    <div class="menu-item" @click="showHistory = true; showMenu = false">
+                    <div class="menu-item" @click="openHistory">
                         <van-icon name="balance-list-o" /> 投注记录
                     </div>
                     <div class="menu-divider"></div>
@@ -540,7 +545,7 @@ const quitGame = () => {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    z-index: 100;
+    z-index: 200;
 }
 
 .menu-btn {

@@ -1,6 +1,6 @@
 <script setup>
 import { useRouter } from 'vue-router';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useUserStore } from '../stores/user.js';
 
 const router = useRouter();
@@ -17,8 +17,12 @@ const userInfo = computed(() => {
 });
 
 // 游戏模式：kanpai (看四张抢庄-type 2), bukan (不看牌抢庄-type 0)
-// type 1 (看三张) 暂时不在UI体现
-const currentMode = ref(0); // Default to 0 (bukan)
+// type 1 (看三张)
+const currentMode = ref(userStore.lastSelectedMode); // Initialize from store
+
+watch(currentMode, (newVal) => {
+    userStore.lastSelectedMode = newVal;
+});
 
 const enterGame = (level) => {
   // 传递房间等级(level)和玩法模式(mode)

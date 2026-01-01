@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useGameStore } from '../stores/game.js';
 import PokerCard from './PokerCard.vue';
 
@@ -29,14 +29,62 @@ const showCards = computed(() => {
   return displayedHand.value.length > 0;
 });
 
-// ... (keep existing shouldShowCardFace logic)
 const shouldShowCardFace = computed(() => {
     if (props.isMe) return true;
     if (store.currentPhase === 'SETTLEMENT') return true;
     if (store.currentPhase === 'SHOWDOWN' && props.player.isShowHand) return true;
     return false;
 });
-// ...
+
+// 控制高亮显示的延迟开关 (为了等翻牌动画结束)
+const enableHighlight = ref(false);
+
+watch(shouldShowCardFace, (val) => {
+    if (val) {
+        if (props.isMe) {
+            // 自己不用等翻牌动画 (因为一直是正面)，直接就绪
+            enableHighlight.value = true;
+        } else {
+            // 别人(机器人)需要等翻牌动画(约600ms)结束后再高亮
+            enableHighlight.value = false;
+            setTimeout(() => {
+                enableHighlight.value = true;
+            }, 800);
+        }
+    } else {
+        enableHighlight.value = false;
+    }
+}, { immediate: true });
+
+const isBullPart = (index) => {
+    if (!shouldShowCardFace.value) return false;
+    if (!props.player.handResult) return false;
+    
+    // 必须等待动画延迟结束
+    if (!enableHighlight.value) return false;
+
+    // 如果是自己，必须点了摊牌(isShowHand)才显示高亮，除非已经是结算阶段
+    if (props.isMe && store.currentPhase === 'SHOWDOWN' && !props.player.isShowHand) return false;
+
+    const type = props.player.handResult.type;
+    // 只有有牛的牌型才凸起前三张 (BULL_1 ~ BULL_BULL)
+    if (type.startsWith('BULL_') && type !== 'NO_BULL') {
+        return index < 3;
+    }
+    return false;
+};
+
+const shouldShowBadge = computed(() => {
+    if (!props.player.handResult || store.currentPhase === 'GAME_OVER') return false;
+    
+    if (props.isMe) {
+        // 自己：必须点了摊牌(isShowHand) 或 结算阶段 才显示牌型结果
+        return props.player.isShowHand || store.currentPhase === 'SETTLEMENT';
+    } else {
+        // 别人：必须等待翻牌动画结束
+        return enableHighlight.value;
+    }
+});
 </script>
 
 <template>
@@ -85,12 +133,13 @@ const shouldShowCardFace = computed(() => {
           class="hand-card"
           :style="{ 
               marginLeft: idx === 0 ? '0' : '-20px',
-              opacity: (visibleCardCount === -1 || idx < visibleCardCount) ? 1 : 0
+              opacity: (visibleCardCount === -1 || idx < visibleCardCount) ? 1 : 0,
+              transform: isBullPart(idx) ? 'translateY(-10px)' : 'none'
           }"
         />
       </div>
       <!-- ... (keep hand result) -->
-      <div v-if="player.handResult && shouldShowCardFace && store.currentPhase !== 'GAME_OVER'" class="hand-result-badge">
+      <div v-if="shouldShowBadge" class="hand-result-badge">
           {{ player.handResult.typeName }} (x{{ player.handResult.multiplier }})
       </div>
     </div>
@@ -258,9 +307,9 @@ const shouldShowCardFace = computed(() => {
   width: 100%;
 }
 
-/* 侧边手牌不需要 margin-top */
-.seat-left .hand-area, .seat-right .hand-area {
-    margin-top: 0;
+/* 机器人手牌下移，避免遮挡信息 */
+.seat-left .hand-area, .seat-right .hand-area, .seat-top .hand-area {
+    margin-top: 15px;
 }
 
 .seat-bottom .hand-area {

@@ -199,66 +199,44 @@ const setSeatRef = (el, playerId) => {
 
 const myPlayer = computed(() => store.players.find(p => p.id === store.myPlayerId));
 
-const seatMapping = ref({});
-
-watch(() => store.players, (newPlayers) => {
-    if (!newPlayers) return;
-
-    const others = newPlayers.filter(p => p.id !== store.myPlayerId);
-    
-    const currentIds = new Set(others.map(p => p.id));
-    for (const pid in seatMapping.value) {
-        if (!currentIds.has(pid)) {
-            delete seatMapping.value[pid];
-        }
-    }
-
-    others.forEach(p => {
-        if (seatMapping.value[p.id] === undefined) {
-            const usedSeats = new Set(Object.values(seatMapping.value));
-            const availableSeats = [0, 1, 2, 3].filter(i => !usedSeats.has(i));
-            
-            if (availableSeats.length > 0) {
-                const randomIndex = Math.floor(Math.random() * availableSeats.length);
-                seatMapping.value[p.id] = availableSeats[randomIndex];
-            } else {
-                console.warn('No seats available for player', p.id);
-            }
-        }
-    });
-}, { deep: true, immediate: true });
-
 const opponentSeats = computed(() => {
-    const seats = [null, null, null, null];
-    const meIndex = store.players.findIndex(p => p.id === store.myPlayerId);
+    const seats = [null, null, null, null]; // Represents client seats 1, 2, 3, 4
     
-    if (meIndex === -1) return seats;
+    store.players.forEach(p => {
+        // Skip current player, as they are rendered separately
+        if (p.id === store.myPlayerId) {
+            return;
+        }
+        
+        // clientSeatNum 1-4 correspond to opponent slots.
+        // Map clientSeatNum 1 to seats[0], 2 to seats[1], etc.
+        const clientSeatArrayIndex = p.clientSeatNum - 1; 
 
-    const others = store.players.filter(p => p.id !== store.myPlayerId);
-    
-    others.forEach(p => {
-        const seatIdx = seatMapping.value[p.id];
-        if (seatIdx !== undefined && seatIdx >= 0 && seatIdx < 4) {
-            seats[seatIdx] = p;
+        if (p.clientSeatNum !== undefined && p.clientSeatNum >= 1 && p.clientSeatNum <= 4) {
+            seats[clientSeatArrayIndex] = p;
+        } else {
+            console.warn(`Player ${p.id} has invalid clientSeatNum: ${p.clientSeatNum}`);
         }
     });
     
     return seats;
 });
 
-const getLayoutType = (index) => {
-    if (index === 0) return 'right';      
-    if (index === 1) return 'top';        
-    if (index === 2) return 'top';        
-    if (index === 3) return 'left';       
-    return 'top';
+const getLayoutType = (clientSeatNum) => {
+    // clientSeatNum: 1=Middle-Left, 2=Top-Left, 3=Top-Right, 4=Middle-Right
+    if (clientSeatNum === 1) return 'left';        // Middle-Left
+    if (clientSeatNum === 2) return 'top';         // Top-Left
+    if (clientSeatNum === 3) return 'top';         // Top-Right
+    if (clientSeatNum === 4) return 'right';       // Middle-Right
+    return 'top'; // Fallback
 };
 
-const getOpponentClass = (index) => {
-    if (index === 0) return 'seat-right';
-    if (index === 1) return 'seat-right-top';
-    if (index === 2) return 'seat-left-top';
-    if (index === 3) return 'seat-left';
+const getOpponentClass = (clientSeatNum) => {
+    // clientSeatNum: 1=Middle-Left, 2=Top-Left, 3=Top-Right, 4=Middle-Right
+    if (clientSeatNum === 1) return 'seat-left';
+    if (clientSeatNum === 2) return 'seat-left-top';
+    if (clientSeatNum === 3) return 'seat-right-top';
+    if (clientSeatNum === 4) return 'seat-right';
     return '';
 };
 
@@ -522,13 +500,13 @@ const quitGame = () => {
             v-for="(p, index) in opponentSeats" 
             :key="index"
             class="opponent-seat-abs"
-            :class="getOpponentClass(index)"
+            :class="getOpponentClass(index + 1)"
         >
             <PlayerSeat 
                 v-if="p && p.id"
                 :player="p" 
                 :ref="(el) => setSeatRef(el, p.id)"
-                :position="getLayoutType(index)"
+                :position="getLayoutType(index + 1)"
                 :visible-card-count="visibleCounts[p.id] !== undefined ? visibleCounts[p.id] : 0"
                 :is-ready="p.isReady"
                 :is-animating-highlight="p.id === currentlyHighlightedPlayerId"

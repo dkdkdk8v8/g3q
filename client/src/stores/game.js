@@ -7,6 +7,40 @@ import { useUserStore } from './user.js';
 
 const DEFAULT_AVATAR = defaultAvatar;
 
+/**
+ * 根据当前用户的座位号，计算其他玩家在客户端的显示座位索引。
+ * 客户端显示座位索引 (0-4) 约定：
+ * 0: 底部 (当前用户)
+ * 1: 左侧中间
+ * 2: 左侧顶部
+ * 3: 右侧顶部
+ * 4: 右侧中间
+ *
+ * 服务器座位号 (SeatNum: 0-4) 约定：逆时针顺序
+ *
+ * @param {number} myServerSeatNum 当前用户在服务器的座位号 (0-4)
+ * @param {number} playerServerSeatNum 目标玩家在服务器的座位号 (0-4)
+ * @returns {number} 客户端显示座位索引 (0-4)
+ */
+function getClientSeatIndex(myServerSeatNum, playerServerSeatNum) {
+    const numSeats = 5;
+    // 计算从当前用户座位到目标玩家座位的顺时针偏移量
+    // 例如：如果 myServerSeatNum = 3, playerServerSeatNum = 4
+    // (4 - 3 + 5) % 5 = 1 (1个顺时针位移)
+    // 例如：如果 myServerSeatNum = 3, playerServerSeatNum = 2
+    // (2 - 3 + 5) % 5 = 4 (4个顺时针位移, 相当于1个逆时针位移)
+    const clockwiseOffset = (playerServerSeatNum - myServerSeatNum + numSeats) % numSeats;
+
+    switch (clockwiseOffset) {
+        case 0: return 0; // 当前用户
+        case 1: return 4; // 1个顺时针位移 -> 右侧中间
+        case 2: return 3; // 2个顺时针位移 -> 右侧顶部
+        case 3: return 2; // 2个逆时针位移 (即3个顺时针位移) -> 左侧顶部
+        case 4: return 1; // 1个逆时针位移 (即4个顺时针位移) -> 左侧中间
+        default: return -1; // 不应该发生
+    }
+}
+
 export const useGameStore = defineStore('game', () => {
     const userStore = useUserStore();
     const currentPhase = ref('IDLE'); // IDLE, WAITING_FOR_PLAYERS, READY_COUNTDOWN, MATCHING, ROB_BANKER, BANKER_SELECTION_ANIMATION, BETTING, DEALING, SHOWDOWN, SETTLEMENT, PRE_DEAL, GAME_OVER
@@ -70,10 +104,25 @@ export const useGameStore = defineStore('game', () => {
                 const serverPlayers = room.Players || [];
                 const newPlayers = [];
 
+                // 1. Find myServerSeatNum
+                let myServerSeatNum = -1;
+                // Ensure myPlayerId.value is set before searching for my seat
+                // It's set a few lines above, so it should be fine here.
+                const meInServer = serverPlayers.find(p => p && p.ID === myPlayerId.value);
+                if (meInServer) {
+                    myServerSeatNum = meInServer.SeatNum;
+                } else {
+                    console.warn("[GameStore] Current user's ID not found in serverPlayers, cannot determine myServerSeatNum.");
+                    // Fallback: if user is not in players list, assume a default or handle error.
+                    // For now, will proceed with -1, meaning clientSeatNum might be incorrect for all.
+                    // This situation should ideally not happen if user successfully joined.
+                }
+
                 serverPlayers.forEach(p => {
                     if (!p) return; // Skip null entries
 
-                    const isMe = p.ID === myPlayerId.value;
+                    // 2. Calculate clientSeatNum
+                    const clientSeatNum = (myServerSeatNum !== -1) ? getClientSeatIndex(myServerSeatNum, p.SeatNum) : -1;
 
                     // Map Cards
                     let hand = [];
@@ -93,6 +142,8 @@ export const useGameStore = defineStore('game', () => {
                         betMultiplier: p.BetMult,
                         isReady: p.IsReady,
                         isShowHand: p.IsShow || false, // Map Show to isShowHand
+                        serverSeatNum: p.SeatNum,      // Store server seat number for debugging/reference
+                        clientSeatNum: clientSeatNum,  // Add client seat number
                         // Persist local data if needed?
                     });
                 });

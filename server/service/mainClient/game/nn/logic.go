@@ -439,11 +439,13 @@ func (r *QZNNRoom) StartGame() {
 			}
 		}
 		r.BankerID = candidates[rand.Intn(len(candidates))]
+
+		time.Sleep(time.Second * 2)
 	}
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
 		return comm.Response{
 			Cmd:  StateBankerConfirm,
-			Data: gin.H{"room": r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID)}}
+			Data: gin.H{"Room": r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID)}}
 	})
 
 	//非庄家投注
@@ -454,7 +456,7 @@ func (r *QZNNRoom) StartGame() {
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
 		return comm.Response{
 			Cmd:  StateBetting,
-			Data: gin.H{"room": r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID)}}
+			Data: gin.H{"Room": r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID)}}
 	})
 
 	//开始投注10s
@@ -469,7 +471,7 @@ func (r *QZNNRoom) StartGame() {
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
 		return comm.Response{
 			Cmd:  StateDealing,
-			Data: gin.H{"room": r.GetClientRoom(5, p.ID == r.BankerID)}}
+			Data: gin.H{"Room": r.GetClientRoom(5, p.ID == r.BankerID)}}
 	})
 
 	//等待客户端播放补牌动画
@@ -479,7 +481,7 @@ func (r *QZNNRoom) StartGame() {
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
 		return comm.Response{
 			Cmd:  StateShowCard,
-			Data: gin.H{"room": r.GetClientRoom(5, !p.IsShow && p.ID == r.BankerID)}}
+			Data: gin.H{"Room": r.GetClientRoom(5, !p.IsShow && p.ID == r.BankerID)}}
 	})
 
 	//结算状态
@@ -489,7 +491,7 @@ func (r *QZNNRoom) StartGame() {
 	}
 	r.Broadcast(comm.Response{
 		Cmd:  StateSettling,
-		Data: gin.H{"room": r}})
+		Data: gin.H{"Room": r}})
 
 	//客户端播放结算动画
 	time.Sleep(time.Second * 2)
@@ -556,12 +558,13 @@ func (r *QZNNRoom) StartGame() {
 	}
 
 	r.Broadcast(comm.Response{
-		Cmd:  "nn.balance_change",
-		Data: gin.H{"balance": playerBalance}})
+		Cmd:  CmdBalanceChange,
+		Data: gin.H{"Balance": playerBalance}})
 
+	time.Sleep(time.Second * 2)
 	//清理数据
 	r.reset()
 	r.Broadcast(comm.Response{
 		Cmd:  StateWaiting,
-		Data: gin.H{"room": r}})
+		Data: gin.H{"Room": r}})
 }

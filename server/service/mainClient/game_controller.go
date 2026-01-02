@@ -222,9 +222,9 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 			nn.HandleShowCards(room, userId)
 		}
 
-	case "sys.ping": // 心跳处理
+	case CmdPing: // 心跳处理
 		conn.WriteJSON(comm.Response{
-			Cmd: "sys.pong",
+			Cmd: CmdPong,
 			Seq: msg.Seq,
 		})
 

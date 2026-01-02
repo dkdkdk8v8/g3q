@@ -2,8 +2,9 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { createDeck, shuffle, calculateHandType } from '../utils/bullfight.js'
 import gameClient from '../socket.js'
+import defaultAvatar from '@/assets/common/icon_avatar.png'; // Use import for asset
 
-const DEFAULT_AVATAR = new URL('../assets/common/icon_avatar.png', import.meta.url).href;
+const DEFAULT_AVATAR = defaultAvatar;
 
 export const useGameStore = defineStore('game', () => {
     const currentPhase = ref('IDLE'); // IDLE, READY_COUNTDOWN, MATCHING, ROB_BANKER, BANKER_SELECTION_ANIMATION, BETTING, DEALING, SHOWDOWN, SETTLEMENT

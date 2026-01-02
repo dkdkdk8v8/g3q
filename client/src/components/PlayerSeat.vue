@@ -27,6 +27,38 @@ const props = defineProps({
       return props.speech && props.speech.content;
   });
   
+  // Computed property to format long speech text
+  const formattedSpeechText = computed(() => {
+      if (!props.speech || props.speech.type !== 'text' || !props.speech.content) {
+          return '';
+      }
+      const text = props.speech.content;
+      const maxLength = 10; // Max 10 Chinese characters per line
+      
+      let result = [];
+      let currentLine = '';
+      let charCount = 0;
+
+      Array.from(text).forEach(char => {
+          if (charCount < maxLength) {
+              currentLine += char;
+              charCount++;
+          } else {
+              result.push(currentLine);
+              currentLine = char;
+              charCount = 1;
+          }
+      });
+      result.push(currentLine); // Push the last line
+
+      // Limit to 2 lines
+      if (result.length > 2) {
+          result = result.slice(0, 2);
+      }
+
+      return result.join('<br>');
+  });
+  
   // 始终返回完整手牌以保持布局稳定
   const displayedHand = computed(() => {
       if (!props.player.hand) return [];
@@ -111,7 +143,7 @@ const shouldShowBadge = computed(() => {
       <!-- Speech Bubble -->
       <transition name="fade">
         <div v-if="showSpeechBubble" class="speech-bubble">
-            <span v-if="speech.type === 'text'">{{ speech.content }}</span>
+            <span v-if="speech.type === 'text'" v-html="formattedSpeechText"></span>
             <img v-else-if="speech.type === 'emoji'" :src="speech.content" class="speech-emoji" />
         </div>
       </transition>
@@ -249,14 +281,15 @@ const shouldShowBadge = computed(() => {
     padding: 6px 10px;
     font-size: 14px;
     color: #333;
-    white-space: nowrap;
+    white-space: normal; /* Allow normal text wrapping */
+    word-break: break-all; /* Break long words */
     z-index: 50;
     box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    display: flex;
-    align-items: center;
-    max-width: 150px; /* Limit width */
-    overflow: hidden;
-    text-overflow: ellipsis;
+    display: inline-flex; /* Use inline-flex for adaptive width */
+    align-items: center; /* Vertically center content */
+    max-width: 150px; /* Max width for longer phrases (e.g., 2 lines of 10 chars + padding) */
+    /* overflow: hidden; Removed as we want wrapping */
+    /* text-overflow: ellipsis; Removed as we want wrapping */
     animation: bounceIn 0.3s ease-out;
 }
 
@@ -264,12 +297,12 @@ const shouldShowBadge = computed(() => {
     content: '';
     position: absolute;
     top: 50%;
-    left: -8px; /* Position the tail */
+    left: -12px; /* Move tail further left */
     width: 0;
     height: 0;
-    border-top: 8px solid transparent;
-    border-bottom: 8px solid transparent;
-    border-right: 8px solid #e5e7eb; /* Tail color matches bubble */
+    border-top: 10px solid transparent; /* Slightly larger tail */
+    border-bottom: 10px solid transparent;
+    border-right: 12px solid #e5e7eb; /* Tail color matches bubble */
     transform: translateY(-50%);
     z-index: 51;
 }
@@ -278,12 +311,12 @@ const shouldShowBadge = computed(() => {
     content: '';
     position: absolute;
     top: 50%;
-    left: -7px; /* Position the tail (inner) */
+    left: -10px; /* Move tail further left (inner) */
     width: 0;
     height: 0;
-    border-top: 7px solid transparent;
-    border-bottom: 7px solid transparent;
-    border-right: 7px solid #f9fafb; /* Tail color matches bubble inner */
+    border-top: 8px solid transparent; /* Inner tail slightly smaller */
+    border-bottom: 8px solid transparent;
+    border-right: 10px solid #f9fafb; /* Tail color matches bubble inner */
     transform: translateY(-50%);
     z-index: 52;
 }
@@ -297,16 +330,16 @@ const shouldShowBadge = computed(() => {
 
 .seat-right .speech-bubble::before {
     left: auto;
-    right: -8px;
+    right: -12px; /* Move tail further right */
     border-right: none;
-    border-left: 8px solid #e5e7eb;
+    border-left: 12px solid #e5e7eb;
 }
 
 .seat-right .speech-bubble::after {
     left: auto;
-    right: -7px;
+    right: -10px; /* Move tail further right (inner) */
     border-right: none;
-    border-left: 7px solid #f9fafb;
+    border-left: 10px solid #f9fafb;
 }
 
 .speech-emoji {

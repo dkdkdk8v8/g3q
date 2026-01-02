@@ -19,8 +19,31 @@ const tableCenterRef = ref(null); // 桌面中心元素引用
 const showChatSelector = ref(false); // New reactive variable
 const playerSpeech = ref(new Map()); // Maps playerId to { type: 'text' | 'emoji', content: string }
 
+// Cooldown mechanism
+const lastSpeechTime = ref(0); // Timestamp of last speech/emoji, 0 initially
+const SPEECH_COOLDOWN_SECONDS = 3;
+const cooldownMessage = ref('');
+const showToast = ref(false);
+
+const checkCooldown = () => {
+    const currentTime = Date.now();
+    if (currentTime - lastSpeechTime.value < SPEECH_COOLDOWN_SECONDS * 1000) {
+        cooldownMessage.value = '您说话太快了，先休息一下吧！';
+        showToast.value = true;
+        setTimeout(() => {
+            showToast.value = false;
+        }, 2000); // Hide toast after 2 seconds
+        return false;
+    }
+    lastSpeechTime.value = currentTime;
+    return true;
+};
+
 // Method to handle phrase selection from ChatBubbleSelector
 const onPhraseSelected = (phrase) => {
+    if (!checkCooldown()) {
+        return;
+    }
     // For now, let's assume it's for 'me'
     playerSpeech.value.set(store.myPlayerId, { type: 'text', content: phrase });
     // Make speech visible for a few seconds
@@ -31,6 +54,9 @@ const onPhraseSelected = (phrase) => {
 
 // Method to handle emoji selection from ChatBubbleSelector
 const onEmojiSelected = (emojiUrl) => {
+    if (!checkCooldown()) {
+        return;
+    }
     // For now, let's assume it's for 'me'
     playerSpeech.value.set(store.myPlayerId, { type: 'emoji', content: emojiUrl });
     // Make speech visible for a few seconds
@@ -490,6 +516,13 @@ const quitGame = () => {
         @selectPhrase="onPhraseSelected" 
         @selectEmoji="onEmojiSelected" 
     />
+
+    <!-- Cooldown Toast -->
+    <transition name="toast-fade">
+        <div v-if="showToast" class="cooldown-toast">
+            {{ cooldownMessage }}
+        </div>
+    </transition>
 </div>
 </template>
 
@@ -844,12 +877,12 @@ const quitGame = () => {
     right: 20px;
     width: 50px;
     height: 50px;
-    background: linear-gradient(to bottom, #60a5fa, #2563eb);
+    background: radial-gradient(circle at 30% 30%, #fcd34d 0%, #d97706 100%); /* Golden gradient */
     border-radius: 50%;
     display: flex;
     justify-content: center;
     align-items: center;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3), 0 0 15px rgba(252, 211, 77, 0.7); /* Added subtle glow */
     cursor: pointer;
     z-index: 100;
     border: 2px solid rgba(255,255,255,0.3);
@@ -864,5 +897,29 @@ const quitGame = () => {
     0% { transform: scale(1); }
     50% { transform: scale(1.05); }
     100% { transform: scale(1); }
+}
+
+.cooldown-toast {
+    position: fixed;
+    bottom: 100px; /* Position above the chat button */
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 16px;
+    z-index: 10001; /* Ensure it's on top */
+    white-space: nowrap;
+}
+
+.toast-fade-enter-active,
+.toast-fade-leave-active {
+    transition: opacity 0.5s ease;
+}
+
+.toast-fade-enter-from,
+.toast-fade-leave-to {
+    opacity: 0;
 }
 </style>

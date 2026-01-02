@@ -31,7 +31,7 @@ const props = defineProps({
   const speechBubbleStyle = computed(() => {
       if (props.speech && props.speech.type === 'text' && props.speech.content) {
           // Assume one Chinese character is roughly 8px wide (per user request)
-          const charWidth = 8;
+          const charWidth = 15;
           const padding = 20; // Total left/right padding (10px + 10px)
           const textLength = Array.from(props.speech.content).length; // Handle Unicode characters
           let calculatedWidth = (textLength * charWidth) + padding;

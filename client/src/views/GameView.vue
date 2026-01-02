@@ -260,7 +260,7 @@ const startDealingAnimation = (isSupplemental = false) => {
                 visibleCounts.value[t.id] += t.count;
             }, isSupplemental && store.gameMode === 2);
         }, pIndex * 80);
-    });
+    });;
 };
 
 onMounted(() => {

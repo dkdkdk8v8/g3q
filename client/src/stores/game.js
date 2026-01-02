@@ -455,6 +455,7 @@ export const useGameStore = defineStore('game', () => {
         history,
         joinRoom,
         autoReadyRobots,
-        bankerCandidates // Added bankerCandidates
+        bankerCandidates, // Added bankerCandidates
+        gameMode // Expose gameMode
     }
 })

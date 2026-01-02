@@ -560,13 +560,7 @@ const quitGame = () => {
 
     <div class="my-area" v-if="myPlayer">
         <div class="controls-container">
-            <!-- 准备按钮 -->
-            <div v-if="store.currentPhase === 'READY_COUNTDOWN' && !myPlayer.isReady" class="btn-group">
-                <div class="game-btn orange" style="width: 120px;" @click="store.playerReady()">确认准备</div>
-            </div>
-            <div v-else-if="store.currentPhase === 'READY_COUNTDOWN' && myPlayer.isReady" class="waiting-text">
-                已准备，等待其他玩家...
-            </div>
+
 
             <div v-if="store.currentPhase === 'ROB_BANKER' && myPlayer.robMultiplier === -1" class="btn-group">
                 <div class="game-btn blue" @click="onRob(0)">不抢</div>

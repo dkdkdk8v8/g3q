@@ -79,10 +79,7 @@ export const useGameStore = defineStore('game', () => {
         clearTransitionTimeout();
     };
 
-    // Register server listeners for readiness updates (MOVED TO TOP LEVEL)
-    gameClient.on('nn.player_ready_update', (msg) => {
-        // ... (Implement if needed)
-    });
+
 
     // Capture RoomId from Join response (MOVED TO TOP LEVEL)
     gameClient.on('QZNN.PlayerJoin', (msg) => {
@@ -140,7 +137,7 @@ export const useGameStore = defineStore('game', () => {
                         state: 'IDLE',
                         robMultiplier: p.CallMult,
                         betMultiplier: p.BetMult,
-                        isReady: p.IsReady,
+
                         isShowHand: p.IsShow || false, // Map Show to isShowHand
                         serverSeatNum: p.SeatNum,      // Store server seat number for debugging/reference
                         clientSeatNum: clientSeatNum,  // Add client seat number
@@ -249,34 +246,15 @@ export const useGameStore = defineStore('game', () => {
 
     // ...
 
-    // 玩家操作：准备
-    const playerReady = () => {
-        const me = players.value.find(p => p.id === myPlayerId.value);
-        if (me && currentPhase.value === 'READY_COUNTDOWN' && !me.isReady) {
-            // Send RoomId as required by server
-            gameClient.send('QZNN.PlayerReady', { RoomId: roomId.value });
-            me.isReady = true; // Optimistically update local state
-            checkAllPlayersReady();
-        }
-    };
 
-    // 检查所有玩家是否都准备好了
-    const checkAllPlayersReady = () => {
-        if (players.value.every(p => p.isReady)) {
-            // All players are ready, stop countdown and proceed to ROB_BANKER phase
-            stopTimer();
-            if (currentPhase.value === 'READY_COUNTDOWN') {
-                _proceedToRobBankerPhase();
-            }
-        }
-    };
+
+
 
     // 新的游戏开始入口：进入准备倒计时阶段
     const startGame = () => {
         stopAllTimers();
         // 重置玩家状态 (清理上一局的数据，以便在READY_COUNTDOWN阶段显示干净的状态)
         players.value.forEach(p => {
-            p.isReady = false; // Always reset readiness
             p.isBanker = false;
             p.robMultiplier = -1; // -1表示未操作
             p.betMultiplier = 0;
@@ -287,13 +265,17 @@ export const useGameStore = defineStore('game', () => {
             p.hand = []; // Clear hand
         });
 
-        currentPhase.value = 'READY_COUNTDOWN';
+        currentPhase.value = 'READY_COUNTDOWN'; // Keep READY_COUNTDOWN phase for display
         bankerId.value = null; // 重置庄家ID
 
-        // Start 10-second ready countdown
+        // Start countdown for the 'prepare' phase. After countdown, automatically move to ROB_BANKER.
         startCountdown(5, () => {
-            // Countdown finished, always proceed to game
-            _proceedToRobBankerPhase();
+            // After prepare countdown, automatically proceed to rob banker phase
+            currentPhase.value = 'ROB_BANKER';
+            // Now start the countdown for robbing, which will eventually call checkAllRobbed.
+            startCountdown(5, () => {
+                checkAllRobbed();
+            });
         });
     };
 
@@ -679,7 +661,7 @@ export const useGameStore = defineStore('game', () => {
         countdown,
         initGame,
         startGame,
-        playerReady,
+
         playerRob,
         playerBet,
         playerShowHand,

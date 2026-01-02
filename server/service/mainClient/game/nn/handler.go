@@ -109,7 +109,7 @@ func HandleShowCards(r *QZNNRoom, userID string) {
 
 func CheckRobotActions(r *QZNNRoom) {
 	go func() {
-		var lastState = -1
+		var lastState = StateWaiting
 		var hasGameStarted = false
 		ticker := time.NewTicker(time.Second)
 		defer ticker.Stop()

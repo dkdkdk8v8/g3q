@@ -133,7 +133,7 @@ type QZNNRoom struct {
 	Config        LobbyConfig    `json:"-"` // 房间配置
 	driverGo      chan struct{}  `json:"-"`
 	CreateAt      time.Time
-	OnBotMgr      func(roomId string) `json:"-"`
+	OnBotJoin     func(room *QZNNRoom) `json:"-"`
 }
 
 func (r *QZNNRoom) reset() {

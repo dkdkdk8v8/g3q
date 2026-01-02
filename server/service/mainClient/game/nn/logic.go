@@ -281,14 +281,14 @@ func (r *QZNNRoom) drvierLogicTick() {
 			time.Sleep(time.Millisecond * 200)
 			switch r.State {
 			case StateWaiting:
-				if r.OnBotMgr != nil {
-					r.OnBotMgr(r.ID)
+				if r.OnBotJoin != nil {
+					r.OnBotJoin(r)
 				}
 				r.tickWaiting()
 
 			case StatePrepare:
-				if r.OnBotMgr != nil {
-					r.OnBotMgr(r.ID)
+				if r.OnBotJoin != nil {
+					r.OnBotJoin(r)
 				}
 				r.tickPrepare()
 			}

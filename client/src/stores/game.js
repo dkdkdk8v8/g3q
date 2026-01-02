@@ -361,10 +361,21 @@ export const useGameStore = defineStore('game', () => {
 
         // 补齐手牌
         players.value.forEach(p => {
-            const currentHandSize = p.hand.length;
-            const need = 5 - currentHandSize;
-            if (need > 0) {
-                p.hand.push(...deck.value.splice(0, need));
+            p.hand = []; // Clear hand to ensure a fresh deal for 5 cards
+
+            // Ensure deck is initialized if it's empty (e.g., if 'Precard' was skipped)
+            if (!deck.value || deck.value.length === 0) {
+                deck.value = shuffle(createDeck());
+            }
+
+            const cardsToDeal = 5; // Always deal 5 cards in this phase
+
+            if (deck.value.length >= cardsToDeal) {
+                for (let i = 0; i < cardsToDeal; i++) {
+                    p.hand.push(deck.value.pop());
+                }
+            } else {
+                console.warn("Not enough cards in deck to deal 5 cards to player " + p.id + "!");
             }
         });
 
@@ -524,14 +535,9 @@ export const useGameStore = defineStore('game', () => {
         // Reset all player hands and deal initial cards (e.g., 2 cards each)
         players.value.forEach(p => {
             p.hand = []; // Clear current hand
-            // Deal 2 cards to each player for initial pre-deal
-            // Need to ensure enough cards in the deck
-            if (deck.value.length >= 2) { // Ensure there are enough cards for initial deal
-                p.hand.push(deck.value.pop());
-                p.hand.push(deck.value.pop());
-            } else {
-                console.warn("Not enough cards in deck for pre-deal!");
-            }
+            // This function is now only responsible for creating and shuffling the deck.
+            // Initial cards will be dealt by performSupplementalDeal based on gameMode.
+            // p.hand is cleared here to ensure a fresh start before any dealing logic.
         });
     };
 

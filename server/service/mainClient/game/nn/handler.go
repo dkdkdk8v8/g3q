@@ -457,33 +457,93 @@ func HandleShowCards(r *QZNNRoom, userID string) {
 }
 
 func CheckRobotActions(r *QZNNRoom) {
-	for _, p := range r.Players {
-		if !p.IsRobot {
-			continue
-		}
+	go func() {
+		var lastState = -1
+		var hasGameStarted = false
+		ticker := time.NewTicker(time.Second)
+		defer ticker.Stop()
 
-		// 为每个机器人开启独立协程模拟思考
-		go func(pid string) {
-			// 随机延迟 1-3 秒
-			time.Sleep(time.Duration(rand.Intn(2000)+1000) * time.Millisecond)
+		for {
+			select {
+			case <-r.driverGo:
+				return
+			case <-ticker.C:
+				r.StateMu.RLock()
+				curState := r.State
+				r.StateMu.RUnlock()
 
-			r.Mu.Lock()
-			state := r.State
-			bankerID := r.BankerID
-			r.Mu.Unlock()
-
-			switch state {
-			case StateBanking:
-				// 随机抢庄倍数 (0-3)
-				HandleCallBanker(r, pid, rand.Int63n(4))
-			case StateBetting:
-				if pid != bankerID {
-					// 随机下注倍数 (1-5)
-					HandlePlaceBet(r, pid, rand.Int63n(5)+1)
+				if curState == lastState {
+					continue
 				}
-			case StateDealing:
-				HandleShowCards(r, pid)
+
+				if curState != StateWaiting && curState != StatePrepare {
+					hasGameStarted = true
+				}
+
+				switch curState {
+				case StateBanking:
+					processRobots(r, func(p *Player) {
+						executeRobotAction(r, 1000, 3000, func() {
+							HandleCallBanker(r, p.ID, rand.Int63n(4))
+						})
+					})
+				case StateBetting:
+					processRobots(r, func(p *Player) {
+						if r.CheckIsBanker(p.ID) {
+							return
+						}
+						executeRobotAction(r, 1000, 3000, func() {
+							HandlePlaceBet(r, p.ID, rand.Int63n(5)+1)
+						})
+					})
+				case StateDealing:
+					processRobots(r, func(p *Player) {
+						executeRobotAction(r, 1000, 3000, func() {
+							HandleShowCards(r, p.ID)
+						})
+					})
+				case StateWaiting:
+					if hasGameStarted {
+						processRobots(r, func(p *Player) {
+							executeRobotAction(r, 2000, 5000, func() {
+								if rand.Intn(100) < 20 {
+									r.Leave(p)
+								} else {
+									HandlePlayerReady(r, p.ID)
+								}
+							})
+						})
+						return
+					}
+				}
+				lastState = curState
 			}
-		}(p.ID)
+		}
+	}()
+}
+
+// executeRobotAction 封装机器人异步延时动作执行
+func executeRobotAction(r *QZNNRoom, minMs, maxMs int, action func()) {
+	go func() {
+		// 随机延迟
+		delay := time.Duration(rand.Intn(maxMs-minMs)+minMs) * time.Millisecond
+		select {
+		case <-r.driverGo:
+			// 房间销毁，停止执行
+			return
+		case <-time.After(delay):
+			// 延迟结束，执行动作
+			action()
+		}
+	}()
+}
+
+func processRobots(r *QZNNRoom, action func(*Player)) {
+	r.PlayerMu.RLock()
+	defer r.PlayerMu.RUnlock()
+	for _, p := range r.Players {
+		if p != nil && p.IsRobot {
+			action(p)
+		}
 	}
 }

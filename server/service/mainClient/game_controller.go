@@ -109,10 +109,10 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 	// }
 
 	switch msg.Cmd {
-	case "nn.join": // 抢庄牛牛匹配
+	case nn.CmdPlayerJoin: // 抢庄牛牛进入
 		var req struct {
-			Level      int `json:"level"`
-			BankerType int `json:"banker_type"`
+			Level      int
+			BankerType int
 		}
 		// 默认进入初级场
 		req.Level = 1
@@ -163,25 +163,18 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 			return
 		}
 
-		// 如果是真实玩家进入，安排机器人
-		if !p.IsRobot {
-			game.RobotEnterRoom(room)
-		}
-
 		// 成功加入，通知客户端房间信息
 		conn.WriteJSON(comm.Response{
 			Cmd: msg.Cmd,
 			Seq: msg.Seq,
 			Data: gin.H{
-				"room_id":  room.ID,
-				"duration": room.StateLeftSec,
-				"state":    room.State,
+				"Room": room,
 			},
 		})
 
-	case "nn.ready": // 房间准备
+	case nn.CmdPlayerReady: // 房间准备
 		var req struct {
-			RoomId string `json:"room_id"`
+			RoomId string
 		}
 		if err := json.Unmarshal(msg.Data, &req); err == nil {
 			if room := game.GetMgr().GetRoomByRoomId(req.RoomId); room != nil {
@@ -193,10 +186,10 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 			Seq: msg.Seq,
 		})
 
-	case "nn.call_banker": // 抢庄请求
+	case nn.CmdPlayerCallBank: // 抢庄请求
 		var req struct {
-			RoomId string `json:"room_id"`
-			Mult   int64  `json:"mult"`
+			RoomId string
+			Mult   int64
 		}
 		if err := json.Unmarshal(msg.Data, &req); err == nil {
 			if room := game.GetMgr().GetRoomByRoomId(req.RoomId); room != nil {
@@ -207,10 +200,10 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 			Cmd: msg.Cmd,
 			Seq: msg.Seq,
 		})
-	case "nn.place_bet": // 下注请求
+	case nn.CmdPlayerPlaceBet: // 下注请求
 		var req struct {
-			RoomId string `json:"room_id"`
-			Mult   int64  `json:"mult"`
+			RoomId string
+			Mult   int64
 		}
 		if err := json.Unmarshal(msg.Data, &req); err == nil {
 			if room := game.GetMgr().GetRoomByRoomId(req.RoomId); room != nil {
@@ -221,47 +214,13 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 			Cmd: msg.Cmd,
 			Seq: msg.Seq,
 		})
-	case "nn.show_cards": // 亮牌请求
+	case nn.CmdPlayerShowCard: // 亮牌请求
 		var req struct {
-			RoomId string `json:"room_id"`
+			RoomId string
 		}
 		if room := game.GetMgr().GetRoomByRoomId(req.RoomId); room != nil {
 			nn.HandleShowCards(room, userId)
 		}
-
-	// case "brnn.bet":
-	// var req struct {
-	// 	Area   int   `json:"area"`
-	// 	Amount int64 `json:"amount"`
-	// }
-	// if err := json.Unmarshal(msg.Data, &req); err == nil {
-	// 	if room := game.GetMgr().GetRoomByPlayerID(userId); room != nil {
-	// 		brnn.HandleBet(room, userId, req.Area, req.Amount)
-	// 	}
-	// }
-
-	// case "brnn.match": // 百人牛牛进入房间
-	// 	p := &game.Player{
-	// 		ID:      userId,
-	// 		Conn:    conn,
-	// 		IsRobot: false,
-	// 	}
-	// 	room, err := game.GetMgr().JoinOrCreateRoom("brnn", p, brnn.StartGame, nil)
-	// 	if err != nil {
-	// 		conn.WriteJSON(comm.Response{Cmd: msg.Cmd, Seq: msg.Seq, Code: -1, Msg: err.Error()})
-	// 		return
-	// 	}
-
-	// 	// 如果是真实玩家进入，安排机器人
-	// 	if !p.IsRobot {
-	// 		GetRobotMgr().ArrangeRobotsForRoom(room)
-	// 	}
-
-	// 	conn.WriteJSON(comm.Response{
-	// 		Cmd:  "brnn.match_res",
-	// 		Seq:  msg.Seq,
-	// 		Data: gin.H{"room_id": room.ID},
-	// 	})
 
 	case "sys.ping": // 心跳处理
 		conn.WriteJSON(comm.Response{
@@ -269,7 +228,7 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 			Seq: msg.Seq,
 		})
 
-	case "user.info": // 用户信息请求
+	case nn.CmdUserInfo: // 用户信息请求
 		user, err := modelClient.GetUserByUserId(userId)
 		if err != nil {
 			conn.WriteJSON(comm.Response{Cmd: msg.Cmd, Seq: msg.Seq, Code: -1, Msg: "获取用户信息失败"})
@@ -283,19 +242,19 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 			Cmd: msg.Cmd,
 			Seq: msg.Seq,
 			Data: gin.H{
-				"user_id":   user.UserId,
-				"balance":   user.Balance,
-				"nick_name": nickName,
-				"avatar":    user.Avatar,
+				"UserId":   user.UserId,
+				"Balance":  user.Balance,
+				"NickName": nickName,
+				"Avatar":   user.Avatar,
 			},
 		})
 
-	case "nn.lobby_config": // 大厅配置请求
+	case nn.CmdLobbyConfig: // 大厅配置请求
 		conn.WriteJSON(comm.Response{
 			Cmd: msg.Cmd,
 			Seq: msg.Seq,
 			Data: gin.H{
-				"lobby_configs": nn.Configs,
+				"LobbyConfigs": nn.Configs,
 			},
 		})
 

@@ -690,7 +690,7 @@ const quitGame = () => {
 /* Debug Panel */
 .debug-panel {
     position: fixed;
-    top: 60px;
+    bottom: 10px;
     left: 10px;
     background: rgba(0, 0, 0, 0.7);
     padding: 10px;

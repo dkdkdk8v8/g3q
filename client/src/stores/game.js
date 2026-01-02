@@ -13,6 +13,7 @@ export const useGameStore = defineStore('game', () => {
     const deck = ref([]);
     const countdown = ref(0);
     const bankerId = ref(null);
+    const roomId = ref(null); // Added roomId
     const gameMode = ref(0); // 0: Bukan, 1: Kan3, 2: Kan4
     const history = ref([]); // 游戏记录
     const bankerCandidates = ref([]); // Store IDs of players who are candidates for banker
@@ -23,6 +24,7 @@ export const useGameStore = defineStore('game', () => {
     // Timers
     let timer = null;
     let transitionTimeout = null;
+    let botJoinTimeout = null;
 
     const stopTimer = () => {
         if (timer) clearInterval(timer);
@@ -35,16 +37,21 @@ export const useGameStore = defineStore('game', () => {
         transitionTimeout = null;
     };
 
+    const clearBotJoinTimeout = () => {
+        if (botJoinTimeout) clearTimeout(botJoinTimeout);
+        botJoinTimeout = null;
+    };
+
     const stopAllTimers = () => {
         stopTimer();
         clearTransitionTimeout();
+        clearBotJoinTimeout();
     };
-
 
     // 加入房间
     const joinRoom = (level, banker_type) => {
         // console.log(`Attempting to join room: ${room_id}, app: ${app_id}, uid: ${uid}`); // app_id and uid are not part of nn.join payload
-        gameClient.send('nn.join', { level: level, banker_type: banker_type });
+        gameClient.send('QZNN.PlayerJoin', { Level: level, BankerType: banker_type });
     };
 
     // 初始化（模拟进入房间）
@@ -59,85 +66,75 @@ export const useGameStore = defineStore('game', () => {
         
         currentPhase.value = 'WAITING_FOR_PLAYERS';
         bankerId.value = null;
+        roomId.value = null; // Reset roomId
 
         // Optimistically update local state for myPlayerId. This will be confirmed by server broadcast.
         players.value.forEach(p => p.isReady = false);
 
         // Register server listeners for readiness updates
         gameClient.on('nn.player_ready_update', (msg) => {
-            if (msg.code === 0 && msg.data && msg.data.players) {
-                msg.data.players.forEach(updatedPlayer => {
-                    const player = players.value.find(p => p.id === updatedPlayer.uid);
-                    if (player) {
-                        player.isReady = updatedPlayer.is_ready;
-                    }
-                });
-                // Only check and potentially proceed if currently in READY_COUNTDOWN
-                if (currentPhase.value === 'READY_COUNTDOWN') {
-                    checkAllPlayersReady();
-                }
+            // ...
+        });
+
+        // Capture RoomId from Join response
+        gameClient.on('QZNN.PlayerJoin', (msg) => {
+            if (msg.code === 0 && msg.data && msg.data.Room) {
+                roomId.value = msg.data.Room.ID;
+                console.log("Joined Room:", roomId.value);
             }
         });
 
-        // Register listener for server initiating game start (after ready phase)
-        gameClient.on('nn.game_start', (msg) => {
-            if (msg.code === 0) {
-                _proceedToRobBankerPhase();
-            }
-        });
-
-        // Start robot joining simulation
-        simulateRobotJoining();
+        // Start simulating bots joining
+        simulateBotsJoining();
     };
 
-    // Simulate robots joining
-    const simulateRobotJoining = () => {
-        const minRobots = 1;
-        const maxRobots = 4;
-        const robotCount = Math.floor(Math.random() * (maxRobots - minRobots + 1)) + minRobots;
-        
+    // Simulate bots joining one by one
+    const simulateBotsJoining = () => {
         let joinedCount = 0;
+        const maxBots = 4; // Total 5 players including me
 
-        const addNextRobot = () => {
-            if (joinedCount < robotCount) {
-                const delay = Math.random() * 1000 + 500; // 0.5s - 1.5s delay
-                transitionTimeout = setTimeout(() => {
-                    const robotName = ROBOT_NAMES[Math.floor(Math.random() * ROBOT_NAMES.length)];
-                    // Ensure unique ID
-                    const robotId = `robot_${Date.now()}_${joinedCount}`;
-                    
-                    players.value.push({
-                        id: robotId,
-                        name: robotName,
-                        avatar: DEFAULT_AVATAR,
-                        coins: 1000 + Math.floor(Math.random() * 2000),
-                        isBanker: false,
-                        hand: [],
-                        state: 'IDLE',
-                        robMultiplier: -1,
-                        betMultiplier: 0,
-                        isReady: false
-                    });
-                    
-                    joinedCount++;
-                    addNextRobot();
-                }, delay);
+        const addBot = () => {
+            if (joinedCount < maxBots) {
+                const randomName = ROBOT_NAMES[Math.floor(Math.random() * ROBOT_NAMES.length)];
+                
+                const newPlayer = {
+                    id: `robot_${Date.now()}_${joinedCount}`,
+                    name: randomName,
+                    avatar: DEFAULT_AVATAR, 
+                    coins: 1000,
+                    isBanker: false,
+                    hand: [],
+                    state: 'IDLE',
+                    robMultiplier: -1,
+                    betMultiplier: 0,
+                    isReady: false
+                };
+                
+                players.value.push(newPlayer);
+                joinedCount++;
+                
+                // Continue adding next bot
+                botJoinTimeout = setTimeout(addBot, 800); 
             } else {
-                // All robots joined, transition to READY_COUNTDOWN
-                transitionTimeout = setTimeout(() => {
+                // All bots joined, start game
+                botJoinTimeout = setTimeout(() => {
                     startGame();
                 }, 1000);
             }
         };
 
-        addNextRobot();
+        // Start adding after a short delay
+        botJoinTimeout = setTimeout(addBot, 500);
     };
+
+    // ...
 
     // 玩家操作：准备
     const playerReady = () => {
         const me = players.value.find(p => p.id === myPlayerId.value);
         if (me && currentPhase.value === 'READY_COUNTDOWN' && !me.isReady) {
-            gameClient.send('nn.ready', { is_ready: true });
+            // Send RoomId as required by server
+            gameClient.send('QZNN.PlayerReady', { RoomId: roomId.value });
             me.isReady = true; // Optimistically update local state
             checkAllPlayersReady();
         }

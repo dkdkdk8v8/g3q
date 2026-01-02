@@ -61,8 +61,8 @@ const rooms = computed(() => {
 
 const fetchData = () => {
     // 主动获取数据
-    gameClient.send("user.info");
-    gameClient.send("nn.lobby_config");
+    gameClient.send("QZNN.UserInfo");
+    gameClient.send("QZNN.LobbyConfig");
 };
 
 const playMusic = () => {
@@ -82,15 +82,26 @@ const stopMusic = () => {
 
 onMounted(() => {
     // 注册消息监听
-    gameClient.on('user.info', (msg) => {
-        if (msg.code === 0) {
-            userStore.updateUserInfo(msg.data);
+    gameClient.on('QZNN.UserInfo', (msg) => {
+        if (msg.code === 0 && msg.data) {
+            userStore.updateUserInfo({
+                user_id: msg.data.UserId,
+                balance: msg.data.Balance,
+                nick_name: msg.data.NickName,
+                avatar: msg.data.Avatar
+            });
         }
     });
 
-    gameClient.on('nn.lobby_config', (msg) => {
-        if (msg.code === 0) {
-            userStore.updateRoomConfigs(msg.data.lobby_configs);
+    gameClient.on('QZNN.LobbyConfig', (msg) => {
+        if (msg.code === 0 && msg.data && msg.data.LobbyConfigs) {
+            const mappedConfigs = msg.data.LobbyConfigs.map(cfg => ({
+                level: cfg.Level,
+                name: cfg.Name,
+                base_bet: cfg.BaseBet,
+                min_balance: cfg.MinBalance
+            }));
+            userStore.updateRoomConfigs(mappedConfigs);
         }
     });
 

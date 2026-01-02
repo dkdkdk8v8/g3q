@@ -22,7 +22,7 @@ func GetConfig(level int) *LobbyConfig {
 }
 
 // CardMultipliers 牌型倍数配置
-var CardMultipliers = map[int]int{
+var CardMultipliers = map[int64]int64{
 	NiuNone:      1,  // 无牛
 	NiuOne:       1,  // 牛1
 	NiuTwo:       1,  // 牛2
@@ -40,7 +40,7 @@ var CardMultipliers = map[int]int{
 }
 
 // GetCardMultiplier 获取牌型倍数
-func GetCardMultiplier(niuType int) int {
+func GetCardMultiplier(niuType int64) int64 {
 	if mult, ok := CardMultipliers[niuType]; ok {
 		return mult
 	}

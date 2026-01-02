@@ -1,10 +1,9 @@
 package nn
 
 import (
-	"beego/v2/client/orm"
 	"math/rand"
 	"service/comm"
-	"service/modelClient"
+	"sort"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -12,13 +11,14 @@ import (
 )
 
 const (
-	StateWaiting = iota //房间等待中
-	StatePrepare        //房间倒计时中，马上开始
-	StatePreCard        //预先发牌
-	StateBanking        //抢庄中
-	StateBetting        //下注中
-	StateDealing
-	StateSettling
+	StateWaiting  = iota //房间等待中
+	StatePrepare         //房间倒计时中，马上开始
+	StatePreCard         //预先发牌
+	StateBanking         //抢庄中
+	StateBetting         //下注中
+	StateDealing         //发牌或补牌
+	StateShowCard        //展示牌
+	StateSettling        //结算中
 )
 
 const (
@@ -42,19 +42,7 @@ func HandlePlayerReady(r *QZNNRoom, userID string) {
 	}
 	p.IsReady = true
 	r.Broadcast(comm.Response{Cmd: "nn.player_ready", Data: map[string]interface{}{"uid": userID}})
-	allReady := true
-
-	r.PlayerMu.RLock()
-	for _, player := range r.Players {
-		if player != nil && !player.IsReady {
-			allReady = false
-			break
-		}
-	}
-	r.PlayerMu.RUnlock()
-	if allReady {
-		r.StartGame()
-	}
+	r.logicTick()
 }
 
 func (r *QZNNRoom) prepareDeck() {
@@ -90,56 +78,111 @@ func (r *QZNNRoom) prepareDeck() {
 	}
 }
 
-// func (r *QZNNRoom) drvierLogicTick() {
-// 	for {
-// 		time.Sleep(200 * time.Millisecond)
-// 		r.logicTick()
-// 	}
-// }
+func (r *QZNNRoom) drvierLogicTick() {
+	for {
+		time.Sleep(200 * time.Millisecond)
+		switch r.State {
+		case StateWaiting:
+			r.tickWaiting()
+
+		case StatePrepare:
+			r.tickPrepare()
+		}
+	}
+}
+
+func (r *QZNNRoom) tickWaiting() {
+	countExistPlayerNum := r.GetPlayerCount()
+	//加入已经有2个人在房间，可以进行倒计时开始游戏
+	if countExistPlayerNum >= 2 {
+		_ = r.SetStatus(StatePrepare)
+		r.Broadcast(comm.Response{
+			Cmd:  "nn.state_prepare",
+			Data: gin.H{"room": r}})
+	}
+}
+
+func (r *QZNNRoom) tickPrepare() {
+	// 倒计时等待开始
+	countExistPlayerNum := r.GetPlayerCount()
+	//加入已经有2个人在房间，可以进行倒计时开始游戏
+	if countExistPlayerNum < 2 {
+		//关闭房间倒计时
+		r.StopTimer()
+		_ = r.SetStatus(StateWaiting)
+		//同步数据给客户端
+		r.Broadcast(comm.Response{
+			Cmd:  "nn.state_waiting",
+			Data: gin.H{"room": r}})
+	}
+
+	//ok
+	go r.StartGame()
+}
+
+func (r *QZNNRoom) tickBanking() {
+	r.PlayerMu.RLock()
+	//查看是否都已经抢庄或者明确不抢，player.CallMult -1 是没有任何操作，0是不抢，大于0是抢
+	bAllPlayerMakeSure := true
+	for _, p := range r.Players {
+		if p.CallMult == -1 {
+			bAllPlayerMakeSure = false
+			break
+		}
+	}
+	if bAllPlayerMakeSure {
+		//提前结束倒计时
+		r.PlayerMu.RUnlock()
+		r.StopTimer()
+		return
+	}
+	r.PlayerMu.RUnlock()
+}
+
+func (r *QZNNRoom) tickBetting() {
+	r.PlayerMu.RLock()
+	var bAllPlayerMakeSure = true
+	//查看是否都已经抢庄或者明确不抢，player.BetMult -1 是没有任何操作，BetMult 是投注多少倍
+	for _, p := range r.Players {
+		if p.BetMult == -1 {
+			bAllPlayerMakeSure = false
+			break
+		}
+	}
+	if bAllPlayerMakeSure {
+		//提前结束倒计时
+		r.PlayerMu.RUnlock()
+		r.StopTimer()
+		return
+	}
+	r.PlayerMu.RUnlock()
+}
 
 func (r *QZNNRoom) logicTick() {
 
 	switch r.State {
 	case StateWaiting:
-		countExistPlayerNum := r.GetPlayerCount()
-		//加入已经有2个人在房间，可以进行倒计时开始游戏
-		if countExistPlayerNum >= 2 {
-			_ = r.SetStatus(StatePrepare)
-			r.Broadcast(comm.Response{
-				Cmd:  "nn.state_prepare",
-				Data: gin.H{"room": r}})
-		}
+		r.tickWaiting()
 
 	case StatePrepare:
-		// 倒计时等待开始
-		countExistPlayerNum := r.GetPlayerCount()
-		//加入已经有2个人在房间，可以进行倒计时开始游戏
-		if countExistPlayerNum < 2 {
-			_ = r.SetStatus(StateWaiting)
-			r.Broadcast(comm.Response{
-				Cmd:  "nn.state_waiting",
-				Data: gin.H{"room": r}})
-		}
-
+		r.tickPrepare()
 	case StatePreCard:
-		// 预发牌状态，无需处理
+		// 预发牌状态
 	case StateBanking:
-		// 抢庄状态，无需处理
-		if r.CheckAllCallDone() {
-			//
-		}
-
+		// 抢庄状态
+		r.tickBanking()
 	case StateBetting:
-		// 下注状态，无需处理
+		// 下注状态
+		r.tickBetting()
 	case StateDealing:
-		// 发牌状态，无需处理
+		// 发牌补牌状态
 	case StateSettling:
-		// 结算状态，无需处理
+		// 结算状态
 	}
 }
 
 func (r *QZNNRoom) StartGame() {
-	if !(r.CheckStatus(StateWaiting) || r.CheckStatus(StateWaitingTimer)) {
+	if !(r.CheckStatus(StateWaiting) || r.CheckStatus(StatePrepare)) {
 		return
 	}
 	go CheckRobotActions(r)
@@ -148,7 +191,7 @@ func (r *QZNNRoom) StartGame() {
 
 	if BankerTypeNoLook != r.Config.BankerType {
 		//预发牌
-		if !r.SetStatus(StatePreCards) {
+		if !r.SetStatus(StatePreCard) {
 			logrus.WithField("room_id", r.ID).Error("QZNNRoom-StatusChange-Fail-preGiveCards")
 		}
 		r.BroadcastWithPlayer(func(p *Player) interface{} {
@@ -167,27 +210,171 @@ func (r *QZNNRoom) StartGame() {
 	}
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
 		return comm.Response{
-			Cmd:  "nn.callbanking",
+			Cmd:  "nn.state_banking",
 			Data: gin.H{"room": r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID)}}
 	})
 
 	//开始抢10s
 	r.WaitTimer(10)
 
+	// 查看是否已经有人抢庄
+	var allCallPlayer []*Player
+	r.PlayerMu.RLock()
+	for _, p := range r.Players {
+		if p.CallMult >= 0 {
+			allCallPlayer = append(allCallPlayer, p)
+		}
+	}
+	r.PlayerMu.RUnlock()
+
+	//查看抢庄的用户id，查找最大的抢庄倍数，如果抢庄倍数一样的，根据用户带入金额大的获取庄家，并且设置房间的BankerID
+	if len(allCallPlayer) > 0 {
+		sort.Slice(allCallPlayer, func(i, j int) bool {
+			if allCallPlayer[i].CallMult == allCallPlayer[j].CallMult {
+				return allCallPlayer[i].Balance > allCallPlayer[j].Balance
+			}
+			return allCallPlayer[i].CallMult > allCallPlayer[j].CallMult
+		})
+
+		bankerPlayer := allCallPlayer[0]
+		r.BankerID = bankerPlayer.ID
+	} else {
+		//没人抢庄,系统随机分配庄家
+		var candidates []string
+		for _, p := range r.Players {
+			if p.CallMult == -1 {
+				candidates = append(candidates, p.ID)
+			}
+		}
+		r.BankerID = candidates[rand.Intn(len(candidates))]
+	}
+	r.BroadcastWithPlayer(func(p *Player) interface{} {
+		return comm.Response{
+			Cmd:  "nn.banker_confirm",
+			Data: gin.H{"room": r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID)}}
+	})
+
 	//非庄家投注
 	if !r.SetStatus(StateBetting) {
 		logrus.WithField("room_id", r.ID).Error("QZNNRoom-StatusChange-Fail-betting")
 		return
 	}
+	r.BroadcastWithPlayer(func(p *Player) interface{} {
+		return comm.Response{
+			Cmd:  "nn.state_betting",
+			Data: gin.H{"room": r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID)}}
+	})
 
 	//开始投注10s
-	r.WaitTimer(10, nil)
+	r.WaitTimer(10)
 
-	EnterBetting(r)
+	//补牌到5张，不看牌发5张，看3补2，看4
+	if !r.SetStatus(StateDealing) {
+		logrus.WithField("room_id", r.ID).Error("QZNNRoom-StatusChange-Fail-setting")
+		return
+	}
 
+	r.BroadcastWithPlayer(func(p *Player) interface{} {
+		return comm.Response{
+			Cmd:  "nn.state_dealing",
+			Data: gin.H{"room": r.GetClientRoom(5, p.ID == r.BankerID)}}
+	})
+
+	//等待客户端播放补牌动画
+	time.Sleep(time.Second * 2)
+
+	r.WaitTimer(5)
+	r.BroadcastWithPlayer(func(p *Player) interface{} {
+		return comm.Response{
+			Cmd:  "nn.state_showcard",
+			Data: gin.H{"room": r.GetClientRoom(5, !p.IsShow && p.ID == r.BankerID)}}
+	})
+
+	//结算状态
+	if !r.SetStatus(StateSettling) {
+		logrus.WithField("room_id", r.ID).Error("QZNNRoom-StatusChange-Fail-setting")
+		return
+	}
+	r.Broadcast(comm.Response{
+		Cmd:  "nn.state_setting",
+		Data: gin.H{"room": r}})
+
+	//客户端播放结算动画
+	time.Sleep(time.Second * 2)
+
+	//结算状态
+	if !r.SetStatus(StateWaiting) {
+		logrus.WithField("room_id", r.ID).Error("QZNNRoom-StatusChange-Fail-waiting")
+		return
+	}
+
+	//计算牛牛，分配balance
+	results := make(map[string]CardResult)
+	for _, p := range r.Players {
+		results[p.ID] = CalcNiu(p.Cards)
+	}
+	bankerRes := results[r.BankerID]
+
+	// 修复：防止庄家中途异常消失导致 Panic
+	bankerMult := int64(1)
+	if banker, ok := r.GetPlayerByID(r.BankerID); ok {
+		bankerMult = int64(banker.CallMult)
+	}
+
+	if bankerMult <= 0 {
+		bankerMult = 1
+	}
+	playerBalance := make(map[string]int64)
+	for _, player := range r.Players {
+		playerBalance[player.ID] = 0
+	}
+	//todo 判断够不够balance
+	const TaxRate = 0.05 // 5% 税率
+	for _, p := range r.Players {
+		if p.ID == r.BankerID {
+			continue
+		}
+		playerRes := results[p.ID]
+		isPlayerWin := CompareCards(playerRes, bankerRes)
+		baseBet := r.Config.BaseBet
+		var balance int64
+		if isPlayerWin {
+			balance = baseBet * bankerMult * p.BetMult * playerRes.Mult
+			// 闲家赢，扣税
+			realScore := int64(float64(balance) * (1 - TaxRate))
+			playerBalance[p.ID] += realScore
+			playerBalance[r.BankerID] -= balance
+		} else {
+			balance = baseBet * bankerMult * p.BetMult * bankerRes.Mult
+			playerBalance[p.ID] -= balance
+			// 庄家赢，扣税
+			realScore := int64(float64(balance) * (1 - TaxRate))
+			playerBalance[r.BankerID] += realScore
+		}
+	}
+
+	for userId, balance := range playerBalance {
+		p, ok := r.GetPlayerByID(userId)
+		if !ok {
+			continue
+		}
+		p.Mu.Lock()
+		p.Balance += balance
+		p.Mu.Unlock()
+	}
+
+	r.Broadcast(comm.Response{
+		Cmd:  "nn.balance_change",
+		Data: gin.H{"balance": playerBalance}})
+
+	//清理数据
+	r.reset()
+	r.Broadcast(comm.Response{
+		Cmd:  "nn.state_waiting",
+		Data: gin.H{"room": r}})
 }
 
-func HandleCallBanker(r *QZNNRoom, userID string, mult int) {
+func HandleCallBanker(r *QZNNRoom, userID string, mult int64) {
 	if r.State != StateBanking {
 		return
 	}
@@ -195,52 +382,22 @@ func HandleCallBanker(r *QZNNRoom, userID string, mult int) {
 	if !ok || p.CallMult != -1 {
 		return
 	}
+	p.Mu.Lock()
+	if p.CallMult != -1 {
+		p.Mu.Unlock()
+		return
+	}
 	p.CallMult = mult
-	r.Broadcast(comm.Response{Cmd: "nn.call_banker_res", Data: map[string]interface{}{"uid": userID, "mult": mult}})
-	allDone := true
-	for _, player := range r.Players {
-		if player.CallMult == -1 {
-			allDone = false
-			break
-		}
-	}
-	if allDone {
-		EnterBetting(r)
-	}
-}
-
-func EnterBetting(r *QZNNRoom) {
-	r.State = StateBetting
-
-	maxMult := -1
-	var candidates []string
-	for _, p := range r.Players {
-		if p.CallMult > maxMult {
-			maxMult = p.CallMult
-			candidates = []string{p.ID}
-		} else if p.CallMult == maxMult {
-			candidates = append(candidates, p.ID)
-		}
-	}
-	r.BankerID = candidates[rand.Intn(len(candidates))]
-	r.Broadcast(comm.Response{Cmd: "nn.banker_confirm", Data: map[string]interface{}{"banker_id": r.BankerID, "mult": maxMult}})
-	BroadcastState(r, 10)
-	r.StartTimer(10, func() {
-		r.Mu.Lock()
-		defer r.Mu.Unlock()
-		if r.State == StateBetting {
-			for _, p := range r.Players {
-				if p.ID != r.BankerID && p.BetMult == 0 {
-					p.BetMult = 1
-				}
-			}
-			EnterDealing(r)
-		}
+	p.Mu.Unlock()
+	r.BroadcastWithPlayer(func(p *Player) interface{} {
+		return comm.Response{
+			Cmd:  "nn.call_banker",
+			Data: gin.H{"room": r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID)}}
 	})
-	CheckRobotActions(r)
+	r.logicTick()
 }
 
-func HandlePlaceBet(r *QZNNRoom, userID string, mult int) {
+func HandlePlaceBet(r *QZNNRoom, userID string, mult int64) {
 	if !r.CheckStatus(StateBetting) {
 		logrus.WithField("room_id", r.ID).WithField("user_id", userID).Error("HandlePlaceBet_InvalidState")
 		return
@@ -253,42 +410,19 @@ func HandlePlaceBet(r *QZNNRoom, userID string, mult int) {
 	if !ok || p == nil || p.BetMult != 0 {
 		return
 	}
+	p.Mu.Lock()
+	if p.BetMult != -1 {
+		p.Mu.Unlock()
+		return
+	}
 	p.BetMult = mult
-	r.Broadcast(comm.Response{Cmd: "nn.place_bet_res", Data: map[string]interface{}{"uid": userID, "mult": mult}})
-	allDone := true
-	for _, player := range r.Players {
-		if player.ID != r.BankerID && player.BetMult == 0 {
-			allDone = false
-			break
-		}
-	}
-	if allDone {
-		EnterDealing(r)
-	}
-}
-
-func EnterDealing(r *QZNNRoom) {
-	r.StopTimer()
-	r.State = StateDealing
-	for _, p := range r.Players {
-		// 发送第5张牌
-		lastCard := 0
-		if len(p.Cards) == 5 {
-			lastCard = p.Cards[4]
-		}
-
-		if p.Conn != nil {
-			_ = p.Conn.WriteJSON(comm.Response{Cmd: "nn.deal_final", Data: map[string]interface{}{"card": lastCard}})
-		}
-	}
-	BroadcastState(r, 5)
-	r.StartTimer(5, func() {
-		r.Mu.Lock()
-		defer r.Mu.Unlock()
-		if r.State == StateDealing {
-			EnterSettling(r)
-		}
+	p.Mu.Unlock()
+	r.BroadcastWithPlayer(func(p *Player) interface{} {
+		return comm.Response{
+			Cmd:  "nn.call_bet",
+			Data: gin.H{"room": r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID)}}
 	})
+	r.logicTick()
 }
 
 func HandleShowCards(r *QZNNRoom, userID string) {
@@ -301,106 +435,20 @@ func HandleShowCards(r *QZNNRoom, userID string) {
 	if !ok || p.IsShow {
 		return
 	}
+	p.Mu.Lock()
+	if p.IsShow == true {
+		p.Mu.Unlock()
+		return
+	}
 	p.IsShow = true
-	r.Broadcast(comm.Response{Cmd: "nn.show_cards_res", Data: map[string]interface{}{"uid": userID, "cards": p.Cards}})
-}
-
-func EnterSettling(r *QZNNRoom) {
-	r.StopTimer()
-	r.State = StateSettling
-	results := make(map[string]CardResult)
-	for _, p := range r.Players {
-		results[p.ID] = CalcNiu(p.Cards)
-	}
-	bankerRes := results[r.BankerID]
-
-	// 修复：防止庄家中途异常消失导致 Panic
-	bankerMult := 1
-	if banker, ok := r.GetPlayerByID(r.BankerID); ok {
-		bankerMult = banker.CallMult
-	}
-
-	if bankerMult <= 0 {
-		bankerMult = 1
-	}
-	playerScores := make(map[string]int)
-	for _, player := range r.Players {
-		playerScores[player.ID] = 0
-	}
-
-	const TaxRate = 0.05 // 5% 税率
-	for _, p := range r.Players {
-		if p.ID == r.BankerID {
-			continue
-		}
-		playerRes := results[p.ID]
-		isPlayerWin := CompareCards(playerRes, bankerRes)
-		baseScore := 1
-		var score int
-		if isPlayerWin {
-			score = baseScore * bankerMult * p.BetMult * playerRes.Mult
-			// 闲家赢，扣税
-			realScore := int(float64(score) * (1 - TaxRate))
-			playerScores[p.ID] += realScore
-			playerScores[r.BankerID] -= score
-		} else {
-			score = baseScore * bankerMult * p.BetMult * bankerRes.Mult
-			playerScores[p.ID] -= score
-			// 庄家赢，扣税
-			realScore := int(float64(score) * (1 - TaxRate))
-			playerScores[r.BankerID] += realScore
-		}
-	}
-	r.Broadcast(comm.Response{Cmd: "nn.settle", Data: map[string]interface{}{"scores": playerScores, "results": results, "banker": r.BankerID}})
-	r.StartTimer(5, func() {
-		var leftBots []string
-		var allUserIds []string
-		r.Mu.Lock()
-
-		// 仅收集真实玩家ID用于更新最后游戏时间，减轻数据库压力
-		for _, p := range r.Players {
-			if p.IsRobot {
-				allUserIds = append(allUserIds, p.ID)
-			}
-		}
-
-		// 机器人随机退出逻辑
-		for seatNum, p := range r.Players {
-			if p.IsRobot && rand.Intn(100) < RobotExitRate {
-				leftBots = append(leftBots, p.ID)
-				r.Players[seatNum] = nil
-			}
-		}
-
-		if len(r.Players)-len(leftBots) < r.GetPlayerCap() {
-			leftBots = nil
-		}
-
-		for _, p := range leftBots {
-			r.Broadcast(comm.Response{Cmd: "nn.player_leave", Data: map[string]interface{}{"uid": p}})
-		}
-
-		r.State = StateWaiting
-		for _, p := range r.Players {
-			p.Cards = nil
-			p.CallMult = -1
-			p.BetMult = 0
-			p.IsShow = false
-		}
-		canStart := len(r.Players) >= r.GetPlayerCap()
-		r.Mu.Unlock()
-
-		// 只有存在真实玩家时才更新数据库
-		if len(allUserIds) > 0 {
-			_, _ = modelClient.GetDb().QueryTable(new(modelClient.ModelUser)).
-				Filter("user_id__in", allUserIds).
-				Update(orm.Params{"last_played": time.Now()})
-		}
-
-		if canStart {
-			r.StartGame()
-		}
+	p.Mu.Unlock()
+	r.BroadcastWithPlayer(func(p *Player) interface{} {
+		return comm.Response{
+			Cmd:  "nn.show_card",
+			Data: gin.H{"room": r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID)}}
 	})
+	r.logicTick()
+
 }
 
 func CheckRobotActions(r *QZNNRoom) {
@@ -422,19 +470,15 @@ func CheckRobotActions(r *QZNNRoom) {
 			switch state {
 			case StateBanking:
 				// 随机抢庄倍数 (0-3)
-				HandleCallBanker(r, pid, rand.Intn(4))
+				HandleCallBanker(r, pid, rand.Int63n(4))
 			case StateBetting:
 				if pid != bankerID {
 					// 随机下注倍数 (1-5)
-					HandlePlaceBet(r, pid, rand.Intn(5)+1)
+					HandlePlaceBet(r, pid, rand.Int63n(5)+1)
 				}
 			case StateDealing:
 				HandleShowCards(r, pid)
 			}
 		}(p.ID)
 	}
-}
-
-func BroadcastState(r *QZNNRoom, timeout int) {
-	r.Broadcast(comm.Response{Cmd: "nn.state_change", Data: map[string]interface{}{"state": r.State, "timeout": timeout, "room_id": r.ID}})
 }

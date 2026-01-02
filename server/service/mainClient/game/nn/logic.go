@@ -8,12 +8,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func NewRoom(id string, gameType string, max int) *QZNNRoom {
+func NewRoom(id string) *QZNNRoom {
 	return &QZNNRoom{
-		ID:      id,
-		Type:    gameType,
-		Players: make([]*Player, max),
-		State:   StateWaiting,
+		ID:            id,
+		Players:       make([]*Player, 5),
+		State:         StateWaiting,
+		TargetResults: make(map[string]int, 5),
+		BankerID:      "",
+		Deck:          []int{},
 	}
 }
 func (r *QZNNRoom) CheckStatus(state int) bool {
@@ -214,7 +216,7 @@ func (r *QZNNRoom) Leave(p *Player) {
 	if found {
 		r.Broadcast(comm.Response{Cmd: "nn.player_leave", Data: gin.H{"uid": p.ID}})
 
-		if count < 2 && r.CheckStatus(StateWaitingTimer) {
+		if count < 2 && r.CheckStatus(StatePrepare) {
 			r.StopTimer()
 			if !r.SetStatus(StateWaiting) {
 				logrus.Error("QZNNRoom-Leave-SetStatus-Fail")

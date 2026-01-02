@@ -3,7 +3,6 @@ package mainClient
 import (
 	"compoment/ws"
 	"encoding/json"
-	"fmt"
 	"service/comm"
 	"service/mainClient/game"
 	"service/mainClient/game/nn"
@@ -154,13 +153,11 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 			IsRobot: false,
 			Balance: user.Balance,
 		}
-		// 房间类型包含等级和抢庄类型，确保隔离 (例如: nn_1_0, nn_1_2)
-		roomType := fmt.Sprintf("nn_%d_%d", req.Level, req.BankerType)
 
 		roomConfig := *cfg
 		roomConfig.BankerType = req.BankerType
 
-		room, err := game.GetMgr().JoinOrCreateNNRoom(roomType, p, &roomConfig)
+		room, err := game.GetMgr().JoinOrCreateNNRoom(p, &roomConfig)
 		if err != nil {
 			conn.WriteJSON(comm.Response{Cmd: msg.Cmd, Seq: msg.Seq, Code: -1, Msg: err.Error()})
 			return
@@ -199,7 +196,7 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 	case "nn.call_banker": // 抢庄请求
 		var req struct {
 			RoomId string `json:"room_id"`
-			Mult   int    `json:"mult"`
+			Mult   int64  `json:"mult"`
 		}
 		if err := json.Unmarshal(msg.Data, &req); err == nil {
 			if room := game.GetMgr().GetRoomByRoomId(req.RoomId); room != nil {
@@ -213,7 +210,7 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 	case "nn.place_bet": // 下注请求
 		var req struct {
 			RoomId string `json:"room_id"`
-			Mult   int    `json:"mult"`
+			Mult   int64  `json:"mult"`
 		}
 		if err := json.Unmarshal(msg.Data, &req); err == nil {
 			if room := game.GetMgr().GetRoomByRoomId(req.RoomId); room != nil {

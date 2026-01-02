@@ -94,7 +94,7 @@ func CalcNiu(cards []int) CardResult {
 		}
 	}
 
-	niu := 0
+	niu := int64(0)
 	for i := 0; i < 3; i++ {
 		for j := i + 1; j < 4; j++ {
 			for k := j + 1; k < 5; k++ {
@@ -105,7 +105,7 @@ func CalcNiu(cards []int) CardResult {
 							remSum += points[idx]
 						}
 					}
-					currentNiu := remSum % 10
+					currentNiu := int64(remSum % 10)
 					if currentNiu == 0 {
 						currentNiu = 10
 					}

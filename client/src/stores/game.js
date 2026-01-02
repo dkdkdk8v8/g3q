@@ -124,7 +124,7 @@ export const useGameStore = defineStore('game', () => {
                     // Map Cards
                     let hand = [];
                     if (p.Cards && Array.isArray(p.Cards)) {
-                        hand = p.Cards.map(c => convertCard(c));
+                        hand = p.Cards.map(c => c);
                     }
 
                     newPlayers.push({
@@ -193,33 +193,6 @@ export const useGameStore = defineStore('game', () => {
         return roomJoinedPromise.value; // Return the promise
     };
 
-    const convertCard = (cardValue) => {
-        if (cardValue === -1) return null; // Back of card
-
-        const suits = ['spade', 'heart', 'club', 'diamond'];
-        const rankIndex = Math.floor(cardValue / 4);
-        const suitIndex = cardValue % 4;
-
-        const rank = rankIndex + 1;
-        const suit = suits[suitIndex];
-
-        let label = rank.toString();
-        if (rank === 1) label = 'A';
-        if (rank === 11) label = 'J';
-        if (rank === 12) label = 'Q';
-        if (rank === 13) label = 'K';
-
-        let value = rank;
-        if (rank >= 10) value = 10;
-
-        return {
-            suit,
-            rank,
-            label,
-            value,
-            id: `${suit}-${rank}`
-        };
-    };
 
     // 初始化（模拟进入房间）
     const initGame = (mode = 0) => {
@@ -553,9 +526,31 @@ export const useGameStore = defineStore('game', () => {
         startGame(); // This has internal timer for auto-progression. User can interrupt.
     };
 
+    // 新函数：初始发牌（用于 precard 阶段）
+    const performPreDeal = () => {
+        stopAllTimers();
+        currentPhase.value = 'PRE_DEAL'; // Set phase to PRE_DEAL
+
+        // Create and shuffle a new deck
+        deck.value = shuffle(createDeck());
+
+        // Reset all player hands and deal initial cards (e.g., 2 cards each)
+        players.value.forEach(p => {
+            p.hand = []; // Clear current hand
+            // Deal 2 cards to each player for initial pre-deal
+            // Need to ensure enough cards in the deck
+            if (deck.value.length >= 2) { // Ensure there are enough cards for initial deal
+                p.hand.push(deck.value.pop());
+                p.hand.push(deck.value.pop());
+            } else {
+                console.warn("Not enough cards in deck for pre-deal!");
+            }
+        });
+    };
+
     const enterStatePreCard = () => {
         stopAllTimers();
-        performPreDeal();
+        performPreDeal(); // Call the newly defined function
         // Do not auto-start banking timer
     };
 
@@ -685,6 +680,7 @@ export const useGameStore = defineStore('game', () => {
         enterStateBetting,
         enterStateDealing,
         enterStateShowCard,
-        enterStateSettling
+        enterStateSettling,
+        performPreDeal // Add performPreDeal here
     }
 })

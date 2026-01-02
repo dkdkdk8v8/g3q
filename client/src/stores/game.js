@@ -241,15 +241,8 @@ export const useGameStore = defineStore('game', () => {
         currentPhase.value = 'READY_COUNTDOWN'; // Keep READY_COUNTDOWN phase for display
         bankerId.value = null; // 重置庄家ID
 
-        // Start countdown for the 'prepare' phase. After countdown, automatically move to ROB_BANKER.
-        startCountdown(5, () => {
-            // After prepare countdown, automatically proceed to rob banker phase
-            currentPhase.value = 'ROB_BANKER';
-            // Now start the countdown for robbing, which will eventually call checkAllRobbed.
-            startCountdown(5, () => {
-                checkAllRobbed();
-            });
-        });
+        // Start countdown for the 'prepare' phase. After countdown, it will stop at 0.
+        startCountdown(5);
     };
 
     // 倒计时辅助

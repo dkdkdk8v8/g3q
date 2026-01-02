@@ -562,7 +562,7 @@ const quitGame = () => {
         <div class="controls-container">
 
 
-            <div v-if="store.currentPhase === 'ROB_BANKER' && myPlayer.robMultiplier === -1" class="btn-group">
+            <div v-if="store.currentPhase === 'ROB_BANKER'" class="btn-group">
                 <div class="game-btn blue" @click="onRob(0)">不抢</div>
                 <div class="game-btn orange" @click="onRob(1)">1倍</div>
                 <div class="game-btn orange" @click="onRob(2)">2倍</div>
@@ -575,9 +575,7 @@ const quitGame = () => {
                 <div class="game-btn orange" @click="onBet(5)">5倍</div>
             </div>
             
-            <div v-if="myPlayer.robMultiplier > -1 && store.currentPhase === 'ROB_BANKER'" class="waiting-text">
-                已选择，等待其他玩家...
-            </div>
+
             <div v-if="myPlayer.betMultiplier > 0 && store.currentPhase === 'BETTING'" class="waiting-text">
                 已下注，等待开牌...
             </div>

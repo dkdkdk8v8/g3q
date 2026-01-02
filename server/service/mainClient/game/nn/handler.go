@@ -44,7 +44,7 @@ func HandleCallBanker(r *QZNNRoom, userID string, mult int64) {
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
 		return comm.Response{
 			Cmd:  CmdPlayerCallBank,
-			Data: gin.H{"room": r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID)}}
+			Data: gin.H{"Room": r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID)}}
 	})
 	r.logicTick()
 }

@@ -62,7 +62,6 @@ export const useGameStore = defineStore('game', () => {
                     baseBet.value = room.Config.BaseBet;
                     gameMode.value = room.Config.BankerType;
                 }
-                console.log("Joined Room:", roomId.value, roomName.value, baseBet.value, gameMode.value);
 
                 // Update My Player ID from User Store
                 myPlayerId.value = userStore.userInfo.user_id || 'me';
@@ -176,12 +175,6 @@ export const useGameStore = defineStore('game', () => {
 
     // 初始化（模拟进入房间）
     const initGame = (mode = 0) => {
-        // If we already have a room ID (e.g. from joinRoom response arriving before this call), do not wipe state
-        // Check if roomId has a non-empty value
-        if (roomId.value !== '') {
-            console.log("Game already initialized with RoomID:", roomId.value);
-            return;
-        }
 
         stopAllTimers();
         gameMode.value = parseInt(mode); // Ensure number

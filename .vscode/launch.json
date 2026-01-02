@@ -37,7 +37,8 @@
             "program": "${workspaceFolder}/server/server/main_client", // 调试整个工作区（入口是 main 包）
             "output": "${workspaceFolder}/server/server/main_client/local_main_client",
             "args": [
-                "--ter"
+                "--ter",
+                "--debug"
             ], // 传递给程序的命令行参数
             "env": {
                 "test": "test" // 设置临时环境变量
@@ -86,7 +87,10 @@
     "compounds": [
         {
             "name": "Launch All Admin",
-            "configurations": ["node:admin", "node:admin_client"],
+            "configurations": [
+                "node:admin",
+                "node:admin_client"
+            ],
             "stopAll": true
         }
     ]

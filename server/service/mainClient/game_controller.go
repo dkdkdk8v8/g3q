@@ -163,11 +163,6 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 			return
 		}
 
-		// 如果是真实玩家进入，安排机器人
-		if !p.IsRobot {
-			game.RobotEnterRoom(room)
-		}
-
 		// 成功加入，通知客户端房间信息
 		conn.WriteJSON(comm.Response{
 			Cmd: msg.Cmd,

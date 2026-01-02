@@ -15,10 +15,15 @@ export const useGameStore = defineStore('game', () => {
     const deck = ref([]);
     const countdown = ref(0);
     const bankerId = ref(null);
-    const roomId = ref(null); // Added roomId
+    const roomId = ref('');
+    const roomName = ref('');
+    const baseBet = ref(0);
     const gameMode = ref(0); // 0: Bukan, 1: Kan3, 2: Kan4
     const history = ref([]); // 游戏记录
     const bankerCandidates = ref([]); // Store IDs of players who are candidates for banker
+    const roomJoinedPromise = ref(null); // Added for async join completion
+    let roomJoinedResolve = null;
+    let roomJoinedReject = null;
 
     // Timers
     let timer = null;
@@ -40,22 +45,117 @@ export const useGameStore = defineStore('game', () => {
         clearTransitionTimeout();
     };
 
+    // Register server listeners for readiness updates (MOVED TO TOP LEVEL)
+    gameClient.on('nn.player_ready_update', (msg) => {
+        // ... (Implement if needed)
+    });
+
+    // Capture RoomId from Join response (MOVED TO TOP LEVEL)
+    gameClient.on('QZNN.PlayerJoin', (msg) => {
+        if (msg.code === 0 && msg.data && msg.data.Room) {
+            const room = msg.data.Room;
+            if (room.ID) { // Ensure Room ID exists
+                roomId.value = room.ID;
+
+                if (room.Config) {
+                    roomName.value = room.Config.Name;
+                    baseBet.value = room.Config.BaseBet;
+                    gameMode.value = room.Config.BankerType;
+                }
+                console.log("Joined Room:", roomId.value, roomName.value, baseBet.value, gameMode.value);
+
+                // Update My Player ID from User Store
+                myPlayerId.value = userStore.userInfo.user_id || 'me';
+
+                // Parse Players from Server
+                const serverPlayers = room.Players || [];
+                const newPlayers = [];
+
+                serverPlayers.forEach(p => {
+                    if (!p) return; // Skip null entries
+
+                    const isMe = p.ID === myPlayerId.value;
+
+                    // Map Cards
+                    let hand = [];
+                    if (p.Cards && Array.isArray(p.Cards)) {
+                        hand = p.Cards.map(c => convertCard(c));
+                    }
+
+                    newPlayers.push({
+                        id: p.ID,
+                        name: p.NickName && p.NickName.trim() !== '' ? p.NickName : p.ID,
+                        avatar: DEFAULT_AVATAR, // Server doesn't provide avatar yet
+                        coins: p.Balance,
+                        isBanker: room.BankerID === p.ID,
+                        hand: hand,
+                        state: 'IDLE',
+                        robMultiplier: p.CallMult,
+                        betMultiplier: p.BetMult,
+                        isReady: p.IsReady,
+                        isShowHand: p.IsShow || false, // Map Show to isShowHand
+                        // Persist local data if needed?
+                    });
+                });
+
+                players.value = newPlayers;
+
+                // Sync Phase
+                if (room.State === 'QZNN.StateWaiting') {
+                    currentPhase.value = 'WAITING_FOR_PLAYERS';
+                }
+                // Handle other states if reconnecting...
+
+                if (roomJoinedResolve) {
+                    roomJoinedResolve(true); // Resolve the promise on successful join
+                }
+            } else {
+                const errorMsg = 'QZNN.PlayerJoin response is missing Room ID.';
+                console.error("[GameStore] Join Room Error:", errorMsg, msg);
+                if (roomJoinedReject) {
+                    roomJoinedReject(new Error(errorMsg));
+                }
+            }
+        } else {
+            const errorMsg = msg.msg || 'Failed to join room: Invalid response data.';
+            console.error("[GameStore] Join Room Error:", errorMsg, msg);
+            if (roomJoinedReject) {
+                roomJoinedReject(new Error(errorMsg));
+            }
+        }
+    });
+
     // 加入房间
     const joinRoom = (level, banker_type) => {
-        // console.log(`Attempting to join room: ${room_id}, app: ${app_id}, uid: ${uid}`); // app_id and uid are not part of nn.join payload
+        // Reset state before joining to ensure clean slate
+        stopAllTimers();
+        players.value = [];
+        roomId.value = '';
+        roomName.value = '';
+        baseBet.value = 0;
+        currentPhase.value = 'WAITING_FOR_PLAYERS';
+        bankerId.value = null;
+
+        // Create a new promise for this join attempt
+        roomJoinedPromise.value = new Promise((resolve, reject) => {
+            roomJoinedResolve = resolve;
+            roomJoinedReject = reject;
+        });
+
         gameClient.send('QZNN.PlayerJoin', { Level: level, BankerType: banker_type });
+        return roomJoinedPromise.value; // Return the promise
     };
 
     const convertCard = (cardValue) => {
         if (cardValue === -1) return null; // Back of card
-        
+
         const suits = ['spade', 'heart', 'club', 'diamond'];
         const rankIndex = Math.floor(cardValue / 4);
         const suitIndex = cardValue % 4;
-        
+
         const rank = rankIndex + 1;
         const suit = suits[suitIndex];
-        
+
         let label = rank.toString();
         if (rank === 1) label = 'A';
         if (rank === 11) label = 'J';
@@ -76,71 +176,24 @@ export const useGameStore = defineStore('game', () => {
 
     // 初始化（模拟进入房间）
     const initGame = (mode = 0) => {
+        // If we already have a room ID (e.g. from joinRoom response arriving before this call), do not wipe state
+        // Check if roomId has a non-empty value
+        if (roomId.value !== '') {
+            console.log("Game already initialized with RoomID:", roomId.value);
+            return;
+        }
+
         stopAllTimers();
         gameMode.value = parseInt(mode); // Ensure number
-        
+
         // Temporarily set to 'me' until actual join
         players.value = [];
-        
+
         currentPhase.value = 'WAITING_FOR_PLAYERS';
         bankerId.value = null;
-        roomId.value = null; // Reset roomId
-
-        // Register server listeners for readiness updates
-        gameClient.on('nn.player_ready_update', (msg) => {
-            // ...
-        });
-
-        // Capture RoomId from Join response
-        gameClient.on('QZNN.PlayerJoin', (msg) => {
-            if (msg.code === 0 && msg.data && msg.data.Room) {
-                const room = msg.data.Room;
-                roomId.value = room.ID;
-                console.log("Joined Room:", roomId.value);
-
-                // Update My Player ID from User Store
-                myPlayerId.value = userStore.userInfo.user_id || 'me';
-
-                // Parse Players from Server
-                const serverPlayers = room.Players || [];
-                const newPlayers = [];
-
-                serverPlayers.forEach(p => {
-                    if (!p) return; // Skip null entries
-
-                    const isMe = p.ID === myPlayerId.value;
-                    
-                    // Map Cards
-                    let hand = [];
-                    if (p.Cards && Array.isArray(p.Cards)) {
-                        hand = p.Cards.map(c => convertCard(c));
-                    }
-                    
-                    newPlayers.push({
-                        id: p.ID,
-                        name: p.NickName || (isMe ? '我' : '未知'), // Use NickName if available
-                        avatar: DEFAULT_AVATAR, // Server doesn't provide avatar yet
-                        coins: p.Balance,
-                        isBanker: room.BankerID === p.ID,
-                        hand: hand, 
-                        state: 'IDLE',
-                        robMultiplier: p.CallMult,
-                        betMultiplier: p.BetMult,
-                        isReady: p.IsReady,
-                        isShowHand: p.IsShow || false, // Map Show to isShowHand
-                        // Persist local data if needed?
-                    });
-                });
-
-                players.value = newPlayers;
-
-                // Sync Phase
-                if (room.State === 'QZNN.StateWaiting') {
-                    currentPhase.value = 'WAITING_FOR_PLAYERS';
-                }
-                // Handle other states if reconnecting...
-            }
-        });
+        roomId.value = ''; // Reset roomId
+        roomName.value = '';
+        baseBet.value = 0;
     };
 
     // 玩家操作：准备
@@ -302,7 +355,7 @@ export const useGameStore = defineStore('game', () => {
     const performSupplementalDeal = () => {
         // 注意：这里需要配合 View 层的动画。View 层可能监听 SHOWDOWN 或 DEALING
         // 为了支持 Manual Dealing 阶段，我们引入 DEALING 状态
-        currentPhase.value = 'DEALING'; 
+        currentPhase.value = 'DEALING';
 
         players.value.forEach(p => {
             p.state = 'SHOWDOWN'; // Update state label
@@ -328,10 +381,10 @@ export const useGameStore = defineStore('game', () => {
 
     // Split: Start Showdown Timer
     const startShowdownTimer = () => {
-         currentPhase.value = 'SHOWDOWN';
-         countdown.value = 0;
+        currentPhase.value = 'SHOWDOWN';
+        countdown.value = 0;
 
-         // 模拟其他玩家陆续摊牌 (在倒计时开始后才行动)
+        // 模拟其他玩家陆续摊牌 (在倒计时开始后才行动)
         players.value.forEach(p => {
             if (p.id !== myPlayerId.value) {
                 // 随机延迟 1-4秒 摊牌
@@ -389,7 +442,7 @@ export const useGameStore = defineStore('game', () => {
         stopAllTimers();
         currentPhase.value = 'SETTLEMENT';
         const banker = players.value.find(p => p.isBanker);
-        
+
         if (!banker) return; // Safety check
 
         players.value.forEach(p => {
@@ -485,7 +538,7 @@ export const useGameStore = defineStore('game', () => {
         stopAllTimers();
         // Force everyone's robMultiplier to 0 (or random equality)
         players.value.forEach(p => p.robMultiplier = 0);
-        
+
         // Set all players as candidates for the infinite animation
         bankerCandidates.value = players.value.map(p => p.id);
         currentPhase.value = 'BANKER_SELECTION_ANIMATION';
@@ -494,13 +547,13 @@ export const useGameStore = defineStore('game', () => {
 
     const enterStateBankerConfirm = () => {
         stopAllTimers();
-        
+
         // 1. Pick a winner
         let candidates = bankerCandidates.value;
         if (!candidates || candidates.length === 0) {
             candidates = players.value.map(p => p.id);
         }
-        
+
         const winnerId = candidates[Math.floor(Math.random() * candidates.length)];
         const winner = players.value.find(p => p.id === winnerId);
 
@@ -516,13 +569,13 @@ export const useGameStore = defineStore('game', () => {
 
         // 4. Enter Confirmed State
         currentPhase.value = 'BANKER_CONFIRMED';
-        
+
         // Update states for next phase readiness
         players.value.forEach(p => {
             if (p.id !== winnerId) {
                 p.state = 'BETTING';
             } else {
-                p.state = 'IDLE'; 
+                p.state = 'IDLE';
             }
         });
     };
@@ -532,9 +585,9 @@ export const useGameStore = defineStore('game', () => {
         // Force Banker if not set?
         if (!bankerId.value) {
             // Randomly pick one if none
-             const winner = players.value[0];
-             winner.isBanker = true;
-             bankerId.value = winner.id;
+            const winner = players.value[0];
+            winner.isBanker = true;
+            bankerId.value = winner.id;
         }
         currentPhase.value = 'BETTING';
         startCountdown(5, () => {
@@ -560,6 +613,16 @@ export const useGameStore = defineStore('game', () => {
         calculateScore();
     };
 
+    const resetState = () => {
+        stopAllTimers();
+        currentPhase.value = 'IDLE';
+        players.value = [];
+        bankerId.value = null;
+        roomId.value = null;
+        deck.value = [];
+        bankerCandidates.value = [];
+    };
+
     return {
         currentPhase,
         players,
@@ -576,6 +639,11 @@ export const useGameStore = defineStore('game', () => {
         joinRoom,
         bankerCandidates,
         gameMode,
+        roomId,
+        roomName,
+        baseBet,
+        roomJoinedPromise, // Export roomJoinedPromise
+        resetState, // Export resetState
         // Manual Controls
         enterStateWaiting,
         enterStatePrepare,

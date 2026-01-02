@@ -21,11 +21,11 @@ export default class GameClient {
         this.handlers = new Map(); // 消息路由表
         this.seq = 0;              // 消息序列号
         this.isConnected = false;
-        
+
         // 定时器引用
         this.heartbeatTimer = null;
         this.reconnectTimer = null;
-        
+
         // 状态
         this.reconnectAttempts = 0;
         this.isManualClose = false; // 是否为手动关闭
@@ -61,11 +61,11 @@ export default class GameClient {
             this.isConnected = true;
             this.reconnectAttempts = 0;
             this._startHeartbeat();
-            
+
             // Reconnected successfully, hide loading
             const loadingStore = useLoadingStore();
             loadingStore.forceHideLoading();
-            
+
             if (this.onConnect) this.onConnect();
         };
 
@@ -82,7 +82,7 @@ export default class GameClient {
             console.log(`[Network] Closed: Code=${event.code} Reason=${event.reason}`);
             this.isConnected = false;
             this._stopHeartbeat();
-            
+
             if (!this.isManualClose) {
                 this._tryReconnect();
             }
@@ -111,13 +111,13 @@ export default class GameClient {
 
         this.reconnectAttempts++;
         console.log(`[Network] Reconnecting in ${CONFIG.RECONNECT_DELAY}ms... (${this.reconnectAttempts}/${CONFIG.RECONNECT_MAX_ATTEMPTS})`);
-        
+
         if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
         this.reconnectTimer = setTimeout(() => {
             this._initWebSocket();
         }, CONFIG.RECONNECT_DELAY);
     }
-    
+
     retryConnection() {
         this.reconnectAttempts = 0;
         const loadingStore = useLoadingStore();
@@ -130,7 +130,7 @@ export default class GameClient {
         this._stopHeartbeat();
         this.heartbeatTimer = setInterval(() => {
             if (this.isConnected) {
-                this.send("sys.ping", {});
+                this.send("PingPong", {});
             }
         }, CONFIG.HEARTBEAT_INTERVAL);
     }
@@ -149,7 +149,7 @@ export default class GameClient {
      */
     send(cmd, data = {}) {
         const loadingStore = useLoadingStore();
-        
+
         if (!this.isConnected) {
             console.warn("[Network] Cannot send, not connected");
             // If not connected, we don't start loading, so no need to hide it either
@@ -162,20 +162,20 @@ export default class GameClient {
             seq: this.seq,
             data: data
         };
-        
-        if (cmd !== "sys.ping") {
+
+        if (cmd !== "PingPong") {
             loadingStore.startLoading();
             console.log("[Network] Send:", packet);
         }
-        
+
         this.ws.send(JSON.stringify(packet));
     }
 
     _handleMessage(msg) {
         // msg 结构: {cmd, seq, code, msg, data}
-        
+
         // 拦截心跳回包，不向上层分发
-        if (msg.cmd === "sys.pong") {
+        if (msg.cmd === "PingPong") {
             // No loading for ping/pong
             return;
         }
@@ -193,7 +193,7 @@ export default class GameClient {
                 });
             }
         }
-        
+
         // 路由分发
         if (this.handlers.has(msg.cmd)) {
             const handler = this.handlers.get(msg.cmd);

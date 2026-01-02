@@ -184,10 +184,11 @@ const showHistory = ref(false);
 const visibleCounts = ref({});
 
 const modeName = computed(() => {
-    const m = parseInt(route.query.mode);
+    const m = store.gameMode;
     if (m === 0) return '不看牌抢庄';
     if (m === 1) return '看三张抢庄';
-    return '看四张抢庄';
+    if (m === 2) return '看四张抢庄';
+    return '未知玩法';
 });
 
 const setSeatRef = (el, playerId) => {
@@ -439,6 +440,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+    store.resetState();
     if (robotSpeechInterval.value) {
         clearInterval(robotSpeechInterval.value);
     }
@@ -508,32 +510,37 @@ const quitGame = () => {
         </div>
 
         <div class="room-info-box">
-            <div>底分: 200</div>
-            <div>模式: {{ modeName }}</div>
+            <div>房间ID: {{ store.roomId }}</div>
+            <div>房间名: {{ store.roomName }}</div>
+            <div>底分: {{ store.baseBet }}</div>
+            <div>玩法: {{ modeName }}</div>
         </div>
     </div>
 
     <div class="opponents-layer">
-        <template v-for="(p, index) in opponentSeats" :key="index">
+        <div 
+            v-for="(p, index) in opponentSeats" 
+            :key="index"
+            class="opponent-seat-abs"
+            :class="getOpponentClass(index)"
+        >
             <PlayerSeat 
-                v-if="p"
+                v-if="p && p.id"
                 :player="p" 
                 :ref="(el) => setSeatRef(el, p.id)"
-                class="opponent-seat-abs"
-                :class="getOpponentClass(index)"
                 :position="getLayoutType(index)"
                 :visible-card-count="visibleCounts[p.id] !== undefined ? visibleCounts[p.id] : 0"
                 :is-ready="p.isReady"
                 :is-animating-highlight="p.id === currentlyHighlightedPlayerId"
                 :speech="playerSpeech.get(p.id)"
             />
-            <div v-else class="empty-seat opponent-seat-abs" :class="getOpponentClass(index)">
+            <div v-else class="empty-seat">
                 <div class="empty-seat-avatar">
                     <van-icon name="plus" color="rgba(255,255,255,0.3)" size="20" />
                 </div>
                 <div class="empty-seat-text">等待加入</div>
             </div>
-        </template>
+        </div>
     </div>
 
     <div class="table-center" ref="tableCenterRef">
@@ -660,11 +667,14 @@ const quitGame = () => {
         </div>
     </div>
 
-    <ChatBubbleSelector 
-        v-model:visible="showChatSelector" 
-        @selectPhrase="onPhraseSelected" 
-        @selectEmoji="onEmojiSelected" 
-    />
+    <!-- Wrap ChatBubbleSelector to avoid nextSibling error -->
+    <div>
+        <ChatBubbleSelector 
+            v-model:visible="showChatSelector" 
+            @selectPhrase="onPhraseSelected" 
+            @selectEmoji="onEmojiSelected" 
+        />
+    </div>
 
     <!-- Cooldown Toast -->
     <transition name="toast-fade">

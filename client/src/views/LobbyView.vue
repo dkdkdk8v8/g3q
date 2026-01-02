@@ -31,15 +31,20 @@ watch(currentMode, (newVal) => {
     localStorage.setItem('lastSelectedMode', newVal);
 });
 
-const enterGame = (level) => {
+const enterGame = async (level) => {
   // 传递房间等级(level)和玩法模式(mode)
   // 发送匹配协议
-  gameStore.joinRoom(level, currentMode.value);
-
-  router.push({
-      path: `/game/${level}`,
-      query: { mode: currentMode.value }
-  });
+  try {
+    await gameStore.joinRoom(level, currentMode.value); // Await the promise
+    router.push({
+        path: `/game/${level}`,
+        query: { mode: currentMode.value }
+    });
+  } catch (error) {
+    console.error("Failed to join room:", error);
+    // Optionally show a toast message to the user
+    // showToast('加入房间失败，请稍后再试');
+  }
 };
 
 // Map server room configs to UI

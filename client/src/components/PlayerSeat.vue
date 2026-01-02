@@ -70,6 +70,7 @@ const props = defineProps({
       if (store.currentPhase === 'SHOWDOWN' && props.player.isShowHand) return true;
       return false;
   });
+
 // 控制高亮显示的延迟开关 (为了等翻牌动画结束)
 const enableHighlight = ref(false);
 
@@ -121,6 +122,35 @@ const shouldShowBadge = computed(() => {
         return enableHighlight.value;
     }
 });
+
+const shouldShowRobMult = computed(() => {
+    // Hide in IDLE or READY phases (new game)
+    if (['IDLE', 'READY_COUNTDOWN'].includes(store.currentPhase)) return false;
+
+    // Phase: Robbing Banker or Selection (Show for everyone who has acted)
+    if (['ROB_BANKER', 'BANKER_SELECTION_ANIMATION'].includes(store.currentPhase)) {
+        return props.player.robMultiplier > -1;
+    }
+    
+    // Phase: After Banking (Show only for Banker)
+    // Phases: BANKER_CONFIRMED, BETTING, DEALING, SHOWDOWN, SETTLEMENT, GAME_OVER
+    if (props.player.isBanker) {
+        return true;
+    }
+    
+    return false;
+});
+
+const shouldShowBetMult = computed(() => {
+    // Hide in IDLE or READY phases
+    if (['IDLE', 'READY_COUNTDOWN', 'ROB_BANKER', 'BANKER_SELECTION_ANIMATION', 'BANKER_CONFIRMED'].includes(store.currentPhase)) return false;
+    
+    // Only show for Non-Banker
+    if (props.player.isBanker) return false;
+
+    // Show if bet is placed
+    return props.player.betMultiplier > 0;
+});
 </script>
 
 <template>
@@ -142,10 +172,15 @@ const shouldShowBadge = computed(() => {
         </div>
       
       <!-- 状态浮层，移到 avatar-area 以便相对于头像定位 -->
-      <div class="status-float" v-if="!['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)">
-          <div v-if="player.robMultiplier > 0" class="art-text orange">抢x{{ player.robMultiplier }}</div>
-          <div v-if="player.robMultiplier === 0" class="art-text gray">不抢</div>
-          <div v-if="player.betMultiplier > 0" class="art-text green">下x{{ player.betMultiplier }}</div>
+      <div class="status-float" v-if="!['IDLE', 'READY_COUNTDOWN'].includes(store.currentPhase)">
+          <template v-if="shouldShowRobMult">
+              <div v-if="player.robMultiplier > 0" class="art-text orange">抢x{{ player.robMultiplier }}</div>
+              <div v-else class="art-text gray">不抢</div>
+          </template>
+          
+          <template v-if="shouldShowBetMult">
+              <div class="art-text green">下x{{ player.betMultiplier }}</div>
+          </template>
       </div>
 
       <div class="info-box">
@@ -213,6 +248,10 @@ const shouldShowBadge = computed(() => {
 
 .avatar-area {
     position: relative; /* Ensure absolute positioning of children is relative to this parent */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
 }
 
 .ready-badge {

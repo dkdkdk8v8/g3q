@@ -80,13 +80,18 @@ func (r *QZNNRoom) prepareDeck() {
 
 func (r *QZNNRoom) drvierLogicTick() {
 	for {
-		time.Sleep(200 * time.Millisecond)
-		switch r.State {
-		case StateWaiting:
-			r.tickWaiting()
+		select {
+		case <-r.driverGo:
+			return
+		default:
+			time.Sleep(time.Millisecond * 200)
+			switch r.State {
+			case StateWaiting:
+				r.tickWaiting()
 
-		case StatePrepare:
-			r.tickPrepare()
+			case StatePrepare:
+				r.tickPrepare()
+			}
 		}
 	}
 }

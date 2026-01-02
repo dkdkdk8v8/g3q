@@ -9,15 +9,23 @@ import (
 )
 
 func NewRoom(id string) *QZNNRoom {
-	return &QZNNRoom{
+	nRoom := &QZNNRoom{
 		ID:            id,
 		Players:       make([]*Player, 5),
 		State:         StateWaiting,
 		TargetResults: make(map[string]int, 5),
 		BankerID:      "",
 		Deck:          []int{},
+		driverGo:      make(chan struct{}),
 	}
+	go nRoom.drvierLogicTick()
+	return nRoom
 }
+
+func (r *QZNNRoom) Destory() {
+	close(r.driverGo)
+}
+
 func (r *QZNNRoom) CheckStatus(state int) bool {
 	r.StateMu.RLock()
 	defer r.StateMu.RUnlock()

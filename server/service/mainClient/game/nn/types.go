@@ -98,6 +98,7 @@ type QZNNRoom struct {
 	TargetResults map[string]int `json:"-"` // 记录每个玩家本局被分配的目标分数 (牛几)
 	TotalBet      int64          `json:"-"` // 本局总下注额，用于更新库存
 	Config        LobbyConfig    `json:"-"` // 房间配置
+	driverGo chan struct{} `json:"-"`
 }
 
 func (r *QZNNRoom) reset() {

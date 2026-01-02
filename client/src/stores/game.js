@@ -557,7 +557,9 @@ export const useGameStore = defineStore('game', () => {
     const enterStateBanking = () => {
         stopAllTimers();
         currentPhase.value = 'ROB_BANKER';
-        startRobTimer();
+        startCountdown(5, () => {
+            checkAllRobbed();
+        });
     };
 
     const enterStateRandomBank = () => {

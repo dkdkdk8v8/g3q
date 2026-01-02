@@ -2,11 +2,16 @@ package mainClient
 
 import (
 	"compoment/ws"
+	"context"
 	"encoding/json"
+	"errors"
 	"service/comm"
+	"service/initMain"
 	"service/mainClient/game"
 	"service/mainClient/game/nn"
 	"service/modelClient"
+	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -15,17 +20,39 @@ import (
 )
 
 var (
-	pingCount int64
+	pingCount         int64
+	wsConnectMapMutex sync.RWMutex
+	wsConnectMap      = make(map[string]*ws.WsConnWrap, 2000)
 )
 
 func init() {
 	go func() {
-		ticker := time.NewTicker(10 * time.Second)
+		ticker := time.NewTicker(60 * time.Second)
 		defer ticker.Stop()
 		for range ticker.C {
 			c := atomic.SwapInt64(&pingCount, 0)
 			if c > 0 {
-				logrus.WithField("count", c).Info("WS-Ping-Statistics-10s")
+				logrus.WithField("avg5s", int(pingCount/12)).Info("WS-Ping-Statistics")
+			}
+			//clean wsConnectMap if ws is nil
+			var delConnect []string
+			wsConnectMapMutex.RLock()
+			for uId, ws := range wsConnectMap {
+				if ws == nil {
+					delConnect = append(delConnect, uId)
+				}
+			}
+			wsConnectMapMutex.RUnlock()
+			if len(delConnect) > 0 {
+				for _, delUid := range delConnect {
+					wsConnectMapMutex.Lock()
+					if reGetWs, ok := wsConnectMap[delUid]; ok {
+						if reGetWs == nil {
+							delete(wsConnectMap, delUid)
+						}
+					}
+					wsConnectMapMutex.Unlock()
+				}
 			}
 		}
 	}()
@@ -59,44 +86,102 @@ func WSEntry(c *gin.Context) {
 	// 		userId = t.ID
 	// 	}
 	// }
-
 	// 1.5 查询数据库校验用户是否存在，不存在则自动注册
-	user, err := modelClient.GetOrCreateUser(appId, appUserId)
-	if err != nil {
-		logrus.WithError(err).WithField("appUserId", appUserId).Error("WS-GetOrCreateUser-Fail")
-		return
+	// user, err := modelClient.GetOrCreateUser(appId, appUserId)
+	// if err != nil {
+	// 	logrus.WithError(err).WithField("appUserId", appUserId).Error("WS-GetOrCreateUser-Fail")
+	// 	return
+	// }
+	logrus.WithField("appId", appId).WithField("appUserId", appUserId).Info("WS-Client-Connected")
+
+	connWrap := &ws.WsConnWrap{WsConn: conn}
+	userId := appId + appUserId
+	wsConnectMapMutex.Lock()
+	if existWsWrap, ok := wsConnectMap[userId]; ok {
+		existWsWrap.WsConn.WriteJSON(comm.Response{Cmd: CmdOtherConnect, Msg: "其他设备登录"})
+		existWsWrap.WsConn.CloseNormal("handler exit")
+		existWsWrap.WsConn = conn
+		connWrap = existWsWrap
+		logrus.WithField("appId", appId).WithField("appUserId", appUserId).Info("WS-Client-KickOffConnect")
+	} else {
+		wsConnectMap[userId] = connWrap
 	}
-	userId := user.UserId
-	logrus.WithField("uid", userId).Info("WS-Client-Connected")
+	wsConnectMapMutex.Unlock()
 
 	// 2. 进入消息处理循环
-	handleConnection(conn, userId)
+	handleConnection(connWrap, appId, appUserId)
 }
 
-func handleConnection(conn *ws.WSConn, userId string) {
+func handleConnection(connWrap *ws.WsConnWrap, appId, appUserId string) {
+	userId := appId + appUserId
+	var doOnce sync.Once
 	for {
-		var msg comm.Message
-		// 读取客户端发来的 JSON 消息
-		err := conn.ReadJSON(&msg)
-		if err != nil {
-			// 如果是连接关闭，则退出循环
-			logrus.WithField("uid", userId).WithError(err).Info("WS-Client-Disconnected")
-			break
-		}
 
+		doOnce.Do(func() {
+			//check 是否在游戏内
+			room := game.GetMgr().GetPlayerRoom(userId)
+			if room != nil {
+				room.ReconnectEnterRoom(userId)
+			}
+		})
+
+		var msg comm.Message
+		var err error
+		// 读取客户端发来的 JSON 消息
+		if initMain.DefCtx.IsDebug {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+			_, buffer, err1 := connWrap.WsConn.Conn.Read(ctx)
+			cancel() // 显式调用 cancel，避免在 for 循环中 defer 导致资源泄露
+			if err1 != nil {
+				connWrap.WsConn = nil
+				logWSCloseErr(userId, err1)
+				break
+			}
+			err = json.Unmarshal(buffer, &msg)
+			if err != nil {
+				wsConnectMapMutex.Lock()
+				connWrap.WsConn = nil
+				wsConnectMapMutex.Unlock()
+				logrus.WithField("uid", userId).WithField("buffer", string(buffer)).WithError(err).Info("WS-Client-JsonInvalid")
+				break
+			}
+		} else {
+			err = connWrap.WsConn.ReadJSON(&msg)
+			if err != nil {
+				logWSCloseErr(userId, err)
+				wsConnectMapMutex.Lock()
+				connWrap.WsConn = nil
+				wsConnectMapMutex.Unlock()
+				break
+			}
+		}
 		// 3. 路由分发 (Dispatcher)
-		dispatch(conn, userId, &msg)
+		dispatch(connWrap, appId, appUserId, &msg)
 	}
 }
 
-func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
-	if msg.Cmd == "sys.ping" {
+func logWSCloseErr(userId string, err error) {
+	errStr := err.Error()
+	if strings.Contains(errStr, "StatusGoingAway") {
+		logrus.WithField("uid", userId).Info("WS-Client-GoingAway") // 浏览器刷新或关闭标签页
+	} else if strings.Contains(errStr, "StatusNormalClosure") {
+		logrus.WithField("uid", userId).Info("WS-Client-Closed-Normal") // 正常关闭
+	} else if strings.Contains(errStr, "context deadline exceeded") {
+		logrus.WithField("uid", userId).Info("WS-Read-Timeout") // 读取超时
+	} else {
+		logrus.WithField("uid", userId).WithError(err).Info("WS-Client-Disconnected")
+	}
+}
+
+func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, msg *comm.Message) {
+	userId := appId + appUserId
+	if msg.Cmd == CmdPingPong {
 		atomic.AddInt64(&pingCount, 1)
 	} else {
 		logrus.WithFields(logrus.Fields{
 			"cmd": msg.Cmd,
 			"uid": userId,
-		}).Info("WS-Receive-Message")
+		}).Info("WS-Recv-Msg")
 	}
 
 	// 检查全局维护状态（实际应从 Redis 或配置中心读取）
@@ -107,8 +192,30 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 	//     })
 	//     return
 	// }
+	var rsp = comm.Response{
+		Cmd: msg.Cmd,
+		Seq: msg.Seq,
+	}
+	var errRsp error
+	defer func() {
+		if errRsp != nil {
+			rsp.Code = -1
+			rsp.Msg = errRsp.Error()
+		}
+		if initMain.DefCtx.IsDebug {
+			if rsp.Cmd != CmdPingPong {
+				logrus.WithField(
+					"uid", userId).WithField(
+					"msg", rsp.Cmd).WithField(
+					"code", rsp.Cmd).Info("Ws-Send-Msg")
+			}
+		}
+		connWrap.WsConn.WriteJSON(rsp)
+	}()
 
 	switch msg.Cmd {
+	case CmdPingPong: // 心跳处理
+		//auto replay by defer
 	case nn.CmdPlayerJoin: // 抢庄牛牛进入
 		var req struct {
 			Level      int
@@ -118,40 +225,51 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 		req.Level = 1
 		req.BankerType = -1 // 默认值，用于检测客户端是否传递
 
-		if err := json.Unmarshal(msg.Data, &req); err == nil {
-			if req.Level <= 0 {
-				req.Level = 1
-			}
+		if err := json.Unmarshal(msg.Data, &req); err != nil {
+			errRsp = errors.New("客户端参数有误")
+			return
+		}
+		if req.Level <= 0 {
+			req.Level = 1
 		}
 
 		cfg := nn.GetConfig(req.Level)
 		if cfg == nil {
-			conn.WriteJSON(comm.Response{Cmd: msg.Cmd, Seq: msg.Seq, Code: -1, Msg: "无效的房间类型"})
+			errRsp = errors.New("无效的房间类型")
 			return
 		}
 
 		// 如果客户端未传 BankerType 或者 传入错误的值都是用配置默认值
-		if req.BankerType != nn.BankerTypeNoLook && req.BankerType != nn.BankerTypeLook3 && req.BankerType != nn.BankerTypeLook4 {
-			conn.WriteJSON(comm.Response{Cmd: msg.Cmd, Seq: msg.Seq, Code: -1, Msg: "无效的抢庄类型"})
+		if req.BankerType != nn.BankerTypeNoLook &&
+			req.BankerType != nn.BankerTypeLook3 &&
+			req.BankerType != nn.BankerTypeLook4 {
+			errRsp = errors.New("无效的抢庄类型")
+			return
 		}
 
 		// 检查余额
-		user, err := modelClient.GetUserByUserId(userId)
+		user, err := modelClient.GetOrCreateUser(appId, appUserId)
 		if err != nil {
-			conn.WriteJSON(comm.Response{Cmd: msg.Cmd, Seq: msg.Seq, Code: -1, Msg: "获取用户信息失败"})
+			errRsp = errors.New("获取用户信息失败")
 			return
 		}
 		if user.Balance < cfg.MinBalance {
-			conn.WriteJSON(comm.Response{Cmd: msg.Cmd, Seq: msg.Seq, Code: -1, Msg: "余额不足！"})
+			errRsp = errors.New("余额不足！")
 			return
 		}
 
 		// 处理抢庄牛牛匹配逻辑
 		p := &nn.Player{
-			ID:      userId,
-			Conn:    conn,
-			IsRobot: false,
-			Balance: user.Balance,
+			ID:       userId,
+			ConnWrap: connWrap,
+			IsRobot:  false,
+			Balance:  user.Balance,
+			NickName: func() string {
+				if user.NickName == "" {
+					return user.UserId
+				}
+				return user.NickName
+			}(),
 		}
 
 		roomConfig := *cfg
@@ -159,32 +277,31 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 
 		room, err := game.GetMgr().JoinOrCreateNNRoom(p, &roomConfig)
 		if err != nil {
-			conn.WriteJSON(comm.Response{Cmd: msg.Cmd, Seq: msg.Seq, Code: -1, Msg: err.Error()})
+			errRsp = err
 			return
 		}
-
 		// 成功加入，通知客户端房间信息
-		conn.WriteJSON(comm.Response{
-			Cmd: msg.Cmd,
-			Seq: msg.Seq,
-			Data: gin.H{
-				"Room": room,
-			},
-		})
-
-	case nn.CmdPlayerReady: // 房间准备
+		rsp.Data = gin.H{
+			"Room": room,
+		}
+	case nn.CmdPlayerLeave:
 		var req struct {
 			RoomId string
 		}
 		if err := json.Unmarshal(msg.Data, &req); err == nil {
 			if room := game.GetMgr().GetRoomByRoomId(req.RoomId); room != nil {
-				nn.HandlePlayerReady(room, userId)
+				nn.HandlerPlayerLeave(room, userId)
 			}
 		}
-		conn.WriteJSON(comm.Response{
-			Cmd: msg.Cmd,
-			Seq: msg.Seq,
-		})
+	// case nn.CmdPlayerReady: // 房间准备
+	// 	var req struct {
+	// 		RoomId string
+	// 	}
+	// 	if err := json.Unmarshal(msg.Data, &req); err == nil {
+	// 		if room := game.GetMgr().GetRoomByRoomId(req.RoomId); room != nil {
+	// 			nn.HandlePlayerReady(room, userId)
+	// 		}
+	// 	}
 
 	case nn.CmdPlayerCallBank: // 抢庄请求
 		var req struct {
@@ -196,10 +313,7 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 				nn.HandleCallBanker(room, userId, req.Mult)
 			}
 		}
-		conn.WriteJSON(comm.Response{
-			Cmd: msg.Cmd,
-			Seq: msg.Seq,
-		})
+
 	case nn.CmdPlayerPlaceBet: // 下注请求
 		var req struct {
 			RoomId string
@@ -210,10 +324,7 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 				nn.HandlePlaceBet(room, userId, req.Mult)
 			}
 		}
-		conn.WriteJSON(comm.Response{
-			Cmd: msg.Cmd,
-			Seq: msg.Seq,
-		})
+
 	case nn.CmdPlayerShowCard: // 亮牌请求
 		var req struct {
 			RoomId string
@@ -222,50 +333,31 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 			nn.HandleShowCards(room, userId)
 		}
 
-	case CmdPing: // 心跳处理
-		conn.WriteJSON(comm.Response{
-			Cmd: CmdPong,
-			Seq: msg.Seq,
-		})
-
 	case nn.CmdUserInfo: // 用户信息请求
 		user, err := modelClient.GetUserByUserId(userId)
 		if err != nil {
-			conn.WriteJSON(comm.Response{Cmd: msg.Cmd, Seq: msg.Seq, Code: -1, Msg: "获取用户信息失败"})
+			errRsp = errors.New("获取用户信息失败")
 			return
 		}
 		nickName := user.NickName
 		if nickName == "" {
 			nickName = user.UserId
 		}
-		conn.WriteJSON(comm.Response{
-			Cmd: msg.Cmd,
-			Seq: msg.Seq,
-			Data: gin.H{
-				"UserId":   user.UserId,
-				"Balance":  user.Balance,
-				"NickName": nickName,
-				"Avatar":   user.Avatar,
-			},
-		})
+
+		rsp.Data = gin.H{
+			"UserId":   user.UserId,
+			"Balance":  user.Balance,
+			"NickName": nickName,
+			"Avatar":   user.Avatar,
+		}
 
 	case nn.CmdLobbyConfig: // 大厅配置请求
-		conn.WriteJSON(comm.Response{
-			Cmd: msg.Cmd,
-			Seq: msg.Seq,
-			Data: gin.H{
-				"LobbyConfigs": nn.Configs,
-			},
-		})
+		rsp.Data = gin.H{
+			"LobbyConfigs": nn.Configs,
+		}
 
 	default:
-		// 返回未知命令错误
-		conn.WriteJSON(comm.Response{
-			Cmd:  msg.Cmd,
-			Seq:  msg.Seq,
-			Code: -1,
-			Msg:  "Unknown Command",
-		})
+		errRsp = errors.New("Unknown Command")
 	}
 }
 

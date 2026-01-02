@@ -8,28 +8,30 @@ import (
 
 const QZNN_Prefix = "QZNN."
 const (
-	StateWaiting       = QZNN_Prefix + "StateWaiting"       //房间等待中
-	StatePrepare       = QZNN_Prefix + "StatePrepare"       //房间倒计时中，马上开始
-	StatePreCard       = QZNN_Prefix + "StatePreCard"       //预先发牌
-	StateBanking       = QZNN_Prefix + "StateBanking"       //抢庄中
-	StateRandomBank    = QZNN_Prefix + "StateRandomBank"    //随机抢庄
-	StateBankerConfirm = QZNN_Prefix + "StateBankerConfirm" //庄家确认
-	StateBetting       = QZNN_Prefix + "StateBetting"       //非庄家下注
-	StateDealing       = QZNN_Prefix + "StateDealing"       //发牌或补牌
-	StateShowCard      = QZNN_Prefix + "StateShowCard"      //展示牌
-	StateSettling      = QZNN_Prefix + "StateSettling"      //结算中
+	StateWaiting               = QZNN_Prefix + "StateWaiting"               //房间等待中
+	StatePrepare               = QZNN_Prefix + "StatePrepare"               //房间倒计时中，马上开始
+	StatePreCard               = QZNN_Prefix + "StatePreCard"               //预先发牌
+	StateBanking               = QZNN_Prefix + "StateBanking"               //抢庄中
+	StateRandomBank            = QZNN_Prefix + "StateRandomBank"            //随机抢庄
+	StateBankerConfirm         = QZNN_Prefix + "StateBankerConfirm"         //庄家确认
+	StateBetting               = QZNN_Prefix + "StateBetting"               //非庄家下注
+	StateDealing               = QZNN_Prefix + "StateDealing"               //发牌或补牌
+	StateShowCard              = QZNN_Prefix + "StateShowCard"              //展示牌
+	StateSettling              = QZNN_Prefix + "StateSettling"              //结算中
+	StateSettlingDirectPreCard = QZNN_Prefix + "StateSettlingDirectPreCard" //结算中，开始倒计时发牌（5人不离开，直接下一场）
 )
 
 const (
-	CmdUserInfo       = QZNN_Prefix + "UserInfo"
-	CmdLobbyConfig    = QZNN_Prefix + "LobbyConfig"
-	CmdPlayerJoin     = QZNN_Prefix + "PlayerJoin"
-	CmdPlayerLeave    = QZNN_Prefix + "PlayerLeave"
-	CmdPlayerReady    = QZNN_Prefix + "PlayerReady"
-	CmdPlayerCallBank = QZNN_Prefix + "PlayerCallBank"
-	CmdPlayerPlaceBet = QZNN_Prefix + "PlayerPlaceBet"
-	CmdPlayerShowCard = QZNN_Prefix + "PlayerShowCard"
-	CmdBalanceChange  = QZNN_Prefix + "BalanceChange"
+	CmdUserInfo    = QZNN_Prefix + "UserInfo"
+	CmdLobbyConfig = QZNN_Prefix + "LobbyConfig"
+	CmdPlayerJoin  = QZNN_Prefix + "PlayerJoin"
+	CmdPlayerLeave = QZNN_Prefix + "PlayerLeave"
+	//CmdPlayerReady    = QZNN_Prefix + "PlayerReady"
+	CmdPlayerCallBank     = QZNN_Prefix + "PlayerCallBank"
+	CmdPlayerPlaceBet     = QZNN_Prefix + "PlayerPlaceBet"
+	CmdPlayerShowCard     = QZNN_Prefix + "PlayerShowCard"
+	CmdBalanceChange      = QZNN_Prefix + "BalanceChange"
+	CmdReconnectEnterRoom = QZNN_Prefix + "ReconnectEnterRoom"
 )
 
 const (
@@ -49,16 +51,19 @@ type CardResult struct {
 // Player 代表房间内的一个玩家
 type Player struct {
 	ID       string
-	Balance  int64      // 玩家余额,单位分
-	Cards    []int      // 手牌 (0-51)
-	CallMult int64      // 抢庄倍数
-	BetMult  int64      // 下注倍数
-	IsShow   bool       // 是否已亮牌
-	SeatNum  int        // 座位号
-	IsReady  bool       // 是否已准备
-	IsRobot  bool       `json:"-"`
-	Mu       sync.Mutex `json:"-"`
-	Conn     *ws.WSConn `json:"-"` // WebSocket 连接
+	NickName string
+	Balance  int64 // 玩家余额,单位分
+	Cards    []int // 手牌 (0-51)
+	CallMult int64 // 抢庄倍数
+	BetMult  int64 // 下注倍数
+	IsShow   bool  // 是否已亮牌
+	SeatNum  int   // 座位号
+	//IsReady       bool       // 是否已准备
+	IsOb          bool           // 是否观众
+	BalanceChange int64          // 本局输赢
+	IsRobot       bool           `json:"-"`
+	Mu            sync.Mutex     `json:"-"`
+	ConnWrap      *ws.WsConnWrap `json:"-"` // WebSocket 连接
 }
 
 func (p *Player) GetClientPlayer(cardNum int, secret bool) *Player {
@@ -69,10 +74,13 @@ func (p *Player) GetClientPlayer(cardNum int, secret bool) *Player {
 		BetMult:  p.BetMult,
 		IsShow:   p.IsShow,
 		SeatNum:  p.SeatNum,
-		IsReady:  p.IsReady,
+		//IsReady:  p.IsReady,
 	}
+
 	if cardNum != 0 {
-		n.Cards = p.Cards[:cardNum]
+		if len(p.Cards) > cardNum {
+			n.Cards = p.Cards[:cardNum]
+		}
 	} else if cardNum == 0 {
 		n.Cards = nil
 	} else {
@@ -101,6 +109,8 @@ type LobbyConfig struct {
 	MinBalance int64  // 最低入场金额
 	BaseBet    int64  // 底注
 	BankerType int    // 抢庄类型
+	BankerMult []int64
+	BetMult    []int64
 }
 
 func (cfg *LobbyConfig) GetPreCard() int {
@@ -123,6 +133,7 @@ type QZNNRoom struct {
 	StateLeftSec  int
 	BankerID      string
 	Players       []*Player
+	Config        LobbyConfig    // 房间配置
 	StateMu       sync.RWMutex   `json:"-"` // 保护 State, Timer
 	Ticker        *time.Ticker   `json:"-"` // 倒计时定时器
 	Mu            sync.Mutex     `json:"-"` // 保护房间数据并发安全
@@ -130,10 +141,9 @@ type QZNNRoom struct {
 	Deck          []int          `json:"-"` // 牌堆
 	TargetResults map[string]int `json:"-"` // 记录每个玩家本局被分配的目标分数 (牛几)
 	TotalBet      int64          `json:"-"` // 本局总下注额，用于更新库存
-	Config        LobbyConfig    `json:"-"` // 房间配置
 	driverGo      chan struct{}  `json:"-"`
 	CreateAt      time.Time
-	OnBotJoin     func(room *QZNNRoom) `json:"-"`
+	OnBotAction   func(room *QZNNRoom) `json:"-"`
 }
 
 func (r *QZNNRoom) reset() {

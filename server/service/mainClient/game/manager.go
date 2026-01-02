@@ -68,7 +68,8 @@ func (rm *RoomManager) JoinOrCreateNNRoom(player *nn.Player, config *nn.LobbyCon
 	}
 
 	for _, room := range rm.QZNNRooms {
-		if len(room.Players) < room.GetPlayerCap() {
+		playerNum := room.GetPlayerCount()
+		if playerNum < room.GetPlayerCap() {
 			if _, err := room.AddPlayer(player); err != nil {
 				return nil, err
 			}
@@ -82,7 +83,7 @@ func (rm *RoomManager) JoinOrCreateNNRoom(player *nn.Player, config *nn.LobbyCon
 		newRoom.Config = *config
 	}
 	newRoom.AddPlayer(player)
-	newRoom.OnBotJoin = RobotEnterRoom
+	newRoom.OnBotAction = RobotForQZNNRoom
 	rm.QZNNRooms[roomID] = newRoom
 
 	return newRoom, nil

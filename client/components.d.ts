@@ -13,6 +13,7 @@ declare module 'vue' {
     GlobalLoading: typeof import('./src/components/GlobalLoading.vue')['default']
     PlayerSeat: typeof import('./src/components/PlayerSeat.vue')['default']
     PokerCard: typeof import('./src/components/PokerCard.vue')['default']
+    ReconnectDialog: typeof import('./src/components/ReconnectDialog.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     VanIcon: typeof import('vant/es')['Icon']

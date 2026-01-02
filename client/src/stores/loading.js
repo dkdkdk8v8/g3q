@@ -7,10 +7,12 @@ export const useLoadingStore = defineStore('loading', {
     _timeoutId: null, // For 10s auto-hide
     _minDisplayTimeoutId: null, // For 500ms delay
     _requestCount: 0, // To handle multiple concurrent requests
+    _showReconnectDialog: false, // New state for reconnect dialog
   }),
   getters: {
     isLoading: (state) => state._isLoading,
-    loadingText: (state) => state._loadingText, // Modified getter
+    loadingText: (state) => state._loadingText, 
+    showReconnectDialog: (state) => state._showReconnectDialog, // Getter for dialog
   },
   actions: {
     startLoading() {
@@ -57,5 +59,11 @@ export const useLoadingStore = defineStore('loading', {
     setLoadingText(text) {
       this._loadingText = text;
     },
+    showReconnectModal() {
+      this._showReconnectDialog = true;
+    },
+    hideReconnectModal() {
+      this._showReconnectDialog = false;
+    }
   },
 });

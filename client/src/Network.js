@@ -61,6 +61,11 @@ export default class GameClient {
             this.isConnected = true;
             this.reconnectAttempts = 0;
             this._startHeartbeat();
+            
+            // Reconnected successfully, hide loading
+            const loadingStore = useLoadingStore();
+            loadingStore.forceHideLoading();
+            
             if (this.onConnect) this.onConnect();
         };
 
@@ -91,10 +96,18 @@ export default class GameClient {
     }
 
     _tryReconnect() {
+        const loadingStore = useLoadingStore();
+
         if (this.reconnectAttempts >= CONFIG.RECONNECT_MAX_ATTEMPTS) {
             console.log("[Network] Max reconnect attempts reached. Giving up.");
+            loadingStore.forceHideLoading();
+            loadingStore.showReconnectModal();
             return;
         }
+
+        // Show loading during reconnection attempts
+        loadingStore.setLoadingText("与服务器重连中...");
+        loadingStore.startLoading();
 
         this.reconnectAttempts++;
         console.log(`[Network] Reconnecting in ${CONFIG.RECONNECT_DELAY}ms... (${this.reconnectAttempts}/${CONFIG.RECONNECT_MAX_ATTEMPTS})`);
@@ -103,6 +116,14 @@ export default class GameClient {
         this.reconnectTimer = setTimeout(() => {
             this._initWebSocket();
         }, CONFIG.RECONNECT_DELAY);
+    }
+    
+    retryConnection() {
+        this.reconnectAttempts = 0;
+        const loadingStore = useLoadingStore();
+        loadingStore.setLoadingText("与服务器重连中...");
+        loadingStore.startLoading();
+        this._initWebSocket();
     }
 
     _startHeartbeat() {

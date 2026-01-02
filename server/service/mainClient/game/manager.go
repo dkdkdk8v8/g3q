@@ -30,6 +30,12 @@ func GetMgr() *RoomManager {
 	return DefaultMgr
 }
 
+
+func WaitOrPrepareRoomCall(roomId string) {
+	
+}
+
+
 func (rm *RoomManager) SetDrainMode(enable bool) {
 	rm.mu.Lock()
 	defer rm.mu.Unlock()
@@ -82,6 +88,7 @@ func (rm *RoomManager) JoinOrCreateNNRoom(player *nn.Player, config *nn.LobbyCon
 		newRoom.Config = *config
 	}
 	newRoom.AddPlayer(player)
+	newRoom.OnBotMgr = WaitOrPrepareRoomCall
 	rm.QZNNRooms[roomID] = newRoom
 
 	return newRoom, nil

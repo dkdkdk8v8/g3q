@@ -4,7 +4,7 @@ import { useGameStore } from '../stores/game.js';
 import PlayerSeat from '../components/PlayerSeat.vue';
 import CoinLayer from '../components/CoinLayer.vue';
 import DealingLayer from '../components/DealingLayer.vue'; 
-import ChatBubbleSelector from '../components/ChatBubbleSelector.vue'; // New import
+import ChatBubbleSelector from '../components/ChatBubbleSelector.vue'; 
 import { useRouter, useRoute } from 'vue-router';
 
 import talk0 from '@/assets/sounds/talk_0.mp3';
@@ -41,11 +41,11 @@ const tableCenterRef = ref(null); // 桌面中心元素引用
 const bgAudio = ref(null);
 
 // Chat/Emoji selector state
-const showChatSelector = ref(false); // New reactive variable
-const playerSpeech = ref(new Map()); // Maps playerId to { type: 'text' | 'emoji', content: string }
+const showChatSelector = ref(false); 
+const playerSpeech = ref(new Map()); 
 
 // Cooldown mechanism
-const lastSpeechTime = ref(0); // Timestamp of last speech/emoji, 0 initially
+const lastSpeechTime = ref(0); 
 const SPEECH_COOLDOWN_SECONDS = 3;
 const cooldownMessage = ref('');
 const showToast = ref(false);
@@ -57,38 +57,32 @@ const checkCooldown = () => {
         showToast.value = true;
         setTimeout(() => {
             showToast.value = false;
-        }, 2000); // Hide toast after 2 seconds
+        }, 2000); 
         return false;
     }
     lastSpeechTime.value = currentTime;
     return true;
 };
 
-// Method to handle phrase selection from ChatBubbleSelector
-const onPhraseSelected = (phrase, index) => { // Added index parameter
+const onPhraseSelected = (phrase, index) => { 
     if (!checkCooldown()) {
         return;
     }
-    playPhraseSound(index); // Play sound here
-    // For now, let's assume it's for 'me'
+    playPhraseSound(index); 
     playerSpeech.value.set(store.myPlayerId, { type: 'text', content: phrase });
-    // Make speech visible and auto-clear after 3 seconds
     setTimeout(() => {
         playerSpeech.value.delete(store.myPlayerId);
-    }, 3000); // Display for 3 seconds
+    }, 3000); 
 };
 
-// Method to handle emoji selection from ChatBubbleSelector
 const onEmojiSelected = (emojiUrl) => {
     if (!checkCooldown()) {
         return;
     }
-    // For now, let's assume it's for 'me'
     playerSpeech.value.set(store.myPlayerId, { type: 'emoji', content: emojiUrl });
-    // Make speech visible and auto-clear after 3 seconds
     setTimeout(() => {
         playerSpeech.value.delete(store.myPlayerId);
-    }, 3000); // Display for 3 seconds
+    }, 3000); 
 };
 
 // Banker selection animation state
@@ -98,13 +92,11 @@ let candidateIndex = 0;
 
 // Robot Speech/Emoji Logic
 const robotSpeechInterval = ref(null);
-const lastRobotSpeechTime = ref(new Map()); // Map<playerId, timestamp>
-const ROBOT_SPEECH_PROBABILITY = 0.2; // 20% chance every check
-const ROBOT_SPEECH_CHECK_INTERVAL_SECONDS = 5; // Check every 5 seconds
-const ROBOT_SPEECH_COOLDOWN_SECONDS = 15; // Cooldown for individual robot
+const lastRobotSpeechTime = ref(new Map()); 
+const ROBOT_SPEECH_PROBABILITY = 0.2; 
+const ROBOT_SPEECH_CHECK_INTERVAL_SECONDS = 5; 
+const ROBOT_SPEECH_COOLDOWN_SECONDS = 15; 
 
-// Duplicate phraseSounds (already defined above)
-// Duplicate commonPhrases for robot use
 const commonPhrases = [
     "猜猜我是牛几呀",
     "风水轮流转，底裤都要输光了",
@@ -119,7 +111,6 @@ const commonPhrases = [
     "作孽啊"
 ];
 
-// Duplicate emoji imports for robot use
 import emoji1 from '@/assets/emoji/emoji_1.png';
 import emoji2 from '@/assets/emoji/emoji_2.png';
 import emoji3 from '@/assets/emoji/emoji_3.png';
@@ -144,62 +135,54 @@ const allEmojis = [
 
 const triggerRobotSpeech = (robotId, type, content) => {
     playerSpeech.value.set(robotId, { type, content });
-    // Force reactivity update
     playerSpeech.value = new Map(playerSpeech.value);
     
     lastRobotSpeechTime.value.set(robotId, Date.now());
     setTimeout(() => {
         playerSpeech.value.delete(robotId);
-        // Force reactivity update
         playerSpeech.value = new Map(playerSpeech.value);
-    }, 3000); // Display for 3 seconds
+    }, 3000); 
 };
 
 const startRobotSpeech = () => {
     robotSpeechInterval.value = setInterval(() => {
-        const currentPlayers = store.players; // Access players from the store
+        const currentPlayers = store.players; 
         if (!currentPlayers || currentPlayers.length <= 1) {
             return;
         }
 
         currentPlayers.forEach(p => {
-            if (p.id === store.myPlayerId) return; // Skip human player
+            if (p.id === store.myPlayerId) return; 
 
             const robotId = p.id;
             const now = Date.now();
             const lastSpoke = lastRobotSpeechTime.value.get(robotId) || 0;
 
             if (now - lastSpoke < ROBOT_SPEECH_COOLDOWN_SECONDS * 1000) {
-                return; // Robot is on cooldown
+                return; 
             }
 
             if (Math.random() < ROBOT_SPEECH_PROBABILITY) {
-                // Robot decides to speak
                 if (Math.random() < 0.5) {
-                    // Send phrase
                     const randomIndex = Math.floor(Math.random() * commonPhrases.length);
                     const phrase = commonPhrases[randomIndex];
-                    playPhraseSound(randomIndex); // Play sound for robot
+                    playPhraseSound(randomIndex); 
                     triggerRobotSpeech(robotId, 'text', phrase);
                 } else {
-                    // Send emoji
                     const randomIndex = Math.floor(Math.random() * allEmojis.length);
                     const emojiUrl = allEmojis[randomIndex];
                     triggerRobotSpeech(robotId, 'emoji', emojiUrl);
                 }
             }
         });
-    }, ROBOT_SPEECH_CHECK_INTERVAL_SECONDS * 1000); // <-- This is 5 seconds
+    }, ROBOT_SPEECH_CHECK_INTERVAL_SECONDS * 1000); 
 };
 
-// 菜单和弹窗控制
 const showMenu = ref(false);
 const showHistory = ref(false);
 
-// 控制每个玩家当前可见的手牌数量 (用于发牌动画)
 const visibleCounts = ref({});
 
-// 当前玩法模式名称
 const modeName = computed(() => {
     const m = parseInt(route.query.mode);
     if (m === 0) return '不看牌抢庄';
@@ -207,26 +190,21 @@ const modeName = computed(() => {
     return '看四张抢庄';
 });
 
-// 辅助函数：设置座位 Ref
 const setSeatRef = (el, playerId) => {
     if (el) {
         seatRefs.value[playerId] = el.$el || el; 
     }
 };
 
-// 简单的布局计算：将玩家数组拆分为 自己 和 其他人
 const myPlayer = computed(() => store.players.find(p => p.id === store.myPlayerId));
 
-// Persistent seat mapping: { playerId: seatIndex (0-3) }
 const seatMapping = ref({});
 
-// Watch for player changes to assign seats randomly
 watch(() => store.players, (newPlayers) => {
     if (!newPlayers) return;
 
     const others = newPlayers.filter(p => p.id !== store.myPlayerId);
     
-    // 1. Clean up mapping for players who left
     const currentIds = new Set(others.map(p => p.id));
     for (const pid in seatMapping.value) {
         if (!currentIds.has(pid)) {
@@ -234,32 +212,25 @@ watch(() => store.players, (newPlayers) => {
         }
     }
 
-    // 2. Assign seats for new players
     others.forEach(p => {
         if (seatMapping.value[p.id] === undefined) {
-            // Find used seats
             const usedSeats = new Set(Object.values(seatMapping.value));
-            // Find available seats (0, 1, 2, 3)
             const availableSeats = [0, 1, 2, 3].filter(i => !usedSeats.has(i));
             
             if (availableSeats.length > 0) {
-                // Pick a random available seat
                 const randomIndex = Math.floor(Math.random() * availableSeats.length);
                 seatMapping.value[p.id] = availableSeats[randomIndex];
             } else {
-                // Fallback (should not happen in 5-player max game): assign first slot or handle gracefully
                 console.warn('No seats available for player', p.id);
             }
         }
     });
 }, { deep: true, immediate: true });
 
-// 固定4个对手座位槽位 (右, 右上, 左上, 左)
 const opponentSeats = computed(() => {
     const seats = [null, null, null, null];
     const meIndex = store.players.findIndex(p => p.id === store.myPlayerId);
     
-    // 如果还没找到自己(理论上不应该)，直接返回空
     if (meIndex === -1) return seats;
 
     const others = store.players.filter(p => p.id !== store.myPlayerId);
@@ -274,16 +245,14 @@ const opponentSeats = computed(() => {
     return seats;
 });
 
-// 计算对手的位置布局类型 (固定映射)
 const getLayoutType = (index) => {
-    if (index === 0) return 'right';      // 右侧
-    if (index === 1) return 'top';        // 右上 (使用 top 布局，通过 class 微调位置)
-    if (index === 2) return 'top';        // 左上
-    if (index === 3) return 'left';       // 左侧
+    if (index === 0) return 'right';      
+    if (index === 1) return 'top';        
+    if (index === 2) return 'top';        
+    if (index === 3) return 'left';       
     return 'top';
 };
 
-// 计算对手的位置 Class (固定映射)
 const getOpponentClass = (index) => {
     if (index === 0) return 'seat-right';
     if (index === 1) return 'seat-right-top';
@@ -292,7 +261,6 @@ const getOpponentClass = (index) => {
     return '';
 };
 
-// 监听下注：玩家下注时，金币从玩家飞向中心
 const lastBetStates = ref({});
 
 watch(() => store.players.map(p => ({ id: p.id, bet: p.betMultiplier })), (newVals) => {
@@ -315,41 +283,36 @@ watch(() => store.players.map(p => ({ id: p.id, bet: p.betMultiplier })), (newVa
     });
 }, { deep: true });
 
-// 监听游戏阶段，触发发牌动画及结算动画
 watch(() => store.currentPhase, async (newPhase, oldPhase) => {
     if (newPhase === 'IDLE' || newPhase === 'GAME_OVER') {
         visibleCounts.value = {};
         lastBetStates.value = {};
     } else if (newPhase === 'ROB_BANKER') {
-        // 确保状态清空 (防止直接从 GAME_OVER 跳过来时状态残留)
         visibleCounts.value = {};
         lastBetStates.value = {};
         
         setTimeout(() => {
              startDealingAnimation();
         }, 100);
-    } else if (newPhase === 'SHOWDOWN') {
+    } else if (newPhase === 'DEALING') { // Changed from SHOWDOWN to DEALING for animation
         setTimeout(() => {
              startDealingAnimation(true); 
         }, 100);
     } else if (newPhase === 'BANKER_SELECTION_ANIMATION') {
-        // Start sequential highlighting animation
-        const candidates = [...store.bankerCandidates]; // Get a copy
+        const candidates = [...store.bankerCandidates]; 
         if (candidates.length > 0) {
             candidateIndex = 0;
             currentlyHighlightedPlayerId.value = candidates[candidateIndex];
 
-            // Clear any existing interval
             if (animationIntervalId) clearInterval(animationIntervalId);
             
             animationIntervalId = setInterval(() => {
                 candidateIndex = (candidateIndex + 1) % candidates.length;
                 currentlyHighlightedPlayerId.value = candidates[candidateIndex];
-            }, 100); // Highlight every 100ms
+            }, 100); 
         }
     }
     
-    // Clear animation when phase changes from BANKER_SELECTION_ANIMATION
     if (oldPhase === 'BANKER_SELECTION_ANIMATION' && newPhase !== 'BANKER_SELECTION_ANIMATION') {
         if (animationIntervalId) {
             clearInterval(animationIntervalId);
@@ -360,7 +323,6 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
 
     
     if (newPhase === 'SETTLEMENT' && tableCenterRef.value && coinLayer.value) {
-        // 找到庄家位置
         const banker = store.players.find(p => p.isBanker);
         let bankerRect = null;
         if (banker) {
@@ -368,12 +330,10 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
             if (bankerEl) bankerRect = bankerEl.getBoundingClientRect();
         }
         
-        // 如果找不到庄家位置（理论上不应该），降级为使用中心点
         if (!bankerRect) {
             bankerRect = tableCenterRef.value.getBoundingClientRect();
         }
         
-        // 1. 输家 -> 庄家
         store.players.forEach(p => {
             if (!p.isBanker && p.roundScore < 0) {
                 const seatEl = seatRefs.value[p.id];
@@ -382,13 +342,11 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
                     let count = Math.ceil(Math.abs(p.roundScore) / 20);
                     if (count < 5) count = 5;
                     if (count > 20) count = 20;
-                    // 飞向庄家
                     coinLayer.value.throwCoins(seatRect, bankerRect, count);
                 }
             }
         });
 
-        // 2. 庄家 -> 赢家 (延迟执行)
         setTimeout(() => {
             store.players.forEach(p => {
                 if (!p.isBanker && p.roundScore > 0) {
@@ -398,16 +356,14 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
                         let count = Math.ceil(p.roundScore / 15);
                         if (count < 8) count = 8;
                         if (count > 30) count = 30;
-                        // 从庄家飞向赢家
                         coinLayer.value.throwCoins(bankerRect, seatRect, count);
                     }
                 }
             });
-        }, 1200); // 增加延迟，让第一波飞完
+        }, 1200); 
     }
 }, { immediate: true });
 
-// 执行发牌动画
 const startDealingAnimation = (isSupplemental = false) => {
     if (!dealingLayer.value) return;
 
@@ -422,17 +378,15 @@ const startDealingAnimation = (isSupplemental = false) => {
         if (toDeal > 0) {
             const seatEl = seatRefs.value[p.id];
             if (seatEl) {
-                // 尝试获取 .hand-area 元素以获得更准确的 Y 轴位置
                 const handArea = seatEl.querySelector('.hand-area');
                 const rect = handArea ? handArea.getBoundingClientRect() : seatEl.getBoundingClientRect();
                 
-                // 判断是否是自己
                 const isMe = p.id === store.myPlayerId;
                 
                 targets.push({
                     id: p.id,
-                    x: rect.left + rect.width / 2, // 区域中心 X
-                    y: rect.top + rect.height / 2, // 区域中心 Y
+                    x: rect.left + rect.width / 2, 
+                    y: rect.top + rect.height / 2, 
                     count: toDeal,
                     startIdx: currentVisible,
                     total: total,
@@ -444,14 +398,10 @@ const startDealingAnimation = (isSupplemental = false) => {
 
     if (targets.length === 0) return;
 
-    if (targets.length === 0) return;
-
-    // 对每个玩家执行发牌 (并发或稍微错开)
     targets.forEach((t, pIndex) => {
-        // 构建该玩家所有需要发的牌的位置信息
         const cardTargets = [];
-        const scale = t.isMe ? 1 : 0.85; // 引入缩放比例
-        const spacing = (t.isMe ? 40 : 20) * scale; // 调整间距
+        const scale = t.isMe ? 1 : 0.85; 
+        const spacing = (t.isMe ? 40 : 20) * scale; 
         const totalWidth = (t.total - 1) * spacing;
         const startX = t.x - (totalWidth / 2);
 
@@ -462,16 +412,13 @@ const startDealingAnimation = (isSupplemental = false) => {
                 x: targetX, 
                 y: t.y, 
                 isMe: t.isMe,
-                scale: scale, // 传递缩放比例
+                scale: scale, 
                 index: cardIndex
             });
         }
 
-        // 稍微错开不同玩家的发牌时间 (比如每人间隔 0.08s)
         setTimeout(() => {
             dealingLayer.value.dealToPlayer(cardTargets, () => {
-                // 回调：更新可见数量 (一次性加完，或者在 dealToPlayer 内部做更细致的回调)
-                // 这里为了简单，动画做完后更新计数
                 if (!visibleCounts.value[t.id]) visibleCounts.value[t.id] = 0;
                 visibleCounts.value[t.id] += t.count;
             }, isSupplemental && store.gameMode === 2);
@@ -483,9 +430,8 @@ onMounted(() => {
     const gameMode = route.query.mode !== undefined ? route.query.mode : 0;
     store.initGame(gameMode);
     
-    startRobotSpeech(); // Start robot speech when component mounts
+    startRobotSpeech(); 
     
-    // Play Background Music
     bgAudio.value = new Audio(gameBgSound);
     bgAudio.value.loop = true;
     bgAudio.value.volume = 0.5;
@@ -496,7 +442,6 @@ onUnmounted(() => {
     if (robotSpeechInterval.value) {
         clearInterval(robotSpeechInterval.value);
     }
-    // Stop Background Music
     if (bgAudio.value) {
         bgAudio.value.pause();
         bgAudio.value = null;
@@ -525,6 +470,21 @@ const quitGame = () => {
   <div class="game-table">
     <DealingLayer ref="dealingLayer" />
     <CoinLayer ref="coinLayer" />
+
+    <!-- Debug Control Panel -->
+    <div class="debug-panel">
+        <div class="debug-title">Manual Control</div>
+        <button @click="store.enterStateWaiting()">Waiting</button>
+        <button @click="store.enterStatePrepare()">Prepare</button>
+        <button @click="store.enterStatePreCard()">PreCard</button>
+        <button @click="store.enterStateBanking()">Banking</button>
+        <button @click="store.enterStateRandomBank()">RandBank</button>
+        <button @click="store.enterStateBankerConfirm()">Confirm</button>
+        <button @click="store.enterStateBetting()">Betting</button>
+        <button @click="store.enterStateDealing()">Dealing</button>
+        <button @click="store.enterStateShowCard()">ShowCard</button>
+        <button @click="store.enterStateSettling()">Settling</button>
+    </div>
     
     <!-- 顶部栏 -->
     <div class="top-bar">
@@ -600,6 +560,7 @@ const quitGame = () => {
 
         <!-- 选庄动画提示 -->
         <div v-if="store.currentPhase === 'BANKER_SELECTION_ANIMATION'" class="phase-info settlement-info">正在选庄...</div>
+        <div v-if="store.currentPhase === 'BANKER_CONFIRMED'" class="phase-info settlement-info">庄家已定</div>
 
         <!-- 仅当闹钟不显示时，显示结算中 -->
         <div v-if="store.currentPhase === 'SETTLEMENT' && store.countdown === 0" class="phase-info settlement-info">结算中...</div>
@@ -724,6 +685,38 @@ const quitGame = () => {
   flex-direction: column;
   overflow: hidden;
   font-family: system-ui, sans-serif;
+}
+
+/* Debug Panel */
+.debug-panel {
+    position: fixed;
+    top: 60px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 10px;
+    border-radius: 8px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+.debug-title {
+    color: #fff;
+    font-size: 12px;
+    margin-bottom: 5px;
+    text-align: center;
+}
+.debug-panel button {
+    font-size: 10px;
+    padding: 4px;
+    cursor: pointer;
+    background: #475569;
+    color: white;
+    border: 1px solid #64748b;
+    border-radius: 4px;
+}
+.debug-panel button:hover {
+    background: #64748b;
 }
 
 /* 菜单样式 */

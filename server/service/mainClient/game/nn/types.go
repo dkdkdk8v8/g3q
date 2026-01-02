@@ -6,9 +6,36 @@ import (
 	"time"
 )
 
+const QZNN_Prefix = "QZNN."
+const (
+	StateWaiting       = QZNN_Prefix + "StateWaiting"       //房间等待中
+	StatePrepare       = QZNN_Prefix + "StatePrepare"       //房间倒计时中，马上开始
+	StatePreCard       = QZNN_Prefix + "StatePreCard"       //预先发牌
+	StateBanking       = QZNN_Prefix + "StateBanking"       //抢庄中
+	StateRandomBank    = QZNN_Prefix + "StateRandomBank"    //随机抢庄
+	StateBankerConfirm = QZNN_Prefix + "StateBankerConfirm" //庄家确认
+	StateBetting       = QZNN_Prefix + "StateBetting"       //非庄家下注
+	StateDealing       = QZNN_Prefix + "StateDealing"       //发牌或补牌
+	StateShowCard      = QZNN_Prefix + "StateShowCard"      //展示牌
+	StateSettling      = QZNN_Prefix + "StateSettling"      //结算中
+)
+
+const (
+	PlayerCallBank = QZNN_Prefix + "PlayerCallBank"
+	PlayerPlaceBet = QZNN_Prefix + "PlayerPlaceBet"
+	PlayerShowCard = QZNN_Prefix + "PlayerShowCard"
+)
+
+const (
+	StateWaiting2StartSec = 6
+	StateCallingSec       = 10
+	StateBettingSec       = 10
+	StateDealingSec       = 5
+)
+
 // CardResult 牌型计算结果
 type CardResult struct {
-	Niu     int64   `json:"niu"`      // 0-10, 10为牛牛
+	Niu     int64 `json:"niu"`      // 0-10, 10为牛牛
 	Mult    int64 `json:"mult"`     // 牌型倍数
 	MaxCard int   `json:"max_card"` // 最大单牌，用于同牌型比大小
 }
@@ -16,13 +43,13 @@ type CardResult struct {
 // Player 代表房间内的一个玩家
 type Player struct {
 	ID       string
-	Balance  int64      `json:"balance"`   // 玩家余额,单位分
-	Cards    []int      `json:"cards"`     // 手牌 (0-51)
-	CallMult int64      `json:"call_mult"` // 抢庄倍数
-	BetMult  int64      `json:"bet_mult"`  // 下注倍数
-	IsShow   bool       `json:"is_show"`   // 是否已亮牌
-	SeatNum  int        `json:"seat_num"`  // 座位号
-	IsReady  bool       `json:"is_ready"`  // 是否已准备
+	Balance  int64      // 玩家余额,单位分
+	Cards    []int      // 手牌 (0-51)
+	CallMult int64      // 抢庄倍数
+	BetMult  int64      // 下注倍数
+	IsShow   bool       // 是否已亮牌
+	SeatNum  int        // 座位号
+	IsReady  bool       // 是否已准备
 	IsRobot  bool       `json:"-"`
 	Mu       sync.Mutex `json:"-"`
 	Conn     *ws.WSConn `json:"-"` // WebSocket 连接
@@ -63,11 +90,11 @@ func (p *Player) reset() {
 
 // LobbyConfig 大厅配置
 type LobbyConfig struct {
-	Level      int    `json:"level"`       // 房间等级ID
-	Name       string `json:"name"`        // 房间名称
-	MinBalance int64  `json:"min_balance"` // 最低入场金额
-	BaseBet    int64  `json:"base_bet"`    // 底注
-	BankerType int    `json:"-"`           // 抢庄类型
+	Level      int    // 房间等级ID
+	Name       string // 房间名称
+	MinBalance int64  // 最低入场金额
+	BaseBet    int64  // 底注
+	BankerType int    // 抢庄类型
 }
 
 func (cfg *LobbyConfig) GetPreCard() int {
@@ -85,11 +112,11 @@ func (cfg *LobbyConfig) GetPreCard() int {
 
 // Room 代表一个游戏房间
 type QZNNRoom struct {
-	ID            string         `json:"id"`
-	State         int            `json:"state"`
-	StateLeftSec  int            `json:"state_left_sec"`
-	BankerID      string         `json:"banker_id"`
-	Players       []*Player      `json:"players"`
+	ID            string
+	State         string
+	StateLeftSec  int
+	BankerID      string
+	Players       []*Player
 	StateMu       sync.RWMutex   `json:"-"` // 保护 State, Timer
 	Ticker        *time.Ticker   `json:"-"` // 倒计时定时器
 	Mu            sync.Mutex     `json:"-"` // 保护房间数据并发安全
@@ -98,11 +125,12 @@ type QZNNRoom struct {
 	TargetResults map[string]int `json:"-"` // 记录每个玩家本局被分配的目标分数 (牛几)
 	TotalBet      int64          `json:"-"` // 本局总下注额，用于更新库存
 	Config        LobbyConfig    `json:"-"` // 房间配置
-	driverGo chan struct{} `json:"-"`
+	driverGo      chan struct{}  `json:"-"`
+	CreateAt      time.Time
 }
 
 func (r *QZNNRoom) reset() {
-	r.State = 0
+	r.State = ""
 	r.StateLeftSec = 0
 	r.BankerID = ""
 	r.Deck = []int{}

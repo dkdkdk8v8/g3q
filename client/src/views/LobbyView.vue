@@ -1,14 +1,16 @@
 <script setup>
 import { useRouter } from 'vue-router';
-import { ref, computed, watch, onMounted, onUnmounted, onActivated } from 'vue'; // Added onActivated
+import { ref, computed, watch, onMounted, onUnmounted, onActivated, onDeactivated } from 'vue'; // Added onDeactivated
 import { useUserStore } from '../stores/user.js';
 import { useGameStore } from '../stores/game.js';
 import gameClient from '../socket.js';
 import defaultAvatar from '@/assets/common/icon_avatar.png'; // Import avatar directly
+import lobbyBgSound from '@/assets/sounds/lobby_bg.mp3'; // Import background music
 
 const router = useRouter();
 const userStore = useUserStore();
 const gameStore = useGameStore();
+const bgAudio = ref(null); // Background audio ref
 
 // 模拟用户信息 - map from store
 const userInfo = computed(() => {
@@ -31,8 +33,6 @@ watch(currentMode, (newVal) => {
 
 const enterGame = (level) => {
   // 传递房间等级(level)和玩法模式(mode)
-  console.log(`Preparing to enter room: Level ${level}, Mode ${currentMode.value}`);
-  
   // 发送匹配协议
   gameStore.joinRoom(level, currentMode.value);
 
@@ -65,6 +65,21 @@ const fetchData = () => {
     gameClient.send("nn.lobby_config");
 };
 
+const playMusic = () => {
+    if (!bgAudio.value) {
+        bgAudio.value = new Audio(lobbyBgSound);
+        bgAudio.value.loop = true;
+        bgAudio.value.volume = 0.5;
+    }
+    bgAudio.value.play().catch(() => {});
+};
+
+const stopMusic = () => {
+    if (bgAudio.value) {
+        bgAudio.value.pause();
+    }
+};
+
 onMounted(() => {
     // 注册消息监听
     gameClient.on('user.info', (msg) => {
@@ -80,14 +95,22 @@ onMounted(() => {
     });
 
     fetchData(); // Initial fetch when mounted
+    playMusic();
 });
 
 onActivated(() => {
     fetchData(); // Re-fetch data when activated (e.g., returning from game)
+    playMusic();
+});
+
+onDeactivated(() => {
+    stopMusic();
 });
 
 onUnmounted(() => {
     // 可选：移除监听，或者保留给其他页面复用（Network.js 是单例，handle会被覆盖）
+    stopMusic();
+    bgAudio.value = null;
 });
 </script>
 

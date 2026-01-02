@@ -46,8 +46,8 @@ const playAudio = (index) => {
 };
 
 const selectPhrase = (phrase, index) => {
-    playAudio(index);
-    emit('selectPhrase', phrase);
+    // playAudio(index); // Moved to GameView.vue
+    emit('selectPhrase', phrase, index); // Emit index for sound playback
     closeModal();
 };
 

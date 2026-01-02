@@ -98,6 +98,6 @@ func (rm *RoomManager) GetRoomCount() int {
 func (rm *RoomManager) GetAllRooms() string {
 	rm.mu.RLock()
 	defer rm.mu.RUnlock()
-	allRooms, _ := json.Marshal(rm.rooms)
+	allRooms, _ := json.Marshal(rm.QZNNRooms)
 	return string(allRooms)
 }

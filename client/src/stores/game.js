@@ -3,10 +3,12 @@ import { ref } from 'vue'
 import { createDeck, shuffle, calculateHandType } from '../utils/bullfight.js'
 import gameClient from '../socket.js'
 import defaultAvatar from '@/assets/common/icon_avatar.png'; // Use import for asset
+import { useUserStore } from './user.js';
 
 const DEFAULT_AVATAR = defaultAvatar;
 
 export const useGameStore = defineStore('game', () => {
+    const userStore = useUserStore();
     const currentPhase = ref('IDLE'); // IDLE, WAITING_FOR_PLAYERS, READY_COUNTDOWN, MATCHING, ROB_BANKER, BANKER_SELECTION_ANIMATION, BETTING, DEALING, SHOWDOWN, SETTLEMENT, PRE_DEAL, GAME_OVER
     const players = ref([]);
     const myPlayerId = ref('me'); // 模拟当前玩家ID
@@ -18,13 +20,9 @@ export const useGameStore = defineStore('game', () => {
     const history = ref([]); // 游戏记录
     const bankerCandidates = ref([]); // Store IDs of players who are candidates for banker
 
-    // Robot names pool
-    const ROBOT_NAMES = ['张三', '李四', '王五', '赵六', '钱七', '孙八', '周九', '吴十'];
-
     // Timers
     let timer = null;
     let transitionTimeout = null;
-    let botJoinTimeout = null;
 
     const stopTimer = () => {
         if (timer) clearInterval(timer);
@@ -37,15 +35,9 @@ export const useGameStore = defineStore('game', () => {
         transitionTimeout = null;
     };
 
-    const clearBotJoinTimeout = () => {
-        if (botJoinTimeout) clearTimeout(botJoinTimeout);
-        botJoinTimeout = null;
-    };
-
     const stopAllTimers = () => {
         stopTimer();
         clearTransitionTimeout();
-        clearBotJoinTimeout();
     };
 
     // 加入房间
@@ -54,22 +46,45 @@ export const useGameStore = defineStore('game', () => {
         gameClient.send('QZNN.PlayerJoin', { Level: level, BankerType: banker_type });
     };
 
+    const convertCard = (cardValue) => {
+        if (cardValue === -1) return null; // Back of card
+        
+        const suits = ['spade', 'heart', 'club', 'diamond'];
+        const rankIndex = Math.floor(cardValue / 4);
+        const suitIndex = cardValue % 4;
+        
+        const rank = rankIndex + 1;
+        const suit = suits[suitIndex];
+        
+        let label = rank.toString();
+        if (rank === 1) label = 'A';
+        if (rank === 11) label = 'J';
+        if (rank === 12) label = 'Q';
+        if (rank === 13) label = 'K';
+
+        let value = rank;
+        if (rank >= 10) value = 10;
+
+        return {
+            suit,
+            rank,
+            label,
+            value,
+            id: `${suit}-${rank}`
+        };
+    };
+
     // 初始化（模拟进入房间）
     const initGame = (mode = 0) => {
         stopAllTimers();
         gameMode.value = parseInt(mode); // Ensure number
         
-        // Initialize with only "me"
-        players.value = [
-            { id: 'me', name: '我 (帅气)', avatar: DEFAULT_AVATAR, coins: 1000, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0, isReady: false },
-        ];
+        // Temporarily set to 'me' until actual join
+        players.value = [];
         
         currentPhase.value = 'WAITING_FOR_PLAYERS';
         bankerId.value = null;
         roomId.value = null; // Reset roomId
-
-        // Optimistically update local state for myPlayerId. This will be confirmed by server broadcast.
-        players.value.forEach(p => p.isReady = false);
 
         // Register server listeners for readiness updates
         gameClient.on('nn.player_ready_update', (msg) => {
@@ -79,53 +94,56 @@ export const useGameStore = defineStore('game', () => {
         // Capture RoomId from Join response
         gameClient.on('QZNN.PlayerJoin', (msg) => {
             if (msg.code === 0 && msg.data && msg.data.Room) {
-                roomId.value = msg.data.Room.ID;
+                const room = msg.data.Room;
+                roomId.value = room.ID;
                 console.log("Joined Room:", roomId.value);
+
+                // Update My Player ID from User Store
+                myPlayerId.value = userStore.userInfo.user_id || 'me';
+
+                // Parse Players from Server
+                const serverPlayers = room.Players || [];
+                const newPlayers = [];
+
+                serverPlayers.forEach(p => {
+                    if (!p) return; // Skip null entries
+
+                    const isMe = p.ID === myPlayerId.value;
+                    
+                    // Map Cards
+                    let hand = [];
+                    if (p.Cards && Array.isArray(p.Cards)) {
+                        hand = p.Cards.map(c => convertCard(c));
+                    }
+                    
+                    newPlayers.push({
+                        id: p.ID,
+                        name: p.NickName || (isMe ? '我' : '未知'), // Use NickName if available
+                        avatar: DEFAULT_AVATAR, // Server doesn't provide avatar yet
+                        coins: p.Balance,
+                        isBanker: room.BankerID === p.ID,
+                        hand: hand, 
+                        state: 'IDLE',
+                        robMultiplier: p.CallMult,
+                        betMultiplier: p.BetMult,
+                        isReady: p.IsReady,
+                        isShowHand: p.IsShow || false, // Map Show to isShowHand
+                        // Persist local data if needed?
+                    });
+                });
+
+                players.value = newPlayers;
+
+                // Sync Phase
+                if (room.State === 'QZNN.StateWaiting') {
+                    currentPhase.value = 'WAITING_FOR_PLAYERS';
+                }
+                // Handle other states if reconnecting...
             }
         });
-
-        // Start simulating bots joining
-        simulateBotsJoining();
     };
 
-    // Simulate bots joining one by one
-    const simulateBotsJoining = () => {
-        let joinedCount = 0;
-        const maxBots = 4; // Total 5 players including me
-
-        const addBot = () => {
-            if (joinedCount < maxBots) {
-                const randomName = ROBOT_NAMES[Math.floor(Math.random() * ROBOT_NAMES.length)];
-                
-                const newPlayer = {
-                    id: `robot_${Date.now()}_${joinedCount}`,
-                    name: randomName,
-                    avatar: DEFAULT_AVATAR, 
-                    coins: 1000,
-                    isBanker: false,
-                    hand: [],
-                    state: 'IDLE',
-                    robMultiplier: -1,
-                    betMultiplier: 0,
-                    isReady: false
-                };
-                
-                players.value.push(newPlayer);
-                joinedCount++;
-                
-                // Continue adding next bot
-                botJoinTimeout = setTimeout(addBot, 800); 
-            } else {
-                // All bots joined, start game
-                botJoinTimeout = setTimeout(() => {
-                    startGame();
-                }, 1000);
-            }
-        };
-
-        // Start adding after a short delay
-        botJoinTimeout = setTimeout(addBot, 500);
-    };
+    // 玩家操作：准备
 
     // ...
 
@@ -174,83 +192,6 @@ export const useGameStore = defineStore('game', () => {
         startCountdown(5, () => {
             // Countdown finished, always proceed to game
             _proceedToRobBankerPhase();
-        });
-
-        // Trigger auto-ready for robots
-        autoReadyRobots();
-    };
-
-    // 拆分：PreDeal Logic
-    const performPreDeal = () => {
-        currentPhase.value = 'ROB_BANKER'; // View watches this to animate
-        bankerId.value = null; // 重置庄家ID
-        deck.value = shuffle(createDeck());
-
-        // 重置玩家状态 (清理上一局的数据：牌型、倍数、分数、isReady等)
-        players.value.forEach(p => {
-            p.hand = [];
-            p.isBanker = false;
-            p.robMultiplier = -1; // -1表示未操作
-            p.betMultiplier = 0;
-            p.handResult = undefined; // 清理牛几结果
-            p.roundScore = 0;
-            p.isShowHand = false;
-            p.state = 'ROBBING_BANKER';
-            p.isReady = false; // Reset ready state for next round if applicable
-        });
-
-        // 发牌逻辑差异
-        if (gameMode.value === 2) {
-            // 看四张抢庄：先发4张
-            players.value.forEach(p => {
-                p.hand = deck.value.splice(0, 4);
-            });
-        } else if (gameMode.value === 1) {
-            // 看三张抢庄：先发3张
-            players.value.forEach(p => {
-                p.hand = deck.value.splice(0, 3);
-            });
-        } else {
-            // 不看牌抢庄 (mode 0)：暂时不发牌
-            players.value.forEach(p => {
-                p.hand = [];
-            });
-        }
-    };
-
-    // 拆分：Start Rob Timer
-    const startRobTimer = () => {
-        // 如果在动画期间已经完成了抢庄(比如用户极速操作)，则不再启动倒计时
-        if (currentPhase.value !== 'ROB_BANKER') return;
-
-        startCountdown(5, () => {
-            // 倒计时结束，强制未抢庄的玩家不抢
-            players.value.filter(p => p.robMultiplier === -1).forEach(p => p.robMultiplier = 0);
-            determineBanker();
-        });
-    };
-
-    // 内部函数：正式开始抢庄阶段的游戏逻辑 (Original Auto Flow)
-    const _proceedToRobBankerPhase = () => {
-        stopAllTimers();
-        performPreDeal();
-
-        // 等待发牌动画(约1秒)结束后，再开始抢庄倒计时
-        transitionTimeout = setTimeout(() => {
-            startRobTimer();
-        }, 1200);
-    };
-
-    // 自动模拟机器人准备
-    const autoReadyRobots = () => {
-        players.value.filter(p => p.id !== myPlayerId.value).forEach(p => {
-            // 模拟机器人随机准备
-            if (!p.isReady) {
-                setTimeout(() => {
-                    p.isReady = true; // Mark as ready
-                    checkAllPlayersReady(); // Check readiness after this robot is ready
-                }, Math.random() * 5000 + 1000); // 1 to 6 seconds random delay
-            }
         });
     };
 
@@ -633,7 +574,6 @@ export const useGameStore = defineStore('game', () => {
         bankerId,
         history,
         joinRoom,
-        autoReadyRobots,
         bankerCandidates,
         gameMode,
         // Manual Controls

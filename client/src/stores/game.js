@@ -7,7 +7,7 @@ import defaultAvatar from '@/assets/common/icon_avatar.png'; // Use import for a
 const DEFAULT_AVATAR = defaultAvatar;
 
 export const useGameStore = defineStore('game', () => {
-    const currentPhase = ref('IDLE'); // IDLE, READY_COUNTDOWN, MATCHING, ROB_BANKER, BANKER_SELECTION_ANIMATION, BETTING, DEALING, SHOWDOWN, SETTLEMENT
+    const currentPhase = ref('IDLE'); // IDLE, WAITING_FOR_PLAYERS, READY_COUNTDOWN, MATCHING, ROB_BANKER, BANKER_SELECTION_ANIMATION, BETTING, DEALING, SHOWDOWN, SETTLEMENT
     const players = ref([]);
     const myPlayerId = ref('me'); // 模拟当前玩家ID
     const deck = ref([]);
@@ -16,6 +16,9 @@ export const useGameStore = defineStore('game', () => {
     const gameMode = ref(0); // 0: Bukan, 1: Kan3, 2: Kan4
     const history = ref([]); // 游戏记录
     const bankerCandidates = ref([]); // Store IDs of players who are candidates for banker
+
+    // Robot names pool
+    const ROBOT_NAMES = ['张三', '李四', '王五', '赵六', '钱七', '孙八', '周九', '吴十'];
 
     // 加入房间
     const joinRoom = (level, banker_type) => {
@@ -26,15 +29,13 @@ export const useGameStore = defineStore('game', () => {
     // 初始化（模拟进入房间）
     const initGame = (mode = 0) => {
         gameMode.value = parseInt(mode); // Ensure number
-        // 模拟5个玩家 (5人局)
+        
+        // Initialize with only "me"
         players.value = [
             { id: 'me', name: '我 (帅气)', avatar: DEFAULT_AVATAR, coins: 1000, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0, isReady: false },
-            { id: 'p2', name: '张三', avatar: DEFAULT_AVATAR, coins: 1000, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0, isReady: false },
-            { id: 'p3', name: '李四', avatar: DEFAULT_AVATAR, coins: 800, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0, isReady: false },
-            { id: 'p4', name: '王五', avatar: DEFAULT_AVATAR, coins: 1200, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0, isReady: false },
-            { id: 'p5', name: '赵六', avatar: DEFAULT_AVATAR, coins: 2000, isBanker: false, hand: [], state: 'IDLE', robMultiplier: -1, betMultiplier: 0, isReady: false },
         ];
-        currentPhase.value = 'IDLE';
+        
+        currentPhase.value = 'WAITING_FOR_PLAYERS';
         bankerId.value = null;
 
         // Optimistically update local state for myPlayerId. This will be confirmed by server broadcast.
@@ -62,6 +63,52 @@ export const useGameStore = defineStore('game', () => {
                 _proceedToRobBankerPhase();
             }
         });
+
+        // Start robot joining simulation
+        simulateRobotJoining();
+    };
+
+    // Simulate robots joining
+    const simulateRobotJoining = () => {
+        const minRobots = 1;
+        const maxRobots = 4;
+        const robotCount = Math.floor(Math.random() * (maxRobots - minRobots + 1)) + minRobots;
+        
+        let joinedCount = 0;
+
+        const addNextRobot = () => {
+            if (joinedCount < robotCount) {
+                const delay = Math.random() * 1000 + 500; // 0.5s - 1.5s delay
+                setTimeout(() => {
+                    const robotName = ROBOT_NAMES[Math.floor(Math.random() * ROBOT_NAMES.length)];
+                    // Ensure unique ID
+                    const robotId = `robot_${Date.now()}_${joinedCount}`;
+                    
+                    players.value.push({
+                        id: robotId,
+                        name: robotName,
+                        avatar: DEFAULT_AVATAR,
+                        coins: 1000 + Math.floor(Math.random() * 2000),
+                        isBanker: false,
+                        hand: [],
+                        state: 'IDLE',
+                        robMultiplier: -1,
+                        betMultiplier: 0,
+                        isReady: false
+                    });
+                    
+                    joinedCount++;
+                    addNextRobot();
+                }, delay);
+            } else {
+                // All robots joined, transition to READY_COUNTDOWN
+                setTimeout(() => {
+                    startGame();
+                }, 1000);
+            }
+        };
+
+        addNextRobot();
     };
 
     // 玩家操作：准备

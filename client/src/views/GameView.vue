@@ -216,36 +216,79 @@ const setSeatRef = (el, playerId) => {
 
 // 简单的布局计算：将玩家数组拆分为 自己 和 其他人
 const myPlayer = computed(() => store.players.find(p => p.id === store.myPlayerId));
-const otherPlayers = computed(() => {
-    const meIndex = store.players.findIndex(p => p.id === store.myPlayerId);
-    if (meIndex === -1) return [];
-    const others = [];
-    // 从自己下家开始顺时针找
-    for(let i = 1; i < store.players.length; i++) {
-        others.push(store.players[(meIndex + i) % store.players.length]);
+
+// Persistent seat mapping: { playerId: seatIndex (0-3) }
+const seatMapping = ref({});
+
+// Watch for player changes to assign seats randomly
+watch(() => store.players, (newPlayers) => {
+    if (!newPlayers) return;
+
+    const others = newPlayers.filter(p => p.id !== store.myPlayerId);
+    
+    // 1. Clean up mapping for players who left
+    const currentIds = new Set(others.map(p => p.id));
+    for (const pid in seatMapping.value) {
+        if (!currentIds.has(pid)) {
+            delete seatMapping.value[pid];
+        }
     }
-    return others;
+
+    // 2. Assign seats for new players
+    others.forEach(p => {
+        if (seatMapping.value[p.id] === undefined) {
+            // Find used seats
+            const usedSeats = new Set(Object.values(seatMapping.value));
+            // Find available seats (0, 1, 2, 3)
+            const availableSeats = [0, 1, 2, 3].filter(i => !usedSeats.has(i));
+            
+            if (availableSeats.length > 0) {
+                // Pick a random available seat
+                const randomIndex = Math.floor(Math.random() * availableSeats.length);
+                seatMapping.value[p.id] = availableSeats[randomIndex];
+            } else {
+                // Fallback (should not happen in 5-player max game): assign first slot or handle gracefully
+                console.warn('No seats available for player', p.id);
+            }
+        }
+    });
+}, { deep: true, immediate: true });
+
+// 固定4个对手座位槽位 (右, 右上, 左上, 左)
+const opponentSeats = computed(() => {
+    const seats = [null, null, null, null];
+    const meIndex = store.players.findIndex(p => p.id === store.myPlayerId);
+    
+    // 如果还没找到自己(理论上不应该)，直接返回空
+    if (meIndex === -1) return seats;
+
+    const others = store.players.filter(p => p.id !== store.myPlayerId);
+    
+    others.forEach(p => {
+        const seatIdx = seatMapping.value[p.id];
+        if (seatIdx !== undefined && seatIdx >= 0 && seatIdx < 4) {
+            seats[seatIdx] = p;
+        }
+    });
+    
+    return seats;
 });
 
-// 计算对手的位置布局类型
+// 计算对手的位置布局类型 (固定映射)
 const getLayoutType = (index) => {
-    const totalOthers = otherPlayers.value.length;
-    if (totalOthers === 4) {
-        if (index === 0) return 'right'; // 右侧玩家
-        if (index === 3) return 'left';  // 左侧玩家
-    }
-    return 'top'; // 顶部玩家
+    if (index === 0) return 'right';      // 右侧
+    if (index === 1) return 'top';        // 右上 (使用 top 布局，通过 class 微调位置)
+    if (index === 2) return 'top';        // 左上
+    if (index === 3) return 'left';       // 左侧
+    return 'top';
 };
 
-// 计算对手的位置 Class
+// 计算对手的位置 Class (固定映射)
 const getOpponentClass = (index) => {
-    const totalOthers = otherPlayers.value.length;
-    if (totalOthers === 4) {
-        if (index === 0) return 'seat-right';
-        if (index === 1) return 'seat-right-top';
-        if (index === 2) return 'seat-left-top';
-        if (index === 3) return 'seat-left';
-    }
+    if (index === 0) return 'seat-right';
+    if (index === 1) return 'seat-right-top';
+    if (index === 2) return 'seat-left-top';
+    if (index === 3) return 'seat-left';
     return '';
 };
 
@@ -439,9 +482,7 @@ const startDealingAnimation = (isSupplemental = false) => {
 onMounted(() => {
     const gameMode = route.query.mode !== undefined ? route.query.mode : 0;
     store.initGame(gameMode);
-    setTimeout(() => {
-        if(store.currentPhase === 'IDLE') store.startGame();
-    }, 1000);
+    
     startRobotSpeech(); // Start robot speech when component mounts
     
     // Play Background Music
@@ -513,19 +554,26 @@ const quitGame = () => {
     </div>
 
     <div class="opponents-layer">
-        <PlayerSeat 
-            v-for="(p, index) in otherPlayers" 
-            :key="p.id" 
-            :player="p" 
-            :ref="(el) => setSeatRef(el, p.id)"
-            class="opponent-seat-abs"
-            :class="getOpponentClass(index)"
-            :position="getLayoutType(index)"
-            :visible-card-count="visibleCounts[p.id] !== undefined ? visibleCounts[p.id] : 0"
-            :is-ready="p.isReady"
-            :is-animating-highlight="p.id === currentlyHighlightedPlayerId"
-            :speech="playerSpeech.get(p.id)"
-        />
+        <template v-for="(p, index) in opponentSeats" :key="index">
+            <PlayerSeat 
+                v-if="p"
+                :player="p" 
+                :ref="(el) => setSeatRef(el, p.id)"
+                class="opponent-seat-abs"
+                :class="getOpponentClass(index)"
+                :position="getLayoutType(index)"
+                :visible-card-count="visibleCounts[p.id] !== undefined ? visibleCounts[p.id] : 0"
+                :is-ready="p.isReady"
+                :is-animating-highlight="p.id === currentlyHighlightedPlayerId"
+                :speech="playerSpeech.get(p.id)"
+            />
+            <div v-else class="empty-seat opponent-seat-abs" :class="getOpponentClass(index)">
+                <div class="empty-seat-avatar">
+                    <van-icon name="plus" color="rgba(255,255,255,0.3)" size="20" />
+                </div>
+                <div class="empty-seat-text">等待加入</div>
+            </div>
+        </template>
     </div>
 
     <div class="table-center" ref="tableCenterRef">
@@ -542,7 +590,8 @@ const quitGame = () => {
 
             <!-- 阶段提示信息，统一显示在倒计时下方并样式类似“结算中...” -->
             <div class="phase-info">
-                <span v-if="store.currentPhase === 'READY_COUNTDOWN'">等待玩家准备</span>
+                <span v-if="store.currentPhase === 'WAITING_FOR_PLAYERS'">匹配玩家中...</span>
+                <span v-else-if="store.currentPhase === 'READY_COUNTDOWN'">等待玩家准备</span>
                 <span v-else-if="store.currentPhase === 'ROB_BANKER'">看牌抢庄</span>
                 <span v-else-if="store.currentPhase === 'BETTING'">闲家下注</span>
                 <span v-else-if="store.currentPhase === 'SHOWDOWN'">摊牌比拼</span>
@@ -832,9 +881,9 @@ const quitGame = () => {
 }
 
 .seat-right {
-    top: 45%; /* 向上调整位置 */
+    top: 38%; /* Adjusted for fixed top alignment */
     right: 10px;
-    transform: translateY(-50%) scale(0.85);
+    transform: scale(0.85);
 }
 
 .seat-right-top {
@@ -848,9 +897,40 @@ const quitGame = () => {
 }
 
 .seat-left {
-    top: 45%; /* 向上调整位置 */
+    top: 38%; /* Adjusted for fixed top alignment */
     left: 10px;
-    transform: translateY(-50%) scale(0.85);
+    transform: scale(0.85);
+}
+
+.empty-seat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100px;
+    height: 120px; /* Approximate height of a player seat */
+    opacity: 0.6;
+}
+
+.empty-seat-avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.2);
+    border: 1px dashed rgba(255,255,255,0.3);
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 4px; /* Match PlayerSeat .avatar-area margin-bottom */
+}
+
+.empty-seat-text {
+    font-size: 10px;
+    color: rgba(255,255,255,0.5);
+    background: rgba(0,0,0,0.2);
+    padding: 2px 6px;
+    border-radius: 8px;
 }
 
 .table-center {

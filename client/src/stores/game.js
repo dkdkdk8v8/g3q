@@ -7,7 +7,7 @@ import defaultAvatar from '@/assets/common/icon_avatar.png'; // Use import for a
 const DEFAULT_AVATAR = defaultAvatar;
 
 export const useGameStore = defineStore('game', () => {
-    const currentPhase = ref('IDLE'); // IDLE, WAITING_FOR_PLAYERS, READY_COUNTDOWN, MATCHING, ROB_BANKER, BANKER_SELECTION_ANIMATION, BETTING, DEALING, SHOWDOWN, SETTLEMENT
+    const currentPhase = ref('IDLE'); // IDLE, WAITING_FOR_PLAYERS, READY_COUNTDOWN, MATCHING, ROB_BANKER, BANKER_SELECTION_ANIMATION, BETTING, DEALING, SHOWDOWN, SETTLEMENT, PRE_DEAL, GAME_OVER
     const players = ref([]);
     const myPlayerId = ref('me'); // 模拟当前玩家ID
     const deck = ref([]);
@@ -20,6 +20,27 @@ export const useGameStore = defineStore('game', () => {
     // Robot names pool
     const ROBOT_NAMES = ['张三', '李四', '王五', '赵六', '钱七', '孙八', '周九', '吴十'];
 
+    // Timers
+    let timer = null;
+    let transitionTimeout = null;
+
+    const stopTimer = () => {
+        if (timer) clearInterval(timer);
+        timer = null;
+        countdown.value = 0;
+    };
+
+    const clearTransitionTimeout = () => {
+        if (transitionTimeout) clearTimeout(transitionTimeout);
+        transitionTimeout = null;
+    };
+
+    const stopAllTimers = () => {
+        stopTimer();
+        clearTransitionTimeout();
+    };
+
+
     // 加入房间
     const joinRoom = (level, banker_type) => {
         // console.log(`Attempting to join room: ${room_id}, app: ${app_id}, uid: ${uid}`); // app_id and uid are not part of nn.join payload
@@ -28,6 +49,7 @@ export const useGameStore = defineStore('game', () => {
 
     // 初始化（模拟进入房间）
     const initGame = (mode = 0) => {
+        stopAllTimers();
         gameMode.value = parseInt(mode); // Ensure number
         
         // Initialize with only "me"
@@ -79,7 +101,7 @@ export const useGameStore = defineStore('game', () => {
         const addNextRobot = () => {
             if (joinedCount < robotCount) {
                 const delay = Math.random() * 1000 + 500; // 0.5s - 1.5s delay
-                setTimeout(() => {
+                transitionTimeout = setTimeout(() => {
                     const robotName = ROBOT_NAMES[Math.floor(Math.random() * ROBOT_NAMES.length)];
                     // Ensure unique ID
                     const robotId = `robot_${Date.now()}_${joinedCount}`;
@@ -102,7 +124,7 @@ export const useGameStore = defineStore('game', () => {
                 }, delay);
             } else {
                 // All robots joined, transition to READY_COUNTDOWN
-                setTimeout(() => {
+                transitionTimeout = setTimeout(() => {
                     startGame();
                 }, 1000);
             }
@@ -125,7 +147,7 @@ export const useGameStore = defineStore('game', () => {
     const checkAllPlayersReady = () => {
         if (players.value.every(p => p.isReady)) {
             // All players are ready, stop countdown and proceed to ROB_BANKER phase
-            if (timer) clearInterval(timer);
+            stopTimer();
             if (currentPhase.value === 'READY_COUNTDOWN') {
                 _proceedToRobBankerPhase();
             }
@@ -134,6 +156,7 @@ export const useGameStore = defineStore('game', () => {
 
     // 新的游戏开始入口：进入准备倒计时阶段
     const startGame = () => {
+        stopAllTimers();
         // 重置玩家状态 (清理上一局的数据，以便在READY_COUNTDOWN阶段显示干净的状态)
         players.value.forEach(p => {
             p.isReady = false; // Always reset readiness
@@ -160,9 +183,9 @@ export const useGameStore = defineStore('game', () => {
         autoReadyRobots();
     };
 
-    // 内部函数：正式开始抢庄阶段的游戏逻辑
-    const _proceedToRobBankerPhase = () => {
-        currentPhase.value = 'ROB_BANKER';
+    // 拆分：PreDeal Logic
+    const performPreDeal = () => {
+        currentPhase.value = 'ROB_BANKER'; // View watches this to animate
         bankerId.value = null; // 重置庄家ID
         deck.value = shuffle(createDeck());
 
@@ -196,17 +219,28 @@ export const useGameStore = defineStore('game', () => {
                 p.hand = [];
             });
         }
+    };
+
+    // 拆分：Start Rob Timer
+    const startRobTimer = () => {
+        // 如果在动画期间已经完成了抢庄(比如用户极速操作)，则不再启动倒计时
+        if (currentPhase.value !== 'ROB_BANKER') return;
+
+        startCountdown(5, () => {
+            // 倒计时结束，强制未抢庄的玩家不抢
+            players.value.filter(p => p.robMultiplier === -1).forEach(p => p.robMultiplier = 0);
+            determineBanker();
+        });
+    };
+
+    // 内部函数：正式开始抢庄阶段的游戏逻辑 (Original Auto Flow)
+    const _proceedToRobBankerPhase = () => {
+        stopAllTimers();
+        performPreDeal();
 
         // 等待发牌动画(约1秒)结束后，再开始抢庄倒计时
-        setTimeout(() => {
-            // 如果在动画期间已经完成了抢庄(比如用户极速操作)，则不再启动倒计时
-            if (currentPhase.value !== 'ROB_BANKER') return;
-
-            startCountdown(5, () => {
-                // 倒计时结束，强制未抢庄的玩家不抢
-                players.value.filter(p => p.robMultiplier === -1).forEach(p => p.robMultiplier = 0);
-                determineBanker();
-            });
+        transitionTimeout = setTimeout(() => {
+            startRobTimer();
         }, 1200);
     };
 
@@ -217,8 +251,6 @@ export const useGameStore = defineStore('game', () => {
             if (!p.isReady) {
                 setTimeout(() => {
                     p.isReady = true; // Mark as ready
-                    // In a real scenario, this would also involve sending a message to the server
-                    // gameClient.send('nn.ready', { uid: p.id, is_ready: true });
                     checkAllPlayersReady(); // Check readiness after this robot is ready
                 }, Math.random() * 5000 + 1000); // 1 to 6 seconds random delay
             }
@@ -226,7 +258,6 @@ export const useGameStore = defineStore('game', () => {
     };
 
     // 倒计时辅助
-    let timer = null;
     const startCountdown = (seconds, callback) => {
         if (timer) clearInterval(timer);
         countdown.value = seconds;
@@ -257,7 +288,7 @@ export const useGameStore = defineStore('game', () => {
         });
 
         if (players.value.every(p => p.robMultiplier !== -1)) {
-            if (timer) clearInterval(timer);
+            stopTimer();
             determineBanker();
         }
     };
@@ -276,53 +307,37 @@ export const useGameStore = defineStore('game', () => {
             currentPhase.value = 'BANKER_SELECTION_ANIMATION';
 
             // Animate selection for 2 seconds, then pick a winner
-            setTimeout(() => {
-                const winner = candidates[Math.floor(Math.random() * candidates.length)];
-
-                winner.isBanker = true;
-                bankerId.value = winner.id;
-                currentPhase.value = 'BETTING'; // Transition to betting phase
-
-                bankerCandidates.value = []; // Clear candidates after selection
-
-                // 庄家不需要下注，其他人下注
-                players.value.forEach(p => {
-                    if (p.id !== winner.id) {
-                        p.state = 'BETTING';
-                    } else {
-                        p.state = 'IDLE'; // 庄家等待
-                    }
-                });
-
-                startCountdown(5, () => {
-                    // 强制下注1倍
-                    players.value.filter(p => !p.isBanker && p.betMultiplier === 0).forEach(p => p.betMultiplier = 1);
-                    startShowdown();
-                });
+            transitionTimeout = setTimeout(() => {
+                finalizeBanker(candidates);
             }, 2000); // 2 second animation delay
         } else { // No tie, directly select the banker
-            const winner = candidates[0]; // Only one winner
-
-            winner.isBanker = true;
-            bankerId.value = winner.id;
-            currentPhase.value = 'BETTING'; // Transition to betting phase
-
-            // 庄家不需要下注，其他人下注
-            players.value.forEach(p => {
-                if (p.id !== winner.id) {
-                    p.state = 'BETTING';
-                } else {
-                    p.state = 'IDLE'; // 庄家等待
-                }
-            });
-
-            startCountdown(5, () => {
-                // 强制下注1倍
-                players.value.filter(p => !p.isBanker && p.betMultiplier === 0).forEach(p => p.betMultiplier = 1);
-                startShowdown();
-            });
+            finalizeBanker(candidates);
         }
     };
+
+    const finalizeBanker = (candidates) => {
+        const winner = candidates[Math.floor(Math.random() * candidates.length)];
+        winner.isBanker = true;
+        bankerId.value = winner.id;
+        currentPhase.value = 'BETTING'; // Transition to betting phase
+
+        bankerCandidates.value = []; // Clear candidates after selection
+
+        // 庄家不需要下注，其他人下注
+        players.value.forEach(p => {
+            if (p.id !== winner.id) {
+                p.state = 'BETTING';
+            } else {
+                p.state = 'IDLE'; // 庄家等待
+            }
+        });
+
+        startCountdown(5, () => {
+            // 强制下注1倍
+            players.value.filter(p => !p.isBanker && p.betMultiplier === 0).forEach(p => p.betMultiplier = 1);
+            startShowdown();
+        });
+    }
 
     // 玩家操作：下注
     const playerBet = (multiplier) => {
@@ -340,17 +355,19 @@ export const useGameStore = defineStore('game', () => {
         });
 
         if (players.value.filter(p => !p.isBanker).every(p => p.betMultiplier > 0)) {
-            if (timer) clearInterval(timer);
+            stopTimer();
             startShowdown();
         }
     };
 
-    // 阶段：摊牌
-    const startShowdown = () => {
-        currentPhase.value = 'SHOWDOWN';
-        countdown.value = 0; // 显式重置倒计时，防止提前显示
+    // Split: Perform Supplemental Deal
+    const performSupplementalDeal = () => {
+        // 注意：这里需要配合 View 层的动画。View 层可能监听 SHOWDOWN 或 DEALING
+        // 为了支持 Manual Dealing 阶段，我们引入 DEALING 状态
+        currentPhase.value = 'DEALING'; 
+
         players.value.forEach(p => {
-            p.state = 'SHOWDOWN';
+            p.state = 'SHOWDOWN'; // Update state label
             p.isShowHand = false;
         });
 
@@ -369,30 +386,43 @@ export const useGameStore = defineStore('game', () => {
             p.handResult = { type: result.type, typeName: result.typeName, multiplier: result.multiplier };
             p.hand = result.sortedCards; // 排序
         });
+    };
+
+    // Split: Start Showdown Timer
+    const startShowdownTimer = () => {
+         currentPhase.value = 'SHOWDOWN';
+         countdown.value = 0;
+
+         // 模拟其他玩家陆续摊牌 (在倒计时开始后才行动)
+        players.value.forEach(p => {
+            if (p.id !== myPlayerId.value) {
+                // 随机延迟 1-4秒 摊牌
+                setTimeout(() => {
+                    playerShowHand(p.id);
+                }, 1000 + Math.random() * 3000);
+            }
+        });
+
+        // 摊牌倒计时 5秒
+        startCountdown(5, () => {
+            // 倒计时结束，强制所有未摊牌的玩家摊牌，并结算
+            players.value.forEach(p => {
+                if (!p.isShowHand) p.isShowHand = true;
+            });
+            calculateScore();
+        });
+    };
+
+    // 阶段：摊牌 (Original Auto Flow)
+    const startShowdown = () => {
+        stopAllTimers();
+        performSupplementalDeal();
 
         // 等待发牌开始 2.5秒 后，启动摊牌倒计时
-        setTimeout(() => {
+        transitionTimeout = setTimeout(() => {
             // 如果动画期间已经全部摊牌结算，不再启动倒计时
-            if (currentPhase.value !== 'SHOWDOWN') return;
-
-            // 模拟其他玩家陆续摊牌 (在倒计时开始后才行动)
-            players.value.forEach(p => {
-                if (p.id !== myPlayerId.value) {
-                    // 随机延迟 1-4秒 摊牌
-                    setTimeout(() => {
-                        playerShowHand(p.id);
-                    }, 1000 + Math.random() * 3000);
-                }
-            });
-
-            // 摊牌倒计时 5秒
-            startCountdown(5, () => {
-                // 倒计时结束，强制所有未摊牌的玩家摊牌，并结算
-                players.value.forEach(p => {
-                    if (!p.isShowHand) p.isShowHand = true;
-                });
-                calculateScore();
-            });
+            if (currentPhase.value !== 'DEALING' && currentPhase.value !== 'SHOWDOWN') return;
+            startShowdownTimer();
         }, 2000);
     };
 
@@ -408,21 +438,21 @@ export const useGameStore = defineStore('game', () => {
     // 检查是否都摊牌了
     const checkAllShowed = () => {
         if (players.value.every(p => p.isShowHand)) {
-            if (timer) clearInterval(timer);
+            stopTimer();
             // 稍微停顿一下再结算，让最后一个摊牌动画播完
-            setTimeout(() => {
+            transitionTimeout = setTimeout(() => {
                 calculateScore();
             }, 500);
         }
     };
 
     // 结算
-
-    // 结算
     const calculateScore = () => {
+        stopAllTimers();
         currentPhase.value = 'SETTLEMENT';
-        countdown.value = 0; // 强制清除倒计时
         const banker = players.value.find(p => p.isBanker);
+        
+        if (!banker) return; // Safety check
 
         players.value.forEach(p => {
             if (p.isBanker) return;
@@ -477,15 +507,119 @@ export const useGameStore = defineStore('game', () => {
         }
 
         // 4秒后进入结束状态，等待用户操作下一局
-        setTimeout(() => {
+        transitionTimeout = setTimeout(() => {
             currentPhase.value = 'GAME_OVER';
         }, 4000);
     };
 
     // 辅助：牌型大小评分
     const getHandRankScore = (res) => {
+        if (!res) return 0;
         const types = ['NO_BULL', 'BULL_1', 'BULL_2', 'BULL_3', 'BULL_4', 'BULL_5', 'BULL_6', 'BULL_7', 'BULL_8', 'BULL_9', 'BULL_BULL', 'FIVE_FLOWER', 'BOMB'];
         return types.indexOf(res.type);
+    };
+
+    // --- MANUAL CONTROL FUNCTIONS ---
+
+    const enterStateWaiting = () => {
+        stopAllTimers();
+        initGame(gameMode.value);
+    };
+
+    const enterStatePrepare = () => {
+        stopAllTimers();
+        startGame(); // This has internal timer for auto-progression. User can interrupt.
+    };
+
+    const enterStatePreCard = () => {
+        stopAllTimers();
+        performPreDeal();
+        // Do not auto-start banking timer
+    };
+
+    const enterStateBanking = () => {
+        stopAllTimers();
+        currentPhase.value = 'ROB_BANKER';
+        startRobTimer();
+    };
+
+    const enterStateRandomBank = () => {
+        stopAllTimers();
+        // Force everyone's robMultiplier to 0 (or random equality)
+        players.value.forEach(p => p.robMultiplier = 0);
+        
+        // Set all players as candidates for the infinite animation
+        bankerCandidates.value = players.value.map(p => p.id);
+        currentPhase.value = 'BANKER_SELECTION_ANIMATION';
+        // No timeout here - animation loops until state change
+    };
+
+    const enterStateBankerConfirm = () => {
+        stopAllTimers();
+        
+        // 1. Pick a winner
+        let candidates = bankerCandidates.value;
+        if (!candidates || candidates.length === 0) {
+            candidates = players.value.map(p => p.id);
+        }
+        
+        const winnerId = candidates[Math.floor(Math.random() * candidates.length)];
+        const winner = players.value.find(p => p.id === winnerId);
+
+        // 2. Set Banker
+        players.value.forEach(p => p.isBanker = false);
+        if (winner) {
+            winner.isBanker = true;
+            bankerId.value = winner.id;
+        }
+
+        // 3. Clear candidates to stop animation highlighting in View (although phase change does it too)
+        bankerCandidates.value = [];
+
+        // 4. Enter Confirmed State
+        currentPhase.value = 'BANKER_CONFIRMED';
+        
+        // Update states for next phase readiness
+        players.value.forEach(p => {
+            if (p.id !== winnerId) {
+                p.state = 'BETTING';
+            } else {
+                p.state = 'IDLE'; 
+            }
+        });
+    };
+
+    const enterStateBetting = () => {
+        stopAllTimers();
+        // Force Banker if not set?
+        if (!bankerId.value) {
+            // Randomly pick one if none
+             const winner = players.value[0];
+             winner.isBanker = true;
+             bankerId.value = winner.id;
+        }
+        currentPhase.value = 'BETTING';
+        startCountdown(5, () => {
+            // Force bets
+            players.value.filter(p => !p.isBanker && p.betMultiplier === 0).forEach(p => p.betMultiplier = 1);
+            startShowdown();
+        });
+    };
+
+    const enterStateDealing = () => {
+        stopAllTimers();
+        performSupplementalDeal();
+        // Do not auto-start showdown timer
+    };
+
+    const enterStateShowCard = () => {
+        stopAllTimers();
+        startShowdownTimer();
+    };
+
+    const enterStateSettling = () => {
+        stopAllTimers();
+        calculateScore();
     };
 
     return {
@@ -495,7 +629,7 @@ export const useGameStore = defineStore('game', () => {
         countdown,
         initGame,
         startGame,
-        playerReady, // Added playerReady
+        playerReady,
         playerRob,
         playerBet,
         playerShowHand,
@@ -503,7 +637,18 @@ export const useGameStore = defineStore('game', () => {
         history,
         joinRoom,
         autoReadyRobots,
-        bankerCandidates, // Added bankerCandidates
-        gameMode // Expose gameMode
+        bankerCandidates,
+        gameMode,
+        // Manual Controls
+        enterStateWaiting,
+        enterStatePrepare,
+        enterStatePreCard,
+        enterStateBanking,
+        enterStateRandomBank,
+        enterStateBankerConfirm,
+        enterStateBetting,
+        enterStateDealing,
+        enterStateShowCard,
+        enterStateSettling
     }
 })

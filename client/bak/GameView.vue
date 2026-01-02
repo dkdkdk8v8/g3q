@@ -4,7 +4,6 @@ import { useGameStore } from '../stores/game.js';
 import PlayerSeat from '../components/PlayerSeat.vue';
 import CoinLayer from '../components/CoinLayer.vue';
 import DealingLayer from '../components/DealingLayer.vue'; 
-import ChatBubbleSelector from '../components/ChatBubbleSelector.vue'; // New import
 import { useRouter, useRoute } from 'vue-router';
 
 const store = useGameStore();
@@ -14,61 +13,6 @@ const coinLayer = ref(null);
 const dealingLayer = ref(null); 
 const seatRefs = ref({}); // 存储所有座位的引用 key: playerId
 const tableCenterRef = ref(null); // 桌面中心元素引用
-
-// Chat/Emoji selector state
-const showChatSelector = ref(false); // New reactive variable
-const playerSpeech = ref(new Map()); // Maps playerId to { type: 'text' | 'emoji', content: string }
-
-// Cooldown mechanism
-const lastSpeechTime = ref(0); // Timestamp of last speech/emoji, 0 initially
-const SPEECH_COOLDOWN_SECONDS = 3;
-const cooldownMessage = ref('');
-const showToast = ref(false);
-
-const checkCooldown = () => {
-    const currentTime = Date.now();
-    if (currentTime - lastSpeechTime.value < SPEECH_COOLDOWN_SECONDS * 1000) {
-        cooldownMessage.value = '您说话太快了，先休息一下吧！';
-        showToast.value = true;
-        setTimeout(() => {
-            showToast.value = false;
-        }, 2000); // Hide toast after 2 seconds
-        return false;
-    }
-    lastSpeechTime.value = currentTime;
-    return true;
-};
-
-// Method to handle phrase selection from ChatBubbleSelector
-const onPhraseSelected = (phrase) => {
-    if (!checkCooldown()) {
-        return;
-    }
-    // For now, let's assume it's for 'me'
-    playerSpeech.value.set(store.myPlayerId, { type: 'text', content: phrase });
-    // Make speech visible for a few seconds
-    setTimeout(() => {
-        playerSpeech.value.delete(store.myPlayerId);
-    }, 3000); // Display for 3 seconds
-};
-
-// Method to handle emoji selection from ChatBubbleSelector
-const onEmojiSelected = (emojiUrl) => {
-    if (!checkCooldown()) {
-        return;
-    }
-    // For now, let's assume it's for 'me'
-    playerSpeech.value.set(store.myPlayerId, { type: 'emoji', content: emojiUrl });
-    // Make speech visible for a few seconds
-    setTimeout(() => {
-        playerSpeech.value.delete(store.myPlayerId);
-    }, 3000); // Display for 3 seconds
-};
-
-// Banker selection animation state
-const currentlyHighlightedPlayerId = ref(null);
-let animationIntervalId = null;
-let candidateIndex = 0;
 
 // 菜单和弹窗控制
 const showMenu = ref(false);
@@ -151,7 +95,7 @@ watch(() => store.players.map(p => ({ id: p.id, bet: p.betMultiplier })), (newVa
 }, { deep: true });
 
 // 监听游戏阶段，触发发牌动画及结算动画
-watch(() => store.currentPhase, async (newPhase, oldPhase) => {
+watch(() => store.currentPhase, async (newPhase) => {
     if (newPhase === 'IDLE' || newPhase === 'GAME_OVER') {
         visibleCounts.value = {};
         lastBetStates.value = {};
@@ -167,32 +111,7 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
         setTimeout(() => {
              startDealingAnimation(true); 
         }, 100);
-    } else if (newPhase === 'BANKER_SELECTION_ANIMATION') {
-        // Start sequential highlighting animation
-        const candidates = [...store.bankerCandidates]; // Get a copy
-        if (candidates.length > 0) {
-            candidateIndex = 0;
-            currentlyHighlightedPlayerId.value = candidates[candidateIndex];
-
-            // Clear any existing interval
-            if (animationIntervalId) clearInterval(animationIntervalId);
-            
-            animationIntervalId = setInterval(() => {
-                candidateIndex = (candidateIndex + 1) % candidates.length;
-                currentlyHighlightedPlayerId.value = candidates[candidateIndex];
-            }, 100); // Highlight every 100ms
-        }
     }
-    
-    // Clear animation when phase changes from BANKER_SELECTION_ANIMATION
-    if (oldPhase === 'BANKER_SELECTION_ANIMATION' && newPhase !== 'BANKER_SELECTION_ANIMATION') {
-        if (animationIntervalId) {
-            clearInterval(animationIntervalId);
-            animationIntervalId = null;
-        }
-        currentlyHighlightedPlayerId.value = null;
-    }
-
     
     if (newPhase === 'SETTLEMENT' && tableCenterRef.value && coinLayer.value) {
         // 找到庄家位置
@@ -240,7 +159,7 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
             });
         }, 1200); // 增加延迟，让第一波飞完
     }
-}, { immediate: true });
+});
 
 // 执行发牌动画
 const startDealingAnimation = (isSupplemental = false) => {
@@ -311,7 +230,7 @@ const startDealingAnimation = (isSupplemental = false) => {
                 visibleCounts.value[t.id] += t.count;
             }, isSupplemental && store.gameMode === 2);
         }, pIndex * 80);
-    });;
+    });
 };
 
 onMounted(() => {
@@ -384,14 +303,12 @@ const quitGame = () => {
             :class="getOpponentClass(index)"
             :position="getLayoutType(index)"
             :visible-card-count="visibleCounts[p.id] !== undefined ? visibleCounts[p.id] : 0"
-            :is-ready="p.isReady"
-            :is-animating-highlight="p.id === currentlyHighlightedPlayerId"
         />
     </div>
 
     <div class="table-center" ref="tableCenterRef">
         <!-- 闹钟和阶段提示信息的容器 -->
-        <div v-if="store.countdown > 0 && ['READY_COUNTDOWN', 'ROB_BANKER', 'BETTING', 'SHOWDOWN'].includes(store.currentPhase)" class="clock-and-info-wrapper">
+        <div v-if="store.countdown > 0 && ['ROB_BANKER', 'BETTING', 'SHOWDOWN'].includes(store.currentPhase)" class="clock-and-info-wrapper">
             <!-- 倒计时闹钟 -->
             <div class="alarm-clock">
                 <div class="alarm-body">
@@ -403,15 +320,11 @@ const quitGame = () => {
 
             <!-- 阶段提示信息，统一显示在倒计时下方并样式类似“结算中...” -->
             <div class="phase-info">
-                <span v-if="store.currentPhase === 'READY_COUNTDOWN'">等待玩家准备</span>
-                <span v-else-if="store.currentPhase === 'ROB_BANKER'">看牌抢庄</span>
+                <span v-if="store.currentPhase === 'ROB_BANKER'">看牌抢庄</span>
                 <span v-else-if="store.currentPhase === 'BETTING'">闲家下注</span>
                 <span v-else-if="store.currentPhase === 'SHOWDOWN'">摊牌比拼</span>
             </div>
         </div>
-
-        <!-- 选庄动画提示 -->
-        <div v-if="store.currentPhase === 'BANKER_SELECTION_ANIMATION'" class="phase-info settlement-info">正在选庄...</div>
 
         <!-- 仅当闹钟不显示时，显示结算中 -->
         <div v-if="store.currentPhase === 'SETTLEMENT' && store.countdown === 0" class="phase-info settlement-info">结算中...</div>
@@ -426,14 +339,6 @@ const quitGame = () => {
 
     <div class="my-area" v-if="myPlayer">
         <div class="controls-container">
-            <!-- 准备按钮 -->
-            <div v-if="store.currentPhase === 'READY_COUNTDOWN' && !myPlayer.isReady" class="btn-group">
-                <div class="game-btn orange" style="width: 120px;" @click="store.playerReady()">确认准备</div>
-            </div>
-            <div v-else-if="store.currentPhase === 'READY_COUNTDOWN' && myPlayer.isReady" class="waiting-text">
-                已准备，等待其他玩家...
-            </div>
-
             <div v-if="store.currentPhase === 'ROB_BANKER' && myPlayer.robMultiplier === -1" class="btn-group">
                 <div class="game-btn blue" @click="onRob(0)">不抢</div>
                 <div class="game-btn orange" @click="onRob(1)">1倍</div>
@@ -466,19 +371,11 @@ const quitGame = () => {
             :ref="(el) => setSeatRef(el, myPlayer.id)"
             position="bottom"
             :visible-card-count="visibleCounts[myPlayer.id] !== undefined ? visibleCounts[myPlayer.id] : 0"
-            :is-ready="myPlayer.isReady"
-            :is-animating-highlight="myPlayer.id === currentlyHighlightedPlayerId"
-            :speech="playerSpeech.get(myPlayer.id)"
         />
     </div>
 
     <!-- 全局点击关闭菜单 -->
     <div v-if="showMenu" class="mask-transparent" @click="showMenu = false"></div>
-
-    <!-- 评论/表情按钮 -->
-    <div class="chat-toggle-btn" @click="showChatSelector = true">
-        <van-icon name="comment" size="24" color="white" />
-    </div>
 
     <!-- 押注记录弹窗 -->
     <div v-if="showHistory" class="modal-overlay">
@@ -510,19 +407,6 @@ const quitGame = () => {
             </div>
         </div>
     </div>
-
-    <ChatBubbleSelector 
-        v-model:visible="showChatSelector" 
-        @selectPhrase="onPhraseSelected" 
-        @selectEmoji="onEmojiSelected" 
-    />
-
-    <!-- Cooldown Toast -->
-    <transition name="toast-fade">
-        <div v-if="showToast" class="cooldown-toast">
-            {{ cooldownMessage }}
-        </div>
-    </transition>
 </div>
 </template>
 
@@ -871,55 +755,9 @@ const quitGame = () => {
     animation: pulse 2s infinite;
 }
 
-.chat-toggle-btn {
-    position: absolute;
-    bottom: 20px;
-    right: 20px;
-    width: 50px;
-    height: 50px;
-    background: radial-gradient(circle at 30% 30%, #fcd34d 0%, #d97706 100%); /* Golden gradient */
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3), 0 0 15px rgba(252, 211, 77, 0.7); /* Added subtle glow */
-    cursor: pointer;
-    z-index: 100;
-    border: 2px solid rgba(255,255,255,0.3);
-    transition: transform 0.1s;
-}
-
-.chat-toggle-btn:active {
-    transform: scale(0.95);
-}
-
 @keyframes pulse {
     0% { transform: scale(1); }
     50% { transform: scale(1.05); }
     100% { transform: scale(1); }
-}
-
-.cooldown-toast {
-    position: fixed;
-    bottom: 100px; /* Position above the chat button */
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    padding: 10px 20px;
-    border-radius: 8px;
-    font-size: 16px;
-    z-index: 10001; /* Ensure it's on top */
-    white-space: nowrap;
-}
-
-.toast-fade-enter-active,
-.toast-fade-leave-active {
-    transition: opacity 0.5s ease;
-}
-
-.toast-fade-enter-from,
-.toast-fade-leave-to {
-    opacity: 0;
 }
 </style>

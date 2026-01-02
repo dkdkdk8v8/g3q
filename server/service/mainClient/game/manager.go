@@ -1,6 +1,7 @@
 package game
 
 import (
+	"encoding/json"
 	"fmt"
 	"service/comm"
 	"service/mainClient/game/nn"
@@ -91,4 +92,12 @@ func (rm *RoomManager) GetRoomCount() int {
 	rm.mu.RLock()
 	defer rm.mu.RUnlock()
 	return len(rm.QZNNRooms)
+}
+
+// GetAllRooms 获取所有房间信息（用于管理端查询）
+func (rm *RoomManager) GetAllRooms() string {
+	rm.mu.RLock()
+	defer rm.mu.RUnlock()
+	allRooms, _ := json.Marshal(rm.rooms)
+	return string(allRooms)
 }

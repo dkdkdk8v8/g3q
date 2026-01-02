@@ -4,6 +4,7 @@ import { ref, computed, watch, onMounted, onUnmounted, onActivated } from 'vue';
 import { useUserStore } from '../stores/user.js';
 import { useGameStore } from '../stores/game.js';
 import gameClient from '../socket.js';
+import defaultAvatar from '@/assets/common/icon_avatar.png'; // Import avatar directly
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -15,7 +16,7 @@ const userInfo = computed(() => {
         name: userStore.userInfo.nick_name || '未知用户',
         id: userStore.userInfo.user_id || '---',
         coins: userStore.userInfo.balance || 0,
-        avatar: userStore.userInfo.avatar || new URL('../assets/icon_avatar.png', import.meta.url).href
+        avatar: userStore.userInfo.avatar || defaultAvatar // Use imported avatar
     }
 });
 
@@ -33,11 +34,7 @@ const enterGame = (level) => {
   console.log(`Preparing to enter room: Level ${level}, Mode ${currentMode.value}`);
   
   // 发送匹配协议
-  // gameStore.joinRoom(level, currentMode.value);
-  gameClient.send("nn.join", {
-      level: level,
-      banker_type: currentMode.value
-  });
+  gameStore.joinRoom(level, currentMode.value);
 
   router.push({
       path: `/game/${level}`,

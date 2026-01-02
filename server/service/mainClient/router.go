@@ -20,6 +20,7 @@ func InitWebHandler(engine *gin.Engine) error {
 	ipLimiterGroup := baseGroup
 	ipLimiterGroup.GET("/api/health", comm.Health)
 	ipLimiterGroup.GET("/api-speed", comm.ApiSpeed)
+	ipLimiterGroup.GET("/rpc/qznn-data", RpcQZNNData)
 
 	return nil
 }

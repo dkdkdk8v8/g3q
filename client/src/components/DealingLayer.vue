@@ -7,14 +7,14 @@ const flyingCards = ref([]);
 // 执行发牌动画：针对单个玩家的一组牌
 // targets: Array<{ x, y, id, isMe }> 该玩家这一组牌的最终位置列表
 // callback: () => void  整组发完后的回调
-const dealToPlayer = async (targets, callback) => {
+const dealToPlayer = async (targets, callback, forceBulkAnimation = false) => {
     if (!targets || targets.length === 0) return;
 
     const startX = window.innerWidth / 2; 
     const startY = window.innerHeight / 2; 
 
     // 判断是单张补牌还是批量发牌
-    const isBulk = targets.length > 1;
+    const isBulk = targets.length > 1 || forceBulkAnimation;
 
     // 批量发牌时，"最左侧"位置作为跳水目标
     // 注意：这里的 targets[0] 是这批牌里的第一张
@@ -133,15 +133,9 @@ const dealToPlayer = async (targets, callback) => {
         card.y = card.finalY;
         card.scale = card.finalScale; // 动画缩放到目标大小
         card.opacity = 1;
-        card.rotation = 0;
+        card.rotation = 0; // Ensures no rotation
 
         await new Promise(r => setTimeout(r, 400));
-
-        if (card.isMe) {
-            card.transition = 'all 0.4s ease-in-out';
-            card.rotation = 360;
-            await new Promise(r => setTimeout(r, 400));
-        }
     }
 
     // 清理

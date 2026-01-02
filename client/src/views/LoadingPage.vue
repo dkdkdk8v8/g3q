@@ -8,7 +8,14 @@
     <p v-if="appId">App ID: {{ appId }}</p>
     <p v-if="userId">User ID: {{ userId }}</p>
     <button @click="enterGame">进入游戏</button>
-    <p v-if="message">{{ message }}</p>
+    <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
+
+    <!-- Loading Overlay -->
+    <div v-if="isLoading" class="loading-overlay">
+      <div class="loading-text-container">
+        努力加载中...
+      </div>
+    </div>
   </div>
 </template>
 
@@ -24,7 +31,8 @@ export default {
     const ipAddress = ref('');
     const appId = ref('');
     const userId = ref('');
-    const message = ref('');
+    const errorMessage = ref(''); // Use errorMessage for persistent error messages
+    const isLoading = ref(false); // New loading state
     const router = useRouter();
     const userStore = useUserStore();
 
@@ -34,8 +42,6 @@ export default {
       const urlParams = new URLSearchParams(window.location.search);
       let currentAppId = urlParams.get('app');
       let currentUserId = urlParams.get('uid');
-
-    
 
       if (!currentAppId) {
         currentAppId = '91xj';
@@ -50,7 +56,7 @@ export default {
       const savedIp = localStorage.getItem(LOCAL_STORAGE_IP_KEY);
       if (savedIp) {
         ipAddress.value = savedIp;
-        message.value = `已自动加载保存的 IP: ${savedIp}`;
+        // No persistent message for loaded IP, just set it
       } else {
         ipAddress.value = '127.0.0.1:18082'; // Set default IP
       }
@@ -66,29 +72,30 @@ export default {
     });
 
     const enterGame = () => {
+      errorMessage.value = ''; // Clear previous errors
       if (!ipAddress.value) {
-        message.value = '请输入服务器 IP 地址！';
+        errorMessage.value = '请输入服务器 IP 地址！';
         return;
       }
 
       if (!appId.value) {
-        message.value = 'URL 中缺少 app 参数！';
+        errorMessage.value = 'URL 中缺少 app 参数！';
         return;
       }
 
       if (!userId.value) {
-        message.value = 'URL 中缺少 uid 参数！';
+        errorMessage.value = 'URL 中缺少 uid 参数！';
         return;
       }
 
-      message.value = `正在连接到 ${ipAddress.value}...`;
-      
+      isLoading.value = true; // Start loading
+
       let hasUserInfo = false;
       let hasLobbyConfig = false;
 
       const checkReady = () => {
           if (hasUserInfo && hasLobbyConfig) {
-              message.value = `获取数据成功，进入大厅...`;
+              isLoading.value = false; // Stop loading
               router.push('/lobby');
           }
       };
@@ -96,7 +103,7 @@ export default {
       // Setup GameClient callbacks
       gameClient.onConnect = () => {
         console.log("[LoadingPage] WebSocket connected!");
-        message.value = `连接成功！正在获取大厅数据...`;
+        // message.value = `连接成功！正在获取大厅数据...`; // Remove dynamic message
         
         // Send requests separately
         gameClient.send("user.info");
@@ -105,14 +112,16 @@ export default {
 
       gameClient.onClose = (event) => {
         console.error("[LoadingPage] WebSocket closed:", event);
+        isLoading.value = false; // Stop loading on close
         if (!gameClient.isManualClose) { // Only show error if not manually closed
-          message.value = `连接断开，请检查 IP 地址或服务器状态。`;
+          errorMessage.value = `连接断开，请检查 IP 地址或服务器状态。`;
         }
       };
 
       gameClient.onError = (error) => {
         console.error("[LoadingPage] WebSocket error:", error);
-        message.value = `连接错误，请检查 IP 地址或服务器状态。`;
+        isLoading.value = false; // Stop loading on error
+        errorMessage.value = `连接错误，请检查 IP 地址或服务器状态。`;
       };
       
       // Register handler for user.info
@@ -123,7 +132,8 @@ export default {
               hasUserInfo = true;
               checkReady();
           } else {
-              message.value = `获取用户数据失败: ${msg.msg}`;
+              isLoading.value = false; // Stop loading on user info fetch error
+              errorMessage.value = `获取用户数据失败: ${msg.msg}`;
           }
       });
 
@@ -136,7 +146,8 @@ export default {
               hasLobbyConfig = true;
               checkReady();
           } else {
-              message.value = `获取大厅配置失败: ${msg.msg}`;
+              isLoading.value = false; // Stop loading on lobby config fetch error
+              errorMessage.value = `获取大厅配置失败: ${msg.msg}`;
           }
       });
 
@@ -146,10 +157,11 @@ export default {
 
     return {
       ipAddress,
-      message,
+      errorMessage, // Renamed message to errorMessage
       appId,
       userId,
       enterGame,
+      isLoading, // Return isLoading
     };
   },
 };
@@ -217,9 +229,37 @@ button:hover {
   background-color: #368a68;
 }
 
-p {
+.error-message { /* Style for error messages */
   margin-top: 20px;
   font-size: 0.9em;
   color: #f1c40f;
+  text-align: center;
+  max-width: 80%;
+}
+
+/* New styles for loading overlay */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7); /* Black transparent background */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.loading-text-container {
+  background-color: rgba(0, 0, 0, 0.7); /* Black transparent background */
+  color: white;
+  padding: 15px 30px;
+  border-radius: 8px;
+  font-size: 1.2em;
+  font-weight: bold;
+  text-align: center;
+  min-width: 180px; /* Fixed width to prevent jumping */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 </style>

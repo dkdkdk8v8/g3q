@@ -11,31 +11,70 @@ const props = defineProps({
       type: String,
       default: 'top'
   },
-  visibleCardCount: { // 控制显示几张牌，-1为全部显示
-      type: Number,
-      default: -1
-  }
-});
+      visibleCardCount: { // 控制显示几张牌，-1为全部显示
+          type: Number,
+          default: -1
+      },
+      isReady: Boolean, // Add isReady prop
+      isAnimatingHighlight: Boolean, // New prop for sequential highlight animation
+      speech: Object // New prop: { type: 'text' | 'emoji', content: string }
+  });
+  
+  const store = useGameStore();
+  
+  // Computed property to control speech bubble visibility
+  const showSpeechBubble = computed(() => {
+      return props.speech && props.speech.content;
+  });
+  
+  // Computed property to format long speech text
+  const formattedSpeechText = computed(() => {
+      if (!props.speech || props.speech.type !== 'text' || !props.speech.content) {
+          return '';
+      }
+      const text = props.speech.content;
+      const maxLength = 10; // Max 10 Chinese characters per line
+      
+      let result = [];
+      let currentLine = '';
+      let charCount = 0;
 
-const store = useGameStore();
+      Array.from(text).forEach(char => {
+          if (charCount < maxLength) {
+              currentLine += char;
+              charCount++;
+          } else {
+              result.push(currentLine);
+              currentLine = char;
+              charCount = 1;
+          }
+      });
+      result.push(currentLine); // Push the last line
 
-// 始终返回完整手牌以保持布局稳定
-const displayedHand = computed(() => {
-    if (!props.player.hand) return [];
-    return props.player.hand;
-});
+      // Limit to 2 lines
+      if (result.length > 2) {
+          result = result.slice(0, 2);
+      }
 
-const showCards = computed(() => {
-  return displayedHand.value.length > 0;
-});
-
-const shouldShowCardFace = computed(() => {
-    if (props.isMe) return true;
-    if (store.currentPhase === 'SETTLEMENT') return true;
-    if (store.currentPhase === 'SHOWDOWN' && props.player.isShowHand) return true;
-    return false;
-});
-
+      return result.join('<br>');
+  });
+  
+  // 始终返回完整手牌以保持布局稳定
+  const displayedHand = computed(() => {
+      if (!props.player.hand) return [];
+      return props.player.hand;
+  });
+  
+  const showCards = computed(() => {
+    return displayedHand.value.length > 0;
+  });
+  
+  const shouldShowCardFace = computed(() => {
+      if (props.isMe) return true;
+      if (store.currentPhase === 'SETTLEMENT') return true;
+      if (store.currentPhase === 'SHOWDOWN' && props.player.isShowHand) return true;
+      return false;
+  });
 // 控制高亮显示的延迟开关 (为了等翻牌动画结束)
 const enableHighlight = ref(false);
 
@@ -75,7 +114,9 @@ const isBullPart = (index) => {
 };
 
 const shouldShowBadge = computed(() => {
-    if (!props.player.handResult || store.currentPhase === 'GAME_OVER') return false;
+    if (!props.player.handResult) return false;
+    // Hide badge during IDLE, READY_COUNTDOWN and GAME_OVER phases
+    if (['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)) return false;
     
     if (props.isMe) {
         // 自己：必须点了摊牌(isShowHand) 或 结算阶段 才显示牌型结果
@@ -91,7 +132,7 @@ const shouldShowBadge = computed(() => {
   <div class="player-seat" :class="`seat-${position}`">
     <!-- ... (keep avatar area) -->
     <div class="avatar-area">
-      <div class="avatar-frame">
+      <div class="avatar-frame" :class="{ 'banker-candidate-highlight': isAnimatingHighlight }">
           <van-image
             round
             :src="player.avatar"
@@ -99,8 +140,16 @@ const shouldShowBadge = computed(() => {
           />
       </div>
       
+      <!-- Speech Bubble -->
+      <transition name="fade">
+        <div v-if="showSpeechBubble" class="speech-bubble">
+            <span v-if="speech.type === 'text'" v-html="formattedSpeechText"></span>
+            <img v-else-if="speech.type === 'emoji'" :src="speech.content" class="speech-emoji" />
+        </div>
+      </transition>
+      
       <!-- 状态浮层，移到 avatar-area 以便相对于头像定位 -->
-      <div class="status-float" v-if="store.currentPhase !== 'GAME_OVER'">
+      <div class="status-float" v-if="!['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)">
           <div v-if="player.robMultiplier > 0" class="art-text orange">抢x{{ player.robMultiplier }}</div>
           <div v-if="player.robMultiplier === 0" class="art-text gray">不抢</div>
           <div v-if="player.betMultiplier > 0" class="art-text green">下x{{ player.betMultiplier }}</div>
@@ -114,11 +163,13 @@ const shouldShowBadge = computed(() => {
         </div>
       </div>
       <!-- 庄家徽章，现在移动到 avatar-area 内部 -->
-      <div v-if="player.isBanker && store.currentPhase !== 'GAME_OVER'" class="banker-badge">庄</div>
+      <div v-if="player.isBanker && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)" class="banker-badge">庄</div>
+      <!-- Ready Badge -->
+      <div v-if="player.isReady && store.currentPhase === 'READY_COUNTDOWN'" class="ready-badge">✔ 准备</div>
     </div>
     
     <!-- ... (keep score float) -->
-    <div v-if="player.roundScore !== 0 && player.state !== 'IDLE' && store.currentPhase !== 'GAME_OVER'" class="score-float" :class="player.roundScore > 0 ? 'win' : 'lose'">
+    <div v-if="player.roundScore !== 0 && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)" class="score-float" :class="player.roundScore > 0 ? 'win' : 'lose'">
         {{ player.roundScore > 0 ? '+' : '' }}{{ player.roundScore }}
     </div>
 
@@ -195,6 +246,18 @@ const shouldShowBadge = computed(() => {
     display: flex; /* Use flexbox to center the image reliably */
     justify-content: center;
     align-items: center;
+    transition: box-shadow 0.2s ease-in-out; /* Smooth transition for highlight */
+}
+
+.avatar-frame.banker-candidate-highlight {
+    box-shadow: 0 0 15px 5px #facc15, 0 0 8px 2px #d97706; /* Golden glow */
+    border-color: #facc15;
+    animation: pulse-border-glow 1s infinite alternate;
+}
+
+@keyframes pulse-border-glow {
+    from { box-shadow: 0 0 15px 5px #facc15, 0 0 8px 2px #d97706; }
+    to { box-shadow: 0 0 20px 8px #fcd34d, 0 0 10px 3px #fbbf24; }
 }
 
 /* Make the van-image fill its parent frame */
@@ -205,6 +268,124 @@ const shouldShowBadge = computed(() => {
 
 .avatar {
   border: none; /* Remove redundant transparent border */
+}
+
+.speech-bubble {
+    position: absolute;
+    top: -10px; /* Position above avatar */
+    left: 100%;
+    transform: translateX(10px); /* Offset from avatar */
+    background: linear-gradient(to bottom, #f9fafb, #e5e7eb); /* Light background */
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    padding: 6px 10px;
+    font-size: 14px;
+    color: #333;
+    white-space: normal; /* Allow normal text wrapping */
+    word-break: break-all; /* Break long words */
+    z-index: 50;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    display: inline-flex; /* Use inline-flex for adaptive width */
+    align-items: center; /* Vertically center content */
+    max-width: 150px; /* Max width for longer phrases (e.g., 2 lines of 10 chars + padding) */
+    /* overflow: hidden; Removed as we want wrapping */
+    /* text-overflow: ellipsis; Removed as we want wrapping */
+    animation: bounceIn 0.3s ease-out;
+}
+
+.speech-bubble::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: -12px; /* Move tail further left */
+    width: 0;
+    height: 0;
+    border-top: 10px solid transparent; /* Slightly larger tail */
+    border-bottom: 10px solid transparent;
+    border-right: 12px solid #e5e7eb; /* Tail color matches bubble */
+    transform: translateY(-50%);
+    z-index: 51;
+}
+
+.speech-bubble::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: -10px; /* Move tail further left (inner) */
+    width: 0;
+    height: 0;
+    border-top: 8px solid transparent; /* Inner tail slightly smaller */
+    border-bottom: 8px solid transparent;
+    border-right: 10px solid #f9fafb; /* Tail color matches bubble inner */
+    transform: translateY(-50%);
+    z-index: 52;
+}
+
+/* For right-positioned players, speech bubble should be on the left */
+.seat-right .speech-bubble {
+    left: auto;
+    right: 100%;
+    transform: translateX(-10px); /* Offset from avatar */
+}
+
+.seat-right .speech-bubble::before {
+    left: auto;
+    right: -12px; /* Move tail further right */
+    border-right: none;
+    border-left: 12px solid #e5e7eb;
+}
+
+.seat-right .speech-bubble::after {
+    left: auto;
+    right: -10px; /* Move tail further right (inner) */
+    border-right: none;
+    border-left: 10px solid #f9fafb;
+}
+
+.speech-emoji {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+}
+
+@keyframes bounceIn {
+  from, 20%, 40%, 60%, 80%, to {
+    animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+  }
+
+  0% {
+    opacity: 0;
+    transform: scale3d(0.3, 0.3, 0.3) translateX(10px);
+  }
+
+  20% {
+    transform: scale3d(1.1, 1.1, 1.1) translateX(10px);
+  }
+
+  40% {
+    transform: scale3d(0.9, 0.9, 0.9) translateX(10px);
+  }
+
+  60% {
+    opacity: 1;
+    transform: scale3d(1.03, 1.03, 1.03) translateX(10px);
+  }
+
+  80% {
+    transform: scale3d(0.97, 0.97, 0.97) translateX(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale3d(1, 1, 1) translateX(10px);
+  }
+}
+
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.5s ease;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
 }
 
 .banker-badge {

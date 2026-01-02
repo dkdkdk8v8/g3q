@@ -22,15 +22,16 @@ const (
 )
 
 const (
-	CmdUserInfo       = QZNN_Prefix + "UserInfo"
-	CmdLobbyConfig    = QZNN_Prefix + "LobbyConfig"
-	CmdPlayerJoin     = QZNN_Prefix + "PlayerJoin"
-	CmdPlayerLeave    = QZNN_Prefix + "PlayerLeave"
+	CmdUserInfo    = QZNN_Prefix + "UserInfo"
+	CmdLobbyConfig = QZNN_Prefix + "LobbyConfig"
+	CmdPlayerJoin  = QZNN_Prefix + "PlayerJoin"
+	CmdPlayerLeave = QZNN_Prefix + "PlayerLeave"
 	//CmdPlayerReady    = QZNN_Prefix + "PlayerReady"
-	CmdPlayerCallBank = QZNN_Prefix + "PlayerCallBank"
-	CmdPlayerPlaceBet = QZNN_Prefix + "PlayerPlaceBet"
-	CmdPlayerShowCard = QZNN_Prefix + "PlayerShowCard"
-	CmdBalanceChange  = QZNN_Prefix + "BalanceChange"
+	CmdPlayerCallBank     = QZNN_Prefix + "PlayerCallBank"
+	CmdPlayerPlaceBet     = QZNN_Prefix + "PlayerPlaceBet"
+	CmdPlayerShowCard     = QZNN_Prefix + "PlayerShowCard"
+	CmdBalanceChange      = QZNN_Prefix + "BalanceChange"
+	CmdReconnectEnterRoom = QZNN_Prefix + "ReconnectEnterRoom"
 )
 
 const (
@@ -49,20 +50,20 @@ type CardResult struct {
 
 // Player 代表房间内的一个玩家
 type Player struct {
-	ID            string
-	NickName      string
-	Balance       int64      // 玩家余额,单位分
-	Cards         []int      // 手牌 (0-51)
-	CallMult      int64      // 抢庄倍数
-	BetMult       int64      // 下注倍数
-	IsShow        bool       // 是否已亮牌
-	SeatNum       int        // 座位号
+	ID       string
+	NickName string
+	Balance  int64 // 玩家余额,单位分
+	Cards    []int // 手牌 (0-51)
+	CallMult int64 // 抢庄倍数
+	BetMult  int64 // 下注倍数
+	IsShow   bool  // 是否已亮牌
+	SeatNum  int   // 座位号
 	//IsReady       bool       // 是否已准备
-	IsOb          bool       // 是否观众
-	BalanceChange int64      // 本局输赢
-	IsRobot       bool       `json:"-"`
-	Mu            sync.Mutex `json:"-"`
-	Conn          *ws.WSConn `json:"-"` // WebSocket 连接
+	IsOb          bool           // 是否观众
+	BalanceChange int64          // 本局输赢
+	IsRobot       bool           `json:"-"`
+	Mu            sync.Mutex     `json:"-"`
+	ConnWrap      *ws.WsConnWrap `json:"-"` // WebSocket 连接
 }
 
 func (p *Player) GetClientPlayer(cardNum int, secret bool) *Player {

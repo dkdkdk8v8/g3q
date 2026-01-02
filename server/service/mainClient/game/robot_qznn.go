@@ -83,7 +83,7 @@ func RobotForQZNNRoom(room *nn.QZNNRoom) {
 		p := &nn.Player{
 			ID:      bot.UserId,
 			IsRobot: true,
-			Conn:    nil,
+			ConnWrap:    nil,
 			Balance: bot.Balance,
 		}
 		room.AddPlayer(p)

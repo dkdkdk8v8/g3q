@@ -11,6 +11,7 @@ import (
 	"service/mainClient/game/nn"
 	"service/modelClient"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -19,7 +20,9 @@ import (
 )
 
 var (
-	pingCount int64
+	pingCount         int64
+	wsConnectMapMutex sync.RWMutex
+	wsConnectMap      = make(map[string]*ws.WsConnWrap, 2000)
 )
 
 func init() {
@@ -30,6 +33,26 @@ func init() {
 			c := atomic.SwapInt64(&pingCount, 0)
 			if c > 0 {
 				logrus.WithField("avg5s", int(pingCount/12)).Info("WS-Ping-Statistics")
+			}
+			//clean wsConnectMap if ws is nil
+			var delConnect []string
+			wsConnectMapMutex.RLock()
+			for uId, ws := range wsConnectMap {
+				if ws == nil {
+					delConnect = append(delConnect, uId)
+				}
+			}
+			wsConnectMapMutex.RUnlock()
+			if len(delConnect) > 0 {
+				for _, delUid := range delConnect {
+					wsConnectMapMutex.Lock()
+					if reGetWs, ok := wsConnectMap[delUid]; ok {
+						if reGetWs == nil {
+							delete(wsConnectMap, delUid)
+						}
+					}
+					wsConnectMapMutex.Unlock()
+				}
 			}
 		}
 	}()
@@ -63,50 +86,77 @@ func WSEntry(c *gin.Context) {
 	// 		userId = t.ID
 	// 	}
 	// }
-
 	// 1.5 查询数据库校验用户是否存在，不存在则自动注册
-	user, err := modelClient.GetOrCreateUser(appId, appUserId)
-	if err != nil {
-		logrus.WithError(err).WithField("appUserId", appUserId).Error("WS-GetOrCreateUser-Fail")
-		return
+	// user, err := modelClient.GetOrCreateUser(appId, appUserId)
+	// if err != nil {
+	// 	logrus.WithError(err).WithField("appUserId", appUserId).Error("WS-GetOrCreateUser-Fail")
+	// 	return
+	// }
+	logrus.WithField("appId", appId).WithField("appUserId", appUserId).Info("WS-Client-Connected")
+
+	connWrap := &ws.WsConnWrap{WsConn: conn}
+	userId := appId + appUserId
+	wsConnectMapMutex.Lock()
+	if existWsWrap, ok := wsConnectMap[userId]; ok {
+		existWsWrap.WsConn.WriteJSON(comm.Response{Cmd: CmdOtherConnect, Msg: "其他设备登录"})
+		existWsWrap.WsConn.CloseNormal("handler exit")
+		existWsWrap.WsConn = conn
+		connWrap = existWsWrap
+		logrus.WithField("appId", appId).WithField("appUserId", appUserId).Info("WS-Client-KickOffConnect")
+	} else {
+		wsConnectMap[userId] = connWrap
 	}
-	userId := user.UserId
-	logrus.WithField("uid", userId).Info("WS-Client-Connected")
+	wsConnectMapMutex.Unlock()
 
 	// 2. 进入消息处理循环
-	handleConnection(conn, userId)
+	handleConnection(connWrap, appId, appUserId)
 }
 
-func handleConnection(conn *ws.WSConn, userId string) {
+func handleConnection(connWrap *ws.WsConnWrap, appId, appUserId string) {
+	userId := appId + appUserId
+	var doOnce sync.Once
 	for {
+
+		doOnce.Do(func() {
+			//check 是否在游戏内
+			room := game.GetMgr().GetPlayerRoom(userId)
+			if room != nil {
+				room.ReconnectEnterRoom(userId)
+			}
+		})
+
 		var msg comm.Message
 		var err error
 		// 读取客户端发来的 JSON 消息
 		if initMain.DefCtx.IsDebug {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-			_, buffer, err1 := conn.Conn.Read(ctx)
+			_, buffer, err1 := connWrap.WsConn.Conn.Read(ctx)
 			cancel() // 显式调用 cancel，避免在 for 循环中 defer 导致资源泄露
 			if err1 != nil {
-				conn = nil
+				connWrap.WsConn = nil
 				logWSCloseErr(userId, err1)
 				break
 			}
 			err = json.Unmarshal(buffer, &msg)
 			if err != nil {
-				conn = nil
+				wsConnectMapMutex.Lock()
+				connWrap.WsConn = nil
+				wsConnectMapMutex.Unlock()
 				logrus.WithField("uid", userId).WithField("buffer", string(buffer)).WithError(err).Info("WS-Client-JsonInvalid")
 				break
 			}
 		} else {
-			err = conn.ReadJSON(&msg)
+			err = connWrap.WsConn.ReadJSON(&msg)
 			if err != nil {
 				logWSCloseErr(userId, err)
-				conn = nil
+				wsConnectMapMutex.Lock()
+				connWrap.WsConn = nil
+				wsConnectMapMutex.Unlock()
 				break
 			}
 		}
 		// 3. 路由分发 (Dispatcher)
-		dispatch(conn, userId, &msg)
+		dispatch(connWrap, appId, appUserId, &msg)
 	}
 }
 
@@ -123,7 +173,8 @@ func logWSCloseErr(userId string, err error) {
 	}
 }
 
-func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
+func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, msg *comm.Message) {
+	userId := appId + appUserId
 	if msg.Cmd == CmdPingPong {
 		atomic.AddInt64(&pingCount, 1)
 	} else {
@@ -159,7 +210,7 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 					"code", rsp.Cmd).Info("Ws-Send-Msg")
 			}
 		}
-		conn.WriteJSON(rsp)
+		connWrap.WsConn.WriteJSON(rsp)
 	}()
 
 	switch msg.Cmd {
@@ -197,7 +248,7 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 		}
 
 		// 检查余额
-		user, err := modelClient.GetUserByUserId(userId)
+		user, err := modelClient.GetOrCreateUser(appId, appUserId)
 		if err != nil {
 			errRsp = errors.New("获取用户信息失败")
 			return
@@ -209,10 +260,10 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 
 		// 处理抢庄牛牛匹配逻辑
 		p := &nn.Player{
-			ID:      userId,
-			Conn:    conn,
-			IsRobot: false,
-			Balance: user.Balance,
+			ID:       userId,
+			ConnWrap: connWrap,
+			IsRobot:  false,
+			Balance:  user.Balance,
 			NickName: func() string {
 				if user.NickName == "" {
 					return user.UserId

@@ -103,7 +103,7 @@ func (r *QZNNRoom) KickOffByWsDisconnect() {
 		if p.IsRobot {
 			continue
 		}
-		if p.Conn == nil {
+		if p.ConnWrap == nil {
 			delIndex = append(delIndex, i)
 		}
 
@@ -133,7 +133,7 @@ func (r *QZNNRoom) GetWsOkPlayerCount() int {
 		if p.IsOb {
 			continue
 		}
-		if p.IsRobot || p.Conn != nil {
+		if p.IsRobot || p.ConnWrap != nil {
 			count++
 		}
 	}
@@ -200,8 +200,8 @@ func (r *QZNNRoom) Broadcast(msg interface{}) {
 	r.PlayerMu.RLock()
 	defer r.PlayerMu.RUnlock()
 	for _, p := range r.Players {
-		if p != nil && p.Conn != nil {
-			_ = p.Conn.WriteJSON(msg)
+		if p != nil && p.ConnWrap.WsConn != nil {
+			_ = p.ConnWrap.WsConn.WriteJSON(msg)
 		}
 	}
 }
@@ -210,9 +210,9 @@ func (r *QZNNRoom) BroadcastWithPlayer(getMsg func(*Player) interface{}) {
 	r.PlayerMu.RLock()
 	defer r.PlayerMu.RUnlock()
 	for _, p := range r.Players {
-		if p != nil && p.Conn != nil {
+		if p != nil && p.ConnWrap.WsConn != nil {
 			msg := getMsg(p)
-			_ = p.Conn.WriteJSON(msg)
+			_ = p.ConnWrap.WsConn.WriteJSON(msg)
 		}
 	}
 }
@@ -224,8 +224,8 @@ func (r *QZNNRoom) BroadcastExclude(msg interface{}, excludeId string) {
 		if p == nil || p.ID == excludeId {
 			continue
 		}
-		if p.Conn != nil {
-			_ = p.Conn.WriteJSON(msg)
+		if p.ConnWrap.WsConn != nil {
+			_ = p.ConnWrap.WsConn.WriteJSON(msg)
 		}
 	}
 }
@@ -291,6 +291,18 @@ func (r *QZNNRoom) GetActivePlayers(filter func(*Player) bool) []*Player {
 		players = append(players, p)
 	}
 	return players
+}
+
+func (r *QZNNRoom) ReconnectEnterRoom(userId string) {
+	p, ok := r.GetPlayerByID(userId)
+	if ok {
+		if p != nil && p.ConnWrap.WsConn != nil {
+			_ = p.ConnWrap.WsConn.WriteJSON(comm.Response{
+				Cmd:  CmdReconnectEnterRoom,
+				Data: gin.H{"Room": r}})
+		}
+	}
+
 }
 
 func (r *QZNNRoom) prepareDeck() {

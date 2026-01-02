@@ -52,16 +52,12 @@ func GetRobotMgr() *RobotManager {
 	return robotMgr
 }
 
-// generateNickname 随机生成昵称
-func (rm *RobotManager) generateNickname(userId string) string {
-	// 50% 概率使用中文网名，50% 概率使用脱敏ID
-	if len(chineseNicknames) > 0 && rand.Intn(2) == 0 {
+func (rm *RobotManager) generateNickname() string {
+	// 70% 概率使用中文昵称
+	if len(chineseNicknames) > 0 && rand.Intn(100) < 70 {
 		return chineseNicknames[rand.Intn(len(chineseNicknames))]
 	}
-	if len(userId) >= 8 {
-		return userId[:4] + "****" + userId[len(userId)-4:]
-	}
-	return userId
+	return ""
 }
 
 // InitRobots 检查并初始化机器人池
@@ -83,8 +79,8 @@ func (rm *RobotManager) InitRobots() {
 				UserId:    userId,
 				AppId:     appId,
 				AppUserId: appUserId,
-				NickName:  rm.generateNickname(userId),
-				Balance:   int64(rand.Intn(RobotMaxRecharge-RobotMinRecharge+1) + RobotMinRecharge),
+				NickName:  rm.generateNickname(),
+				Balance:   0,
 				IsRobot:   true,
 				Enable:    true,
 				CreateAt:  time.Now(),
@@ -128,7 +124,7 @@ func (rm *RobotManager) RobotEnterRoom(room *nn.QZNNRoom) {
 			if bot.Balance < minEntry {
 				minRecharge := minEntry + int64(RobotMinRecharge)
 				maxRecharge := int64(RobotMaxRecharge)
-				if maxRecharge < minRecharge {
+				if maxRecharge < minRecharge { // 确保最大值不小于最小值
 					maxRecharge = minRecharge * 10
 				}
 				rechargeAmount := rand.Int63n(maxRecharge-minRecharge+1) + minRecharge

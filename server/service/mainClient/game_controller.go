@@ -311,3 +311,12 @@ func dispatch(conn *ws.WSConn, userId string, msg *comm.Message) {
 		})
 	}
 }
+
+func RpcQZNNData(c *gin.Context) {
+	rooms := game.GetMgr().GetAllRooms()
+	c.JSON(200, gin.H{
+		"code": 0,
+		"msg":  "success",
+		"data": rooms,
+	})
+}

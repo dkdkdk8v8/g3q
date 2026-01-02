@@ -27,36 +27,31 @@ const props = defineProps({
       return props.speech && props.speech.content;
   });
   
-  // Computed property to format long speech text
-  const formattedSpeechText = computed(() => {
-      if (!props.speech || props.speech.type !== 'text' || !props.speech.content) {
-          return '';
-      }
-      const text = props.speech.content;
-      const maxLength = 10; // Max 10 Chinese characters per line
-      
-      let result = [];
-      let currentLine = '';
-      let charCount = 0;
+  // Computed property to calculate dynamic width for speech bubble
+  const speechBubbleStyle = computed(() => {
+      if (props.speech && props.speech.type === 'text' && props.speech.content) {
+          // Assume one Chinese character is roughly 8px wide (per user request)
+          const charWidth = 8;
+          const padding = 20; // Total left/right padding (10px + 10px)
+          const textLength = Array.from(props.speech.content).length; // Handle Unicode characters
+          let calculatedWidth = (textLength * charWidth) + padding;
 
-      Array.from(text).forEach(char => {
-          if (charCount < maxLength) {
-              currentLine += char;
-              charCount++;
-          } else {
-              result.push(currentLine);
-              currentLine = char;
-              charCount = 1;
+          // Cap the width to prevent it from becoming too wide (max 8 chars per line)
+          const maxWidthCap = (8 * charWidth) + padding; 
+          if (calculatedWidth > maxWidthCap) {
+              calculatedWidth = maxWidthCap;
           }
-      });
-      result.push(currentLine); // Push the last line
 
-      // Limit to 2 lines
-      if (result.length > 2) {
-          result = result.slice(0, 2);
+          // Ensure a minimum width for very short phrases or emojis if needed (not strictly for text)
+          const minWidth = 60; // For small phrases or emojis
+          if (calculatedWidth < minWidth) {
+              calculatedWidth = minWidth;
+          }
+
+          return { width: `${calculatedWidth}px` };
       }
-
-      return result.join('<br>');
+      // For emojis, or if no speech content, let CSS handle default sizing or use a default width
+      return { width: 'auto' };
   });
   
   // 始终返回完整手牌以保持布局稳定
@@ -141,12 +136,10 @@ const shouldShowBadge = computed(() => {
       </div>
       
       <!-- Speech Bubble -->
-      <transition name="fade">
-        <div v-if="showSpeechBubble" class="speech-bubble">
-            <span v-if="speech.type === 'text'" v-html="formattedSpeechText"></span>
-            <img v-else-if="speech.type === 'emoji'" :src="speech.content" class="speech-emoji" />
+      <div v-show="showSpeechBubble" class="speech-bubble" :style="speechBubbleStyle" :class="{ 'speech-visible': showSpeechBubble }">
+            <span v-if="speech && speech.type === 'text'">{{ speech.content }}</span>
+            <img v-else-if="speech && speech.type === 'emoji'" :src="speech.content" class="speech-emoji" />
         </div>
-      </transition>
       
       <!-- 状态浮层，移到 avatar-area 以便相对于头像定位 -->
       <div class="status-float" v-if="!['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)">
@@ -272,9 +265,10 @@ const shouldShowBadge = computed(() => {
 
 .speech-bubble {
     position: absolute;
-    top: -10px; /* Position above avatar */
-    left: 100%;
-    transform: translateX(10px); /* Offset from avatar */
+    bottom: 100%; /* Position above avatar */
+    left: 50%; /* Center horizontally */
+    transform: translateX(-50%) translateY(-10px); /* Base position for centering and gap */
+    opacity: 0; /* Initially hidden */
     background: linear-gradient(to bottom, #f9fafb, #e5e7eb); /* Light background */
     border: 1px solid #d1d5db;
     border-radius: 12px;
@@ -283,63 +277,73 @@ const shouldShowBadge = computed(() => {
     color: #333;
     white-space: normal; /* Allow normal text wrapping */
     word-break: break-all; /* Break long words */
-    z-index: 50;
+    z-index: 190; /* High z-index to be above cards but below modals */
     box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     display: inline-flex; /* Use inline-flex for adaptive width */
     align-items: center; /* Vertically center content */
-    max-width: 150px; /* Max width for longer phrases (e.g., 2 lines of 10 chars + padding) */
-    /* overflow: hidden; Removed as we want wrapping */
-    /* text-overflow: ellipsis; Removed as we want wrapping */
-    animation: bounceIn 0.3s ease-out;
+    justify-content: center; /* Horizontally center content */
+    text-align: center; /* Center text when wrapped */
+    max-width: 170px; /* Max width for longer phrases (e.g., 2 lines of ~10 chars + padding) */
+    /* animation is now controlled by .speech-visible class */
+    transition: opacity 0.3s ease-out; /* Smooth fade in/out */
+}
+
+.speech-bubble.speech-visible {
+    opacity: 1;
+    animation: speechBubbleBounceIn 0.3s ease-out forwards;
 }
 
 .speech-bubble::before {
     content: '';
     position: absolute;
-    top: 50%;
-    left: -12px; /* Move tail further left */
+    top: 100%; /* Position at bottom of bubble */
+    left: 50%;
+    transform: translateX(-50%) translateY(-2px); /* Center and overlap slightly */
     width: 0;
     height: 0;
-    border-top: 10px solid transparent; /* Slightly larger tail */
-    border-bottom: 10px solid transparent;
-    border-right: 12px solid #e5e7eb; /* Tail color matches bubble */
-    transform: translateY(-50%);
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 12px solid #e5e7eb; /* Tail color matches bubble */
     z-index: 51;
 }
 
 .speech-bubble::after {
     content: '';
     position: absolute;
-    top: 50%;
-    left: -10px; /* Move tail further left (inner) */
+    top: 100%; /* Position at bottom of bubble (inner) */
+    left: 50%;
+    transform: translateX(-50%) translateY(-3px); /* Center and overlap slightly */
     width: 0;
     height: 0;
-    border-top: 8px solid transparent; /* Inner tail slightly smaller */
-    border-bottom: 8px solid transparent;
-    border-right: 10px solid #f9fafb; /* Tail color matches bubble inner */
-    transform: translateY(-50%);
+    border-left: 8px solid transparent; /* Inner tail slightly smaller */
+    border-right: 8px solid transparent;
+    border-top: 10px solid #f9fafb; /* Tail color matches bubble inner */
     z-index: 52;
 }
 
-/* For right-positioned players, speech bubble should be on the left */
+/* For right-positioned players, speech bubble should still be above and centered */
 .seat-right .speech-bubble {
-    left: auto;
-    right: 100%;
-    transform: translateX(-10px); /* Offset from avatar */
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%) translateY(-10px); /* Same positioning as others */
 }
 
 .seat-right .speech-bubble::before {
-    left: auto;
-    right: -12px; /* Move tail further right */
-    border-right: none;
-    border-left: 12px solid #e5e7eb;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%) translateY(-2px); /* Same positioning as others */
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 12px solid #e5e7eb;
 }
 
 .seat-right .speech-bubble::after {
-    left: auto;
-    right: -10px; /* Move tail further right (inner) */
-    border-right: none;
-    border-left: 10px solid #f9fafb;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%) translateY(-3px); /* Same positioning as others */
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 10px solid #f9fafb;
 }
 
 .speech-emoji {
@@ -348,36 +352,34 @@ const shouldShowBadge = computed(() => {
     object-fit: contain;
 }
 
-@keyframes bounceIn {
+@keyframes speechBubbleBounceIn {
   from, 20%, 40%, 60%, 80%, to {
     animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
   }
 
-  0% {
-    opacity: 0;
-    transform: scale3d(0.3, 0.3, 0.3) translateX(10px);
+  from {
+    /* Maintain base transform, animate scale only */
+    transform: translateX(-50%) translateY(-10px) scale3d(0.3, 0.3, 0.3);
   }
 
   20% {
-    transform: scale3d(1.1, 1.1, 1.1) translateX(10px);
+    transform: translateX(-50%) translateY(-10px) scale3d(1.1, 1.1, 1.1);
   }
 
   40% {
-    transform: scale3d(0.9, 0.9, 0.9) translateX(10px);
+    transform: translateX(-50%) translateY(-10px) scale3d(0.9, 0.9, 0.9);
   }
 
   60% {
-    opacity: 1;
-    transform: scale3d(1.03, 1.03, 1.03) translateX(10px);
+    transform: translateX(-50%) translateY(-10px) scale3d(1.03, 1.03, 1.03);
   }
 
   80% {
-    transform: scale3d(0.97, 0.97, 0.97) translateX(10px);
+    transform: translateX(-50%) translateY(-10px) scale3d(0.97, 0.97, 0.97);
   }
 
   to {
-    opacity: 1;
-    transform: scale3d(1, 1, 1) translateX(10px);
+    transform: translateX(-50%) translateY(-10px) scale3d(1, 1, 1);
   }
 }
 

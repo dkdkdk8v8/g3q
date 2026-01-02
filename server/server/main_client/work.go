@@ -172,7 +172,9 @@ func (w *mainClientWork) Start(baseCtx *initMain.BaseCtx) error {
 	logrus.Info("startNetServer")
 
 	// 初始化机器人管理器
-	mainClient.GetRobotMgr().InitRobots()
+	go func() {
+		modelClient.InitRobots()
+	}()
 
 	go func() {
 		startHttpListen(w.cfg.HttpHost+":"+w.cfg.HttpPort, w.defaultEngine)

@@ -1,10 +1,27 @@
 <script setup>
+import { onMounted } from 'vue';
 import GlobalLoading from './components/GlobalLoading.vue';
+import ReconnectDialog from './components/ReconnectDialog.vue';
+import btnClickSound from '@/assets/sounds/btn_click.mp3';
+
+const clickAudio = new Audio(btnClickSound);
+
+onMounted(() => {
+  document.addEventListener('click', (e) => {
+    // Check if the clicked element or its parent is interactive
+    const target = e.target.closest('button, .btn, .game-btn, .menu-btn, .van-button, .menu-item, .tab-item, .room-card, .add-btn, .chat-toggle-btn, .close-icon, .close-btn, .phrase-item, .emoji-item, .retry-btn');
+    if (target) {
+      clickAudio.currentTime = 0;
+      clickAudio.play().catch(() => {});
+    }
+  }, true); // Use capture phase to handle events before stopPropagation
+});
 </script>
 
 <template>
   <router-view />
   <GlobalLoading />
+  <ReconnectDialog />
 </template>
 
 <style>

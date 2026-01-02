@@ -7,6 +7,30 @@ import DealingLayer from '../components/DealingLayer.vue';
 import ChatBubbleSelector from '../components/ChatBubbleSelector.vue'; // New import
 import { useRouter, useRoute } from 'vue-router';
 
+import talk0 from '@/assets/sounds/talk_0.mp3';
+import talk1 from '@/assets/sounds/talk_1.mp3';
+import talk2 from '@/assets/sounds/talk_2.mp3';
+import talk3 from '@/assets/sounds/talk_3.mp3';
+import talk4 from '@/assets/sounds/talk_4.mp3';
+import talk5 from '@/assets/sounds/talk_5.mp3';
+import talk6 from '@/assets/sounds/talk_6.mp3';
+import talk7 from '@/assets/sounds/talk_7.mp3';
+import talk8 from '@/assets/sounds/talk_8.mp3';
+import talk9 from '@/assets/sounds/talk_9.mp3';
+import talk10 from '@/assets/sounds/talk_10.mp3';
+import gameBgSound from '@/assets/sounds/game_bg.mp3';
+
+const phraseSounds = [
+    talk0, talk1, talk2, talk3, talk4, talk5, talk6, talk7, talk8, talk9, talk10
+];
+
+const playPhraseSound = (index) => {
+    if (index >= 0 && index < phraseSounds.length) {
+        const audio = new Audio(phraseSounds[index]);
+        audio.play().catch(() => {});
+    }
+};
+
 const store = useGameStore();
 const router = useRouter();
 const route = useRoute();
@@ -14,6 +38,7 @@ const coinLayer = ref(null);
 const dealingLayer = ref(null); 
 const seatRefs = ref({}); // 存储所有座位的引用 key: playerId
 const tableCenterRef = ref(null); // 桌面中心元素引用
+const bgAudio = ref(null);
 
 // Chat/Emoji selector state
 const showChatSelector = ref(false); // New reactive variable
@@ -40,13 +65,14 @@ const checkCooldown = () => {
 };
 
 // Method to handle phrase selection from ChatBubbleSelector
-const onPhraseSelected = (phrase) => {
+const onPhraseSelected = (phrase, index) => { // Added index parameter
     if (!checkCooldown()) {
         return;
     }
+    playPhraseSound(index); // Play sound here
     // For now, let's assume it's for 'me'
     playerSpeech.value.set(store.myPlayerId, { type: 'text', content: phrase });
-    // Make speech visible for a few seconds
+    // Make speech visible and auto-clear after 3 seconds
     setTimeout(() => {
         playerSpeech.value.delete(store.myPlayerId);
     }, 3000); // Display for 3 seconds
@@ -59,7 +85,7 @@ const onEmojiSelected = (emojiUrl) => {
     }
     // For now, let's assume it's for 'me'
     playerSpeech.value.set(store.myPlayerId, { type: 'emoji', content: emojiUrl });
-    // Make speech visible for a few seconds
+    // Make speech visible and auto-clear after 3 seconds
     setTimeout(() => {
         playerSpeech.value.delete(store.myPlayerId);
     }, 3000); // Display for 3 seconds
@@ -69,6 +95,102 @@ const onEmojiSelected = (emojiUrl) => {
 const currentlyHighlightedPlayerId = ref(null);
 let animationIntervalId = null;
 let candidateIndex = 0;
+
+// Robot Speech/Emoji Logic
+const robotSpeechInterval = ref(null);
+const lastRobotSpeechTime = ref(new Map()); // Map<playerId, timestamp>
+const ROBOT_SPEECH_PROBABILITY = 0.2; // 20% chance every check
+const ROBOT_SPEECH_CHECK_INTERVAL_SECONDS = 5; // Check every 5 seconds
+const ROBOT_SPEECH_COOLDOWN_SECONDS = 15; // Cooldown for individual robot
+
+// Duplicate phraseSounds (already defined above)
+// Duplicate commonPhrases for robot use
+const commonPhrases = [
+    "猜猜我是牛几呀",
+    "风水轮流转，底裤都要输光了",
+    "辛苦这么多年，一夜回到解放前",
+    "我又赢了，谢谢大家送钱",
+    "快点开牌，我是牛牛",
+    "唉，一手烂牌臭到底",
+    "快点吧，我等的花都谢了",
+    "吐了个槽的，整个一个杯具啊",
+    "你的牌也太好啦",
+    "不要吵啦，有什么好吵的，专心玩牌吧",
+    "作孽啊"
+];
+
+// Duplicate emoji imports for robot use
+import emoji1 from '@/assets/emoji/emoji_1.png';
+import emoji2 from '@/assets/emoji/emoji_2.png';
+import emoji3 from '@/assets/emoji/emoji_3.png';
+import emoji4 from '@/assets/emoji/emoji_4.png';
+import emoji5 from '@/assets/emoji/emoji_5.png';
+import emoji6 from '@/assets/emoji/emoji_6.png';
+import emoji7 from '@/assets/emoji/emoji_7.png';
+import emoji8 from '@/assets/emoji/emoji_8.png';
+import emoji9 from '@/assets/emoji/emoji_9.png';
+import emoji10 from '@/assets/emoji/emoji_10.png';
+import emoji11 from '@/assets/emoji/emoji_11.png';
+import emoji12 from '@/assets/emoji/emoji_12.png';
+import emoji13 from '@/assets/emoji/emoji_13.png';
+import emoji14 from '@/assets/emoji/emoji_14.png';
+import emoji15 from '@/assets/emoji/emoji_15.png';
+import emoji16 from '@/assets/emoji/emoji_16.png';
+
+const allEmojis = [
+    emoji1, emoji2, emoji3, emoji4, emoji5, emoji6, emoji7, emoji8,
+    emoji9, emoji10, emoji11, emoji12, emoji13, emoji14, emoji15, emoji16
+];
+
+const triggerRobotSpeech = (robotId, type, content) => {
+    playerSpeech.value.set(robotId, { type, content });
+    // Force reactivity update
+    playerSpeech.value = new Map(playerSpeech.value);
+    
+    lastRobotSpeechTime.value.set(robotId, Date.now());
+    setTimeout(() => {
+        playerSpeech.value.delete(robotId);
+        // Force reactivity update
+        playerSpeech.value = new Map(playerSpeech.value);
+    }, 3000); // Display for 3 seconds
+};
+
+const startRobotSpeech = () => {
+    robotSpeechInterval.value = setInterval(() => {
+        const currentPlayers = store.players; // Access players from the store
+        if (!currentPlayers || currentPlayers.length <= 1) {
+            return;
+        }
+
+        currentPlayers.forEach(p => {
+            if (p.id === store.myPlayerId) return; // Skip human player
+
+            const robotId = p.id;
+            const now = Date.now();
+            const lastSpoke = lastRobotSpeechTime.value.get(robotId) || 0;
+
+            if (now - lastSpoke < ROBOT_SPEECH_COOLDOWN_SECONDS * 1000) {
+                return; // Robot is on cooldown
+            }
+
+            if (Math.random() < ROBOT_SPEECH_PROBABILITY) {
+                // Robot decides to speak
+                if (Math.random() < 0.5) {
+                    // Send phrase
+                    const randomIndex = Math.floor(Math.random() * commonPhrases.length);
+                    const phrase = commonPhrases[randomIndex];
+                    playPhraseSound(randomIndex); // Play sound for robot
+                    triggerRobotSpeech(robotId, 'text', phrase);
+                } else {
+                    // Send emoji
+                    const randomIndex = Math.floor(Math.random() * allEmojis.length);
+                    const emojiUrl = allEmojis[randomIndex];
+                    triggerRobotSpeech(robotId, 'emoji', emojiUrl);
+                }
+            }
+        });
+    }, ROBOT_SPEECH_CHECK_INTERVAL_SECONDS * 1000); // <-- This is 5 seconds
+};
 
 // 菜单和弹窗控制
 const showMenu = ref(false);
@@ -94,36 +216,79 @@ const setSeatRef = (el, playerId) => {
 
 // 简单的布局计算：将玩家数组拆分为 自己 和 其他人
 const myPlayer = computed(() => store.players.find(p => p.id === store.myPlayerId));
-const otherPlayers = computed(() => {
-    const meIndex = store.players.findIndex(p => p.id === store.myPlayerId);
-    if (meIndex === -1) return [];
-    const others = [];
-    // 从自己下家开始顺时针找
-    for(let i = 1; i < store.players.length; i++) {
-        others.push(store.players[(meIndex + i) % store.players.length]);
+
+// Persistent seat mapping: { playerId: seatIndex (0-3) }
+const seatMapping = ref({});
+
+// Watch for player changes to assign seats randomly
+watch(() => store.players, (newPlayers) => {
+    if (!newPlayers) return;
+
+    const others = newPlayers.filter(p => p.id !== store.myPlayerId);
+    
+    // 1. Clean up mapping for players who left
+    const currentIds = new Set(others.map(p => p.id));
+    for (const pid in seatMapping.value) {
+        if (!currentIds.has(pid)) {
+            delete seatMapping.value[pid];
+        }
     }
-    return others;
+
+    // 2. Assign seats for new players
+    others.forEach(p => {
+        if (seatMapping.value[p.id] === undefined) {
+            // Find used seats
+            const usedSeats = new Set(Object.values(seatMapping.value));
+            // Find available seats (0, 1, 2, 3)
+            const availableSeats = [0, 1, 2, 3].filter(i => !usedSeats.has(i));
+            
+            if (availableSeats.length > 0) {
+                // Pick a random available seat
+                const randomIndex = Math.floor(Math.random() * availableSeats.length);
+                seatMapping.value[p.id] = availableSeats[randomIndex];
+            } else {
+                // Fallback (should not happen in 5-player max game): assign first slot or handle gracefully
+                console.warn('No seats available for player', p.id);
+            }
+        }
+    });
+}, { deep: true, immediate: true });
+
+// 固定4个对手座位槽位 (右, 右上, 左上, 左)
+const opponentSeats = computed(() => {
+    const seats = [null, null, null, null];
+    const meIndex = store.players.findIndex(p => p.id === store.myPlayerId);
+    
+    // 如果还没找到自己(理论上不应该)，直接返回空
+    if (meIndex === -1) return seats;
+
+    const others = store.players.filter(p => p.id !== store.myPlayerId);
+    
+    others.forEach(p => {
+        const seatIdx = seatMapping.value[p.id];
+        if (seatIdx !== undefined && seatIdx >= 0 && seatIdx < 4) {
+            seats[seatIdx] = p;
+        }
+    });
+    
+    return seats;
 });
 
-// 计算对手的位置布局类型
+// 计算对手的位置布局类型 (固定映射)
 const getLayoutType = (index) => {
-    const totalOthers = otherPlayers.value.length;
-    if (totalOthers === 4) {
-        if (index === 0) return 'right'; // 右侧玩家
-        if (index === 3) return 'left';  // 左侧玩家
-    }
-    return 'top'; // 顶部玩家
+    if (index === 0) return 'right';      // 右侧
+    if (index === 1) return 'top';        // 右上 (使用 top 布局，通过 class 微调位置)
+    if (index === 2) return 'top';        // 左上
+    if (index === 3) return 'left';       // 左侧
+    return 'top';
 };
 
-// 计算对手的位置 Class
+// 计算对手的位置 Class (固定映射)
 const getOpponentClass = (index) => {
-    const totalOthers = otherPlayers.value.length;
-    if (totalOthers === 4) {
-        if (index === 0) return 'seat-right';
-        if (index === 1) return 'seat-right-top';
-        if (index === 2) return 'seat-left-top';
-        if (index === 3) return 'seat-left';
-    }
+    if (index === 0) return 'seat-right';
+    if (index === 1) return 'seat-right-top';
+    if (index === 2) return 'seat-left-top';
+    if (index === 3) return 'seat-left';
     return '';
 };
 
@@ -317,9 +482,25 @@ const startDealingAnimation = (isSupplemental = false) => {
 onMounted(() => {
     const gameMode = route.query.mode !== undefined ? route.query.mode : 0;
     store.initGame(gameMode);
-    setTimeout(() => {
-        if(store.currentPhase === 'IDLE') store.startGame();
-    }, 1000);
+    
+    startRobotSpeech(); // Start robot speech when component mounts
+    
+    // Play Background Music
+    bgAudio.value = new Audio(gameBgSound);
+    bgAudio.value.loop = true;
+    bgAudio.value.volume = 0.5;
+    bgAudio.value.play().catch(() => {});
+});
+
+onUnmounted(() => {
+    if (robotSpeechInterval.value) {
+        clearInterval(robotSpeechInterval.value);
+    }
+    // Stop Background Music
+    if (bgAudio.value) {
+        bgAudio.value.pause();
+        bgAudio.value = null;
+    }
 });
 
 const onRob = (multiplier) => {
@@ -331,13 +512,11 @@ const onBet = (multiplier) => {
 };
 
 const openHistory = () => {
-    console.log("Opening history modal");
     showMenu.value = false;
     showHistory.value = true;
 };
 
 const quitGame = () => {
-    console.log("Quitting game, returning to lobby");
     router.replace('/lobby');
 };
 </script>
@@ -375,18 +554,26 @@ const quitGame = () => {
     </div>
 
     <div class="opponents-layer">
-        <PlayerSeat 
-            v-for="(p, index) in otherPlayers" 
-            :key="p.id" 
-            :player="p" 
-            :ref="(el) => setSeatRef(el, p.id)"
-            class="opponent-seat-abs"
-            :class="getOpponentClass(index)"
-            :position="getLayoutType(index)"
-            :visible-card-count="visibleCounts[p.id] !== undefined ? visibleCounts[p.id] : 0"
-            :is-ready="p.isReady"
-            :is-animating-highlight="p.id === currentlyHighlightedPlayerId"
-        />
+        <template v-for="(p, index) in opponentSeats" :key="index">
+            <PlayerSeat 
+                v-if="p"
+                :player="p" 
+                :ref="(el) => setSeatRef(el, p.id)"
+                class="opponent-seat-abs"
+                :class="getOpponentClass(index)"
+                :position="getLayoutType(index)"
+                :visible-card-count="visibleCounts[p.id] !== undefined ? visibleCounts[p.id] : 0"
+                :is-ready="p.isReady"
+                :is-animating-highlight="p.id === currentlyHighlightedPlayerId"
+                :speech="playerSpeech.get(p.id)"
+            />
+            <div v-else class="empty-seat opponent-seat-abs" :class="getOpponentClass(index)">
+                <div class="empty-seat-avatar">
+                    <van-icon name="plus" color="rgba(255,255,255,0.3)" size="20" />
+                </div>
+                <div class="empty-seat-text">等待加入</div>
+            </div>
+        </template>
     </div>
 
     <div class="table-center" ref="tableCenterRef">
@@ -403,7 +590,8 @@ const quitGame = () => {
 
             <!-- 阶段提示信息，统一显示在倒计时下方并样式类似“结算中...” -->
             <div class="phase-info">
-                <span v-if="store.currentPhase === 'READY_COUNTDOWN'">等待玩家准备</span>
+                <span v-if="store.currentPhase === 'WAITING_FOR_PLAYERS'">匹配玩家中...</span>
+                <span v-else-if="store.currentPhase === 'READY_COUNTDOWN'">等待玩家准备</span>
                 <span v-else-if="store.currentPhase === 'ROB_BANKER'">看牌抢庄</span>
                 <span v-else-if="store.currentPhase === 'BETTING'">闲家下注</span>
                 <span v-else-if="store.currentPhase === 'SHOWDOWN'">摊牌比拼</span>
@@ -693,9 +881,9 @@ const quitGame = () => {
 }
 
 .seat-right {
-    top: 45%; /* 向上调整位置 */
+    top: 38%; /* Adjusted for fixed top alignment */
     right: 10px;
-    transform: translateY(-50%) scale(0.85);
+    transform: scale(0.85);
 }
 
 .seat-right-top {
@@ -709,9 +897,40 @@ const quitGame = () => {
 }
 
 .seat-left {
-    top: 45%; /* 向上调整位置 */
+    top: 38%; /* Adjusted for fixed top alignment */
     left: 10px;
-    transform: translateY(-50%) scale(0.85);
+    transform: scale(0.85);
+}
+
+.empty-seat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100px;
+    height: 120px; /* Approximate height of a player seat */
+    opacity: 0.6;
+}
+
+.empty-seat-avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.2);
+    border: 1px dashed rgba(255,255,255,0.3);
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 4px; /* Match PlayerSeat .avatar-area margin-bottom */
+}
+
+.empty-seat-text {
+    font-size: 10px;
+    color: rgba(255,255,255,0.5);
+    background: rgba(0,0,0,0.2);
+    padding: 2px 6px;
+    border-radius: 8px;
 }
 
 .table-center {

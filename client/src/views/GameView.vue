@@ -344,6 +344,7 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
 }, { immediate: true });
 
 const startDealingAnimation = (isSupplemental = false) => {
+    visibleCounts.value = {}; // Reset visible counts to ensure full re-deal animation
     if (!dealingLayer.value) return;
 
     const targets = [];

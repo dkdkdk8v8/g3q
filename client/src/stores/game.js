@@ -359,14 +359,12 @@ export const useGameStore = defineStore('game', () => {
             p.isShowHand = false;
         });
 
+        // Create and shuffle a new deck for every dealing phase to ensure fresh cards and animation restart
+        deck.value = shuffle(createDeck());
+
         // 补齐手牌
         players.value.forEach(p => {
             p.hand = []; // Clear hand to ensure a fresh deal for 5 cards
-
-            // Ensure deck is initialized if it's empty (e.g., if 'Precard' was skipped)
-            if (!deck.value || deck.value.length === 0) {
-                deck.value = shuffle(createDeck());
-            }
 
             const cardsToDeal = 5; // Always deal 5 cards in this phase
 

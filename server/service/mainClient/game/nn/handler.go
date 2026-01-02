@@ -43,7 +43,7 @@ func HandleCallBanker(r *QZNNRoom, userID string, mult int64) {
 	p.Mu.Unlock()
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
 		return comm.Response{
-			Cmd:  PlayerCallBank,
+			Cmd:  CmdPlayerCallBank,
 			Data: gin.H{"room": r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID)}}
 	})
 	r.logicTick()
@@ -100,7 +100,7 @@ func HandleShowCards(r *QZNNRoom, userID string) {
 	p.Mu.Unlock()
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
 		return comm.Response{
-			Cmd:  "nn.PlayerShowCard",
+			Cmd:  CmdPlayerShowCard,
 			Data: gin.H{"Room": r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID)}}
 	})
 	r.logicTick()

@@ -281,11 +281,18 @@ func (r *QZNNRoom) drvierLogicTick() {
 			time.Sleep(time.Millisecond * 200)
 			switch r.State {
 			case StateWaiting:
+				if r.OnBotMgr != nil {
+					r.OnBotMgr(r.ID)
+				}
 				r.tickWaiting()
 
 			case StatePrepare:
+				if r.OnBotMgr != nil {
+					r.OnBotMgr(r.ID)
+				}
 				r.tickPrepare()
 			}
+
 		}
 	}
 }
@@ -481,7 +488,7 @@ func (r *QZNNRoom) StartGame() {
 
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
 		return comm.Response{
-			Cmd:  "nn.state_dealing",
+			Cmd:  StateDealing,
 			Data: gin.H{"room": r.GetClientRoom(5, p.ID == r.BankerID)}}
 	})
 
@@ -491,7 +498,7 @@ func (r *QZNNRoom) StartGame() {
 	r.WaitTimer(5)
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
 		return comm.Response{
-			Cmd:  "nn.state_showcard",
+			Cmd:  StateShowCard,
 			Data: gin.H{"room": r.GetClientRoom(5, !p.IsShow && p.ID == r.BankerID)}}
 	})
 
@@ -501,7 +508,7 @@ func (r *QZNNRoom) StartGame() {
 		return
 	}
 	r.Broadcast(comm.Response{
-		Cmd:  "nn.state_setting",
+		Cmd:  StateSettling,
 		Data: gin.H{"room": r}})
 
 	//客户端播放结算动画
@@ -575,6 +582,6 @@ func (r *QZNNRoom) StartGame() {
 	//清理数据
 	r.reset()
 	r.Broadcast(comm.Response{
-		Cmd:  "nn.state_waiting",
+		Cmd:  StateWaiting,
 		Data: gin.H{"room": r}})
 }

@@ -21,9 +21,15 @@ const (
 )
 
 const (
-	PlayerCallBank = QZNN_Prefix + "PlayerCallBank"
-	PlayerPlaceBet = QZNN_Prefix + "PlayerPlaceBet"
-	PlayerShowCard = QZNN_Prefix + "PlayerShowCard"
+	CmdUserInfo       = QZNN_Prefix + "UserInfo"
+	CmdLobbyConfig    = QZNN_Prefix + "LobbyConfig"
+	CmdPlayerJoin     = QZNN_Prefix + "PlayerJoin"
+	CmdPlayerLeave    = QZNN_Prefix + "PlayerLeave"
+	CmdPlayerReady    = QZNN_Prefix + "PlayerReady"
+	CmdPlayerCallBank = QZNN_Prefix + "PlayerCallBank"
+	CmdPlayerPlaceBet = QZNN_Prefix + "PlayerPlaceBet"
+	CmdPlayerShowCard = QZNN_Prefix + "PlayerShowCard"
+	CmdBalanceChange  = QZNN_Prefix + "BalanceChange"
 )
 
 const (
@@ -127,6 +133,7 @@ type QZNNRoom struct {
 	Config        LobbyConfig    `json:"-"` // 房间配置
 	driverGo      chan struct{}  `json:"-"`
 	CreateAt      time.Time
+	OnBotMgr      func(roomId string) `json:"-"`
 }
 
 func (r *QZNNRoom) reset() {

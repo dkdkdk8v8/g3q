@@ -15,7 +15,7 @@ const userInfo = computed(() => {
         name: userStore.userInfo.nick_name || '未知用户',
         id: userStore.userInfo.user_id || '---',
         coins: userStore.userInfo.balance || 0,
-        avatar: userStore.userInfo.avatar || new URL('../assets/icon_avatar.png', import.meta.url).href
+        avatar: userStore.userInfo.avatar || new URL('../assets/common/icon_avatar.png', import.meta.url).href
     }
 });
 

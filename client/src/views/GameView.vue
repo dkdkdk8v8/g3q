@@ -4,6 +4,7 @@ import { useGameStore } from '../stores/game.js';
 import PlayerSeat from '../components/PlayerSeat.vue';
 import CoinLayer from '../components/CoinLayer.vue';
 import DealingLayer from '../components/DealingLayer.vue'; 
+import ChatBubbleSelector from '../components/ChatBubbleSelector.vue'; // New import
 import { useRouter, useRoute } from 'vue-router';
 
 const store = useGameStore();
@@ -13,6 +14,30 @@ const coinLayer = ref(null);
 const dealingLayer = ref(null); 
 const seatRefs = ref({}); // 存储所有座位的引用 key: playerId
 const tableCenterRef = ref(null); // 桌面中心元素引用
+
+// Chat/Emoji selector state
+const showChatSelector = ref(false); // New reactive variable
+const playerSpeech = ref(new Map()); // Maps playerId to { type: 'text' | 'emoji', content: string }
+
+// Method to handle phrase selection from ChatBubbleSelector
+const onPhraseSelected = (phrase) => {
+    // For now, let's assume it's for 'me'
+    playerSpeech.value.set(store.myPlayerId, { type: 'text', content: phrase });
+    // Make speech visible for a few seconds
+    setTimeout(() => {
+        playerSpeech.value.delete(store.myPlayerId);
+    }, 3000); // Display for 3 seconds
+};
+
+// Method to handle emoji selection from ChatBubbleSelector
+const onEmojiSelected = (emojiUrl) => {
+    // For now, let's assume it's for 'me'
+    playerSpeech.value.set(store.myPlayerId, { type: 'emoji', content: emojiUrl });
+    // Make speech visible for a few seconds
+    setTimeout(() => {
+        playerSpeech.value.delete(store.myPlayerId);
+    }, 3000); // Display for 3 seconds
+};
 
 // Banker selection animation state
 const currentlyHighlightedPlayerId = ref(null);
@@ -417,11 +442,17 @@ const quitGame = () => {
             :visible-card-count="visibleCounts[myPlayer.id] !== undefined ? visibleCounts[myPlayer.id] : 0"
             :is-ready="myPlayer.isReady"
             :is-animating-highlight="myPlayer.id === currentlyHighlightedPlayerId"
+            :speech="playerSpeech.get(myPlayer.id)"
         />
     </div>
 
     <!-- 全局点击关闭菜单 -->
     <div v-if="showMenu" class="mask-transparent" @click="showMenu = false"></div>
+
+    <!-- 评论/表情按钮 -->
+    <div class="chat-toggle-btn" @click="showChatSelector = true">
+        <van-icon name="comment" size="24" color="white" />
+    </div>
 
     <!-- 押注记录弹窗 -->
     <div v-if="showHistory" class="modal-overlay">
@@ -453,6 +484,12 @@ const quitGame = () => {
             </div>
         </div>
     </div>
+
+    <ChatBubbleSelector 
+        v-model:visible="showChatSelector" 
+        @selectPhrase="onPhraseSelected" 
+        @selectEmoji="onEmojiSelected" 
+    />
 </div>
 </template>
 
@@ -799,6 +836,28 @@ const quitGame = () => {
     border: 2px solid rgba(255,255,255,0.3);
     cursor: pointer;
     animation: pulse 2s infinite;
+}
+
+.chat-toggle-btn {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(to bottom, #60a5fa, #2563eb);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    cursor: pointer;
+    z-index: 100;
+    border: 2px solid rgba(255,255,255,0.3);
+    transition: transform 0.1s;
+}
+
+.chat-toggle-btn:active {
+    transform: scale(0.95);
 }
 
 @keyframes pulse {

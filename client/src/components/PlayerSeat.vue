@@ -16,10 +16,16 @@ const props = defineProps({
           default: -1
       },
       isReady: Boolean, // Add isReady prop
-      isAnimatingHighlight: Boolean // New prop for sequential highlight animation
+      isAnimatingHighlight: Boolean, // New prop for sequential highlight animation
+      speech: Object // New prop: { type: 'text' | 'emoji', content: string }
   });
   
   const store = useGameStore();
+  
+  // Computed property to control speech bubble visibility
+  const showSpeechBubble = computed(() => {
+      return props.speech && props.speech.content;
+  });
   
   // 始终返回完整手牌以保持布局稳定
   const displayedHand = computed(() => {
@@ -101,6 +107,14 @@ const shouldShowBadge = computed(() => {
             class="avatar"
           />
       </div>
+      
+      <!-- Speech Bubble -->
+      <transition name="fade">
+        <div v-if="showSpeechBubble" class="speech-bubble">
+            <span v-if="speech.type === 'text'">{{ speech.content }}</span>
+            <img v-else-if="speech.type === 'emoji'" :src="speech.content" class="speech-emoji" />
+        </div>
+      </transition>
       
       <!-- 状态浮层，移到 avatar-area 以便相对于头像定位 -->
       <div class="status-float" v-if="!['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)">
@@ -222,6 +236,123 @@ const shouldShowBadge = computed(() => {
 
 .avatar {
   border: none; /* Remove redundant transparent border */
+}
+
+.speech-bubble {
+    position: absolute;
+    top: -10px; /* Position above avatar */
+    left: 100%;
+    transform: translateX(10px); /* Offset from avatar */
+    background: linear-gradient(to bottom, #f9fafb, #e5e7eb); /* Light background */
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    padding: 6px 10px;
+    font-size: 14px;
+    color: #333;
+    white-space: nowrap;
+    z-index: 50;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    max-width: 150px; /* Limit width */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    animation: bounceIn 0.3s ease-out;
+}
+
+.speech-bubble::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: -8px; /* Position the tail */
+    width: 0;
+    height: 0;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-right: 8px solid #e5e7eb; /* Tail color matches bubble */
+    transform: translateY(-50%);
+    z-index: 51;
+}
+
+.speech-bubble::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: -7px; /* Position the tail (inner) */
+    width: 0;
+    height: 0;
+    border-top: 7px solid transparent;
+    border-bottom: 7px solid transparent;
+    border-right: 7px solid #f9fafb; /* Tail color matches bubble inner */
+    transform: translateY(-50%);
+    z-index: 52;
+}
+
+/* For right-positioned players, speech bubble should be on the left */
+.seat-right .speech-bubble {
+    left: auto;
+    right: 100%;
+    transform: translateX(-10px); /* Offset from avatar */
+}
+
+.seat-right .speech-bubble::before {
+    left: auto;
+    right: -8px;
+    border-right: none;
+    border-left: 8px solid #e5e7eb;
+}
+
+.seat-right .speech-bubble::after {
+    left: auto;
+    right: -7px;
+    border-right: none;
+    border-left: 7px solid #f9fafb;
+}
+
+.speech-emoji {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+}
+
+@keyframes bounceIn {
+  from, 20%, 40%, 60%, 80%, to {
+    animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+  }
+
+  0% {
+    opacity: 0;
+    transform: scale3d(0.3, 0.3, 0.3) translateX(10px);
+  }
+
+  20% {
+    transform: scale3d(1.1, 1.1, 1.1) translateX(10px);
+  }
+
+  40% {
+    transform: scale3d(0.9, 0.9, 0.9) translateX(10px);
+  }
+
+  60% {
+    opacity: 1;
+    transform: scale3d(1.03, 1.03, 1.03) translateX(10px);
+  }
+
+  80% {
+    transform: scale3d(0.97, 0.97, 0.97) translateX(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale3d(1, 1, 1) translateX(10px);
+  }
+}
+
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.5s ease;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
 }
 
 .banker-badge {

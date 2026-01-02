@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { createDeck, shuffle, calculateHandType } from '../utils/bullfight.js'
 import gameClient from '../socket.js'
 
-const DEFAULT_AVATAR = new URL('../assets/icon_avatar.png', import.meta.url).href;
+const DEFAULT_AVATAR = new URL('../assets/common/icon_avatar.png', import.meta.url).href;
 
 export const useGameStore = defineStore('game', () => {
     const currentPhase = ref('IDLE'); // IDLE, MATCHING, ROB_BANKER, BETTING, DEALING, SHOWDOWN, SETTLEMENT

@@ -392,13 +392,7 @@ export const useGameStore = defineStore('game', () => {
         });
 
         // 摊牌倒计时 5秒
-        startCountdown(5, () => {
-            // 倒计时结束，强制所有未摊牌的玩家摊牌，并结算
-            players.value.forEach(p => {
-                if (!p.isShowHand) p.isShowHand = true;
-            });
-            calculateScore();
-        });
+        startCountdown(5);
     };
 
     // 阶段：摊牌 (Original Auto Flow)
@@ -550,9 +544,7 @@ export const useGameStore = defineStore('game', () => {
     const enterStateBanking = () => {
         stopAllTimers();
         currentPhase.value = 'ROB_BANKER';
-        startCountdown(5, () => {
-            checkAllRobbed();
-        });
+        startCountdown(5);
     };
 
     const enterStateRandomBank = () => {
@@ -611,11 +603,7 @@ export const useGameStore = defineStore('game', () => {
             bankerId.value = winner.id;
         }
         currentPhase.value = 'BETTING';
-        startCountdown(5, () => {
-            // Force bets
-            players.value.filter(p => !p.isBanker && p.betMultiplier === 0).forEach(p => p.betMultiplier = 1);
-            startShowdown();
-        });
+        startCountdown(5);
     };
 
     const enterStateDealing = () => {

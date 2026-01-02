@@ -31,15 +31,20 @@ watch(currentMode, (newVal) => {
     localStorage.setItem('lastSelectedMode', newVal);
 });
 
-const enterGame = (level) => {
+const enterGame = async (level) => {
   // 传递房间等级(level)和玩法模式(mode)
   // 发送匹配协议
-  gameStore.joinRoom(level, currentMode.value);
-
-  router.push({
-      path: `/game/${level}`,
-      query: { mode: currentMode.value }
-  });
+  try {
+    await gameStore.joinRoom(level, currentMode.value); // Await the promise
+    router.push({
+        path: `/game/${level}`,
+        query: { mode: currentMode.value }
+    });
+  } catch (error) {
+    console.error("Failed to join room:", error);
+    // Optionally show a toast message to the user
+    // showToast('加入房间失败，请稍后再试');
+  }
 };
 
 // Map server room configs to UI
@@ -61,8 +66,8 @@ const rooms = computed(() => {
 
 const fetchData = () => {
     // 主动获取数据
-    gameClient.send("user.info");
-    gameClient.send("nn.lobby_config");
+    gameClient.send("QZNN.UserInfo");
+    gameClient.send("QZNN.LobbyConfig");
 };
 
 const playMusic = () => {
@@ -82,15 +87,26 @@ const stopMusic = () => {
 
 onMounted(() => {
     // 注册消息监听
-    gameClient.on('user.info', (msg) => {
-        if (msg.code === 0) {
-            userStore.updateUserInfo(msg.data);
+    gameClient.on('QZNN.UserInfo', (msg) => {
+        if (msg.code === 0 && msg.data) {
+            userStore.updateUserInfo({
+                user_id: msg.data.UserId,
+                balance: msg.data.Balance,
+                nick_name: msg.data.NickName,
+                avatar: msg.data.Avatar
+            });
         }
     });
 
-    gameClient.on('nn.lobby_config', (msg) => {
-        if (msg.code === 0) {
-            userStore.updateRoomConfigs(msg.data.lobby_configs);
+    gameClient.on('QZNN.LobbyConfig', (msg) => {
+        if (msg.code === 0 && msg.data && msg.data.LobbyConfigs) {
+            const mappedConfigs = msg.data.LobbyConfigs.map(cfg => ({
+                level: cfg.Level,
+                name: cfg.Name,
+                base_bet: cfg.BaseBet,
+                min_balance: cfg.MinBalance
+            }));
+            userStore.updateRoomConfigs(mappedConfigs);
         }
     });
 

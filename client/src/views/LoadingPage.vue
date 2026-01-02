@@ -106,8 +106,8 @@ export default {
         // message.value = `连接成功！正在获取大厅数据...`; // Remove dynamic message
         
         // Send requests separately
-        gameClient.send("user.info");
-        gameClient.send("nn.lobby_config");
+        gameClient.send("QZNN.UserInfo");
+        gameClient.send("QZNN.LobbyConfig");
       };
 
       gameClient.onClose = (event) => {
@@ -124,11 +124,16 @@ export default {
         errorMessage.value = `连接错误，请检查 IP 地址或服务器状态。`;
       };
       
-      // Register handler for user.info
-      gameClient.on('user.info', (msg) => {
-          if (msg.code === 0) {
+      // Register handler for QZNN.UserInfo
+      gameClient.on('QZNN.UserInfo', (msg) => {
+          if (msg.code === 0 && msg.data) {
               console.log("[LoadingPage] Received user info:", msg.data);
-              userStore.updateUserInfo(msg.data);
+              userStore.updateUserInfo({
+                  user_id: msg.data.UserId,
+                  balance: msg.data.Balance,
+                  nick_name: msg.data.NickName,
+                  avatar: msg.data.Avatar
+              });
               hasUserInfo = true;
               checkReady();
           } else {
@@ -137,12 +142,18 @@ export default {
           }
       });
 
-      // Register handler for nn.lobby_config
-      gameClient.on('nn.lobby_config', (msg) => {
-          if (msg.code === 0) {
+      // Register handler for QZNN.LobbyConfig
+      gameClient.on('QZNN.LobbyConfig', (msg) => {
+          if (msg.code === 0 && msg.data && msg.data.LobbyConfigs) {
               console.log("[LoadingPage] Received lobby config:", msg.data);
               // Map lobby_configs from server to store
-              userStore.updateRoomConfigs(msg.data.lobby_configs);
+              const mappedConfigs = msg.data.LobbyConfigs.map(cfg => ({
+                  level: cfg.Level,
+                  name: cfg.Name,
+                  base_bet: cfg.BaseBet,
+                  min_balance: cfg.MinBalance
+              }));
+              userStore.updateRoomConfigs(mappedConfigs);
               hasLobbyConfig = true;
               checkReady();
           } else {

@@ -184,10 +184,11 @@ const showHistory = ref(false);
 const visibleCounts = ref({});
 
 const modeName = computed(() => {
-    const m = parseInt(route.query.mode);
+    const m = store.gameMode;
     if (m === 0) return '不看牌抢庄';
     if (m === 1) return '看三张抢庄';
-    return '看四张抢庄';
+    if (m === 2) return '看四张抢庄';
+    return '未知玩法';
 });
 
 const setSeatRef = (el, playerId) => {
@@ -198,66 +199,44 @@ const setSeatRef = (el, playerId) => {
 
 const myPlayer = computed(() => store.players.find(p => p.id === store.myPlayerId));
 
-const seatMapping = ref({});
-
-watch(() => store.players, (newPlayers) => {
-    if (!newPlayers) return;
-
-    const others = newPlayers.filter(p => p.id !== store.myPlayerId);
-    
-    const currentIds = new Set(others.map(p => p.id));
-    for (const pid in seatMapping.value) {
-        if (!currentIds.has(pid)) {
-            delete seatMapping.value[pid];
-        }
-    }
-
-    others.forEach(p => {
-        if (seatMapping.value[p.id] === undefined) {
-            const usedSeats = new Set(Object.values(seatMapping.value));
-            const availableSeats = [0, 1, 2, 3].filter(i => !usedSeats.has(i));
-            
-            if (availableSeats.length > 0) {
-                const randomIndex = Math.floor(Math.random() * availableSeats.length);
-                seatMapping.value[p.id] = availableSeats[randomIndex];
-            } else {
-                console.warn('No seats available for player', p.id);
-            }
-        }
-    });
-}, { deep: true, immediate: true });
-
 const opponentSeats = computed(() => {
-    const seats = [null, null, null, null];
-    const meIndex = store.players.findIndex(p => p.id === store.myPlayerId);
+    const seats = [null, null, null, null]; // Represents client seats 1, 2, 3, 4
     
-    if (meIndex === -1) return seats;
+    store.players.forEach(p => {
+        // Skip current player, as they are rendered separately
+        if (p.id === store.myPlayerId) {
+            return;
+        }
+        
+        // clientSeatNum 1-4 correspond to opponent slots.
+        // Map clientSeatNum 1 to seats[0], 2 to seats[1], etc.
+        const clientSeatArrayIndex = p.clientSeatNum - 1; 
 
-    const others = store.players.filter(p => p.id !== store.myPlayerId);
-    
-    others.forEach(p => {
-        const seatIdx = seatMapping.value[p.id];
-        if (seatIdx !== undefined && seatIdx >= 0 && seatIdx < 4) {
-            seats[seatIdx] = p;
+        if (p.clientSeatNum !== undefined && p.clientSeatNum >= 1 && p.clientSeatNum <= 4) {
+            seats[clientSeatArrayIndex] = p;
+        } else {
+            console.warn(`Player ${p.id} has invalid clientSeatNum: ${p.clientSeatNum}`);
         }
     });
     
     return seats;
 });
 
-const getLayoutType = (index) => {
-    if (index === 0) return 'right';      
-    if (index === 1) return 'top';        
-    if (index === 2) return 'top';        
-    if (index === 3) return 'left';       
-    return 'top';
+const getLayoutType = (clientSeatNum) => {
+    // clientSeatNum: 1=Middle-Left, 2=Top-Left, 3=Top-Right, 4=Middle-Right
+    if (clientSeatNum === 1) return 'left';        // Middle-Left
+    if (clientSeatNum === 2) return 'top';         // Top-Left
+    if (clientSeatNum === 3) return 'top';         // Top-Right
+    if (clientSeatNum === 4) return 'right';       // Middle-Right
+    return 'top'; // Fallback
 };
 
-const getOpponentClass = (index) => {
-    if (index === 0) return 'seat-right';
-    if (index === 1) return 'seat-right-top';
-    if (index === 2) return 'seat-left-top';
-    if (index === 3) return 'seat-left';
+const getOpponentClass = (clientSeatNum) => {
+    // clientSeatNum: 1=Middle-Left, 2=Top-Left, 3=Top-Right, 4=Middle-Right
+    if (clientSeatNum === 1) return 'seat-left';
+    if (clientSeatNum === 2) return 'seat-left-top';
+    if (clientSeatNum === 3) return 'seat-right-top';
+    if (clientSeatNum === 4) return 'seat-right';
     return '';
 };
 
@@ -439,6 +418,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+    store.resetState();
     if (robotSpeechInterval.value) {
         clearInterval(robotSpeechInterval.value);
     }
@@ -508,32 +488,37 @@ const quitGame = () => {
         </div>
 
         <div class="room-info-box">
-            <div>底分: 200</div>
-            <div>模式: {{ modeName }}</div>
+            <div>房间ID: {{ store.roomId }}</div>
+            <div>房间名: {{ store.roomName }}</div>
+            <div>底分: {{ store.baseBet }}</div>
+            <div>玩法: {{ modeName }}</div>
         </div>
     </div>
 
     <div class="opponents-layer">
-        <template v-for="(p, index) in opponentSeats" :key="index">
+        <div 
+            v-for="(p, index) in opponentSeats" 
+            :key="index"
+            class="opponent-seat-abs"
+            :class="getOpponentClass(index + 1)"
+        >
             <PlayerSeat 
-                v-if="p"
+                v-if="p && p.id"
                 :player="p" 
                 :ref="(el) => setSeatRef(el, p.id)"
-                class="opponent-seat-abs"
-                :class="getOpponentClass(index)"
-                :position="getLayoutType(index)"
+                :position="getLayoutType(index + 1)"
                 :visible-card-count="visibleCounts[p.id] !== undefined ? visibleCounts[p.id] : 0"
                 :is-ready="p.isReady"
                 :is-animating-highlight="p.id === currentlyHighlightedPlayerId"
                 :speech="playerSpeech.get(p.id)"
             />
-            <div v-else class="empty-seat opponent-seat-abs" :class="getOpponentClass(index)">
+            <div v-else class="empty-seat">
                 <div class="empty-seat-avatar">
                     <van-icon name="plus" color="rgba(255,255,255,0.3)" size="20" />
                 </div>
                 <div class="empty-seat-text">等待加入</div>
             </div>
-        </template>
+        </div>
     </div>
 
     <div class="table-center" ref="tableCenterRef">
@@ -575,13 +560,7 @@ const quitGame = () => {
 
     <div class="my-area" v-if="myPlayer">
         <div class="controls-container">
-            <!-- 准备按钮 -->
-            <div v-if="store.currentPhase === 'READY_COUNTDOWN' && !myPlayer.isReady" class="btn-group">
-                <div class="game-btn orange" style="width: 120px;" @click="store.playerReady()">确认准备</div>
-            </div>
-            <div v-else-if="store.currentPhase === 'READY_COUNTDOWN' && myPlayer.isReady" class="waiting-text">
-                已准备，等待其他玩家...
-            </div>
+
 
             <div v-if="store.currentPhase === 'ROB_BANKER' && myPlayer.robMultiplier === -1" class="btn-group">
                 <div class="game-btn blue" @click="onRob(0)">不抢</div>
@@ -660,11 +639,14 @@ const quitGame = () => {
         </div>
     </div>
 
-    <ChatBubbleSelector 
-        v-model:visible="showChatSelector" 
-        @selectPhrase="onPhraseSelected" 
-        @selectEmoji="onEmojiSelected" 
-    />
+    <!-- Wrap ChatBubbleSelector to avoid nextSibling error -->
+    <div>
+        <ChatBubbleSelector 
+            v-model:visible="showChatSelector" 
+            @selectPhrase="onPhraseSelected" 
+            @selectEmoji="onEmojiSelected" 
+        />
+    </div>
 
     <!-- Cooldown Toast -->
     <transition name="toast-fade">
@@ -690,7 +672,7 @@ const quitGame = () => {
 /* Debug Panel */
 .debug-panel {
     position: fixed;
-    top: 60px;
+    bottom: 10px;
     left: 10px;
     background: rgba(0, 0, 0, 0.7);
     padding: 10px;

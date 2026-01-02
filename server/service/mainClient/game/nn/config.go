@@ -1,8 +1,5 @@
 package nn
 
-// RobotExitRate 机器人退出概率
-var RobotExitRate = 30
-
 var Configs = []LobbyConfig{
 	{Level: 1, Name: "初级场", MinBalance: 600, BaseBet: 100},
 	{Level: 2, Name: "中级场", MinBalance: 3000, BaseBet: 500},

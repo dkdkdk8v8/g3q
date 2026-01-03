@@ -74,6 +74,21 @@ const props = defineProps({
 // 控制高亮显示的延迟开关 (为了等翻牌动画结束)
 const enableHighlight = ref(false);
 
+const isDealingProcessing = ref(false);
+
+watch(() => store.currentPhase, (val) => {
+    if (val === 'DEALING') {
+        isDealingProcessing.value = true;
+    } else if (val === 'SHOWDOWN') {
+        // 如果是 SHOWDOWN，给一点缓冲时间让发牌动画视觉结束
+        setTimeout(() => {
+            isDealingProcessing.value = false;
+        }, 1200); // 1.2秒延迟，覆盖发牌动画的尾巴
+    } else {
+        isDealingProcessing.value = false;
+    }
+}, { immediate: true });
+
 watch(shouldShowCardFace, (val) => {
     if (val) {
         if (props.isMe) {
@@ -100,6 +115,9 @@ const isBullPart = (index) => {
 
     // FIX: 发牌阶段(DEALING)不要执行凸起逻辑，避免动画冲突
     if (store.currentPhase === 'DEALING') return false;
+    
+    // NEW FIX: 发牌动画缓冲期也不要凸起，除非已经手动摊牌
+    if (!props.player.isShowHand && isDealingProcessing.value) return false;
 
     // 如果是自己，必须点了摊牌(isShowHand)才显示高亮，除非已经是结算阶段
     // if (props.isMe && store.currentPhase === 'SHOWDOWN' && !props.player.isShowHand) return false;

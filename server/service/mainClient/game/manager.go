@@ -64,7 +64,13 @@ func (rm *RoomManager) JoinOrCreateNNRoom(player *qznn.Player, level int, banker
 
 	// 如果处于排空模式，拒绝新的匹配请求
 	if rm.isDraining {
-		return nil, comm.NewMyError(500002, "服务器正在准备更新，请稍后再试")
+		return nil, comm.NewMyError(500002, "服务器正在准备更新,请稍后再试")
+	}
+
+	//check 用户是否已经在游戏中了
+	alreadyGamingRoom := rm.GetPlayerRoom(player.ID)
+	if alreadyGamingRoom != nil {
+		return nil, comm.NewMyError(-1, "您已经在其他房间了")
 	}
 
 	for _, room := range rm.QZNNRooms {
@@ -84,7 +90,7 @@ func (rm *RoomManager) JoinOrCreateNNRoom(player *qznn.Player, level int, banker
 	}
 
 	roomID := fmt.Sprintf("R_%d_%d_%d", time.Now().Unix(), bankerType, level)
-	newRoom := qznn.NewRoom(roomID,bankerType, level)
+	newRoom := qznn.NewRoom(roomID, bankerType, level)
 	newRoom.AddPlayer(player)
 	newRoom.OnBotAction = nil //RobotForQZNNRoom
 	rm.QZNNRooms[roomID] = newRoom

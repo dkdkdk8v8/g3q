@@ -77,7 +77,7 @@ func HandleCallBanker(r *QZNNRoom, userID string, mult int64) {
 			Cmd:      comm.ServerPush,
 			PushType: PushPlayerCallBanker,
 			Data: PushPlayerCallBankerStruct{
-				Room:   r.GetClientRoom(p.ID == r.BankerID),
+				Room:   r.GetClientRoom(p.ID),
 				UserId: userID,
 				Mult:   mult}}
 	})
@@ -112,7 +112,7 @@ func HandlePlaceBet(r *QZNNRoom, userID string, mult int64) {
 			Cmd:      comm.ServerPush,
 			PushType: PushPlayerPlaceBet,
 			Data: PushPlayerPlaceBetStruct{
-				Room:   r.GetClientRoom(p.ID == r.BankerID),
+				Room:   r.GetClientRoom(p.ID),
 				UserId: userID,
 				Mult:   mult},
 		}
@@ -143,7 +143,7 @@ func HandleShowCards(r *QZNNRoom, userID string) {
 			Cmd:      comm.ServerPush,
 			PushType: PushPlayerShowCard,
 			Data: PushPlayerShowCardStruct{
-				Room:   r.GetClientRoom(p.ID == r.BankerID),
+				Room:   r.GetClientRoom(p.ID),
 				UserId: userID}}
 	})
 	r.logicTick()

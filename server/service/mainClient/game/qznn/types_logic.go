@@ -195,7 +195,7 @@ func (r *QZNNRoom) DecreaseStateLeftSec(d time.Duration) {
 	r.StateLeftSec = int(r.StateLeftSecDuration / time.Second)
 }
 
-func (r *QZNNRoom) GetClientRoom(secret bool) *QZNNRoom {
+func (r *QZNNRoom) GetClientRoom(pushId string) *QZNNRoom {
 	n := &QZNNRoom{
 		ID:           r.ID,
 		State:        r.State,
@@ -203,6 +203,7 @@ func (r *QZNNRoom) GetClientRoom(secret bool) *QZNNRoom {
 		BankerID:     r.BankerID,
 	}
 	preCard := PlayerCardMax
+	bSecret := true
 	r.StateMu.RLock()
 	switch r.State {
 	//只有这3个状态，推牌数据，需要处理预看牌
@@ -210,11 +211,18 @@ func (r *QZNNRoom) GetClientRoom(secret bool) *QZNNRoom {
 		StateBetting:
 		preCard = r.Config.GetPreCard()
 	}
+
+	switch r.State {
+	//只有这3个状态，推牌数据，默认秘密
+	case StateSettling, StateSettlingDirectPreCard:
+		bSecret = false
+	}
+
 	r.StateMu.RUnlock()
 
 	pushPlayers := r.GetBroadCasePlayers(nil)
 	for _, p := range pushPlayers {
-		n.Players = append(n.Players, p.GetClientPlayer(preCard, secret))
+		n.Players = append(n.Players, p.GetClientPlayer(preCard, bSecret && !p.IsShow && p.ID != pushId))
 	}
 	return n
 }

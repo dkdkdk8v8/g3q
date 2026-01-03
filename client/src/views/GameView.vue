@@ -599,6 +599,11 @@ const quitGame = () => {
                         <div class="game-btn orange" style="width: 100px" @click="store.playerShowHand(myPlayer.id)">摊牌
                         </div>
                     </div>
+
+                    <!-- Observer Waiting Text for Me -->
+                    <div v-if="myPlayer.isObserver" class="waiting-text">
+                        等待下一局...
+                    </div>
                 </div>
 
                 <PlayerSeat :player="myPlayer" :is-me="true" :ref="(el) => myPlayer && setSeatRef(el, myPlayer.id)"

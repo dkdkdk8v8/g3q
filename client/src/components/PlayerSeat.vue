@@ -209,6 +209,9 @@ const shouldShowBetMult = computed(() => {
           <div v-if="player.isBanker && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)" class="banker-badge">庄</div>
           <!-- Ready Badge -->
           <div v-if="player.isReady && store.currentPhase === 'READY_COUNTDOWN'" class="ready-badge">✔ 准备</div>
+          
+          <!-- Observer Badge -->
+          <div v-if="player.isObserver" class="observer-badge">等待下一局</div>
       </div>
 
       <div class="info-box">
@@ -296,6 +299,22 @@ const shouldShowBetMult = computed(() => {
     border-radius: 4px;
     z-index: 20;
     white-space: nowrap;
+}
+
+.observer-badge {
+    position: absolute;
+    right: 100%; /* Position to the left of the avatar */
+    top: 50%;
+    transform: translateY(-50%);
+    margin-right: 8px; /* Gap between badge and avatar */
+    background: rgba(0, 0, 0, 0.6);
+    color: #e5e7eb;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+    z-index: 20;
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .avatar-frame {

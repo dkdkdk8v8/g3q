@@ -598,7 +598,7 @@ func (r *QZNNRoom) StartGame() {
 
 	//非庄家投注
 	if !r.SetStatus(StateBetting, 2) {
-		logrus.WithField("roomId", r.ID).Error("QZNNRoom-StatusChange-Fail-betting")
+		logrus.WithField("roomId", r.ID).Error("QZNNRoom-StatusChange-Fail-StateBetting")
 		return
 	}
 
@@ -616,25 +616,24 @@ func (r *QZNNRoom) StartGame() {
 	}
 
 	//补牌到5张，不看牌发5张，看3补2，看4
-	if !r.SetStatus(StateDealing, 10) {
-		logrus.WithField("roomId", r.ID).Error("QZNNRoom-StatusChange-Fail-setting")
+	if !r.SetStatus(StateDealing, 3) {
+		logrus.WithField("roomId", r.ID).Error("QZNNRoom-StatusChange-Fail-StateDealing")
 		return
 	}
+
+	r.WaitStateLeftTicker()
+
 	//等待客户端播放补牌动画
-	r.BroadcastWithPlayer(func(p *Player) interface{} {
-		return comm.PushData{
-			Cmd:      comm.ServerPush,
-			PushType: PushChangeState,
-			Data: PushChangeStateStruct{
-				Room:  r.GetClientRoom(p.ID),
-				State: StateShowCard}}
-	})
+	if !r.SetStatus(StateShowCard, 5) {
+		logrus.WithField("roomId", r.ID).Error("QZNNRoom-StatusChange-Fail-StateShowCard")
+		return
+	}
 
 	r.WaitStateLeftTicker()
 
 	//结算状态
 	if !r.SetStatus(StateSettling, 0) {
-		logrus.WithField("roomId", r.ID).Error("QZNNRoom-StatusChange-Fail-setting")
+		logrus.WithField("roomId", r.ID).Error("QZNNRoom-StatusChange-Fail-StateSettling")
 		return
 	}
 

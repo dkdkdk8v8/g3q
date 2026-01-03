@@ -98,6 +98,9 @@ const isBullPart = (index) => {
     // 必须等待动画延迟结束
     if (!enableHighlight.value) return false;
 
+    // FIX: 发牌阶段(DEALING)不要执行凸起逻辑，避免动画冲突
+    if (store.currentPhase === 'DEALING') return false;
+
     // 如果是自己，必须点了摊牌(isShowHand)才显示高亮，除非已经是结算阶段
     if (props.isMe && store.currentPhase === 'SHOWDOWN' && !props.player.isShowHand) return false;
 

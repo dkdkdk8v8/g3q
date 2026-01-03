@@ -537,7 +537,7 @@ const quitGame = () => {
             <!-- 阶段提示信息，统一显示在倒计时下方并样式类似“结算中...” -->
             <div class="phase-info">
                 <span v-if="store.currentPhase === 'WAITING_FOR_PLAYERS'">匹配玩家中...</span>
-                <span v-else-if="store.currentPhase === 'READY_COUNTDOWN'">等待玩家准备</span>
+                <span v-else-if="store.currentPhase === 'READY_COUNTDOWN'">游戏即将开始</span>
                 <span v-else-if="store.currentPhase === 'ROB_BANKER'">看牌抢庄</span>
                 <span v-else-if="store.currentPhase === 'BETTING'">闲家下注</span>
                 <span v-else-if="store.currentPhase === 'SHOWDOWN'">摊牌比拼</span>

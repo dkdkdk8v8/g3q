@@ -35,6 +35,8 @@ export default class GameClient {
         this.onConnect = null;
         this.onClose = null;
         this.onError = null;
+        
+        this.globalPushHandler = null; // 全局 ServerPush 监听
     }
 
     /**
@@ -166,7 +168,7 @@ export default class GameClient {
 
         if (cmd !== "PingPong") {
 
-            console.log("[Network] Send:", packet);
+            console.log("✉️[发送消息] Send:", packet);
         }
 
         this.ws.send(JSON.stringify(packet));
@@ -183,7 +185,17 @@ export default class GameClient {
 
         // 处理 ServerPush 消息
         if (msg.cmd === "onServerPush") {
-            console.log("[Network] Server Push:", msg);
+            console.log("📣 [收到广播] Server Push:", msg);
+            
+            // 优先执行全局监听
+            if (this.globalPushHandler) {
+                try {
+                    this.globalPushHandler(msg.pushType, msg.data);
+                } catch (err) {
+                    console.error("[Network] Error in global push handler:", err);
+                }
+            }
+
             if (this.pushHandlers.has(msg.pushType)) {
                 const handler = this.pushHandlers.get(msg.pushType);
                 try {
@@ -199,7 +211,7 @@ export default class GameClient {
 
         const loadingStore = useLoadingStore();
 
-        console.log("[Network] Recv:", msg); // Log all non-pong responses
+        console.log("📨[收到服务器回包] Recv:", msg); // Log all non-pong responses
 
         // 通用错误处理：如果 code != 0，弹出提示
         if (msg.code !== 0) {
@@ -248,6 +260,14 @@ export default class GameClient {
      */
     offServerPush(pushType) {
         this.pushHandlers.delete(pushType);
+    }
+
+    /**
+     * 注册全局 ServerPush 监听 (拦截所有 pushType)
+     * @param {function} callback - (pushType, data) => void
+     */
+    onGlobalServerPush(callback) {
+        this.globalPushHandler = callback;
     }
 
     close() {

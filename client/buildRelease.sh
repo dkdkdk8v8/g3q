@@ -12,8 +12,8 @@ if [ ! -d "$releaseDir" ]; then
   mkdir -p "$releaseDir"
 fi
 cd build
-zip -r "vue3_mg_h5_${VERSION}.zip" dist
-mv "vue3_mg_h5_${VERSION}.zip" "$releaseDir"
+zip -r "niuniu_h5_${VERSION}.zip" dist
+mv "niuniu_h5_${VERSION}.zip" "$releaseDir"
 cd ../
 
 echo "Release版本号为：$VERSION"

@@ -1,24 +1,16 @@
-import { Config, Inject, Provide } from '@midwayjs/decorator';
-import { BaseService } from '@cool-midway/core';
-import axios from 'axios';
-import { Context } from '@midwayjs/koa';
+import {Inject, Provide} from '@midwayjs/decorator';
+import {BaseService} from '@cool-midway/core';
+import {Context} from '@midwayjs/koa';
+import {InjectEntityModel} from "@midwayjs/typeorm";
+import {Repository} from "typeorm";
+import {GameUserEntity} from "../entityGame/user";
 
 @Provide()
-export class GameRpcService extends BaseService {
+export class GameUserService extends BaseService {
     @Inject()
     ctx: Context;
 
-    @Config('rpc.qznn')
-    qznnUrl: string;
+    @InjectEntityModel(GameUserEntity)
+    userEntity: Repository<GameUserEntity>;
 
-    async getQZNNData(): Promise<any> {
-        const url = `${this.qznnUrl}/rpc/qznn-data`;
-        const response = await axios.get(url);
-        const { code, msg, data } = response.data;
-        if (code !== 0) {
-            throw new Error(`获取抢庄牛牛房间数据失败: ${msg}`);
-        }
-        const qznnData = JSON.parse(data);
-        return qznnData;
-    }
 }

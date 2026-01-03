@@ -194,6 +194,50 @@ export const useGameStore = defineStore('game', () => {
         }
     });
 
+    // Handle PushChangeState to transition game phases
+    gameClient.onServerPush('PushChangeState', (data) => {
+        console.log("[GameStore] PushChangeState received:", data);
+        if (data && data.Room) {
+            syncRoomState(data.Room);
+        }
+
+        const serverState = data.State;
+        const leftSec = parseInt(data.StateLeftSec || 0);
+
+        stopAllTimers(); // Stop existing client timers
+
+        switch (serverState) {
+            case 'StatePrepare':
+                currentPhase.value = 'READY_COUNTDOWN';
+                // Clean up previous round state if needed
+                players.value.forEach(p => {
+                    p.isBanker = false;
+                    p.robMultiplier = -1;
+                    p.betMultiplier = 0;
+                    p.handResult = undefined;
+                    p.roundScore = 0;
+                    p.isShowHand = false;
+                    p.state = 'IDLE';
+                    p.hand = [];
+                });
+                bankerId.value = null;
+                
+                if (leftSec > 0) {
+                    startCountdown(leftSec);
+                }
+                break;
+            
+            // Add other cases as we discover them
+            case 'StateWaiting': // Fallback if StateWaiting is pushed via ChangeState
+                currentPhase.value = 'WAITING_FOR_PLAYERS';
+                break;
+
+            default:
+                console.warn("[GameStore] Unknown server state:", serverState);
+                break;
+        }
+    });
+
     // 加入房间
     const joinRoom = (level, banker_type) => {
         // Reset state before joining to ensure clean slate

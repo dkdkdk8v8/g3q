@@ -310,7 +310,19 @@ func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []b
 	roomConfig := *cfg
 	roomConfig.BankerType = req.BankerType
 
-	_, err = game.GetMgr().JoinOrCreateNNRoom(p, &roomConfig)
+	room, err := game.GetMgr().JoinOrCreateNNRoom(p, &roomConfig)
+	if err != nil {
+		return err
+	}
+	room.Broadcast(comm.PushData{
+		Cmd:      comm.ServerPush,
+		PushType: nn.PushPlayJoin,
+		Data: nn.PushPlayerJoinStruct{
+			Room:   room,
+			UserId: userId,
+		},
+	})
+
 	return err
 }
 

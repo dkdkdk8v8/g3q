@@ -2,7 +2,7 @@ package game
 
 import (
 	"math/rand"
-	"service/mainClient/game/nn"
+	"service/mainClient/game/qznn"
 	"service/modelClient"
 	"time"
 )
@@ -20,7 +20,7 @@ func executeRobotAction(minMs, maxMs int, action func()) {
 	go time.AfterFunc(delay, action)
 }
 
-func processRobots(r *nn.QZNNRoom, action func(*nn.Player)) {
+func processRobots(r *qznn.QZNNRoom, action func(*qznn.Player)) {
 	r.PlayerMu.RLock()
 	defer r.PlayerMu.RUnlock()
 	for _, p := range r.Players {
@@ -31,14 +31,14 @@ func processRobots(r *nn.QZNNRoom, action func(*nn.Player)) {
 }
 
 // RobotEnterRoom 让机器人进入指定房间
-func RobotForQZNNRoom(room *nn.QZNNRoom) {
+func RobotForQZNNRoom(room *qznn.QZNNRoom) {
 	// 房间已关闭，退出协程
 	if room == nil {
 		return
 	}
 
 	switch room.State {
-	case nn.StateWaiting, nn.StatePrepare:
+	case qznn.StateWaiting, qznn.StatePrepare:
 		// 随机等待 1-3 秒
 		time.Sleep(time.Duration(rand.Intn(3)+1) * time.Second)
 
@@ -67,7 +67,7 @@ func RobotForQZNNRoom(room *nn.QZNNRoom) {
 		bot := robots[0]
 
 		// 判断等待状态且未满员才能加入
-		if !room.CheckStatus(nn.StateWaiting) || room.GetPlayerCount() >= room.GetPlayerCap() {
+		if !room.CheckStatus(qznn.StateWaiting) || room.GetPlayerCount() >= room.GetPlayerCap() {
 			return
 		}
 
@@ -80,41 +80,41 @@ func RobotForQZNNRoom(room *nn.QZNNRoom) {
 		modelClient.BotRecharge(bot, minEntry)
 
 		// 创建机器人玩家对象并加入房间，Conn 设为 nil
-		p := &nn.Player{
-			ID:      bot.UserId,
-			IsRobot: true,
-			ConnWrap:    nil,
-			Balance: bot.Balance,
+		p := &qznn.Player{
+			ID:       bot.UserId,
+			IsRobot:  true,
+			ConnWrap: nil,
+			Balance:  bot.Balance,
 		}
 		room.AddPlayer(p)
 
-		processRobots(room, func(p *nn.Player) {
+		processRobots(room, func(p *qznn.Player) {
 			executeRobotAction(2000, 5000, func() {
 				if rand.Intn(100) < 20 {
-					nn.HandlerPlayerLeave(room, p.ID)
+					qznn.HandlerPlayerLeave(room, p.ID)
 				}
 			})
 		})
 
-	case nn.StateBanking:
-		processRobots(room, func(p *nn.Player) {
+	case qznn.StateBanking:
+		processRobots(room, func(p *qznn.Player) {
 			executeRobotAction(1000, 3000, func() {
-				nn.HandleCallBanker(room, p.ID, rand.Int63n(4))
+				qznn.HandleCallBanker(room, p.ID, rand.Int63n(4))
 			})
 		})
-	case nn.StateBetting:
-		processRobots(room, func(p *nn.Player) {
+	case qznn.StateBetting:
+		processRobots(room, func(p *qznn.Player) {
 			if room.CheckIsBanker(p.ID) {
 				return
 			}
 			executeRobotAction(1000, 3000, func() {
-				nn.HandlePlaceBet(room, p.ID, rand.Int63n(5)+1)
+				qznn.HandlePlaceBet(room, p.ID, rand.Int63n(5)+1)
 			})
 		})
-	case nn.StateDealing:
-		processRobots(room, func(p *nn.Player) {
+	case qznn.StateDealing:
+		processRobots(room, func(p *qznn.Player) {
 			executeRobotAction(1000, 3000, func() {
-				nn.HandleShowCards(room, p.ID)
+				qznn.HandleShowCards(room, p.ID)
 			})
 		})
 	}

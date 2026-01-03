@@ -8,7 +8,7 @@ import (
 	"service/comm"
 	"service/initMain"
 	"service/mainClient/game"
-	"service/mainClient/game/nn"
+	"service/mainClient/game/qznn"
 	"service/modelClient"
 	"strings"
 	"sync"
@@ -225,19 +225,19 @@ func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, msg *comm
 	switch msg.Cmd {
 	case game.CmdPingPong: // 心跳处理
 		//auto replay by defer
-	case nn.CmdPlayerJoin: // 抢庄牛牛进入
+	case qznn.CmdPlayerJoin: // 抢庄牛牛进入
 		errRsp = handlePlayerJoin(connWrap, appId, appUserId, msg.Data)
-	case nn.CmdPlayerLeave:
+	case qznn.CmdPlayerLeave:
 		handlePlayerLeave(userId, msg.Data)
-	case nn.CmdPlayerCallBanker: // 抢庄请求
+	case qznn.CmdPlayerCallBanker: // 抢庄请求
 		handlePlayerCallBank(userId, msg.Data)
-	case nn.CmdPlayerPlaceBet: // 下注请求
+	case qznn.CmdPlayerPlaceBet: // 下注请求
 		handlePlayerPlaceBet(userId, msg.Data)
-	case nn.CmdPlayerShowCard: // 亮牌请求
+	case qznn.CmdPlayerShowCard: // 亮牌请求
 		handlePlayerShowCard(userId, msg.Data)
-	case nn.CmdUserInfo: // 用户信息请求
+	case qznn.CmdUserInfo: // 用户信息请求
 		rsp.Data, errRsp = handleUserInfo(userId)
-	case nn.CmdLobbyConfig: // 大厅配置请求
+	case qznn.CmdLobbyConfig: // 大厅配置请求
 		rsp.Data = handleLobbyConfig()
 	default:
 		errRsp = errors.New("Unknown Command")
@@ -271,15 +271,15 @@ func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []b
 		req.Level = 1
 	}
 
-	cfg := nn.GetConfig(req.Level)
+	cfg := qznn.GetConfig(req.Level)
 	if cfg == nil {
 		return errors.New("无效的房间类型")
 	}
 
 	// 校验 BankerType 是否合法
-	if req.BankerType != nn.BankerTypeNoLook &&
-		req.BankerType != nn.BankerTypeLook3 &&
-		req.BankerType != nn.BankerTypeLook4 {
+	if req.BankerType != qznn.BankerTypeNoLook &&
+		req.BankerType != qznn.BankerTypeLook3 &&
+		req.BankerType != qznn.BankerTypeLook4 {
 		return errors.New("无效的抢庄类型")
 	}
 
@@ -294,7 +294,7 @@ func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []b
 
 	userId := appId + appUserId
 	// 处理抢庄牛牛匹配逻辑
-	p := &nn.Player{
+	p := &qznn.Player{
 		ID:       userId,
 		ConnWrap: connWrap,
 		IsRobot:  false,
@@ -316,8 +316,8 @@ func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []b
 	}
 	room.Broadcast(comm.PushData{
 		Cmd:      comm.ServerPush,
-		PushType: nn.PushPlayJoin,
-		Data: nn.PushPlayerJoinStruct{
+		PushType: qznn.PushPlayJoin,
+		Data: qznn.PushPlayerJoinStruct{
 			Room:   room,
 			UserId: userId,
 		},
@@ -332,7 +332,7 @@ func handlePlayerLeave(userId string, data []byte) {
 	}
 	if err := json.Unmarshal(data, &req); err == nil {
 		if room := game.GetMgr().GetRoomByRoomId(req.RoomId); room != nil {
-			nn.HandlerPlayerLeave(room, userId)
+			qznn.HandlerPlayerLeave(room, userId)
 		}
 	}
 }
@@ -344,7 +344,7 @@ func handlePlayerCallBank(userId string, data []byte) {
 	}
 	if err := json.Unmarshal(data, &req); err == nil {
 		if room := game.GetMgr().GetRoomByRoomId(req.RoomId); room != nil {
-			nn.HandleCallBanker(room, userId, req.Mult)
+			qznn.HandleCallBanker(room, userId, req.Mult)
 		}
 	}
 }
@@ -356,7 +356,7 @@ func handlePlayerPlaceBet(userId string, data []byte) {
 	}
 	if err := json.Unmarshal(data, &req); err == nil {
 		if room := game.GetMgr().GetRoomByRoomId(req.RoomId); room != nil {
-			nn.HandlePlaceBet(room, userId, req.Mult)
+			qznn.HandlePlaceBet(room, userId, req.Mult)
 		}
 	}
 }
@@ -367,7 +367,7 @@ func handlePlayerShowCard(userId string, data []byte) {
 	}
 	if err := json.Unmarshal(data, &req); err == nil {
 		if room := game.GetMgr().GetRoomByRoomId(req.RoomId); room != nil {
-			nn.HandleShowCards(room, userId)
+			qznn.HandleShowCards(room, userId)
 		}
 	}
 }
@@ -392,7 +392,7 @@ func handleUserInfo(userId string) (*UserInfoRsp, error) {
 
 func handleLobbyConfig() *LobbyConfigRsp {
 	return &LobbyConfigRsp{
-		LobbyConfigs: nn.Configs,
+		LobbyConfigs: qznn.Configs,
 	}
 }
 

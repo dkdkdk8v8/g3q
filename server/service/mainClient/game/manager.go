@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"service/comm"
-	"service/mainClient/game/nn"
+	"service/mainClient/game/qznn"
 	"sync"
 	"time"
 )
 
 type RoomManager struct {
-	QZNNRooms map[string]*nn.QZNNRoom
+	QZNNRooms map[string]*qznn.QZNNRoom
 	//playerRoom map[string]string // userID -> roomID
 	mu         sync.RWMutex `json:"-"`
 	isDraining bool         // 是否处于排空模式（无感知更新用）
@@ -24,7 +24,7 @@ var (
 func GetMgr() *RoomManager {
 	once.Do(func() {
 		DefaultMgr = &RoomManager{
-			QZNNRooms: make(map[string]*nn.QZNNRoom),
+			QZNNRooms: make(map[string]*qznn.QZNNRoom),
 		}
 	})
 	return DefaultMgr
@@ -36,7 +36,7 @@ func (rm *RoomManager) SetDrainMode(enable bool) {
 	rm.isDraining = enable
 }
 
-func (rm *RoomManager) GetPlayerRoom(userID string) *nn.QZNNRoom {
+func (rm *RoomManager) GetPlayerRoom(userID string) *qznn.QZNNRoom {
 	rm.mu.RLock()
 	defer rm.mu.RUnlock()
 	for _, room := range rm.QZNNRooms {
@@ -52,13 +52,13 @@ func (rm *RoomManager) GetPlayerRoom(userID string) *nn.QZNNRoom {
 	return nil
 }
 
-func (rm *RoomManager) GetRoomByRoomId(roomId string) *nn.QZNNRoom {
+func (rm *RoomManager) GetRoomByRoomId(roomId string) *qznn.QZNNRoom {
 	rm.mu.RLock()
 	defer rm.mu.RUnlock()
 	return rm.QZNNRooms[roomId]
 }
 
-func (rm *RoomManager) JoinOrCreateNNRoom(player *nn.Player, config *nn.LobbyConfig) (*nn.QZNNRoom, error) {
+func (rm *RoomManager) JoinOrCreateNNRoom(player *qznn.Player, config *qznn.LobbyConfig) (*qznn.QZNNRoom, error) {
 	rm.mu.Lock()
 	defer rm.mu.Unlock()
 
@@ -78,7 +78,7 @@ func (rm *RoomManager) JoinOrCreateNNRoom(player *nn.Player, config *nn.LobbyCon
 	}
 
 	roomID := fmt.Sprintf("R_%d_%d_%d", time.Now().Unix(), config.BankerType, config.Level)
-	newRoom := nn.NewRoom(roomID)
+	newRoom := qznn.NewRoom(roomID)
 	if config != nil {
 		newRoom.Config = *config
 	}

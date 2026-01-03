@@ -1,4 +1,4 @@
-package nn
+package qznn
 
 import "service/comm"
 

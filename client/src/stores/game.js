@@ -183,33 +183,15 @@ export const useGameStore = defineStore('game', () => {
             });
             bankerId.value = null;
         } else if (phase === 'BANKER_SELECTION_ANIMATION') {
-            // 收到随机抢庄状态，推断候选人数据以播放动画
-            
-            // 1. 找出最大抢庄倍数 (过滤掉 -1)
-            const validMultipliers = players.value.map(p => p.robMultiplier).filter(m => m >= 0);
-            
-            // 如果没有人有效抢庄(都是-1)，或者有人抢了，计算最大值
-            // 如果 validMultipliers 为空，maxMultiplier 设为 -1 (或者0，取决于业务，这里假设都未操作就是随机)
-            let maxMultiplier = -1;
-            if (validMultipliers.length > 0) {
-                maxMultiplier = Math.max(...validMultipliers);
-            }
-            
-            // 2. 找出所有等于最大倍数的玩家
-            // 如果 maxMultiplier 是 -1，说明大家都没抢，那么所有 robMultiplier == -1 的人都是候选人
-            // 如果 maxMultiplier >= 0，说明有人抢，找等于 maxMultiplier 的人
-            
-            let candidates = [];
-            if (maxMultiplier === -1) {
-                 candidates = players.value; // 所有人都是候选人
-            } else {
-                 candidates = players.value.filter(p => p.robMultiplier === maxMultiplier);
-            }
+            // 收到随机抢庄状态，播放全员随机动画
+            // 为了保证动画效果（一直播放随机动画），这里直接将所有玩家视为候选人
+            // 这样视觉上会在所有人之间跳动，直到 StateBankerConfirm 定格
+            let candidates = players.value;
 
-            // 防御性：如果计算结果为空（理论上不应该），则全选
-            if (candidates.length === 0) {
-                candidates = players.value;
-            }
+            console.log("[GameStore] RandomBank Debug:", { 
+                candidateCount: candidates.length,
+                playerCount: players.value.length
+            });
             
             bankerCandidates.value = candidates.map(p => p.id);
             
@@ -300,6 +282,11 @@ export const useGameStore = defineStore('game', () => {
                              }
                          }
                     }
+                }
+
+                // 强制修正逻辑：在随机选庄阶段，无论是否多次收到推送，都必须隐藏庄家标识
+                if (targetPhase === 'BANKER_SELECTION_ANIMATION') {
+                    players.value.forEach(p => p.isBanker = false);
                 }
             }
         }

@@ -282,6 +282,7 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
         }, 100);
     } else if (newPhase === 'BANKER_SELECTION_ANIMATION') {
         const candidates = [...store.bankerCandidates]; 
+        console.log("[GameView] Starting Random Animation with candidates:", candidates);
         if (candidates.length > 0) {
             candidateIndex = 0;
             currentlyHighlightedPlayerId.value = candidates[candidateIndex];

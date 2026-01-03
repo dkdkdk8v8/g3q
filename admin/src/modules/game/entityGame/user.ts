@@ -39,8 +39,8 @@ export class GameUserEntity {
   enable: boolean;
 
   @Column({ comment: '创建时间', default: true })
-  created_at: Date;
+  create_at: Date;
 
   @Column({ comment: '更新时间', default: true })
-  updated_at: Date;
+  update_at: Date;
 }

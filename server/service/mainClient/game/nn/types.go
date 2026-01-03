@@ -8,30 +8,37 @@ import (
 
 const QZNN_Prefix = "QZNN."
 const (
-	StateWaiting               = QZNN_Prefix + "StateWaiting"               //房间等待中
-	StatePrepare               = QZNN_Prefix + "StatePrepare"               //房间倒计时中，马上开始
-	StatePreCard               = QZNN_Prefix + "StatePreCard"               //预先发牌
-	StateBanking               = QZNN_Prefix + "StateBanking"               //抢庄中
-	StateRandomBank            = QZNN_Prefix + "StateRandomBank"            //随机抢庄
-	StateBankerConfirm         = QZNN_Prefix + "StateBankerConfirm"         //庄家确认
-	StateBetting               = QZNN_Prefix + "StateBetting"               //非庄家下注
-	StateDealing               = QZNN_Prefix + "StateDealing"               //发牌或补牌
-	StateShowCard              = QZNN_Prefix + "StateShowCard"              //展示牌
-	StateSettling              = QZNN_Prefix + "StateSettling"              //结算中
-	StateSettlingDirectPreCard = QZNN_Prefix + "StateSettlingDirectPreCard" //结算中，开始倒计时发牌（5人不离开，直接下一场）
+	StateWaiting               = "StateWaiting"               //房间等待中
+	StatePrepare               = "StatePrepare"               //房间倒计时中，马上开始
+	StatePreCard               = "StatePreCard"               //预先发牌
+	StateBanking               = "StateBanking"               //抢庄中
+	StateRandomBank            = "StateRandomBank"            //随机抢庄
+	StateBankerConfirm         = "StateBankerConfirm"         //庄家确认
+	StateBetting               = "StateBetting"               //非庄家下注
+	StateDealing               = "StateDealing"               //发牌或补牌
+	StateShowCard              = "StateShowCard"              //展示牌
+	StateSettling              = "StateSettling"              //结算中
+	StateSettlingDirectPreCard = "StateSettlingDirectPreCard" //结算中，开始倒计时发牌（5人不离开，直接下一场）
 )
 
 const (
-	CmdUserInfo    = QZNN_Prefix + "UserInfo"
-	CmdLobbyConfig = QZNN_Prefix + "LobbyConfig"
-	CmdPlayerJoin  = QZNN_Prefix + "PlayerJoin"
-	CmdPlayerLeave = QZNN_Prefix + "PlayerLeave"
-	//CmdPlayerReady    = QZNN_Prefix + "PlayerReady"
+	CmdUserInfo           = QZNN_Prefix + "UserInfo"
+	CmdLobbyConfig        = QZNN_Prefix + "LobbyConfig"
+	CmdPlayerJoin         = QZNN_Prefix + "PlayerJoin"
+	CmdPlayerLeave        = QZNN_Prefix + "PlayerLeave"
 	CmdPlayerCallBank     = QZNN_Prefix + "PlayerCallBank"
 	CmdPlayerPlaceBet     = QZNN_Prefix + "PlayerPlaceBet"
 	CmdPlayerShowCard     = QZNN_Prefix + "PlayerShowCard"
 	CmdBalanceChange      = QZNN_Prefix + "BalanceChange"
 	CmdReconnectEnterRoom = QZNN_Prefix + "ReconnectEnterRoom"
+
+	CmdBroadCast = QZNN_Prefix + "BroadCast"
+)
+
+const (
+	BroadCastPlayJoin       = ""
+	BroadcastPlayLeave      = ""
+	BroadcastPlayerCallBank = ""
 )
 
 const (

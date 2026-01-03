@@ -47,7 +47,7 @@ func init() {
 				for _, delUid := range delConnect {
 					wsConnectMapMutex.Lock()
 					if reGetWs, ok := wsConnectMap[delUid]; ok {
-						if reGetWs == nil {
+						if reGetWs.WsConn == nil {
 							delete(wsConnectMap, delUid)
 						}
 					}
@@ -98,11 +98,13 @@ func WSEntry(c *gin.Context) {
 	userId := appId + appUserId
 	wsConnectMapMutex.Lock()
 	if existWsWrap, ok := wsConnectMap[userId]; ok {
-		existWsWrap.WsConn.WriteJSON(comm.Response{Cmd: CmdOtherConnect, Msg: "其他设备登录"})
-		existWsWrap.WsConn.CloseNormal("handler exit")
-		existWsWrap.WsConn = conn
-		connWrap = existWsWrap
-		logrus.WithField("appId", appId).WithField("appUserId", appUserId).Info("WS-Client-KickOffConnect")
+		if existWsWrap != nil && existWsWrap.WsConn != nil {
+			existWsWrap.WsConn.WriteJSON(comm.Response{Cmd: CmdOtherConnect, Msg: "其他设备登录"})
+			existWsWrap.WsConn.CloseNormal("handler exit")
+			existWsWrap.WsConn = conn
+			connWrap = existWsWrap
+			logrus.WithField("appId", appId).WithField("appUserId", appUserId).Info("WS-Client-KickOffConnect")
+		}
 	} else {
 		wsConnectMap[userId] = connWrap
 	}
@@ -133,7 +135,9 @@ func handleConnection(connWrap *ws.WsConnWrap, appId, appUserId string) {
 			_, buffer, err1 := connWrap.WsConn.Conn.Read(ctx)
 			cancel() // 显式调用 cancel，避免在 for 循环中 defer 导致资源泄露
 			if err1 != nil {
+				wsConnectMapMutex.Lock()
 				connWrap.WsConn = nil
+				wsConnectMapMutex.Unlock()
 				logWSCloseErr(userId, err1)
 				break
 			}
@@ -210,7 +214,10 @@ func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, msg *comm
 					"code", rsp.Cmd).Info("Ws-Send-Msg")
 			}
 		}
-		connWrap.WsConn.WriteJSON(rsp)
+		if connWrap.WsConn != nil {
+			connWrap.WsConn.WriteJSON(rsp)
+		}
+
 	}()
 
 	switch msg.Cmd {
@@ -275,15 +282,12 @@ func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, msg *comm
 		roomConfig := *cfg
 		roomConfig.BankerType = req.BankerType
 
-		room, err := game.GetMgr().JoinOrCreateNNRoom(p, &roomConfig)
+		_, err = game.GetMgr().JoinOrCreateNNRoom(p, &roomConfig)
 		if err != nil {
 			errRsp = err
 			return
 		}
-		// 成功加入，通知客户端房间信息
-		rsp.Data = gin.H{
-			"Room": room,
-		}
+
 	case nn.CmdPlayerLeave:
 		var req struct {
 			RoomId string
@@ -293,15 +297,6 @@ func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, msg *comm
 				nn.HandlerPlayerLeave(room, userId)
 			}
 		}
-	// case nn.CmdPlayerReady: // 房间准备
-	// 	var req struct {
-	// 		RoomId string
-	// 	}
-	// 	if err := json.Unmarshal(msg.Data, &req); err == nil {
-	// 		if room := game.GetMgr().GetRoomByRoomId(req.RoomId); room != nil {
-	// 			nn.HandlePlayerReady(room, userId)
-	// 		}
-	// 	}
 
 	case nn.CmdPlayerCallBank: // 抢庄请求
 		var req struct {

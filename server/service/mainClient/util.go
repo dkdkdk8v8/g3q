@@ -7,7 +7,18 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
+
+	"golang.org/x/sys/cpu"
 )
+
+func init() {
+	// 检查 CPU 是否支持 AVX2
+	if cpu.X86.HasAVX2 {
+		fmt.Println("CPU 支持 AVX2，可以完美运行 Sonic")
+	} else {
+		fmt.Println("警告：CPU 不支持 AVX2，Sonic 性能可能受限或无法运行")
+	}
+}
 
 func BuildUserId() string {
 	snowId := uid.Generate()

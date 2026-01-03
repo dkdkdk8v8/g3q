@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { useGameStore } from '../stores/game.js';
 import PokerCard from './PokerCard.vue';
+import { formatCoins } from '../utils/format.js';
 
 const props = defineProps({
   player: Object,
@@ -218,14 +219,14 @@ const shouldShowBetMult = computed(() => {
         <div class="name van-ellipsis">{{ player.name }}</div>
         <div class="coins-pill">
             <span class="coin-symbol">🟡</span>
-            {{ player.coins }}
+            {{ formatCoins(player.coins) }}
         </div>
       </div>
     </div>
     
     <!-- ... (keep score float) -->
     <div v-if="player.roundScore !== 0 && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)" class="score-float" :class="player.roundScore > 0 ? 'win' : 'lose'">
-        {{ player.roundScore > 0 ? '+' : '' }}{{ player.roundScore }}
+        {{ player.roundScore > 0 ? '+' : '' }}{{ formatCoins(player.roundScore) }}
     </div>
 
     <!-- 手牌区域 (始终渲染以占位) -->

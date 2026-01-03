@@ -6,6 +6,7 @@ import CoinLayer from '../components/CoinLayer.vue';
 import DealingLayer from '../components/DealingLayer.vue';
 import ChatBubbleSelector from '../components/ChatBubbleSelector.vue';
 import { useRouter, useRoute } from 'vue-router';
+import { formatCoins } from '../utils/format.js';
 
 import talk0 from '@/assets/sounds/talk_0.mp3';
 import talk1 from '@/assets/sounds/talk_1.mp3';
@@ -503,7 +504,7 @@ const quitGame = () => {
             <div class="room-info-box">
                 <div>房间ID: {{ store.roomId }}</div>
                 <div>房间名: {{ store.roomName }}</div>
-                <div>底分: {{ store.baseBet }}</div>
+                <div>底分: {{ formatCoins(store.baseBet) }}</div>
                 <div>玩法: {{ modeName }}</div>
             </div>
         </div>
@@ -601,8 +602,8 @@ const quitGame = () => {
                     </div>
 
                     <!-- Observer Waiting Text for Me -->
-                    <div v-if="myPlayer.isObserver" class="waiting-text">
-                        等待下一局...
+                    <div v-if="myPlayer.isObserver" class="observer-waiting-banner">
+                        请耐心等待下一局<span class="loading-dots"></span>
                     </div>
                 </div>
 
@@ -642,12 +643,12 @@ const quitGame = () => {
                                     {{ item.score >= 0 ? '赢' : '输' }}
                                 </span>
                                 <span class="h-score" :class="item.score >= 0 ? 'win' : 'lose'">
-                                    {{ item.score >= 0 ? '+' : '' }}{{ item.score }}
+                                    {{ item.score >= 0 ? '+' : '' }}{{ formatCoins(item.score) }}
                                 </span>
                                 <span class="h-hand">{{ item.handType }}</span>
                             </div>
                             <div class="h-row bottom">
-                                <span>余额: {{ item.balance }}</span>
+                                <span>余额: {{ formatCoins(item.balance) }}</span>
                             </div>
                         </div>
                     </div>
@@ -679,6 +680,38 @@ const quitGame = () => {
     flex-direction: column;
     overflow: hidden;
     font-family: system-ui, sans-serif;
+}
+
+/* Observer Banner Style */
+.observer-waiting-banner {
+    color: #fef3c7; /* Light gold/cream */
+    font-size: 16px;
+    font-weight: bold;
+    background: linear-gradient(to right, rgba(0, 0, 0, 0.7), rgba(17, 24, 39, 0.9), rgba(0, 0, 0, 0.7));
+    padding: 10px 30px;
+    border-radius: 24px;
+    border: 1px solid rgba(251, 191, 36, 0.4); /* Gold border */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    margin-bottom: 10px;
+}
+
+.loading-dots::after {
+    content: '...';
+    animation: dots-loading 1.5s steps(4, end) infinite;
+    display: inline-block;
+    vertical-align: bottom;
+    overflow: hidden;
+    width: 0px;
+}
+
+@keyframes dots-loading {
+    to {
+        width: 1.25em; 
+    }
 }
 
 /* Debug Panel */

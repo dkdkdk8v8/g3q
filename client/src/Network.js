@@ -19,6 +19,7 @@ export default class GameClient {
         this.ws = null;
         this.url = "";
         this.handlers = new Map(); // 消息路由表
+        this.pushHandlers = new Map(); // ServerPush 消息路由表
         this.seq = 0;              // 消息序列号
         this.isConnected = false;
 
@@ -172,11 +173,27 @@ export default class GameClient {
     }
 
     _handleMessage(msg) {
-        // msg 结构: {cmd, seq, code, msg, data}
+        // msg 结构: {cmd, seq, code, msg, data} 或 {cmd, pushType, data}
 
         // 拦截心跳回包，不向上层分发
         if (msg.cmd === "PingPong") {
             // No loading for ping/pong
+            return;
+        }
+
+        // 处理 ServerPush 消息
+        if (msg.cmd === "onServerPush") {
+            console.log("[Network] Server Push:", msg);
+            if (this.pushHandlers.has(msg.pushType)) {
+                const handler = this.pushHandlers.get(msg.pushType);
+                try {
+                    handler(msg.data);
+                } catch (err) {
+                    console.error(`[Network] Error in push handler for ${msg.pushType}:`, err);
+                }
+            } else {
+                console.log(`[Network] No handler for pushType: ${msg.pushType}`);
+            }
             return;
         }
 
@@ -214,6 +231,23 @@ export default class GameClient {
 
     off(cmd) {
         this.handlers.delete(cmd);
+    }
+
+    /**
+     * 注册 ServerPush 监听
+     * @param {string} pushType - 推送类型
+     * @param {function} callback - 回调函数, 接收 data
+     */
+    onServerPush(pushType, callback) {
+        this.pushHandlers.set(pushType, callback);
+    }
+
+    /**
+     * 取消 ServerPush 监听
+     * @param {string} pushType 
+     */
+    offServerPush(pushType) {
+        this.pushHandlers.delete(pushType);
     }
 
     close() {

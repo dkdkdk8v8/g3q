@@ -270,9 +270,12 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
         visibleCounts.value = {};
         lastBetStates.value = {};
         
-        setTimeout(() => {
-             startDealingAnimation();
-        }, 100);
+        // 只有看牌抢庄(mode != 0)才需要在抢庄阶段发牌
+        if (store.gameMode !== 0) {
+            setTimeout(() => {
+                startDealingAnimation();
+            }, 100);
+        }
     } else if (newPhase === 'DEALING') { // Changed from SHOWDOWN to DEALING for animation
         setTimeout(() => {
              startDealingAnimation(true); 

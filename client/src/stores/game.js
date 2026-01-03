@@ -229,7 +229,7 @@ export const useGameStore = defineStore('game', () => {
             // 收到随机抢庄状态，播放全员随机动画
             // 为了保证动画效果（一直播放随机动画），这里直接将所有玩家视为候选人
             // 这样视觉上会在所有人之间跳动，直到 StateBankerConfirm 定格
-            let candidates = players.value;
+            let candidates = players.value.filter(p => !p.isObserver);
 
             bankerCandidates.value = candidates.map(p => p.id);
 
@@ -305,6 +305,8 @@ export const useGameStore = defineStore('game', () => {
                 if (['DEALING', 'SHOWDOWN'].includes(targetPhase)) {
                     const targetCount = 5;
                     players.value.forEach(p => {
+                        if (p.isObserver) return; // Skip observers for placeholder filling
+
                         if (!p.hand) p.hand = [];
                         if (p.hand.length < targetCount) {
                             const currentLen = p.hand.length;
@@ -444,7 +446,7 @@ export const useGameStore = defineStore('game', () => {
     // 玩家操作：抢庄
     const playerRob = (multiplier) => {
         const me = players.value.find(p => p.id === myPlayerId.value);
-        if (me && currentPhase.value === 'ROB_BANKER') {
+        if (me && currentPhase.value === 'ROB_BANKER' && !me.isObserver) {
             me.robMultiplier = multiplier;
             checkAllRobbed();
         }
@@ -516,7 +518,7 @@ export const useGameStore = defineStore('game', () => {
     // 玩家操作：下注
     const playerBet = (multiplier) => {
         const me = players.value.find(p => p.id === myPlayerId.value);
-        if (me && currentPhase.value === 'BETTING' && !me.isBanker) {
+        if (me && currentPhase.value === 'BETTING' && !me.isBanker && !me.isObserver) {
             me.betMultiplier = multiplier;
             checkAllBetted();
         }

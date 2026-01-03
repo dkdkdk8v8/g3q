@@ -570,14 +570,14 @@ const quitGame = () => {
                 <div class="controls-container">
 
 
-                    <div v-if="store.currentPhase === 'ROB_BANKER'" class="btn-group">
+                    <div v-if="store.currentPhase === 'ROB_BANKER' && !myPlayer.isObserver" class="btn-group">
                         <div class="game-btn blue" @click="onRob(0)">不抢</div>
                         <div class="game-btn orange" @click="onRob(1)">1倍</div>
                         <div class="game-btn orange" @click="onRob(2)">2倍</div>
                         <div class="game-btn orange" @click="onRob(3)">3倍</div>
                     </div>
 
-                    <div v-if="store.currentPhase === 'BETTING' && !myPlayer.isBanker && myPlayer.betMultiplier === 0"
+                    <div v-if="store.currentPhase === 'BETTING' && !myPlayer.isBanker && myPlayer.betMultiplier === 0 && !myPlayer.isObserver"
                         class="btn-group">
                         <div class="game-btn orange" @click="onBet(1)">1倍</div>
                         <div class="game-btn orange" @click="onBet(2)">2倍</div>
@@ -588,13 +588,13 @@ const quitGame = () => {
                         等待闲家下注...
                     </div>
 
-                    <div v-if="myPlayer.betMultiplier > 0 && store.currentPhase === 'BETTING' && !myPlayer.isBanker"
+                    <div v-if="myPlayer.betMultiplier > 0 && store.currentPhase === 'BETTING' && !myPlayer.isBanker && !myPlayer.isObserver"
                         class="waiting-text">
                         已下注，等待开牌...
                     </div>
 
                     <!-- 摊牌按钮 -->
-                    <div v-if="store.currentPhase === 'SHOWDOWN' && !myPlayer.isShowHand && store.countdown > 0"
+                    <div v-if="store.currentPhase === 'SHOWDOWN' && !myPlayer.isShowHand && store.countdown > 0 && !myPlayer.isObserver"
                         class="btn-group">
                         <div class="game-btn orange" style="width: 100px" @click="store.playerShowHand(myPlayer.id)">摊牌
                         </div>

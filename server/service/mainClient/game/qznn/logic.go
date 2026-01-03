@@ -537,7 +537,7 @@ func (r *QZNNRoom) StartGame() {
 	}
 
 	//抢庄
-	if !r.SetStatus(StateBanking, 10) {
+	if !r.SetStatus(StateBanking, 3) {
 		logrus.WithField("roomId", r.ID).Error("QZNNRoom-StatusChange-Fail-callBanker")
 		return
 	}
@@ -597,7 +597,7 @@ func (r *QZNNRoom) StartGame() {
 	r.WaitSleep(time.Second * 1)
 
 	//非庄家投注
-	if !r.SetStatus(StateBetting, 10) {
+	if !r.SetStatus(StateBetting, 2) {
 		logrus.WithField("roomId", r.ID).Error("QZNNRoom-StatusChange-Fail-betting")
 		return
 	}
@@ -616,7 +616,7 @@ func (r *QZNNRoom) StartGame() {
 	}
 
 	//补牌到5张，不看牌发5张，看3补2，看4
-	if !r.SetStatus(StateDealing, 3) {
+	if !r.SetStatus(StateDealing, 10) {
 		logrus.WithField("roomId", r.ID).Error("QZNNRoom-StatusChange-Fail-setting")
 		return
 	}
@@ -639,7 +639,7 @@ func (r *QZNNRoom) StartGame() {
 	}
 
 	//客户端播放结算动画
-	time.Sleep(time.Second * 2)
+	r.WaitSleep(time.Second * 2)
 
 	bankerPlayer, ok := r.GetPlayerByID(r.BankerID)
 	//计算牛牛，分配balance

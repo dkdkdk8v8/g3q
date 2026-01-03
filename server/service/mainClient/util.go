@@ -23,13 +23,6 @@ func BuildCaptcha() string {
 	return fmt.Sprintf("%d", val)
 }
 
-func CheckParamStr(s string) error {
-	if s == "" {
-		return ErrParamInvalid
-	}
-	return nil
-}
-
 func CheckMobile(s string) error {
 	if s == "" {
 		return ErrParamInvalid
@@ -59,13 +52,6 @@ func GetChineseWeekName(i int) string {
 		return "日"
 	}
 	return fmt.Sprintf("%d", i)
-}
-
-func GetBuyPrice(p int) int {
-	if p <= 0 {
-		return 999
-	}
-	return p
 }
 
 func unicodeIsLetter(r rune) bool {
@@ -120,42 +106,4 @@ func GetClientVersionNum(version string) []int {
 		ret = append(ret, util.Atoi(v))
 	}
 	return ret
-}
-
-func PlayVideo265(plat int) bool {
-	// 平台标识// 0：未知；
-	// 1：app-android；// 2：app-ios ；
-	// 3：h5-ios；// 4：h5-android；
-	// 5：h5-pc；static int platTypeNo = 0;
-	if plat == 1 {
-		return true
-	}
-	return false
-}
-
-type CdnForType int
-
-const (
-	CdnForPic       CdnForType = 0
-	CdnForVideo     CdnForType = 1
-	CdnForPlainText CdnForType = 2
-	CdnForPicVue    CdnForType = 3
-)
-
-func GetCdnPrefixPath(cft CdnForType, relativePath string) string {
-	if relativePath == "" {
-		return ""
-	}
-	switch cft {
-	case CdnForPic:
-		return "/pass/" + relativePath
-	case CdnForVideo:
-		return "/through/" + relativePath
-	case CdnForPlainText:
-		return "/guess/" + relativePath
-	case CdnForPicVue:
-		return "/quick/" + relativePath
-	default:
-		return "/error/" + relativePath
-	}
 }

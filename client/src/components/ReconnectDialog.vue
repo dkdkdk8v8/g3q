@@ -2,8 +2,8 @@
   <div v-if="loadingStore.showReconnectDialog" class="reconnect-overlay" @click.self="handleRetry">
     <div class="dialog-content">
       <div class="message">
-        <p>网络已断开</p>
-        <p>正在尝试重连...</p>
+        <p style="font-size: 18px;">温馨提醒</p>
+        <p>与服务器断开连接了</p>
       </div>
       <div class="tip">点击屏幕任意位置立即重连</div>
     </div>

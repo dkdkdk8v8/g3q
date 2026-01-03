@@ -230,11 +230,10 @@ func GetCardsByNiu(availableCards []int, targetNiu int) []int {
 	return nil
 }
 
-
 // RemoveCardsFromDeck 从牌堆中移除指定的牌
 func RemoveCardsFromDeck(deck []int, cardsToRemove []int) []int {
 	if len(cardsToRemove) == 0 {
-		return cardsToRemove
+		return deck
 	}
 	toRemove := make(map[int]bool)
 	for _, c := range cardsToRemove {

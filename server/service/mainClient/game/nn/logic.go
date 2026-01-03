@@ -89,7 +89,7 @@ func (r *QZNNRoom) GetPlayerCount() int {
 }
 
 // todo::StateSettlingDirectPreCard 这个 也要判断kickoff
-func (r *QZNNRoom) KickOffByWsDisconnect() {
+func (r *QZNNRoom) KickOffByWsDisconnect() bool {
 	var delIndex []int
 	r.PlayerMu.RLock()
 
@@ -103,7 +103,7 @@ func (r *QZNNRoom) KickOffByWsDisconnect() {
 		if p.IsRobot {
 			continue
 		}
-		if p.ConnWrap == nil {
+		if p.ConnWrap.WsConn == nil {
 			delIndex = append(delIndex, i)
 		}
 
@@ -111,7 +111,7 @@ func (r *QZNNRoom) KickOffByWsDisconnect() {
 	r.PlayerMu.RUnlock()
 
 	if len(delIndex) <= 0 {
-		return
+		return false
 	}
 
 	r.PlayerMu.Lock()
@@ -119,6 +119,7 @@ func (r *QZNNRoom) KickOffByWsDisconnect() {
 	for _, delIndex := range delIndex {
 		r.Players[delIndex] = nil
 	}
+	return true
 }
 
 // 包含机器人
@@ -200,7 +201,7 @@ func (r *QZNNRoom) Broadcast(msg interface{}) {
 	r.PlayerMu.RLock()
 	defer r.PlayerMu.RUnlock()
 	for _, p := range r.Players {
-		if p != nil && p.ConnWrap.WsConn != nil {
+		if p != nil && p.ConnWrap != nil && p.ConnWrap.WsConn != nil {
 			_ = p.ConnWrap.WsConn.WriteJSON(msg)
 		}
 	}
@@ -210,7 +211,7 @@ func (r *QZNNRoom) BroadcastWithPlayer(getMsg func(*Player) interface{}) {
 	r.PlayerMu.RLock()
 	defer r.PlayerMu.RUnlock()
 	for _, p := range r.Players {
-		if p != nil && p.ConnWrap.WsConn != nil {
+		if p != nil && p.ConnWrap != nil && p.ConnWrap.WsConn != nil {
 			msg := getMsg(p)
 			_ = p.ConnWrap.WsConn.WriteJSON(msg)
 		}
@@ -224,7 +225,7 @@ func (r *QZNNRoom) BroadcastExclude(msg interface{}, excludeId string) {
 		if p == nil || p.ID == excludeId {
 			continue
 		}
-		if p.ConnWrap.WsConn != nil {
+		if p.ConnWrap != nil && p.ConnWrap.WsConn != nil {
 			_ = p.ConnWrap.WsConn.WriteJSON(msg)
 		}
 	}
@@ -296,7 +297,7 @@ func (r *QZNNRoom) GetActivePlayers(filter func(*Player) bool) []*Player {
 func (r *QZNNRoom) ReconnectEnterRoom(userId string) {
 	p, ok := r.GetPlayerByID(userId)
 	if ok {
-		if p != nil && p.ConnWrap.WsConn != nil {
+		if p != nil && p.ConnWrap != nil && p.ConnWrap.WsConn != nil {
 			_ = p.ConnWrap.WsConn.WriteJSON(comm.Response{
 				Cmd:  CmdReconnectEnterRoom,
 				Data: gin.H{"Room": r}})
@@ -378,7 +379,11 @@ func (r *QZNNRoom) tickWaiting() {
 	// 		Cmd:  StatePrepare,
 	// 		Data: gin.H{"Room": r}})
 	// }
-	r.KickOffByWsDisconnect()
+	if r.KickOffByWsDisconnect() {
+		r.Broadcast(comm.Response{
+			Cmd:  StateWaiting,
+			Data: gin.H{"Room": r}})
+	}
 }
 
 func (r *QZNNRoom) tickPrepare() {
@@ -394,7 +399,7 @@ func (r *QZNNRoom) tickPrepare() {
 			Cmd:  StateWaiting,
 			Data: gin.H{"Room": r}})
 	}
-	r.KickOffByWsDisconnect()
+	isBroadCast := r.KickOffByWsDisconnect()
 	if r.GetWsOkPlayerCount() >= 2 {
 		go r.StartGame()
 	} else {
@@ -402,11 +407,13 @@ func (r *QZNNRoom) tickPrepare() {
 		r.StopTimer()
 		_ = r.SetStatus(StateWaiting)
 		//同步数据给客户端
+		isBroadCast = true
+	}
+	if isBroadCast {
 		r.Broadcast(comm.Response{
 			Cmd:  StateWaiting,
 			Data: gin.H{"Room": r}})
 	}
-
 }
 
 func (r *QZNNRoom) tickBanking() {

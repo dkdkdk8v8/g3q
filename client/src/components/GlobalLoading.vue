@@ -43,8 +43,8 @@ const loadingStore = useLoadingStore();
   border: 4px solid #cbd4da;
   border-top: 4px solid #4a4848;
   border-radius: 50%;
-  width: 26px;
-  height: 26px;
+  width: 23px;
+  height: 23px;
   animation: spin 1s linear infinite;
   margin-top: 30px;
 }
@@ -55,7 +55,7 @@ const loadingStore = useLoadingStore();
 }
 
 .loading-text {
-  font-size: 1.1em;
+  font-size: 1.0em;
   font-weight: bold;
 }
 

@@ -255,7 +255,7 @@ button:hover {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.7); /* Black transparent background */
+  background-color: rgba(0, 0, 0, 0.3); /* Black transparent background */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -263,14 +263,14 @@ button:hover {
 }
 
 .loading-text-container {
-  background-color: rgba(0, 0, 0, 0.7); /* Black transparent background */
-  color: white;
-  padding: 15px 30px;
-  border-radius: 8px;
-  font-size: 1.2em;
+  background-color: rgba(255, 255, 255, 1); /* Black transparent background */
+  color: black;
+  padding: 15px 10px;
+  border-radius: 10px;
+  font-size: 1.0em;
   font-weight: bold;
   text-align: center;
   min-width: 180px; /* Fixed width to prevent jumping */
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
 }
 </style>

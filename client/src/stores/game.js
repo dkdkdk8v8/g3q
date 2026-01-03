@@ -224,12 +224,14 @@ export const useGameStore = defineStore('game', () => {
             let targetPhase = null;
             if (normalizedState === 'StateWaiting') targetPhase = 'WAITING_FOR_PLAYERS';
             else if (normalizedState === 'StatePrepare') targetPhase = 'READY_COUNTDOWN';
-            else if (normalizedState === 'StateRob') targetPhase = 'ROB_BANKER';
-            else if (normalizedState === 'StateBet') targetPhase = 'BETTING';
-            else if (normalizedState === 'StateShow') targetPhase = 'SHOWDOWN'; 
-            else if (normalizedState === 'StateSettlement') targetPhase = 'SETTLEMENT';
-            else if (normalizedState === 'StateGameEnd') targetPhase = 'GAME_OVER';
+            else if (normalizedState === 'StatePreCard') targetPhase = 'PRE_DEAL';
+            else if (normalizedState === 'StateBanking') targetPhase = 'ROB_BANKER';
+            else if (normalizedState === 'StateRandomBank') targetPhase = 'BANKER_SELECTION_ANIMATION';
+            else if (normalizedState === 'StateBankerConfirm') targetPhase = 'BANKER_CONFIRMED';
+            else if (normalizedState === 'StateBetting') targetPhase = 'BETTING';
             else if (normalizedState === 'StateDealing') targetPhase = 'DEALING';
+            else if (normalizedState === 'StateShowCard') targetPhase = 'SHOWDOWN'; 
+            else if (normalizedState === 'StateSettling') targetPhase = 'SETTLEMENT';
             
             if (targetPhase) {
                 // Check if different

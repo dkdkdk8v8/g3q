@@ -35,6 +35,8 @@ export default class GameClient {
         this.onConnect = null;
         this.onClose = null;
         this.onError = null;
+        
+        this.globalPushHandler = null; // 全局 ServerPush 监听
     }
 
     /**
@@ -184,6 +186,16 @@ export default class GameClient {
         // 处理 ServerPush 消息
         if (msg.cmd === "onServerPush") {
             console.log("📣 [收到广播] Server Push:", msg);
+            
+            // 优先执行全局监听
+            if (this.globalPushHandler) {
+                try {
+                    this.globalPushHandler(msg.pushType, msg.data);
+                } catch (err) {
+                    console.error("[Network] Error in global push handler:", err);
+                }
+            }
+
             if (this.pushHandlers.has(msg.pushType)) {
                 const handler = this.pushHandlers.get(msg.pushType);
                 try {
@@ -248,6 +260,14 @@ export default class GameClient {
      */
     offServerPush(pushType) {
         this.pushHandlers.delete(pushType);
+    }
+
+    /**
+     * 注册全局 ServerPush 监听 (拦截所有 pushType)
+     * @param {function} callback - (pushType, data) => void
+     */
+    onGlobalServerPush(callback) {
+        this.globalPushHandler = callback;
     }
 
     close() {

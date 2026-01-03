@@ -98,52 +98,38 @@ export const useGameStore = defineStore('game', () => {
         }
     });
 
-    const syncRoomState = (room, userId = null) => {
-        if (!room) return;
-
-        // Update Room Info
-        if (room.ID) {
-            roomId.value = room.ID;
-        }
-        if (room.Config) {
-            roomName.value = room.Config.Name;
-            baseBet.value = room.Config.BaseBet;
-            gameMode.value = room.Config.BankerType;
-        }
-
-        // Parse Players from Server
-        const serverPlayers = room.Players || [];
+    const updatePlayersList = (serverPlayers, bankerID, currentUserId) => {
         const newPlayers = [];
-
-        // 1. Find myServerSeatNum
+        
+        // 1. Determine My Seat & ID
         let myServerSeatNum = -1;
-
-        // Ensure myPlayerId is consistent with UserStore
         const storeUserId = userStore.userInfo.user_id;
-        if (storeUserId) {
-            myPlayerId.value = storeUserId;
-        } else {
-            // Fallback only if UserStore is empty (rare)
-            if (userId && (!myPlayerId.value || myPlayerId.value === 'me')) {
-                myPlayerId.value = userId;
-            } else if (!myPlayerId.value) {
-                myPlayerId.value = 'me';
+        
+        // Strategy: prefer storeUserId, then currentUserId (from push), then existing myPlayerId
+        let myId = storeUserId;
+        if (!myId && currentUserId) myId = currentUserId;
+        if (!myId || myId === 'me') {
+            if (myPlayerId.value && myPlayerId.value !== 'me') {
+                myId = myPlayerId.value;
+            } else {
+                myId = 'me';
             }
         }
+        
+        // Update global ref
+        if (myId !== 'me') myPlayerId.value = myId;
 
         const meInServer = serverPlayers.find(p => p && p.ID === myPlayerId.value);
         if (meInServer) {
             myServerSeatNum = meInServer.SeatNum;
         } else {
-            console.warn("[GameStore] Current user's ID (" + myPlayerId.value + ") not found in serverPlayers. Defaulting myServerSeatNum to 0 (Observer View).");
-            myServerSeatNum = 0; // Default to 0 so we can render others relative to seat 0
+            // console.warn("[GameStore] Current user not found in serverPlayers. Defaulting to Observer (0).");
+            myServerSeatNum = 0; 
         }
 
         serverPlayers.forEach(p => {
-            if (!p) return; // Skip null entries
+            if (!p) return;
 
-            // 2. Calculate clientSeatNum
-            // Always calculate if we have a reference seat (now defaulted to 0)
             const clientSeatNum = getClientSeatIndex(myServerSeatNum, p.SeatNum);
 
             // Map Cards
@@ -151,92 +137,133 @@ export const useGameStore = defineStore('game', () => {
             if (p.Cards && Array.isArray(p.Cards)) {
                 hand = p.Cards.map(c => c);
             }
+            
+            // Calculate Hand Result (client-side util)
+            let handResult = undefined;
+            if (hand.length > 0) {
+                 const res = calculateHandType(hand);
+                 // Respect server if it sends result? Assuming local calc for now.
+                 handResult = { type: res.type, typeName: res.typeName, multiplier: res.multiplier };
+            }
 
             newPlayers.push({
                 id: p.ID,
                 name: p.NickName && p.NickName.trim() !== '' ? p.NickName : p.ID,
-                avatar: DEFAULT_AVATAR, // Server doesn't provide avatar yet
+                avatar: DEFAULT_AVATAR,
                 coins: p.Balance,
-                isBanker: room.BankerID === p.ID,
+                isBanker: bankerID === p.ID,
                 hand: hand,
-                state: 'IDLE',
+                handResult: handResult, 
+                state: 'IDLE', // Default
                 robMultiplier: p.CallMult,
                 betMultiplier: p.BetMult,
-
-                isShowHand: p.IsShow || false, // Map Show to isShowHand
-                serverSeatNum: p.SeatNum,      // Store server seat number for debugging/reference
-                clientSeatNum: clientSeatNum,  // Add client seat number
-                // Persist local data if needed?
+                isShowHand: p.IsShow || false,
+                serverSeatNum: p.SeatNum,
+                clientSeatNum: clientSeatNum,
+                isReady: p.IsReady
             });
         });
 
         players.value = newPlayers;
+    };
 
-        // Sync Phase
-        if (room.State === 'StateWaiting' || room.State === 'QZNN.StateWaiting') {
-            currentPhase.value = 'WAITING_FOR_PLAYERS';
+    const handleStateEntry = (phase) => {
+        // Specific logic when ENTERING a phase (from a different one)
+        if (phase === 'READY_COUNTDOWN') {
+            // Reset Round Data
+            players.value.forEach(p => {
+                p.isBanker = false;
+                p.robMultiplier = -1;
+                p.betMultiplier = 0;
+                p.handResult = undefined;
+                p.roundScore = 0;
+                p.isShowHand = false;
+                p.state = 'IDLE';
+                p.hand = [];
+            });
+            bankerId.value = null;
         }
     };
 
-    // Handle PushPlayJoin to update player list
-    gameClient.onServerPush('PushPlayJoin', (data) => {
-        console.log("[GameStore] PushPlayJoin received:", data);
-        if (data && data.Room) {
-            syncRoomState(data.Room, data.UserId);
-        }
-    });
-
-    // Handle PushPlayLeave to update player list
-    gameClient.onServerPush('PushPlayLeave', (data) => {
-        console.log("[GameStore] PushPlayLeave received:", data);
-        if (data && data.Room) {
-            syncRoomState(data.Room);
-        }
-    });
-
-    // Handle PushChangeState to transition game phases
-    gameClient.onServerPush('PushChangeState', (data) => {
-        console.log("[GameStore] PushChangeState received:", data);
-        if (data && data.Room) {
-            syncRoomState(data.Room);
-        }
-
-        const serverState = data.State;
-        const leftSec = parseInt(data.StateLeftSec || 0);
-
-        stopAllTimers(); // Stop existing client timers
-
-        switch (serverState) {
-            case 'StatePrepare':
-                currentPhase.value = 'READY_COUNTDOWN';
-                // Clean up previous round state if needed
-                players.value.forEach(p => {
-                    p.isBanker = false;
-                    p.robMultiplier = -1;
-                    p.betMultiplier = 0;
-                    p.handResult = undefined;
-                    p.roundScore = 0;
-                    p.isShowHand = false;
-                    p.state = 'IDLE';
-                    p.hand = [];
-                });
-                bankerId.value = null;
-                
-                if (leftSec > 0) {
-                    startCountdown(leftSec);
-                }
-                break;
+    // Universal Push Handler (Replacing specific handlers)
+    const handleUniversalPush = (pushType, data) => {
+        // console.log(`[GameStore] Universal Push: ${pushType}`, data);
+        
+        if (!data) return;
+        const room = data.Room;
+        
+        // 1. Update Room Config & Info
+        if (room) {
+            if (room.ID) roomId.value = room.ID;
+            if (room.Config) {
+                if (room.Config.Name) roomName.value = room.Config.Name;
+                if (room.Config.BaseBet !== undefined) baseBet.value = room.Config.BaseBet;
+                if (room.Config.BankerType !== undefined) gameMode.value = room.Config.BankerType;
+            }
             
-            // Add other cases as we discover them
-            case 'StateWaiting': // Fallback if StateWaiting is pushed via ChangeState
-                currentPhase.value = 'WAITING_FOR_PLAYERS';
-                break;
-
-            default:
-                console.warn("[GameStore] Unknown server state:", serverState);
-                break;
+            // 2. Update Players
+            if (room.Players) {
+                updatePlayersList(room.Players, room.BankerID, data.UserId); 
+            }
         }
-    });
+
+        // 3. State Management
+        // Priority: top-level data.State > room.State
+        let serverState = data.State;
+        if (!serverState && room) serverState = room.State;
+
+        // Priority: top-level data.StateLeftSec > room.StateLeftSec
+        let leftSec = data.StateLeftSec;
+        if (leftSec === undefined && room) leftSec = room.StateLeftSec;
+        leftSec = parseInt(leftSec || 0);
+
+        if (serverState) {
+            // Normalize "QZNN." prefix
+            const normalizedState = serverState.replace('QZNN.', '');
+            
+            let targetPhase = null;
+            if (normalizedState === 'StateWaiting') targetPhase = 'WAITING_FOR_PLAYERS';
+            else if (normalizedState === 'StatePrepare') targetPhase = 'READY_COUNTDOWN';
+            else if (normalizedState === 'StateRob') targetPhase = 'ROB_BANKER';
+            else if (normalizedState === 'StateBet') targetPhase = 'BETTING';
+            else if (normalizedState === 'StateShow') targetPhase = 'SHOWDOWN'; 
+            else if (normalizedState === 'StateSettlement') targetPhase = 'SETTLEMENT';
+            else if (normalizedState === 'StateGameEnd') targetPhase = 'GAME_OVER';
+            else if (normalizedState === 'StateDealing') targetPhase = 'DEALING';
+            
+            if (targetPhase) {
+                // Check if different
+                if (currentPhase.value !== targetPhase) {
+                    console.log(`[GameStore] State Switch: ${currentPhase.value} -> ${targetPhase}`);
+                    
+                    stopAllTimers(); // Stop previous timers
+                    currentPhase.value = targetPhase;
+                    
+                    handleStateEntry(targetPhase);
+                    
+                    // Start timer for new phase immediately if sec > 0
+                    if (['READY_COUNTDOWN', 'ROB_BANKER', 'BETTING', 'SHOWDOWN'].includes(targetPhase)) {
+                        if (leftSec > 0) startCountdown(leftSec);
+                    }
+                } else {
+                    // Same Phase: Check if we need to update timer
+                    // "StateLeftSec 这个倒计时则就看客户端当前的状态是否有倒计时"
+                    if (['READY_COUNTDOWN', 'ROB_BANKER', 'BETTING', 'SHOWDOWN'].includes(targetPhase)) {
+                         // Sync timer if needed (e.g. drift > 1s or not running)
+                         if (leftSec > 0) {
+                             if (!timer || Math.abs(countdown.value - leftSec) > 1) {
+                                 // console.log(`[GameStore] Sync Timer: ${countdown.value} -> ${leftSec}`);
+                                 startCountdown(leftSec);
+                             }
+                         }
+                    }
+                }
+            }
+        }
+    };
+
+    // Register Global Handler
+    gameClient.onGlobalServerPush(handleUniversalPush);
 
     // 加入房间
     const joinRoom = (level, banker_type) => {

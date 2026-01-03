@@ -47,6 +47,7 @@ type Player struct {
 	IsShow   bool  // 是否已亮牌
 	SeatNum  int   // 座位号
 	//IsReady       bool       // 是否已准备
+	CardResult    CardResult     `json:"-"`
 	IsOb          bool           // 是否观众
 	BalanceChange int64          // 本局输赢
 	IsRobot       bool           `json:"-"`
@@ -56,12 +57,13 @@ type Player struct {
 
 func (p *Player) GetClientPlayer(cardNum int, secret bool) *Player {
 	n := &Player{
-		ID:       p.ID,
-		Balance:  p.Balance,
-		CallMult: p.CallMult,
-		BetMult:  p.BetMult,
-		IsShow:   p.IsShow,
-		SeatNum:  p.SeatNum,
+		ID:            p.ID,
+		Balance:       p.Balance,
+		CallMult:      p.CallMult,
+		BetMult:       p.BetMult,
+		IsShow:        p.IsShow,
+		SeatNum:       p.SeatNum,
+		BalanceChange: 0,
 		//IsReady:  p.IsReady,
 	}
 
@@ -88,6 +90,9 @@ func (p *Player) reset() {
 	p.CallMult = 0
 	p.BetMult = 0
 	p.IsShow = false
+	p.CardResult = CardResult{}
+	p.BalanceChange = 0
+	p.IsOb = false
 }
 
 // LobbyConfig 大厅配置
@@ -116,27 +121,29 @@ func (cfg *LobbyConfig) GetPreCard() int {
 
 // Room 代表一个游戏房间
 type QZNNRoom struct {
-	ID                 string
-	State              RoomState
-	StateLeftSec       int
-	BankerID           string
-	Players            []*Player
-	Config             LobbyConfig    // 房间配置
-	StateMu            sync.RWMutex   `json:"-"` // 保护 State, Timer
-	StateLeftSecTicker *time.Ticker   `json:"-"` // 倒计时定时器
-	Mu                 sync.Mutex     `json:"-"` // 保护房间数据并发安全
-	PlayerMu           sync.RWMutex   `json:"-"` // 保护 Players
-	Deck               []int          `json:"-"` // 牌堆
-	TargetResults      map[string]int `json:"-"` // 记录每个玩家本局被分配的目标分数 (牛几)
-	TotalBet           int64          `json:"-"` // 本局总下注额，用于更新库存
-	driverGo           chan struct{}  `json:"-"`
-	CreateAt           time.Time
-	OnBotAction        func(room *QZNNRoom) `json:"-"`
+	ID                   string
+	State                RoomState
+	StateLeftSec         int
+	StateLeftSecDuration time.Duration `json:"-"`
+	BankerID             string
+	Players              []*Player
+	Config               LobbyConfig    // 房间配置
+	StateMu              sync.RWMutex   `json:"-"` // 保护 State, Timer
+	StateLeftSecTicker   *time.Ticker   `json:"-"` // 倒计时定时器
+	Mu                   sync.Mutex     `json:"-"` // 保护房间数据并发安全
+	PlayerMu             sync.RWMutex   `json:"-"` // 保护 Players
+	Deck                 []int          `json:"-"` // 牌堆
+	TargetResults        map[string]int `json:"-"` // 记录每个玩家本局被分配的目标分数 (牛几)
+	TotalBet             int64          `json:"-"` // 本局总下注额，用于更新库存
+	driverGo             chan struct{}  `json:"-"`
+	CreateAt             time.Time
+	OnBotAction          func(room *QZNNRoom) `json:"-"`
 }
 
 func (r *QZNNRoom) reset() {
 	r.State = ""
 	r.StateLeftSec = 0
+	r.StateLeftSecDuration = 0
 	r.BankerID = ""
 	r.Deck = []int{}
 	r.TargetResults = make(map[string]int, 5)
@@ -146,7 +153,9 @@ func (r *QZNNRoom) reset() {
 		r.StateLeftSecTicker = nil
 	}
 	for _, p := range r.Players {
-		p.reset()
+		if p != nil {
+			p.reset()
+		}
 	}
 }
 
@@ -161,6 +170,16 @@ func (r *QZNNRoom) SetBankerId(bankerId string) bool {
 		return true
 	}
 	return false
+}
+
+func (r *QZNNRoom) DecreaseStateLeftSec(d time.Duration) {
+	r.StateMu.Lock()
+	defer r.StateMu.Unlock()
+	r.StateLeftSecDuration -= d
+	if r.StateLeftSecDuration <= 0 {
+		r.StateLeftSecDuration = 0
+	}
+	r.StateLeftSec = int(r.StateLeftSecDuration / time.Second)
 }
 
 func (r *QZNNRoom) GetClientRoom(secret bool) *QZNNRoom {

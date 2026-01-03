@@ -20,7 +20,7 @@ func NewRoom(id string) *QZNNRoom {
 		driverGo:      make(chan struct{}),
 		CreateAt:      time.Now(),
 	}
-	go nRoom.drvierLogicTick()
+	go nRoom.driverLogicTick()
 	return nRoom
 }
 
@@ -47,6 +47,7 @@ func (r *QZNNRoom) SetStatus(state RoomState, stateLeftSec int) bool {
 	oldState := r.State
 	r.State = state
 	r.StateLeftSec = stateLeftSec
+	r.StateLeftSecDuration = time.Duration(stateLeftSec) * time.Second
 	r.StateMu.Unlock()
 	logrus.WithFields(logrus.Fields{
 		"room_id":        r.ID,
@@ -54,12 +55,10 @@ func (r *QZNNRoom) SetStatus(state RoomState, stateLeftSec int) bool {
 		"new_state":      state,
 		"state_left_sec": stateLeftSec,
 	}).Info("QZNNRoom-SetStatus-Changed")
-	if stateLeftSec > 0 {
-		go r.leftSecDecrease(stateLeftSec)
-	}
-	if stateLeftSec == 0 {
-		r.interuptStateLeftTicker(true)
-	}
+
+	// 倒计时逻辑现在由 drvierLogicTick 统一接管，不再单独开启 goroutine
+	// 也不需要在这里处理 interuptStateLeftTicker，因为 StateLeftSec 已经被重置
+
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
 		return comm.PushData{
 			Cmd:      comm.ServerPush,
@@ -70,29 +69,6 @@ func (r *QZNNRoom) SetStatus(state RoomState, stateLeftSec int) bool {
 				StateLeftSec: stateLeftSec}}
 	})
 	return true
-}
-
-func (r *QZNNRoom) leftSecDecrease(leftSec int) {
-	r.interuptStateLeftTicker(false)
-	r.StateLeftSecTicker = time.NewTicker(time.Second)
-	defer r.StateLeftSecTicker.Stop()
-
-	for i := 0; i < leftSec; i++ {
-		<-r.StateLeftSecTicker.C
-		r.StateMu.Lock()
-		oldLeft := r.StateLeftSec
-		r.StateLeftSec--
-		if r.StateLeftSec < 0 {
-			r.StateLeftSec = 0
-		}
-		r.StateMu.Unlock()
-
-		logrus.WithFields(logrus.Fields{
-			"room_id":         r.ID,
-			"stateLeftSecOld": oldLeft,
-			"stateLeftSecNew": r.StateLeftSec,
-		}).Info("QZNNRoom-LeftSec-Changed")
-	}
 }
 
 func (r *QZNNRoom) CheckGameStart() bool {
@@ -289,12 +265,10 @@ func (r *QZNNRoom) interuptStateLeftTicker(bResetLeft bool) {
 	r.StateMu.Lock()
 	defer r.StateMu.Unlock()
 	if bResetLeft {
+		r.StateLeftSecDuration = 0
 		r.StateLeftSec = 0
 	}
-	if r.StateLeftSecTicker != nil {
-		r.StateLeftSecTicker.Stop()
-		r.StateLeftSecTicker = nil
-	}
+	// 倒计时由 driverLogicTick 驱动，这里只需将剩余时间置为0即可打断等待
 }
 
 func (r *QZNNRoom) WaitSleep(wait time.Duration) {
@@ -302,7 +276,26 @@ func (r *QZNNRoom) WaitSleep(wait time.Duration) {
 }
 
 func (r *QZNNRoom) WaitStateLeftTicker() {
-	<-r.StateLeftSecTicker.C
+	// 使用轮询方式等待倒计时结束，避免 ticker 通道阻塞或泄露
+	ticker := time.NewTicker(time.Millisecond * 100)
+	defer ticker.Stop()
+
+	for {
+		r.StateMu.RLock()
+		left := r.StateLeftSec
+		r.StateMu.RUnlock()
+
+		if left <= 0 {
+			return
+		}
+
+		select {
+		case <-r.driverGo: // 房间销毁
+			return
+		case <-ticker.C:
+			continue
+		}
+	}
 }
 
 // Leave 玩家离开房间
@@ -405,27 +398,32 @@ func (r *QZNNRoom) prepareDeck() {
 	}
 }
 
-func (r *QZNNRoom) drvierLogicTick() {
-	driverTicker := time.NewTicker(time.Millisecond * 200)
+func (r *QZNNRoom) driverLogicTick() {
+	const driverMill = time.Millisecond * 200
+	driverTicker := time.NewTicker(driverMill)
 	defer driverTicker.Stop()
+
 	for {
 		select {
 		case <-r.driverGo:
 			return
 		case <-driverTicker.C:
-			switch r.State {
-			case StateWaiting:
-				if r.OnBotAction != nil {
-					r.OnBotAction(r)
-				}
-				r.tickWaiting()
-
-			case StatePrepare:
-				if r.OnBotAction != nil {
-					r.OnBotAction(r)
-				}
-				r.tickPrepare()
+			// 1. 处理倒计时
+			r.StateMu.RLock()
+			nLeftSecDuration := r.StateLeftSecDuration
+			r.StateMu.RUnlock()
+			if nLeftSecDuration > 0 {
+				r.DecreaseStateLeftSec(driverMill)
+				logrus.WithFields(logrus.Fields{
+					"room_id":         r.ID,
+					"stateLeftSecNew": r.StateLeftSec,
+				}).Info("QZNNRoom-LeftSec-Changed")
 			}
+			if r.OnBotAction != nil {
+				r.OnBotAction(r)
+			}
+			// 3. 执行各状态逻辑 (包含 tickBanking, tickBetting 等检查)
+			r.logicTick()
 		}
 	}
 }
@@ -480,7 +478,7 @@ func (r *QZNNRoom) tickBanking() {
 		return p.CallMult == -1
 	})
 	if len(unconfirmed) == 0 {
-		r.interuptStateLeftTicker(true)
+		//r.interuptStateLeftTicker(true)
 	}
 }
 
@@ -490,7 +488,7 @@ func (r *QZNNRoom) tickBetting() {
 		return p.BetMult == -1
 	})
 	if len(unconfirmed) == 0 {
-		r.interuptStateLeftTicker(true)
+		//r.interuptStateLeftTicker(true)
 	}
 }
 
@@ -584,19 +582,14 @@ func (r *QZNNRoom) StartGame() {
 		return
 	}
 
-	//开始投注10s
-	r.WaitSleep(10 * time.Second)
+	r.WaitStateLeftTicker()
 
 	//补牌到5张，不看牌发5张，看3补2，看4
 	if !r.SetStatus(StateDealing, 10) {
 		logrus.WithField("roomId", r.ID).Error("QZNNRoom-StatusChange-Fail-setting")
 		return
 	}
-
 	//等待客户端播放补牌动画
-	time.Sleep(time.Second * 2)
-
-	r.WaitSleep(5 * time.Second)
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
 		return comm.PushData{
 			Cmd:      comm.ServerPush,
@@ -605,6 +598,8 @@ func (r *QZNNRoom) StartGame() {
 				Room:  r.GetClientRoom(!p.IsShow && p.ID == r.BankerID),
 				State: StateShowCard}}
 	})
+
+	r.WaitStateLeftTicker()
 
 	//结算状态
 	if !r.SetStatus(StateSettling, 0) {
@@ -621,12 +616,12 @@ func (r *QZNNRoom) StartGame() {
 		return
 	}
 
+	activePlayer := r.GetActivePlayers(nil)
+	bankerPlayer, ok := r.GetPlayerByID(r.BankerID)
 	//计算牛牛，分配balance
-	results := make(map[string]CardResult)
-	for _, p := range r.Players {
-		results[p.ID] = CalcNiu(p.Cards)
+	for _, p := range activePlayer {
+		p.CardResult = CalcNiu(p.Cards)
 	}
-	bankerRes := results[r.BankerID]
 
 	// 修复：防止庄家中途异常消失导致 Panic
 	bankerMult := int64(1)
@@ -637,8 +632,7 @@ func (r *QZNNRoom) StartGame() {
 	if bankerMult <= 0 {
 		bankerMult = 1
 	}
-	activePlayer := r.GetActivePlayers(nil)
-	bankerPlayer, ok := r.GetPlayerByID(r.BankerID)
+
 	if !ok {
 		logrus.WithField("roomId", r.ID).WithField("bankerId", r.BankerID).Error("QZNNRoom-BankerInvalid")
 		return
@@ -650,18 +644,17 @@ func (r *QZNNRoom) StartGame() {
 		if p.ID == r.BankerID {
 			continue
 		}
-		playerRes := results[p.ID]
-		isPlayerWin := CompareCards(playerRes, bankerRes)
+		isPlayerWin := CompareCards(p.CardResult, bankerPlayer.CardResult)
 		baseBet := r.Config.BaseBet
 		var balance int64
 		if isPlayerWin {
-			balance = baseBet * bankerMult * p.BetMult * playerRes.Mult
+			balance = baseBet * bankerMult * p.BetMult * p.CardResult.Mult
 			// 闲家赢，扣税
 			realScore := int64(float64(balance) * (1 - TaxRate))
 			p.BalanceChange += realScore
 			bankerPlayer.BalanceChange -= balance
 		} else {
-			balance = baseBet * bankerMult * p.BetMult * bankerRes.Mult
+			balance = baseBet * bankerMult * p.BetMult * p.CardResult.Mult
 			p.BalanceChange -= balance
 			// 庄家赢，扣税
 			realScore := int64(float64(balance) * (1 - TaxRate))
@@ -682,10 +675,9 @@ func (r *QZNNRoom) StartGame() {
 			Room:  r,
 			State: StateSettling}})
 
-	time.Sleep(time.Second * 2)
+	r.WaitSleep(time.Second * 2)
 	//清理数据
 	r.reset()
-
 	//
 
 	r.Broadcast(comm.PushData{

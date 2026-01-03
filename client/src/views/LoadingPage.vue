@@ -13,7 +13,7 @@
     <!-- Loading Overlay -->
     <div v-if="isLoading" class="loading-overlay">
       <div class="loading-text-container">
-        努力加载中...
+        努力加载中<span class="dots">...</span>
       </div>
     </div>
   </div>
@@ -260,17 +260,36 @@ button:hover {
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  backdrop-filter: blur(3px); /* Subtle blur effect */
 }
 
 .loading-text-container {
-  background-color: rgba(0, 0, 0, 0.7); /* Black transparent background */
+  background-color: rgba(30, 41, 59, 0.95); /* Dark blue-grey, similar to game modals */
   color: white;
-  padding: 15px 30px;
-  border-radius: 8px;
-  font-size: 1.2em;
+  padding: 20px 30px; /* Reduced padding */
+  border-radius: 15px; /* Consistent border radius */
+  font-size: 1.2em; /* Reduced font size */
   font-weight: bold;
   text-align: center;
-  min-width: 180px; /* Fixed width to prevent jumping */
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.7); /* Stronger shadow */
+  border: 3px solid #ffcc00; /* Gold border */
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Text shadow for depth */
+  font-family: system-ui, sans-serif; /* Consistent font */
+  white-space: nowrap; /* Prevent text wrapping */
+}
+
+.dots {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+  animation: dots 1.5s steps(3, end) infinite;
+  width: 0.8em; /* Ensure space for dots */
+}
+
+@keyframes dots {
+  0% { width: 0; }
+  33% { width: 0.2em; }
+  66% { width: 0.5em; }
+  100% { width: 0.8em; }
 }
 </style>

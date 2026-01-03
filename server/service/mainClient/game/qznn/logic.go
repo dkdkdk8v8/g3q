@@ -65,7 +65,7 @@ func (r *QZNNRoom) SetStatus(state RoomState, stateLeftSec int) bool {
 			Cmd:      comm.ServerPush,
 			PushType: PushChangeState,
 			Data: PushChangeStateStruct{
-				Room:         r.GetClientRoom(p.ID == r.BankerID),
+				Room:         r.GetClientRoom(p.ID),
 				State:        state,
 				StateLeftSec: stateLeftSec}}
 	})
@@ -355,7 +355,7 @@ func (r *QZNNRoom) ReconnectEnterRoom(userId string) {
 			_ = p.ConnWrap.WsConn.WriteJSON(comm.PushData{
 				Cmd: PushNewConnectEnterRoom,
 				Data: PushNewConnectEnterRoomStruct{
-					Room: r.GetClientRoom(p.ID == r.BankerID)}})
+					Room: r.GetClientRoom(p.ID)}})
 		}
 	}
 }
@@ -626,7 +626,7 @@ func (r *QZNNRoom) StartGame() {
 			Cmd:      comm.ServerPush,
 			PushType: PushChangeState,
 			Data: PushChangeStateStruct{
-				Room:  r.GetClientRoom(!p.IsShow && p.ID == r.BankerID),
+				Room:  r.GetClientRoom(p.ID),
 				State: StateShowCard}}
 	})
 

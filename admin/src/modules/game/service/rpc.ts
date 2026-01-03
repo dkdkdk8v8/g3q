@@ -15,6 +15,9 @@ export class GameRpcService extends BaseService {
         const url = `${this.qznnUrl}/rpc/qznn-data`;
         const response = await axios.get(url);
         const { code, msg, data } = response.data;
+        if (code !== 0) {
+            throw new Error(`获取抢庄牛牛房间数据失败: ${msg}`);
+        }
         const qznnData = JSON.parse(data);
         return qznnData;
     }

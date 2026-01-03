@@ -13,6 +13,6 @@ export class GameQZNNController extends BaseController {
     @Get('/qznn', { summary: '获取抢庄牛牛房间数据' })
     async qznn() {
         const data = await this.rpcService.getQZNNData();
-        this.ok(data);
+        return this.ok(data);
     }
 }

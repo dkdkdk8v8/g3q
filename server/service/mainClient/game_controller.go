@@ -38,7 +38,8 @@ func init() {
 			var delConnect []string
 			wsConnectMapMutex.RLock()
 			for uId, ws := range wsConnectMap {
-				if ws == nil {
+				// Fix: 增加对 ws.WsConn == nil 的检查，否则 handleConnection 中置空的连接无法被清理
+				if ws == nil || ws.WsConn == nil {
 					delConnect = append(delConnect, uId)
 				}
 			}
@@ -47,7 +48,8 @@ func init() {
 				for _, delUid := range delConnect {
 					wsConnectMapMutex.Lock()
 					if reGetWs, ok := wsConnectMap[delUid]; ok {
-						if reGetWs.WsConn == nil {
+						// Fix: 增加 reGetWs == nil 的判断，防止 panic
+						if reGetWs == nil || reGetWs.WsConn == nil {
 							delete(wsConnectMap, delUid)
 						}
 					}
@@ -224,135 +226,161 @@ func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, msg *comm
 	case CmdPingPong: // 心跳处理
 		//auto replay by defer
 	case nn.CmdPlayerJoin: // 抢庄牛牛进入
-		var req struct {
-			Level      int
-			BankerType int
-		}
-		// 默认进入初级场
-		req.Level = 1
-		req.BankerType = -1 // 默认值，用于检测客户端是否传递
-
-		if err := json.Unmarshal(msg.Data, &req); err != nil {
-			errRsp = errors.New("客户端参数有误")
-			return
-		}
-		if req.Level <= 0 {
-			req.Level = 1
-		}
-
-		cfg := nn.GetConfig(req.Level)
-		if cfg == nil {
-			errRsp = errors.New("无效的房间类型")
-			return
-		}
-
-		// 如果客户端未传 BankerType 或者 传入错误的值都是用配置默认值
-		if req.BankerType != nn.BankerTypeNoLook &&
-			req.BankerType != nn.BankerTypeLook3 &&
-			req.BankerType != nn.BankerTypeLook4 {
-			errRsp = errors.New("无效的抢庄类型")
-			return
-		}
-
-		// 检查余额
-		user, err := modelClient.GetOrCreateUser(appId, appUserId)
-		if err != nil {
-			errRsp = errors.New("获取用户信息失败")
-			return
-		}
-		if user.Balance < cfg.MinBalance {
-			errRsp = errors.New("余额不足！")
-			return
-		}
-
-		// 处理抢庄牛牛匹配逻辑
-		p := &nn.Player{
-			ID:       userId,
-			ConnWrap: connWrap,
-			IsRobot:  false,
-			Balance:  user.Balance,
-			NickName: func() string {
-				if user.NickName == "" {
-					return user.UserId
-				}
-				return user.NickName
-			}(),
-		}
-
-		roomConfig := *cfg
-		roomConfig.BankerType = req.BankerType
-
-		_, err = game.GetMgr().JoinOrCreateNNRoom(p, &roomConfig)
-		if err != nil {
-			errRsp = err
-			return
-		}
-
+		errRsp = handlePlayerJoin(connWrap, appId, appUserId, msg.Data)
 	case nn.CmdPlayerLeave:
-		var req struct {
-			RoomId string
-		}
-		if err := json.Unmarshal(msg.Data, &req); err == nil {
-			if room := game.GetMgr().GetRoomByRoomId(req.RoomId); room != nil {
-				nn.HandlerPlayerLeave(room, userId)
-			}
-		}
-
+		handlePlayerLeave(userId, msg.Data)
 	case nn.CmdPlayerCallBank: // 抢庄请求
-		var req struct {
-			RoomId string
-			Mult   int64
-		}
-		if err := json.Unmarshal(msg.Data, &req); err == nil {
-			if room := game.GetMgr().GetRoomByRoomId(req.RoomId); room != nil {
-				nn.HandleCallBanker(room, userId, req.Mult)
-			}
-		}
-
+		handlePlayerCallBank(userId, msg.Data)
 	case nn.CmdPlayerPlaceBet: // 下注请求
-		var req struct {
-			RoomId string
-			Mult   int64
-		}
-		if err := json.Unmarshal(msg.Data, &req); err == nil {
-			if room := game.GetMgr().GetRoomByRoomId(req.RoomId); room != nil {
-				nn.HandlePlaceBet(room, userId, req.Mult)
-			}
-		}
-
+		handlePlayerPlaceBet(userId, msg.Data)
 	case nn.CmdPlayerShowCard: // 亮牌请求
-		var req struct {
-			RoomId string
+		handlePlayerShowCard(userId, msg.Data)
+	case nn.CmdUserInfo: // 用户信息请求
+		rsp.Data, errRsp = handleUserInfo(userId)
+	case nn.CmdLobbyConfig: // 大厅配置请求
+		rsp.Data = handleLobbyConfig()
+	default:
+		errRsp = errors.New("Unknown Command")
+	}
+}
+
+type UserInfoRsp struct {
+	UserId   string `json:"UserId"`
+	Balance  int64  `json:"Balance"`
+	NickName string `json:"NickName"`
+	Avatar   string `json:"Avatar"`
+}
+
+type LobbyConfigRsp struct {
+	LobbyConfigs interface{} `json:"LobbyConfigs"`
+}
+
+func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []byte) error {
+	var req struct {
+		Level      int
+		BankerType int
+	}
+	// 默认进入初级场
+	req.Level = 1
+	req.BankerType = -1 // 默认值，用于检测客户端是否传递
+
+	if err := json.Unmarshal(data, &req); err != nil {
+		return errors.New("客户端参数有误")
+	}
+	if req.Level <= 0 {
+		req.Level = 1
+	}
+
+	cfg := nn.GetConfig(req.Level)
+	if cfg == nil {
+		return errors.New("无效的房间类型")
+	}
+
+	// 校验 BankerType 是否合法
+	if req.BankerType != nn.BankerTypeNoLook &&
+		req.BankerType != nn.BankerTypeLook3 &&
+		req.BankerType != nn.BankerTypeLook4 {
+		return errors.New("无效的抢庄类型")
+	}
+
+	// 检查余额
+	user, err := modelClient.GetOrCreateUser(appId, appUserId)
+	if err != nil {
+		return errors.New("获取用户信息失败")
+	}
+	if user.Balance < cfg.MinBalance {
+		return errors.New("余额不足！")
+	}
+
+	userId := appId + appUserId
+	// 处理抢庄牛牛匹配逻辑
+	p := &nn.Player{
+		ID:       userId,
+		ConnWrap: connWrap,
+		IsRobot:  false,
+		Balance:  user.Balance,
+		NickName: func() string {
+			if user.NickName == "" {
+				return user.UserId
+			}
+			return user.NickName
+		}(),
+	}
+
+	roomConfig := *cfg
+	roomConfig.BankerType = req.BankerType
+
+	_, err = game.GetMgr().JoinOrCreateNNRoom(p, &roomConfig)
+	return err
+}
+
+func handlePlayerLeave(userId string, data []byte) {
+	var req struct {
+		RoomId string
+	}
+	if err := json.Unmarshal(data, &req); err == nil {
+		if room := game.GetMgr().GetRoomByRoomId(req.RoomId); room != nil {
+			nn.HandlerPlayerLeave(room, userId)
 		}
+	}
+}
+
+func handlePlayerCallBank(userId string, data []byte) {
+	var req struct {
+		RoomId string
+		Mult   int64
+	}
+	if err := json.Unmarshal(data, &req); err == nil {
+		if room := game.GetMgr().GetRoomByRoomId(req.RoomId); room != nil {
+			nn.HandleCallBanker(room, userId, req.Mult)
+		}
+	}
+}
+
+func handlePlayerPlaceBet(userId string, data []byte) {
+	var req struct {
+		RoomId string
+		Mult   int64
+	}
+	if err := json.Unmarshal(data, &req); err == nil {
+		if room := game.GetMgr().GetRoomByRoomId(req.RoomId); room != nil {
+			nn.HandlePlaceBet(room, userId, req.Mult)
+		}
+	}
+}
+
+func handlePlayerShowCard(userId string, data []byte) {
+	var req struct {
+		RoomId string
+	}
+	if err := json.Unmarshal(data, &req); err == nil {
 		if room := game.GetMgr().GetRoomByRoomId(req.RoomId); room != nil {
 			nn.HandleShowCards(room, userId)
 		}
+	}
+}
 
-	case nn.CmdUserInfo: // 用户信息请求
-		user, err := modelClient.GetUserByUserId(userId)
-		if err != nil {
-			errRsp = errors.New("获取用户信息失败")
-			return
-		}
-		nickName := user.NickName
-		if nickName == "" {
-			nickName = user.UserId
-		}
+func handleUserInfo(userId string) (*UserInfoRsp, error) {
+	user, err := modelClient.GetUserByUserId(userId)
+	if err != nil {
+		return nil, errors.New("获取用户信息失败")
+	}
+	nickName := user.NickName
+	if nickName == "" {
+		nickName = user.UserId
+	}
 
-		rsp.Data = gin.H{
-			"UserId":   user.UserId,
-			"Balance":  user.Balance,
-			"NickName": nickName,
-			"Avatar":   user.Avatar,
-		}
+	return &UserInfoRsp{
+		UserId:   user.UserId,
+		Balance:  user.Balance,
+		NickName: nickName,
+		Avatar:   user.Avatar,
+	}, nil
+}
 
-	case nn.CmdLobbyConfig: // 大厅配置请求
-		rsp.Data = gin.H{
-			"LobbyConfigs": nn.Configs,
-		}
-
-	default:
-		errRsp = errors.New("Unknown Command")
+func handleLobbyConfig() *LobbyConfigRsp {
+	return &LobbyConfigRsp{
+		LobbyConfigs: nn.Configs,
 	}
 }
 

@@ -163,7 +163,8 @@ export const useGameStore = defineStore('game', () => {
                 serverSeatNum: p.SeatNum,
                 clientSeatNum: clientSeatNum,
                 isReady: p.IsReady,
-                balanceChange: p.BalanceChange // Map BalanceChange from server
+                balanceChange: p.BalanceChange, // Map BalanceChange from server
+                isObserver: p.IsOb || false // Map IsOb from server
             });
         });
 
@@ -185,6 +186,7 @@ export const useGameStore = defineStore('game', () => {
                 existing.clientSeatNum = newData.clientSeatNum;
                 existing.isReady = newData.isReady;
                 existing.handResult = newData.handResult; // Replace result object
+                existing.isObserver = newData.isObserver; // Update isObserver
 
                 // Update roundScore if BalanceChange is provided by server
                 if (newData.balanceChange !== undefined) {
@@ -451,12 +453,12 @@ export const useGameStore = defineStore('game', () => {
     // 检查是否都抢庄完毕
     const checkAllRobbed = () => {
         // 简单模拟其他机器人随机抢庄
-        players.value.filter(p => p.id !== myPlayerId.value && p.robMultiplier === -1).forEach(p => {
+        players.value.filter(p => p.id !== myPlayerId.value && !p.isObserver && p.robMultiplier === -1).forEach(p => {
             if (Math.random() > 0.5) p.robMultiplier = 0; // 一半概率不抢
             else p.robMultiplier = Math.floor(Math.random() * 3) + 1; // 1-3倍
         });
 
-        if (players.value.every(p => p.robMultiplier !== -1)) {
+        if (players.value.filter(p => !p.isObserver).every(p => p.robMultiplier !== -1)) {
             stopTimer();
             determineBanker();
         }
@@ -467,9 +469,12 @@ export const useGameStore = defineStore('game', () => {
         // 安全清理：确保没有多余的庄家
         players.value.forEach(p => p.isBanker = false);
 
+        // Filter out observers for consideration
+        const activePlayers = players.value.filter(p => !p.isObserver);
+
         // 找出倍数最高的
-        const maxMultiplier = Math.max(...players.value.map(p => p.robMultiplier));
-        const candidates = players.value.filter(p => p.robMultiplier === maxMultiplier);
+        const maxMultiplier = Math.max(...activePlayers.map(p => p.robMultiplier));
+        const candidates = activePlayers.filter(p => p.robMultiplier === maxMultiplier);
 
         if (candidates.length > 1) { // If there's a tie, trigger animation
             bankerCandidates.value = candidates.map(p => p.id); // Store IDs for animation
@@ -519,11 +524,11 @@ export const useGameStore = defineStore('game', () => {
 
     const checkAllBetted = () => {
         // 模拟机器人下注
-        players.value.filter(p => p.id !== myPlayerId.value && !p.isBanker && p.betMultiplier === 0).forEach(p => {
+        players.value.filter(p => p.id !== myPlayerId.value && !p.isObserver && !p.isBanker && p.betMultiplier === 0).forEach(p => {
             p.betMultiplier = Math.floor(Math.random() * 3) + 1;
         });
 
-        if (players.value.filter(p => !p.isBanker).every(p => p.betMultiplier > 0)) {
+        if (players.value.filter(p => !p.isBanker && !p.isObserver).every(p => p.betMultiplier > 0)) {
             stopTimer();
             startShowdown();
         }
@@ -545,6 +550,11 @@ export const useGameStore = defineStore('game', () => {
 
         // 补齐手牌
         players.value.forEach(p => {
+            if (p.isObserver) {
+                p.hand = []; // Ensure observers have no cards
+                return;
+            }
+
             p.hand = []; // Clear hand to ensure a fresh deal for 5 cards
 
             const cardsToDeal = 5; // Always deal 5 cards in this phase
@@ -573,7 +583,7 @@ export const useGameStore = defineStore('game', () => {
 
         // 模拟其他玩家陆续摊牌 (在倒计时开始后才行动)
         players.value.forEach(p => {
-            if (p.id !== myPlayerId.value) {
+            if (p.id !== myPlayerId.value && !p.isObserver) {
                 // 随机延迟 1-4秒 摊牌
                 setTimeout(() => {
                     playerShowHand(p.id);
@@ -609,7 +619,7 @@ export const useGameStore = defineStore('game', () => {
 
     // 检查是否都摊牌了
     const checkAllShowed = () => {
-        if (players.value.every(p => p.isShowHand)) {
+        if (players.value.filter(p => !p.isObserver).every(p => p.isShowHand)) {
             stopTimer();
             // 稍微停顿一下再结算，让最后一个摊牌动画播完
             transitionTimeout = setTimeout(() => {
@@ -627,7 +637,7 @@ export const useGameStore = defineStore('game', () => {
         if (!banker) return; // Safety check
 
         players.value.forEach(p => {
-            if (p.isBanker) return;
+            if (p.isBanker || p.isObserver) return; // Skip banker and observers
 
             // 比较 p 和 banker
             const pRank = getHandRankScore(p.handResult);
@@ -738,7 +748,7 @@ export const useGameStore = defineStore('game', () => {
         players.value.forEach(p => p.robMultiplier = 0);
 
         // Set all players as candidates for the infinite animation
-        bankerCandidates.value = players.value.map(p => p.id);
+        bankerCandidates.value = players.value.filter(p => !p.isObserver).map(p => p.id);
         currentPhase.value = 'BANKER_SELECTION_ANIMATION';
         // No timeout here - animation loops until state change
     };
@@ -749,7 +759,7 @@ export const useGameStore = defineStore('game', () => {
         // 1. Pick a winner
         let candidates = bankerCandidates.value;
         if (!candidates || candidates.length === 0) {
-            candidates = players.value.map(p => p.id);
+            candidates = players.value.filter(p => !p.isObserver).map(p => p.id);
         }
 
         const winnerId = candidates[Math.floor(Math.random() * candidates.length)];

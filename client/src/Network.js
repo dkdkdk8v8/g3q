@@ -35,7 +35,7 @@ export default class GameClient {
         this.onConnect = null;
         this.onClose = null;
         this.onError = null;
-        
+
         this.globalPushHandler = null; // 全局 ServerPush 监听
     }
 
@@ -186,7 +186,7 @@ export default class GameClient {
         // 处理 ServerPush 消息
         if (msg.cmd === "onServerPush") {
             console.log("📣 [收到广播] Server Push:", msg);
-            
+
             // 优先执行全局监听
             if (this.globalPushHandler) {
                 try {

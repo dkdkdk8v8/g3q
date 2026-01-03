@@ -185,6 +185,7 @@ const shouldShowBetMult = computed(() => {
                 round
                 :src="player.avatar"
                 class="avatar"
+                :class="{ 'avatar-gray': player.isObserver }"
               />
           </div>
           
@@ -304,10 +305,10 @@ const shouldShowBetMult = computed(() => {
 
 .observer-badge {
     position: absolute;
-    right: 100%; /* Position to the left of the avatar */
-    top: 50%;
-    transform: translateY(-50%);
-    margin-right: 8px; /* Gap between badge and avatar */
+    bottom: 100%; /* Position above the avatar */
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 8px; /* Gap between badge and avatar */
     background: rgba(0, 0, 0, 0.6);
     color: #e5e7eb;
     font-size: 10px;
@@ -350,6 +351,11 @@ const shouldShowBetMult = computed(() => {
 
 .avatar {
   border: none; /* Remove redundant transparent border */
+}
+
+.avatar-gray {
+    filter: grayscale(100%);
+    opacity: 0.7;
 }
 
 .speech-bubble {

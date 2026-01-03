@@ -590,12 +590,12 @@ const quitGame = () => {
         <PlayerSeat 
             :player="myPlayer" 
             :is-me="true" 
-            :ref="(el) => setSeatRef(el, myPlayer.id)"
+            :ref="(el) => myPlayer && setSeatRef(el, myPlayer.id)"
             position="bottom"
-            :visible-card-count="visibleCounts[myPlayer.id] !== undefined ? visibleCounts[myPlayer.id] : 0"
-            :is-ready="myPlayer.isReady"
-            :is-animating-highlight="myPlayer.id === currentlyHighlightedPlayerId"
-            :speech="playerSpeech.get(myPlayer.id)"
+            :visible-card-count="(myPlayer && visibleCounts[myPlayer.id] !== undefined) ? visibleCounts[myPlayer.id] : 0"
+            :is-ready="myPlayer && myPlayer.isReady"
+            :is-animating-highlight="myPlayer && myPlayer.id === currentlyHighlightedPlayerId"
+            :speech="myPlayer ? playerSpeech.get(myPlayer.id) : null"
         />
     </div>
 

@@ -83,85 +83,11 @@ export const useGameStore = defineStore('game', () => {
 
     // Capture RoomId from Join response (MOVED TO TOP LEVEL)
     gameClient.on('QZNN.PlayerJoin', (msg) => {
-        if (msg.code === 0 && msg.data && msg.data.Room) {
-            const room = msg.data.Room;
-            if (room.ID) { // Ensure Room ID exists
-                roomId.value = room.ID;
-
-                if (room.Config) {
-                    roomName.value = room.Config.Name;
-                    baseBet.value = room.Config.BaseBet;
-                    gameMode.value = room.Config.BankerType;
-                }
-
-                // Update My Player ID from User Store
-                myPlayerId.value = userStore.userInfo.user_id || 'me';
-
-                // Parse Players from Server
-                const serverPlayers = room.Players || [];
-                const newPlayers = [];
-
-                // 1. Find myServerSeatNum
-                let myServerSeatNum = -1;
-                // Ensure myPlayerId.value is set before searching for my seat
-                // It's set a few lines above, so it should be fine here.
-                const meInServer = serverPlayers.find(p => p && p.ID === myPlayerId.value);
-                if (meInServer) {
-                    myServerSeatNum = meInServer.SeatNum;
-                } else {
-                    console.warn("[GameStore] Current user's ID not found in serverPlayers, cannot determine myServerSeatNum.");
-                    // Fallback: if user is not in players list, assume a default or handle error.
-                    // For now, will proceed with -1, meaning clientSeatNum might be incorrect for all.
-                    // This situation should ideally not happen if user successfully joined.
-                }
-
-                serverPlayers.forEach(p => {
-                    if (!p) return; // Skip null entries
-
-                    // 2. Calculate clientSeatNum
-                    const clientSeatNum = (myServerSeatNum !== -1) ? getClientSeatIndex(myServerSeatNum, p.SeatNum) : -1;
-
-                    // Map Cards
-                    let hand = [];
-                    if (p.Cards && Array.isArray(p.Cards)) {
-                        hand = p.Cards.map(c => c);
-                    }
-
-                    newPlayers.push({
-                        id: p.ID,
-                        name: p.NickName && p.NickName.trim() !== '' ? p.NickName : p.ID,
-                        avatar: DEFAULT_AVATAR, // Server doesn't provide avatar yet
-                        coins: p.Balance,
-                        isBanker: room.BankerID === p.ID,
-                        hand: hand,
-                        state: 'IDLE',
-                        robMultiplier: p.CallMult,
-                        betMultiplier: p.BetMult,
-
-                        isShowHand: p.IsShow || false, // Map Show to isShowHand
-                        serverSeatNum: p.SeatNum,      // Store server seat number for debugging/reference
-                        clientSeatNum: clientSeatNum,  // Add client seat number
-                        // Persist local data if needed?
-                    });
-                });
-
-                players.value = newPlayers;
-
-                // Sync Phase
-                if (room.State === 'QZNN.StateWaiting') {
-                    currentPhase.value = 'WAITING_FOR_PLAYERS';
-                }
-                // Handle other states if reconnecting...
-
-                if (roomJoinedResolve) {
-                    roomJoinedResolve(true); // Resolve the promise on successful join
-                }
-            } else {
-                const errorMsg = 'QZNN.PlayerJoin response is missing Room ID.';
-                console.error("[GameStore] Join Room Error:", errorMsg, msg);
-                if (roomJoinedReject) {
-                    roomJoinedReject(new Error(errorMsg));
-                }
+        if (msg.code === 0) {
+            // Room data is not returned here anymore. It comes via PushPlayJoin.
+            // Just resolve the promise to indicate the request was successful.
+            if (roomJoinedResolve) {
+                roomJoinedResolve(true); // Resolve the promise on successful join
             }
         } else {
             const errorMsg = msg.msg || 'Failed to join room: Invalid response data.';
@@ -169,6 +95,86 @@ export const useGameStore = defineStore('game', () => {
             if (roomJoinedReject) {
                 roomJoinedReject(new Error(errorMsg));
             }
+        }
+    });
+
+    // Handle PushPlayJoin to update player list
+    gameClient.onServerPush('PushPlayJoin', (data) => {
+        console.log("[GameStore] PushPlayJoin received:", data);
+        if (data && data.Room) {
+            const room = data.Room;
+
+            // Update Room Info
+            if (room.ID) {
+                roomId.value = room.ID;
+            }
+            if (room.Config) {
+                roomName.value = room.Config.Name;
+                baseBet.value = room.Config.BaseBet;
+                gameMode.value = room.Config.BankerType;
+            }
+
+            // Parse Players from Server
+            const serverPlayers = room.Players || [];
+            const newPlayers = [];
+
+            // 1. Find myServerSeatNum
+            let myServerSeatNum = -1;
+            
+            // Prefer UserId from server push if available
+            if (data.UserId) {
+                myPlayerId.value = data.UserId;
+            } else if (!myPlayerId.value || myPlayerId.value === 'me') {
+                 myPlayerId.value = userStore.userInfo.user_id || 'me';
+            }
+            console.log("[GameStore] My Player ID:", myPlayerId.value);
+
+            const meInServer = serverPlayers.find(p => p && p.ID === myPlayerId.value);
+            if (meInServer) {
+                myServerSeatNum = meInServer.SeatNum;
+            } else {
+                console.warn("[GameStore] Current user's ID (" + myPlayerId.value + ") not found in serverPlayers, cannot determine myServerSeatNum.");
+            }
+            console.log("[GameStore] My Server Seat:", myServerSeatNum);
+
+            serverPlayers.forEach(p => {
+                if (!p) return; // Skip null entries
+
+                // 2. Calculate clientSeatNum
+                const clientSeatNum = (myServerSeatNum !== -1) ? getClientSeatIndex(myServerSeatNum, p.SeatNum) : -1;
+                console.log(`[GameStore] Player ${p.ID} ServerSeat:${p.SeatNum} -> ClientSeat:${clientSeatNum}`);
+
+                // Map Cards
+                let hand = [];
+                if (p.Cards && Array.isArray(p.Cards)) {
+                    hand = p.Cards.map(c => c);
+                }
+
+                newPlayers.push({
+                    id: p.ID,
+                    name: p.NickName && p.NickName.trim() !== '' ? p.NickName : p.ID,
+                    avatar: DEFAULT_AVATAR, // Server doesn't provide avatar yet
+                    coins: p.Balance,
+                    isBanker: room.BankerID === p.ID,
+                    hand: hand,
+                    state: 'IDLE',
+                    robMultiplier: p.CallMult,
+                    betMultiplier: p.BetMult,
+
+                    isShowHand: p.IsShow || false, // Map Show to isShowHand
+                    serverSeatNum: p.SeatNum,      // Store server seat number for debugging/reference
+                    clientSeatNum: clientSeatNum,  // Add client seat number
+                    // Persist local data if needed?
+                });
+            });
+
+            players.value = newPlayers;
+
+            // Sync Phase
+            if (room.State === 'StateWaiting' || room.State === 'QZNN.StateWaiting') {
+                currentPhase.value = 'WAITING_FOR_PLAYERS';
+            }
+            // Handle other states if reconnecting...
         }
     });
 

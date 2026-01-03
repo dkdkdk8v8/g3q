@@ -13,6 +13,9 @@ const app = createApp(App)
 app.use(createPinia())
 app.use(router)
 
+// 强制从首页(Loading页面)开始，无论刷新前在哪个页面
+router.replace('/')
+
 // Initialize GameStore globally to register server push listeners immediately
 const gameStore = useGameStore()
 

@@ -7,6 +7,7 @@
     </div>
     <p v-if="appId">App ID: {{ appId }}</p>
     <p v-if="userId">User ID: {{ userId }}</p>
+    <button @click="enterGameRandom" class="random-btn">随机UID进入</button>
     <button @click="enterGame">进入游戏</button>
     <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
 
@@ -70,6 +71,21 @@ export default {
         localStorage.removeItem(LOCAL_STORAGE_IP_KEY);
       }
     });
+
+    const enterGameRandom = () => {
+      const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+      const length = Math.floor(Math.random() * 6) + 5; // 5-10
+      let result = '';
+      for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      appId.value = '91xj';
+      userId.value = result;
+      // Use setTimeout to allow UI to update model binding before entering
+      setTimeout(() => {
+          enterGame();
+      }, 0);
+    };
 
     const enterGame = () => {
       errorMessage.value = ''; // Clear previous errors
@@ -172,6 +188,7 @@ export default {
       appId,
       userId,
       enterGame,
+      enterGameRandom,
       isLoading, // Return isLoading
     };
   },
@@ -238,6 +255,14 @@ button {
 
 button:hover {
   background-color: #368a68;
+}
+
+.random-btn {
+  background-color: #3498db;
+}
+
+.random-btn:hover {
+  background-color: #2980b9;
 }
 
 .error-message { /* Style for error messages */

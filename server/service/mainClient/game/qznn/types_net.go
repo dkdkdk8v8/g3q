@@ -4,29 +4,30 @@ import "service/comm"
 
 const QZNN_Prefix = "QZNN."
 const (
-	CmdUserInfo           comm.CmdType = QZNN_Prefix + "UserInfo"
-	CmdLobbyConfig        comm.CmdType = QZNN_Prefix + "LobbyConfig"
-	CmdPlayerJoin         comm.CmdType = QZNN_Prefix + "PlayerJoin"
-	CmdPlayerLeave        comm.CmdType = QZNN_Prefix + "PlayerLeave"
-	CmdPlayerCallBanker   comm.CmdType = QZNN_Prefix + "PlayerCallBanker"
-	CmdPlayerPlaceBet     comm.CmdType = QZNN_Prefix + "PlayerPlaceBet"
-	CmdPlayerShowCard     comm.CmdType = QZNN_Prefix + "PlayerShowCard"
-	CmdReconnectEnterRoom comm.CmdType = QZNN_Prefix + "ReconnectEnterRoom"
+	CmdUserInfo         comm.CmdType = QZNN_Prefix + "UserInfo"
+	CmdLobbyConfig      comm.CmdType = QZNN_Prefix + "LobbyConfig"
+	CmdPlayerJoin       comm.CmdType = QZNN_Prefix + "PlayerJoin"
+	CmdPlayerLeave      comm.CmdType = QZNN_Prefix + "PlayerLeave"
+	CmdPlayerCallBanker comm.CmdType = QZNN_Prefix + "PlayerCallBanker"
+	CmdPlayerPlaceBet   comm.CmdType = QZNN_Prefix + "PlayerPlaceBet"
+	CmdPlayerShowCard   comm.CmdType = QZNN_Prefix + "PlayerShowCard"
 )
 
 const (
-	PushChangeState      comm.PushType = "PushChangeState"
-	PushPlayJoin         comm.PushType = "PushPlayJoin"
-	PushPlayLeave        comm.PushType = "PushPlayLeave"
-	PushPlayerCallBanker comm.PushType = "PushCallBanker"
-	PushPlayerPlaceBet   comm.PushType = "PushPlaceBet"
-	PushPlayerShowCard   comm.PushType = "PushShowCard"
-	PushBalanceChange    comm.PushType = "PushBalanceChange"
+	PushChangeState         comm.PushType = "PushChangeState"
+	PushPlayJoin            comm.PushType = "PushPlayJoin"
+	PushPlayLeave           comm.PushType = "PushPlayLeave"
+	PushPlayerCallBanker    comm.PushType = "PushCallBanker"
+	PushPlayerPlaceBet      comm.PushType = "PushPlaceBet"
+	PushPlayerShowCard      comm.PushType = "PushShowCard"
+	PushBalanceChange       comm.PushType = "PushBalanceChange"
+	PushNewConnectEnterRoom comm.CmdType  = "PushNewConnectEnterRoom"
 )
 
 type PushChangeStateStruct struct {
-	Room  *QZNNRoom
-	State RoomState
+	Room         *QZNNRoom
+	State        RoomState
+	StateLeftSec int
 }
 type PushPlayerJoinStruct struct {
 	Room   *QZNNRoom
@@ -49,4 +50,8 @@ type PushPlayerPlaceBetStruct struct {
 type PushPlayerShowCardStruct struct {
 	Room   *QZNNRoom
 	UserId string
+}
+
+type PushNewConnectEnterRoomStruct struct {
+	Room *QZNNRoom
 }

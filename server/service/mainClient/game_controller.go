@@ -236,7 +236,7 @@ func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, msg *comm
 	case qznn.CmdPlayerShowCard: // 亮牌请求
 		handlePlayerShowCard(userId, msg.Data)
 	case qznn.CmdUserInfo: // 用户信息请求
-		rsp.Data, errRsp = handleUserInfo(userId)
+		rsp.Data, errRsp = handleUserInfo(appId, appUserId)
 	case qznn.CmdLobbyConfig: // 大厅配置请求
 		rsp.Data = handleLobbyConfig()
 	default:
@@ -372,8 +372,8 @@ func handlePlayerShowCard(userId string, data []byte) {
 	}
 }
 
-func handleUserInfo(userId string) (*UserInfoRsp, error) {
-	user, err := modelClient.GetUserByUserId(userId)
+func handleUserInfo(AppId string, appUserId string) (*UserInfoRsp, error) {
+	user, err := modelClient.GetOrCreateUser(AppId, appUserId)
 	if err != nil {
 		return nil, errors.New("获取用户信息失败")
 	}

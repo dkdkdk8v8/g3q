@@ -77,7 +77,7 @@ func HandleCallBanker(r *QZNNRoom, userID string, mult int64) {
 			Cmd:      comm.ServerPush,
 			PushType: PushPlayerCallBanker,
 			Data: PushPlayerCallBankerStruct{
-				Room:   r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID),
+				Room:   r.GetClientRoom(p.ID == r.BankerID),
 				UserId: userID,
 				Mult:   mult}}
 	})
@@ -89,11 +89,11 @@ func HandlePlaceBet(r *QZNNRoom, userID string, mult int64) {
 		return
 	}
 	if !r.CheckStatus(StateBetting) {
-		logrus.WithField("room_id", r.ID).WithField("user_id", userID).Error("HandlePlaceBet_InvalidState")
+		logrus.WithField("roomId", r.ID).WithField("userId", userID).Error("HandlePlaceBet_InvalidState")
 		return
 	}
 	if r.CheckIsBanker(userID) {
-		logrus.WithField("room_id", r.ID).WithField("user_id", userID).Error("HandlePlaceBet_BanerCannotBet")
+		logrus.WithField("roomId", r.ID).WithField("userId", userID).Error("HandlePlaceBet_BanerCannotBet")
 		return
 	}
 	p, ok := r.GetPlayerByID(userID)
@@ -112,7 +112,7 @@ func HandlePlaceBet(r *QZNNRoom, userID string, mult int64) {
 			Cmd:      comm.ServerPush,
 			PushType: PushPlayerPlaceBet,
 			Data: PushPlayerPlaceBetStruct{
-				Room:   r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID),
+				Room:   r.GetClientRoom(p.ID == r.BankerID),
 				UserId: userID,
 				Mult:   mult},
 		}
@@ -143,7 +143,7 @@ func HandleShowCards(r *QZNNRoom, userID string) {
 			Cmd:      comm.ServerPush,
 			PushType: PushPlayerShowCard,
 			Data: PushPlayerShowCardStruct{
-				Room:   r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID),
+				Room:   r.GetClientRoom(p.ID == r.BankerID),
 				UserId: userID}}
 	})
 	r.logicTick()

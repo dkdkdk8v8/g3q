@@ -9,7 +9,7 @@ import (
 
 const (
 	ProbRobotEnter1Player = 100 // 房间1人时，机器人进入概率 100%
-	ProbRobotEnter2Player = 0   // 房间2人时，机器人进入概率 80%
+	ProbRobotEnter2Player = 50  // 房间2人时，机器人进入概率 80%
 	ProbRobotEnter3Player = 0   // 房间3人时，机器人进入概率 50%
 	ProbRobotEnter4Player = 0   // 房间4人时，机器人进入概率 20%
 )
@@ -90,7 +90,7 @@ func RobotForQZNNRoom(room *qznn.QZNNRoom) {
 
 		processRobots(room, func(p *qznn.Player) {
 			executeRobotAction(2000, 5000, func() {
-				if rand.Intn(100) < 20 {
+				if rand.Intn(100) < 90 {
 					qznn.HandlerPlayerLeave(room, p.ID)
 				}
 			})

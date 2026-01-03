@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { useGameStore } from '../stores/game.js';
 import PokerCard from './PokerCard.vue';
+import { formatCoins } from '../utils/format.js';
 
 const props = defineProps({
   player: Object,
@@ -184,6 +185,7 @@ const shouldShowBetMult = computed(() => {
                 round
                 :src="player.avatar"
                 class="avatar"
+                :class="{ 'avatar-gray': player.isObserver }"
               />
           </div>
           
@@ -209,20 +211,23 @@ const shouldShowBetMult = computed(() => {
           <div v-if="player.isBanker && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)" class="banker-badge">庄</div>
           <!-- Ready Badge -->
           <div v-if="player.isReady && store.currentPhase === 'READY_COUNTDOWN'" class="ready-badge">✔ 准备</div>
+          
+          <!-- Observer Badge -->
+          <div v-if="player.isObserver" class="observer-badge">等待下一局</div>
       </div>
 
       <div class="info-box">
         <div class="name van-ellipsis">{{ player.name }}</div>
         <div class="coins-pill">
             <span class="coin-symbol">🟡</span>
-            {{ player.coins }}
+            {{ formatCoins(player.coins) }}
         </div>
       </div>
     </div>
     
     <!-- ... (keep score float) -->
     <div v-if="player.roundScore !== 0 && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)" class="score-float" :class="player.roundScore > 0 ? 'win' : 'lose'">
-        {{ player.roundScore > 0 ? '+' : '' }}{{ player.roundScore }}
+        {{ player.roundScore > 0 ? '+' : '' }}{{ formatCoins(player.roundScore) }}
     </div>
 
     <!-- 手牌区域 (始终渲染以占位) -->
@@ -298,6 +303,22 @@ const shouldShowBetMult = computed(() => {
     white-space: nowrap;
 }
 
+.observer-badge {
+    position: absolute;
+    bottom: 100%; /* Position above the avatar */
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 8px; /* Gap between badge and avatar */
+    background: rgba(0, 0, 0, 0.6);
+    color: #e5e7eb;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+    z-index: 20;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
 .avatar-frame {
     width: 100%;
     height: 100%;
@@ -330,6 +351,11 @@ const shouldShowBetMult = computed(() => {
 
 .avatar {
   border: none; /* Remove redundant transparent border */
+}
+
+.avatar-gray {
+    filter: grayscale(100%);
+    opacity: 0.7;
 }
 
 .speech-bubble {

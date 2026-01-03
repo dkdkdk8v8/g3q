@@ -6,6 +6,7 @@ import CoinLayer from '../components/CoinLayer.vue';
 import DealingLayer from '../components/DealingLayer.vue';
 import ChatBubbleSelector from '../components/ChatBubbleSelector.vue';
 import { useRouter, useRoute } from 'vue-router';
+import { formatCoins } from '../utils/format.js';
 
 import talk0 from '@/assets/sounds/talk_0.mp3';
 import talk1 from '@/assets/sounds/talk_1.mp3';
@@ -180,6 +181,7 @@ const startRobotSpeech = () => {
 
 const showMenu = ref(false);
 const showHistory = ref(false);
+const isDebugPanelExpanded = ref(false);
 
 const visibleCounts = ref({});
 
@@ -460,17 +462,22 @@ const quitGame = () => {
 
         <!-- Debug Control Panel -->
         <div class="debug-panel">
-            <div class="debug-title">Manual Control</div>
-            <button @click="store.enterStateWaiting()">Waiting</button>
-            <button @click="store.enterStatePrepare()">Prepare</button>
-            <button @click="store.enterStatePreCard()">PreCard</button>
-            <button @click="store.enterStateBanking()">Banking</button>
-            <button @click="store.enterStateRandomBank()">RandBank</button>
-            <button @click="store.enterStateBankerConfirm()">Confirm</button>
-            <button @click="store.enterStateBetting()">Betting</button>
-            <button @click="store.enterStateDealing()">Dealing</button>
-            <button @click="store.enterStateShowCard()">ShowCard</button>
-            <button @click="store.enterStateSettling()">Settling</button>
+            <div class="debug-title" @click="isDebugPanelExpanded = !isDebugPanelExpanded">
+                阶段控制
+                <span style="margin-left: 5px;float: right;">{{ isDebugPanelExpanded ? '▼' : '▲' }}</span>
+            </div>
+            <div v-show="isDebugPanelExpanded" class="debug-buttons">
+                <button @click="store.enterStateWaiting()">等待用户</button>
+                <button @click="store.enterStatePrepare()">准备开始</button>
+                <button @click="store.enterStatePreCard()">预先发牌</button>
+                <button @click="store.enterStateBanking()">开始抢庄</button>
+                <button @click="store.enterStateRandomBank()">随机选庄</button>
+                <button @click="store.enterStateBankerConfirm()">确认庄家</button>
+                <button @click="store.enterStateBetting()">闲家下注</button>
+                <button @click="store.enterStateDealing()">补充手牌</button>
+                <button @click="store.enterStateShowCard()">摊牌比拼</button>
+                <button @click="store.enterStateSettling()">结算对局</button>
+            </div>
         </div>
 
         <!-- 顶部栏 -->
@@ -497,7 +504,7 @@ const quitGame = () => {
             <div class="room-info-box">
                 <div>房间ID: {{ store.roomId }}</div>
                 <div>房间名: {{ store.roomName }}</div>
-                <div>底分: {{ store.baseBet }}</div>
+                <div>底分: {{ formatCoins(store.baseBet) }}</div>
                 <div>玩法: {{ modeName }}</div>
             </div>
         </div>
@@ -564,14 +571,14 @@ const quitGame = () => {
                 <div class="controls-container">
 
 
-                    <div v-if="store.currentPhase === 'ROB_BANKER'" class="btn-group">
+                    <div v-if="store.currentPhase === 'ROB_BANKER' && !myPlayer.isObserver" class="btn-group">
                         <div class="game-btn blue" @click="onRob(0)">不抢</div>
                         <div class="game-btn orange" @click="onRob(1)">1倍</div>
                         <div class="game-btn orange" @click="onRob(2)">2倍</div>
                         <div class="game-btn orange" @click="onRob(3)">3倍</div>
                     </div>
 
-                    <div v-if="store.currentPhase === 'BETTING' && !myPlayer.isBanker && myPlayer.betMultiplier === 0"
+                    <div v-if="store.currentPhase === 'BETTING' && !myPlayer.isBanker && myPlayer.betMultiplier === 0 && !myPlayer.isObserver"
                         class="btn-group">
                         <div class="game-btn orange" @click="onBet(1)">1倍</div>
                         <div class="game-btn orange" @click="onBet(2)">2倍</div>
@@ -582,16 +589,21 @@ const quitGame = () => {
                         等待闲家下注...
                     </div>
 
-                    <div v-if="myPlayer.betMultiplier > 0 && store.currentPhase === 'BETTING' && !myPlayer.isBanker"
+                    <div v-if="myPlayer.betMultiplier > 0 && store.currentPhase === 'BETTING' && !myPlayer.isBanker && !myPlayer.isObserver"
                         class="waiting-text">
                         已下注，等待开牌...
                     </div>
 
                     <!-- 摊牌按钮 -->
-                    <div v-if="store.currentPhase === 'SHOWDOWN' && !myPlayer.isShowHand && store.countdown > 0"
+                    <div v-if="store.currentPhase === 'SHOWDOWN' && !myPlayer.isShowHand && store.countdown > 0 && !myPlayer.isObserver"
                         class="btn-group">
                         <div class="game-btn orange" style="width: 100px" @click="store.playerShowHand(myPlayer.id)">摊牌
                         </div>
+                    </div>
+
+                    <!-- Observer Waiting Text for Me -->
+                    <div v-if="myPlayer.isObserver" class="observer-waiting-banner">
+                        请耐心等待下一局<span class="loading-dots"></span>
                     </div>
                 </div>
 
@@ -631,12 +643,12 @@ const quitGame = () => {
                                     {{ item.score >= 0 ? '赢' : '输' }}
                                 </span>
                                 <span class="h-score" :class="item.score >= 0 ? 'win' : 'lose'">
-                                    {{ item.score >= 0 ? '+' : '' }}{{ item.score }}
+                                    {{ item.score >= 0 ? '+' : '' }}{{ formatCoins(item.score) }}
                                 </span>
                                 <span class="h-hand">{{ item.handType }}</span>
                             </div>
                             <div class="h-row bottom">
-                                <span>余额: {{ item.balance }}</span>
+                                <span>余额: {{ formatCoins(item.balance) }}</span>
                             </div>
                         </div>
                     </div>
@@ -670,6 +682,38 @@ const quitGame = () => {
     font-family: system-ui, sans-serif;
 }
 
+/* Observer Banner Style */
+.observer-waiting-banner {
+    color: #fef3c7; /* Light gold/cream */
+    font-size: 16px;
+    font-weight: bold;
+    background: linear-gradient(to right, rgba(0, 0, 0, 0.7), rgba(17, 24, 39, 0.9), rgba(0, 0, 0, 0.7));
+    padding: 10px 30px;
+    border-radius: 24px;
+    border: 1px solid rgba(251, 191, 36, 0.4); /* Gold border */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    margin-bottom: 10px;
+}
+
+.loading-dots::after {
+    content: '...';
+    animation: dots-loading 1.5s steps(4, end) infinite;
+    display: inline-block;
+    vertical-align: bottom;
+    overflow: hidden;
+    width: 0px;
+}
+
+@keyframes dots-loading {
+    to {
+        width: 1.25em; 
+    }
+}
+
 /* Debug Panel */
 .debug-panel {
     position: fixed;
@@ -689,6 +733,17 @@ const quitGame = () => {
     font-size: 12px;
     margin-bottom: 5px;
     text-align: center;
+    cursor: pointer;
+    user-select: none;
+    padding: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.debug-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
 }
 
 .debug-panel button {

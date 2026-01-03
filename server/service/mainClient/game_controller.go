@@ -294,23 +294,18 @@ func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []b
 
 	userId := appId + appUserId
 	// 处理抢庄牛牛匹配逻辑
-	p := &qznn.Player{
-		ID:       userId,
-		ConnWrap: connWrap,
-		IsRobot:  false,
-		Balance:  user.Balance,
-		NickName: func() string {
-			if user.NickName == "" {
-				return user.UserId
-			}
-			return user.NickName
-		}(),
-	}
+	p := qznn.NewPlayer()
+	p.ID = userId
+	p.ConnWrap = connWrap
+	p.Balance = user.Balance
+	p.NickName = func() string {
+		if user.NickName == "" {
+			return user.UserId
+		}
+		return user.NickName
+	}()
 
-	roomConfig := *cfg
-	roomConfig.BankerType = req.BankerType
-
-	room, err := game.GetMgr().JoinOrCreateNNRoom(p, &roomConfig)
+	room, err := game.GetMgr().JoinOrCreateNNRoom(p, req.Level, req.BankerType)
 	if err != nil {
 		return err
 	}

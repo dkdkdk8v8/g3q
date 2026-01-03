@@ -192,6 +192,7 @@ func (r *QZNNRoom) AddPlayer(p *Player) (int, error) {
 	r.PlayerMu.Unlock()
 
 	r.Broadcast(comm.PushData{
+		Cmd:      comm.ServerPush,
 		PushType: PushPlayJoin,
 		Data: PushPlayerJoinStruct{
 			Room:   r,
@@ -384,6 +385,7 @@ func (r *QZNNRoom) tickWaiting() {
 	// }
 	if leaveIds, isLeave := r.KickOffByWsDisconnect(); isLeave {
 		r.Broadcast(comm.PushData{
+			Cmd:      comm.ServerPush,
 			PushType: PushPlayLeave,
 			Data:     PushPlayerLeaveStruct{UserIds: leaveIds, Room: r}})
 	}
@@ -399,6 +401,7 @@ func (r *QZNNRoom) tickPrepare() {
 		_ = r.SetStatus(StateWaiting)
 		//同步数据给客户端
 		r.Broadcast(comm.PushData{
+			Cmd:      comm.ServerPush,
 			PushType: PushChangeState,
 			Data: PushChangeStateStruct{
 				State: StateWaiting,
@@ -406,6 +409,7 @@ func (r *QZNNRoom) tickPrepare() {
 	}
 	if leaveIds, isLeave := r.KickOffByWsDisconnect(); isLeave {
 		r.Broadcast(comm.PushData{
+			Cmd:      comm.ServerPush,
 			PushType: PushPlayLeave,
 			Data:     PushPlayerLeaveStruct{UserIds: leaveIds, Room: r}})
 	}
@@ -417,6 +421,7 @@ func (r *QZNNRoom) tickPrepare() {
 		_ = r.SetStatus(StateWaiting)
 		//同步数据给客户端
 		r.Broadcast(comm.PushData{
+			Cmd: comm.ServerPush,
 			PushType: PushChangeState,
 			Data: PushChangeStateStruct{
 				State: StateWaiting,
@@ -483,6 +488,7 @@ func (r *QZNNRoom) StartGame() {
 		}
 		r.BroadcastWithPlayer(func(p *Player) interface{} {
 			return comm.PushData{
+				Cmd: comm.ServerPush,
 				PushType: PushChangeState,
 				Data: PushChangeStateStruct{
 					Room:  r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID),
@@ -499,6 +505,7 @@ func (r *QZNNRoom) StartGame() {
 	}
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
 		return comm.PushData{
+			Cmd: comm.ServerPush,
 			PushType: PushChangeState,
 			Data: PushChangeStateStruct{
 				Room:  r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID),
@@ -528,6 +535,7 @@ func (r *QZNNRoom) StartGame() {
 		//没人抢庄,系统随机分配庄家
 		r.BroadcastWithPlayer(func(p *Player) interface{} {
 			return comm.PushData{
+				Cmd: comm.ServerPush,
 				PushType: PushChangeState,
 				Data: PushChangeStateStruct{
 					Room:  r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID),
@@ -542,6 +550,7 @@ func (r *QZNNRoom) StartGame() {
 	}
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
 		return comm.PushData{
+			Cmd: comm.ServerPush,
 			PushType: PushChangeState,
 			Data: PushChangeStateStruct{
 				Room:  r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID),
@@ -555,6 +564,7 @@ func (r *QZNNRoom) StartGame() {
 	}
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
 		return comm.PushData{
+			Cmd: comm.ServerPush,
 			PushType: PushChangeState,
 			Data: PushChangeStateStruct{
 				Room:  r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID),
@@ -572,6 +582,7 @@ func (r *QZNNRoom) StartGame() {
 
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
 		return comm.PushData{
+			Cmd: comm.ServerPush,
 			PushType: PushChangeState,
 			Data: PushChangeStateStruct{
 				Room:  r.GetClientRoom(5, p.ID == r.BankerID),
@@ -584,6 +595,7 @@ func (r *QZNNRoom) StartGame() {
 	r.WaitTimer(5)
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
 		return comm.PushData{
+			Cmd: comm.ServerPush,
 			PushType: PushChangeState,
 			Data: PushChangeStateStruct{
 				Room:  r.GetClientRoom(5, !p.IsShow && p.ID == r.BankerID),
@@ -596,6 +608,7 @@ func (r *QZNNRoom) StartGame() {
 		return
 	}
 	r.Broadcast(comm.PushData{
+		Cmd: comm.ServerPush,
 		PushType: PushChangeState,
 		Data: PushChangeStateStruct{
 			Room:  r,
@@ -665,6 +678,7 @@ func (r *QZNNRoom) StartGame() {
 	}
 
 	r.Broadcast(comm.PushData{
+		Cmd: comm.ServerPush,
 		PushType: PushChangeState,
 		Data: PushChangeStateStruct{
 			Room:  r,
@@ -677,6 +691,7 @@ func (r *QZNNRoom) StartGame() {
 	//
 
 	r.Broadcast(comm.PushData{
+		Cmd: comm.ServerPush,
 		PushType: PushChangeState,
 		Data: PushChangeStateStruct{
 			Room:  r,

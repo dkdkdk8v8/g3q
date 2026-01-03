@@ -101,7 +101,7 @@ func WSEntry(c *gin.Context) {
 	wsConnectMapMutex.Lock()
 	if existWsWrap, ok := wsConnectMap[userId]; ok {
 		if existWsWrap != nil && existWsWrap.WsConn != nil {
-			existWsWrap.WsConn.WriteJSON(comm.PushData{PushType: game.PushOtherConnect})
+			existWsWrap.WsConn.WriteJSON(comm.PushData{Cmd: comm.ServerPush, PushType: game.PushOtherConnect})
 			existWsWrap.WsConn.CloseNormal("handler exit")
 			existWsWrap.WsConn = conn
 			connWrap = existWsWrap

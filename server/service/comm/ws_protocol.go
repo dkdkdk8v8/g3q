@@ -23,7 +23,11 @@ type Response struct {
 	Data interface{} `json:"data"`
 }
 
+// 客户端：gameClient.on(onServerPush) => {},接受服务器主动push的数据
+const ServerPush CmdType = "onServerPush"
+
 type PushData struct {
+	Cmd      CmdType     `json:"cmd"`
 	PushType PushType    `json:"pushType"`
 	Data     interface{} `json:"data"`
 }

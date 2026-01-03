@@ -25,6 +25,7 @@ func HandlerPlayerLeave(r *QZNNRoom, userID string) {
 
 	if r.Leave(userID) {
 		r.Broadcast(comm.PushData{
+			Cmd:      comm.ServerPush,
 			PushType: PushPlayLeave,
 			Data: PushPlayerLeaveStruct{
 				Room:    r,
@@ -73,6 +74,7 @@ func HandleCallBanker(r *QZNNRoom, userID string, mult int64) {
 	p.Mu.Unlock()
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
 		return comm.PushData{
+			Cmd:      comm.ServerPush,
 			PushType: PushPlayerCallBanker,
 			Data: PushPlayerCallBankerStruct{
 				Room:   r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID),
@@ -107,6 +109,7 @@ func HandlePlaceBet(r *QZNNRoom, userID string, mult int64) {
 	p.Mu.Unlock()
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
 		return comm.PushData{
+			Cmd:      comm.ServerPush,
 			PushType: PushPlayerPlaceBet,
 			Data: PushPlayerPlaceBetStruct{
 				Room:   r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID),
@@ -137,6 +140,7 @@ func HandleShowCards(r *QZNNRoom, userID string) {
 	p.Mu.Unlock()
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
 		return comm.PushData{
+			Cmd:      comm.ServerPush,
 			PushType: PushPlayerShowCard,
 			Data: PushPlayerShowCardStruct{
 				Room:   r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID),

@@ -10,14 +10,16 @@ import (
 
 func NewRoom(id string, bankerType, level int) *QZNNRoom {
 	nRoom := &QZNNRoom{
-		ID:            id,
-		Players:       make([]*Player, 5),
-		State:         StateWaiting,
+		QZNNRoomData: QZNNRoomData{
+			ID:       id,
+			Players:  make([]*Player, 5),
+			State:    StateWaiting,
+			BankerID: "",
+			CreateAt: time.Now(),
+		},
 		TargetResults: make(map[string]int, 5),
-		BankerID:      "",
 		Deck:          []int{},
 		driverGo:      make(chan struct{}),
-		CreateAt:      time.Now(),
 	}
 	nRoom.Config = *GetConfig(level)
 	nRoom.Config.BankerType = bankerType
@@ -90,6 +92,7 @@ func (r *QZNNRoom) CheckPlayerIsOb() bool {
 	if r.State == StatePrepare && r.StateLeftSec <= 2 {
 		return true
 	}
+
 	return false
 }
 
@@ -616,29 +619,18 @@ func (r *QZNNRoom) StartGame() {
 	}
 
 	//补牌到5张，不看牌发5张，看3补2，看4
-	if !r.SetStatus(StateDealing, 3) {
+	if !r.SetStatus(StateDealing, 0) {
 		logrus.WithField("roomId", r.ID).Error("QZNNRoom-StatusChange-Fail-StateDealing")
 		return
 	}
 
-	r.WaitStateLeftTicker()
+	r.WaitSleep(time.Second * 3)
 
-	//等待客户端播放补牌动画
-	if !r.SetStatus(StateShowCard, 5) {
+	if !r.SetStatus(StateShowCard, 3) {
 		logrus.WithField("roomId", r.ID).Error("QZNNRoom-StatusChange-Fail-StateShowCard")
 		return
 	}
-
 	r.WaitStateLeftTicker()
-
-	//结算状态
-	if !r.SetStatus(StateSettling, 0) {
-		logrus.WithField("roomId", r.ID).Error("QZNNRoom-StatusChange-Fail-StateSettling")
-		return
-	}
-
-	//客户端播放结算动画
-	r.WaitSleep(time.Second * 2)
 
 	bankerPlayer, ok := r.GetPlayerByID(r.BankerID)
 	//计算牛牛，分配balance
@@ -690,6 +682,16 @@ func (r *QZNNRoom) StartGame() {
 		p.Balance += p.BalanceChange
 		p.Mu.Unlock()
 	}
+
+	//结算状态
+	if !r.SetStatus(StateSettling, 0) {
+		logrus.WithField("roomId", r.ID).Error("QZNNRoom-StatusChange-Fail-StateSettling")
+		return
+	}
+
+	//客户端播放结算动画
+	r.WaitSleep(time.Second * 5)
+
 	//清理数据
 	r.ResetGameData()
 	r.SetStatus(StateWaiting, 0)

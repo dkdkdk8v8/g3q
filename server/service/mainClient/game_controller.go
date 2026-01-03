@@ -39,7 +39,7 @@ func init() {
 			wsConnectMapMutex.RLock()
 			for uId, ws := range wsConnectMap {
 				// Fix: 增加对 ws.WsConn == nil 的检查，否则 handleConnection 中置空的连接无法被清理
-				if ws == nil || ws.WsConn == nil {
+				if ws == nil || !ws.IsConnected() {
 					delConnect = append(delConnect, uId)
 				}
 			}
@@ -49,7 +49,7 @@ func init() {
 					wsConnectMapMutex.Lock()
 					if reGetWs, ok := wsConnectMap[delUid]; ok {
 						// Fix: 增加 reGetWs == nil 的判断，防止 panic
-						if reGetWs == nil || reGetWs.WsConn == nil {
+						if reGetWs == nil || !reGetWs.IsConnected() {
 							delete(wsConnectMap, delUid)
 						}
 					}
@@ -100,10 +100,16 @@ func WSEntry(c *gin.Context) {
 	userId := appId + appUserId
 	wsConnectMapMutex.Lock()
 	if existWsWrap, ok := wsConnectMap[userId]; ok {
-		if existWsWrap != nil && existWsWrap.WsConn != nil {
-			existWsWrap.WsConn.WriteJSON(comm.PushData{Cmd: comm.ServerPush, PushType: game.PushOtherConnect})
-			existWsWrap.WsConn.CloseNormal("handler exit")
+		if existWsWrap != nil {
+			existWsWrap.Mu.Lock()
+			existWsWrap.WriteJSON(comm.PushData{Cmd: comm.ServerPush, PushType: game.PushOtherConnect})
+			// 注意：这里假设 CloseNormal 是安全的，或者在 WriteJSON 失败后忽略
+			// 实际上最好在 WsConnWrap 中也封装 Close 方法
+			if existWsWrap.WsConn != nil {
+				existWsWrap.WsConn.CloseNormal("handler exit")
+			}
 			existWsWrap.WsConn = conn
+			existWsWrap.Mu.Unlock()
 			connWrap = existWsWrap
 			logrus.WithField("appId", appId).WithField("appUserId", appUserId).Info("WS-Client-KickOffConnect")
 		}
@@ -137,17 +143,17 @@ func handleConnection(connWrap *ws.WsConnWrap, appId, appUserId string) {
 			_, buffer, err1 := connWrap.WsConn.Conn.Read(ctx)
 			cancel() // 显式调用 cancel，避免在 for 循环中 defer 导致资源泄露
 			if err1 != nil {
-				wsConnectMapMutex.Lock()
+				connWrap.Mu.Lock()
 				connWrap.WsConn = nil
-				wsConnectMapMutex.Unlock()
+				connWrap.Mu.Unlock()
 				logWSCloseErr(userId, err1)
 				break
 			}
 			err = json.Unmarshal(buffer, &msg)
 			if err != nil {
-				wsConnectMapMutex.Lock()
+				connWrap.Mu.Lock()
 				connWrap.WsConn = nil
-				wsConnectMapMutex.Unlock()
+				connWrap.Mu.Unlock()
 				logrus.WithField("uid", userId).WithField("buffer", string(buffer)).WithError(err).Info("WS-Client-JsonInvalid")
 				break
 			}
@@ -155,9 +161,9 @@ func handleConnection(connWrap *ws.WsConnWrap, appId, appUserId string) {
 			err = connWrap.WsConn.ReadJSON(&msg)
 			if err != nil {
 				logWSCloseErr(userId, err)
-				wsConnectMapMutex.Lock()
+				connWrap.Mu.Lock()
 				connWrap.WsConn = nil
-				wsConnectMapMutex.Unlock()
+				connWrap.Mu.Unlock()
 				break
 			}
 		}
@@ -216,9 +222,7 @@ func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, msg *comm
 					"code", rsp.Cmd).Info("Ws-Send-Msg")
 			}
 		}
-		if connWrap.WsConn != nil {
-			connWrap.WsConn.WriteJSON(rsp)
-		}
+		connWrap.WriteJSON(rsp)
 
 	}()
 

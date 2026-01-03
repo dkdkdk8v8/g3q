@@ -38,16 +38,27 @@ func (r *QZNNRoom) SetStatus(state RoomState, stateLeftSec int) bool {
 	r.StateMu.Lock()
 	if r.State == state {
 		r.StateMu.Unlock()
+		logrus.WithFields(logrus.Fields{
+			"room_id": r.ID,
+			"state":   state,
+		}).Info("QZNNRoom-SetStatus-Ignored-SameState")
 		return false
 	}
+	oldState := r.State
 	r.State = state
 	r.StateLeftSec = stateLeftSec
 	r.StateMu.Unlock()
+	logrus.WithFields(logrus.Fields{
+		"room_id":        r.ID,
+		"old_state":      oldState,
+		"new_state":      state,
+		"state_left_sec": stateLeftSec,
+	}).Info("QZNNRoom-SetStatus-Changed")
 	if stateLeftSec > 0 {
-		//go r.leftSecDecrease(stateLeftSec)
+		go r.leftSecDecrease(stateLeftSec)
 	}
 	if stateLeftSec == 0 {
-		r.StopTimer()
+		r.interuptStateLeftTicker(true)
 	}
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
 		return comm.PushData{
@@ -62,17 +73,25 @@ func (r *QZNNRoom) SetStatus(state RoomState, stateLeftSec int) bool {
 }
 
 func (r *QZNNRoom) leftSecDecrease(leftSec int) {
-	r.StopTimer()
+	r.interuptStateLeftTicker(false)
 	r.StateLeftSecTicker = time.NewTicker(time.Second)
 	defer r.StateLeftSecTicker.Stop()
+
 	for i := 0; i < leftSec; i++ {
 		<-r.StateLeftSecTicker.C
 		r.StateMu.Lock()
+		oldLeft := r.StateLeftSec
 		r.StateLeftSec--
 		if r.StateLeftSec < 0 {
 			r.StateLeftSec = 0
 		}
 		r.StateMu.Unlock()
+
+		logrus.WithFields(logrus.Fields{
+			"room_id":         r.ID,
+			"stateLeftSecOld": oldLeft,
+			"stateLeftSecNew": r.StateLeftSec,
+		}).Info("QZNNRoom-LeftSec-Changed")
 	}
 }
 
@@ -266,21 +285,16 @@ func (r *QZNNRoom) BroadcastExclude(msg interface{}, excludeId string) {
 	}
 }
 
-func (r *QZNNRoom) StopTimer() {
+func (r *QZNNRoom) interuptStateLeftTicker(bResetLeft bool) {
 	r.StateMu.Lock()
 	defer r.StateMu.Unlock()
-	r.StateLeftSec = 0
+	if bResetLeft {
+		r.StateLeftSec = 0
+	}
 	if r.StateLeftSecTicker != nil {
 		r.StateLeftSecTicker.Stop()
 		r.StateLeftSecTicker = nil
 	}
-}
-
-func (r *QZNNRoom) SetStateLeftSec(state RoomState, sec int) {
-	r.StopTimer()
-	r.StateMu.Lock()
-	r.StateLeftSec = sec
-	r.StateMu.Unlock()
 }
 
 func (r *QZNNRoom) WaitSleep(wait time.Duration) {
@@ -449,7 +463,7 @@ func (r *QZNNRoom) tickPrepare() {
 
 	//make sure players Ok
 	if r.GetWsOkPlayerCount() >= 2 {
-		if r.StateLeftSec <= 0 && r.StateLeftSecTicker == nil {
+		if r.StateLeftSec <= 0 {
 			go r.StartGame()
 		}
 	} else {
@@ -466,7 +480,7 @@ func (r *QZNNRoom) tickBanking() {
 		return p.CallMult == -1
 	})
 	if len(unconfirmed) == 0 {
-		r.StopTimer()
+		r.interuptStateLeftTicker(true)
 	}
 }
 
@@ -476,7 +490,7 @@ func (r *QZNNRoom) tickBetting() {
 		return p.BetMult == -1
 	})
 	if len(unconfirmed) == 0 {
-		r.StopTimer()
+		r.interuptStateLeftTicker(true)
 	}
 }
 

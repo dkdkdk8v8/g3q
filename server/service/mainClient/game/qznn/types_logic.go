@@ -23,7 +23,7 @@ const (
 )
 
 const (
-	StateWaiting2StartSec = 600
+	StateWaiting2StartSec = 6
 	StateCallingSec       = 10
 	StateBettingSec       = 10
 	StateDealingSec       = 5
@@ -141,7 +141,10 @@ func (r *QZNNRoom) reset() {
 	r.Deck = []int{}
 	r.TargetResults = make(map[string]int, 5)
 	r.TotalBet = 0
-	r.StopTimer()
+	if r.StateLeftSecTicker != nil {
+		r.StateLeftSecTicker.Stop()
+		r.StateLeftSecTicker = nil
+	}
 	for _, p := range r.Players {
 		p.reset()
 	}

@@ -83,7 +83,7 @@ func (rm *RoomManager) JoinOrCreateNNRoom(player *qznn.Player, config *qznn.Lobb
 		newRoom.Config = *config
 	}
 	newRoom.AddPlayer(player)
-	newRoom.OnBotAction = RobotForQZNNRoom
+	newRoom.OnBotAction = nil //RobotForQZNNRoom
 	rm.QZNNRooms[roomID] = newRoom
 
 	return newRoom, nil

@@ -102,7 +102,7 @@ const isBullPart = (index) => {
     if (store.currentPhase === 'DEALING') return false;
 
     // 如果是自己，必须点了摊牌(isShowHand)才显示高亮，除非已经是结算阶段
-    if (props.isMe && store.currentPhase === 'SHOWDOWN' && !props.player.isShowHand) return false;
+    // if (props.isMe && store.currentPhase === 'SHOWDOWN' && !props.player.isShowHand) return false;
 
     const type = props.player.handResult.type;
     // 只有有牛的牌型才凸起前三张 (BULL_1 ~ BULL_BULL)

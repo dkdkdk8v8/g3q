@@ -29,10 +29,10 @@ export function createDeck() {
   return deck;
 }
 
-// 将服务器牌ID (1-52) 转换为客户端牌对象
+// 将服务器牌ID (0-51) 转换为客户端牌对象
 export function transformServerCard(serverCardId) {
     const id = parseInt(serverCardId);
-    if (isNaN(id) || id < 1 || id > 52) {
+    if (isNaN(id) || id < 0 || id > 51) {
         // Fallback for invalid ID or placeholder
         return { suit: 'unknown', rank: 0, value: 0, label: '?', id: `ph-${serverCardId}` };
     }
@@ -40,14 +40,15 @@ export function transformServerCard(serverCardId) {
     const suits = ['spade', 'heart', 'club', 'diamond'];
     
     // Calculate Rank (1-13)
-    // 1-4 -> 1 (A)
-    // 5-8 -> 2
+    // 0-3 -> 1 (A)
+    // 4-7 -> 2
     // ...
-    const rank = Math.ceil(id / 4);
+    // 48-51 -> 13 (K)
+    const rank = Math.floor(id / 4) + 1;
     
     // Calculate Suit Index (0-3)
-    // 1 -> 0 (spade), 2 -> 1 (heart), 3 -> 2 (club), 4 -> 3 (diamond)
-    const suitIndex = (id - 1) % 4;
+    // 0 -> 0 (spade), 1 -> 1 (heart), 2 -> 2 (club), 3 -> 3 (diamond)
+    const suitIndex = id % 4;
     const suit = suits[suitIndex];
 
     // Label

@@ -127,6 +127,8 @@ export const useGameStore = defineStore('game', () => {
             myServerSeatNum = 0;
         }
 
+        const newPlayersData = [];
+
         serverPlayers.forEach(p => {
             if (!p) return;
 
@@ -146,7 +148,7 @@ export const useGameStore = defineStore('game', () => {
                 handResult = { type: res.type, typeName: res.typeName, multiplier: res.multiplier };
             }
 
-            newPlayers.push({
+            newPlayersData.push({
                 id: p.ID,
                 name: p.NickName && p.NickName.trim() !== '' ? p.NickName : p.ID,
                 avatar: DEFAULT_AVATAR,
@@ -164,9 +166,42 @@ export const useGameStore = defineStore('game', () => {
             });
         });
 
-        players.value = newPlayers;
-    };
+        // Merge Strategy: Update existing players to preserve object identity and prevent UI flickers
+        const finalPlayers = [];
 
+        newPlayersData.forEach(newData => {
+            const existing = players.value.find(p => p.id === newData.id);
+            if (existing) {
+                // Update simple fields
+                existing.name = newData.name;
+                existing.coins = newData.coins;
+                existing.isBanker = newData.isBanker;
+                existing.state = newData.state;
+                existing.robMultiplier = newData.robMultiplier;
+                existing.betMultiplier = newData.betMultiplier;
+                existing.isShowHand = newData.isShowHand;
+                existing.serverSeatNum = newData.serverSeatNum;
+                existing.clientSeatNum = newData.clientSeatNum;
+                existing.isReady = newData.isReady;
+                existing.handResult = newData.handResult; // Replace result object
+
+                // Smart update hand to prevent reactivity trigger if same
+                const isHandDifferent = existing.hand.length !== newData.hand.length ||
+                    existing.hand.some((c, i) => c.id !== newData.hand[i].id);
+
+                if (isHandDifferent) {
+                    existing.hand = newData.hand;
+                }
+
+                finalPlayers.push(existing);
+            } else {
+                // New player
+                finalPlayers.push(newData);
+            }
+        });
+
+        players.value = finalPlayers;
+    };
     const handleStateEntry = (phase) => {
         // Specific logic when ENTERING a phase (from a different one)
         if (phase === 'READY_COUNTDOWN') {
@@ -187,11 +222,6 @@ export const useGameStore = defineStore('game', () => {
             // 为了保证动画效果（一直播放随机动画），这里直接将所有玩家视为候选人
             // 这样视觉上会在所有人之间跳动，直到 StateBankerConfirm 定格
             let candidates = players.value;
-
-            console.log("[GameStore] RandomBank Debug:", {
-                candidateCount: candidates.length,
-                playerCount: players.value.length
-            });
 
             bankerCandidates.value = candidates.map(p => p.id);
 

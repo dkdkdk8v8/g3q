@@ -65,12 +65,8 @@
 
 								<!-- 列表类型 -->
 								<template v-else>
-									<ul
-										class="list"
-										v-infinite-scroll="onMore"
-										:infinite-scroll-immediate="false"
-										:infinite-scroll-disabled="loaded"
-									>
+									<el-scrollbar height="300px" @scroll="onMore">
+  										<ul class="list">
 										<li
 											v-for="(item, index) in list"
 											:key="index"
@@ -111,9 +107,9 @@
 												</div>
 											</slot>
 										</li>
-
 										<el-empty v-if="list.length == 0" :image-size="80" />
-									</ul>
+										</ul>
+									</el-scrollbar>
 								</template>
 							</el-scrollbar>
 						</div>

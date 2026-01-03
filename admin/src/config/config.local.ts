@@ -1,5 +1,5 @@
-import {CoolConfig} from '@cool-midway/core';
-import {MidwayConfig} from '@midwayjs/core';
+import { CoolConfig } from '@cool-midway/core';
+import { MidwayConfig } from '@midwayjs/core';
 
 /**
  * 本地开发 npm run dev 读取的配置文件
@@ -21,7 +21,7 @@ export default {
                 // 字符集
                 charset: 'utf8mb4',
                 // 是否开启缓存
-                cache: true,
+                cache: false,
                 // 实体路径
                 entities: ['**/modules/*/entity'],
             },
@@ -39,7 +39,7 @@ export default {
                 // 字符集
                 charset: 'utf8mb4',
                 // 是否开启缓存
-                cache: true,
+                cache: false,
                 // 实体路径
                 entities: ['**/modules/*/entityGame'],
             },
@@ -61,6 +61,6 @@ export default {
         initMenu: true,
     } as CoolConfig,
     rpc: {
-        qznn: "http://127.0.0.1:18080",
+        qznn: "http://172.20.10.11:18082",
     },
 } as MidwayConfig;

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { createDeck, shuffle, calculateHandType } from '../utils/bullfight.js'
+import { createDeck, shuffle, calculateHandType, transformServerCard } from '../utils/bullfight.js'
 import gameClient from '../socket.js'
 import defaultAvatar from '@/assets/common/icon_avatar.png'; // Use import for asset
 import { useUserStore } from './user.js';
@@ -100,11 +100,11 @@ export const useGameStore = defineStore('game', () => {
 
     const updatePlayersList = (serverPlayers, bankerID, currentUserId) => {
         const newPlayers = [];
-        
+
         // 1. Determine My Seat & ID
         let myServerSeatNum = -1;
         const storeUserId = userStore.userInfo.user_id;
-        
+
         // Strategy: prefer storeUserId, then currentUserId (from push), then existing myPlayerId
         let myId = storeUserId;
         if (!myId && currentUserId) myId = currentUserId;
@@ -115,7 +115,7 @@ export const useGameStore = defineStore('game', () => {
                 myId = 'me';
             }
         }
-        
+
         // Update global ref
         if (myId !== 'me') myPlayerId.value = myId;
 
@@ -124,7 +124,7 @@ export const useGameStore = defineStore('game', () => {
             myServerSeatNum = meInServer.SeatNum;
         } else {
             // console.warn("[GameStore] Current user not found in serverPlayers. Defaulting to Observer (0).");
-            myServerSeatNum = 0; 
+            myServerSeatNum = 0;
         }
 
         serverPlayers.forEach(p => {
@@ -135,15 +135,15 @@ export const useGameStore = defineStore('game', () => {
             // Map Cards
             let hand = [];
             if (p.Cards && Array.isArray(p.Cards)) {
-                hand = p.Cards.map(c => c);
+                hand = p.Cards.map(c => transformServerCard(c));
             }
-            
+
             // Calculate Hand Result (client-side util)
             let handResult = undefined;
             if (hand.length > 0) {
-                 const res = calculateHandType(hand);
-                 // Respect server if it sends result? Assuming local calc for now.
-                 handResult = { type: res.type, typeName: res.typeName, multiplier: res.multiplier };
+                const res = calculateHandType(hand);
+                // Respect server if it sends result? Assuming local calc for now.
+                handResult = { type: res.type, typeName: res.typeName, multiplier: res.multiplier };
             }
 
             newPlayers.push({
@@ -153,7 +153,7 @@ export const useGameStore = defineStore('game', () => {
                 coins: p.Balance,
                 isBanker: bankerID === p.ID,
                 hand: hand,
-                handResult: handResult, 
+                handResult: handResult,
                 state: 'IDLE', // Default
                 robMultiplier: (p.CallMult !== undefined && p.CallMult !== null) ? parseInt(p.CallMult) : -1,
                 betMultiplier: (p.BetMult !== undefined && p.BetMult !== null && parseInt(p.BetMult) > 0) ? parseInt(p.BetMult) : 0,
@@ -188,13 +188,13 @@ export const useGameStore = defineStore('game', () => {
             // 这样视觉上会在所有人之间跳动，直到 StateBankerConfirm 定格
             let candidates = players.value;
 
-            console.log("[GameStore] RandomBank Debug:", { 
+            console.log("[GameStore] RandomBank Debug:", {
                 candidateCount: candidates.length,
                 playerCount: players.value.length
             });
-            
+
             bankerCandidates.value = candidates.map(p => p.id);
-            
+
             // 在随机动画阶段，强制隐藏所有人的庄家标识
             players.value.forEach(p => p.isBanker = false);
         } else if (phase === 'BANKER_CONFIRMED') {
@@ -210,10 +210,10 @@ export const useGameStore = defineStore('game', () => {
     // Universal Push Handler (Replacing specific handlers)
     const handleUniversalPush = (pushType, data) => {
         // console.log(`[GameStore] Universal Push: ${pushType}`, data);
-        
+
         if (!data) return;
         const room = data.Room;
-        
+
         // 1. Update Room Config & Info
         if (room) {
             if (room.ID) roomId.value = room.ID;
@@ -223,10 +223,10 @@ export const useGameStore = defineStore('game', () => {
                 if (room.Config.BaseBet !== undefined) baseBet.value = room.Config.BaseBet;
                 if (room.Config.BankerType !== undefined) gameMode.value = room.Config.BankerType;
             }
-            
+
             // 2. Update Players
             if (room.Players) {
-                updatePlayersList(room.Players, room.BankerID, data.UserId); 
+                updatePlayersList(room.Players, room.BankerID, data.UserId);
             }
         }
 
@@ -243,7 +243,7 @@ export const useGameStore = defineStore('game', () => {
         if (serverState) {
             // Normalize "QZNN." prefix
             const normalizedState = serverState.replace('QZNN.', '');
-            
+
             let targetPhase = null;
             if (normalizedState === 'StateWaiting') targetPhase = 'WAITING_FOR_PLAYERS';
             else if (normalizedState === 'StatePrepare') targetPhase = 'READY_COUNTDOWN';
@@ -253,9 +253,9 @@ export const useGameStore = defineStore('game', () => {
             else if (normalizedState === 'StateBankerConfirm') targetPhase = 'BANKER_CONFIRMED';
             else if (normalizedState === 'StateBetting') targetPhase = 'BETTING';
             else if (normalizedState === 'StateDealing') targetPhase = 'DEALING';
-            else if (normalizedState === 'StateShowCard') targetPhase = 'SHOWDOWN'; 
+            else if (normalizedState === 'StateShowCard') targetPhase = 'SHOWDOWN';
             else if (normalizedState === 'StateSettling') targetPhase = 'SETTLEMENT';
-            
+
             if (targetPhase) {
                 // 强制修正逻辑：在随机选庄阶段，无论是否多次收到推送，都必须隐藏庄家标识
                 if (targetPhase === 'BANKER_SELECTION_ANIMATION') {
@@ -282,18 +282,17 @@ export const useGameStore = defineStore('game', () => {
                             }
                         }
                     });
-                    console.log(`[GameStore] Fixed Hands for ${targetPhase}:`, players.value.map(p => ({id: p.id, handLen: p.hand.length})));
                 }
 
                 // Check if different
                 if (currentPhase.value !== targetPhase) {
                     console.log(`[GameStore] State Switch: ${currentPhase.value} -> ${targetPhase}`);
-                    
+
                     stopAllTimers(); // Stop previous timers
                     currentPhase.value = targetPhase;
-                    
+
                     handleStateEntry(targetPhase);
-                    
+
                     // Start timer for new phase immediately if sec > 0
                     if (['READY_COUNTDOWN', 'ROB_BANKER', 'BETTING', 'SHOWDOWN'].includes(targetPhase)) {
                         if (leftSec > 0) startCountdown(leftSec);
@@ -302,13 +301,13 @@ export const useGameStore = defineStore('game', () => {
                     // Same Phase: Check if we need to update timer
                     // "StateLeftSec 这个倒计时则就看客户端当前的状态是否有倒计时"
                     if (['READY_COUNTDOWN', 'ROB_BANKER', 'BETTING', 'SHOWDOWN'].includes(targetPhase)) {
-                         // Sync timer if needed (e.g. drift > 1s or not running)
-                         if (leftSec > 0) {
-                             if (!timer || Math.abs(countdown.value - leftSec) > 1) {
-                                 // console.log(`[GameStore] Sync Timer: ${countdown.value} -> ${leftSec}`);
-                                 startCountdown(leftSec);
-                             }
-                         }
+                        // Sync timer if needed (e.g. drift > 1s or not running)
+                        if (leftSec > 0) {
+                            if (!timer || Math.abs(countdown.value - leftSec) > 1) {
+                                // console.log(`[GameStore] Sync Timer: ${countdown.value} -> ${leftSec}`);
+                                startCountdown(leftSec);
+                            }
+                        }
                     }
                 }
             }

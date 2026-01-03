@@ -160,30 +160,37 @@ const shouldShowBetMult = computed(() => {
   <div class="player-seat" :class="`seat-${position}`">
     <!-- ... (keep avatar area) -->
     <div class="avatar-area">
-      <div class="avatar-frame" :class="{ 'banker-candidate-highlight': isAnimatingHighlight }">
-          <van-image
-            round
-            :src="player.avatar"
-            class="avatar"
-          />
-      </div>
-      
-      <!-- Speech Bubble -->
-      <div v-show="showSpeechBubble" class="speech-bubble" :style="speechBubbleStyle" :class="{ 'speech-visible': showSpeechBubble }">
-            <span v-if="speech && speech.type === 'text'">{{ speech.content }}</span>
-            <img v-else-if="speech && speech.type === 'emoji'" :src="speech.content" class="speech-emoji" />
-        </div>
-      
-      <!-- 状态浮层，移到 avatar-area 以便相对于头像定位 -->
-      <div class="status-float" v-if="!['IDLE', 'READY_COUNTDOWN'].includes(store.currentPhase)">
-          <template v-if="shouldShowRobMult">
-              <div v-if="player.robMultiplier > 0" class="art-text orange">抢x{{ player.robMultiplier }}</div>
-              <div v-else class="art-text gray">不抢</div>
-          </template>
+      <div class="avatar-wrapper">
+          <div class="avatar-frame" :class="{ 'banker-candidate-highlight': isAnimatingHighlight }">
+              <van-image
+                round
+                :src="player.avatar"
+                class="avatar"
+              />
+          </div>
           
-          <template v-if="shouldShowBetMult">
-              <div class="art-text green">下x{{ player.betMultiplier }}</div>
-          </template>
+          <!-- Speech Bubble -->
+          <div v-show="showSpeechBubble" class="speech-bubble" :style="speechBubbleStyle" :class="{ 'speech-visible': showSpeechBubble }">
+                <span v-if="speech && speech.type === 'text'">{{ speech.content }}</span>
+                <img v-else-if="speech && speech.type === 'emoji'" :src="speech.content" class="speech-emoji" />
+            </div>
+          
+          <!-- 状态浮层，移到 avatar-area 以便相对于头像定位 -->
+          <div class="status-float" v-if="!['IDLE', 'READY_COUNTDOWN'].includes(store.currentPhase)">
+              <template v-if="shouldShowRobMult">
+                  <div v-if="player.robMultiplier > 0" class="art-text orange">抢x{{ player.robMultiplier }}</div>
+                  <div v-else class="art-text gray">不抢</div>
+              </template>
+              
+              <template v-if="shouldShowBetMult">
+                  <div class="art-text green">下x{{ player.betMultiplier }}</div>
+              </template>
+          </div>
+
+          <!-- 庄家徽章，现在移动到 avatar-area 内部 -->
+          <div v-if="player.isBanker && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)" class="banker-badge">庄</div>
+          <!-- Ready Badge -->
+          <div v-if="player.isReady && store.currentPhase === 'READY_COUNTDOWN'" class="ready-badge">✔ 准备</div>
       </div>
 
       <div class="info-box">
@@ -193,10 +200,6 @@ const shouldShowBetMult = computed(() => {
             {{ player.coins }}
         </div>
       </div>
-      <!-- 庄家徽章，现在移动到 avatar-area 内部 -->
-      <div v-if="player.isBanker && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)" class="banker-badge">庄</div>
-      <!-- Ready Badge -->
-      <div v-if="player.isReady && store.currentPhase === 'READY_COUNTDOWN'" class="ready-badge">✔ 准备</div>
     </div>
     
     <!-- ... (keep score float) -->
@@ -257,6 +260,12 @@ const shouldShowBetMult = computed(() => {
     width: 100%;
 }
 
+.avatar-wrapper {
+    position: relative;
+    width: 52px;
+    height: 52px;
+}
+
 .ready-badge {
     position: absolute;
     bottom: 0;
@@ -272,8 +281,8 @@ const shouldShowBetMult = computed(() => {
 }
 
 .avatar-frame {
-    width: 52px; /* Total size: 48px image + 2*1px border + 2px "margin" on each side (simulating the previous padding) */
-    height: 52px;
+    width: 100%;
+    height: 100%;
     background: rgba(0,0,0,0.3);
     border-radius: 50%;
     border: 1px solid rgba(255,255,255,0.2);

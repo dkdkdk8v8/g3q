@@ -270,9 +270,12 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
         visibleCounts.value = {};
         lastBetStates.value = {};
         
-        setTimeout(() => {
-             startDealingAnimation();
-        }, 100);
+        // 只有看牌抢庄(mode != 0)才需要在抢庄阶段发牌
+        if (store.gameMode !== 0) {
+            setTimeout(() => {
+                startDealingAnimation();
+            }, 100);
+        }
     } else if (newPhase === 'DEALING') { // Changed from SHOWDOWN to DEALING for animation
         setTimeout(() => {
              startDealingAnimation(true); 
@@ -576,8 +579,11 @@ const quitGame = () => {
                 <div class="game-btn orange" @click="onBet(5)">5倍</div>
             </div>
             
+            <div v-if="store.currentPhase === 'BETTING' && myPlayer.isBanker" class="waiting-text">
+                等待闲家下注...
+            </div>
 
-            <div v-if="myPlayer.betMultiplier > 0 && store.currentPhase === 'BETTING'" class="waiting-text">
+            <div v-if="myPlayer.betMultiplier > 0 && store.currentPhase === 'BETTING' && !myPlayer.isBanker" class="waiting-text">
                 已下注，等待开牌...
             </div>
             

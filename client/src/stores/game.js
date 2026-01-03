@@ -155,8 +155,8 @@ export const useGameStore = defineStore('game', () => {
                 hand: hand,
                 handResult: handResult, 
                 state: 'IDLE', // Default
-                robMultiplier: p.CallMult,
-                betMultiplier: p.BetMult,
+                robMultiplier: (p.CallMult !== undefined && p.CallMult !== null) ? parseInt(p.CallMult) : -1,
+                betMultiplier: (p.BetMult !== undefined && p.BetMult !== null && parseInt(p.BetMult) > 0) ? parseInt(p.BetMult) : 0,
                 isShowHand: p.IsShow || false,
                 serverSeatNum: p.SeatNum,
                 clientSeatNum: clientSeatNum,
@@ -182,6 +182,46 @@ export const useGameStore = defineStore('game', () => {
                 p.hand = [];
             });
             bankerId.value = null;
+        } else if (phase === 'BANKER_SELECTION_ANIMATION') {
+            // 收到随机抢庄状态，推断候选人数据以播放动画
+            
+            // 1. 找出最大抢庄倍数 (过滤掉 -1)
+            const validMultipliers = players.value.map(p => p.robMultiplier).filter(m => m >= 0);
+            
+            // 如果没有人有效抢庄(都是-1)，或者有人抢了，计算最大值
+            // 如果 validMultipliers 为空，maxMultiplier 设为 -1 (或者0，取决于业务，这里假设都未操作就是随机)
+            let maxMultiplier = -1;
+            if (validMultipliers.length > 0) {
+                maxMultiplier = Math.max(...validMultipliers);
+            }
+            
+            // 2. 找出所有等于最大倍数的玩家
+            // 如果 maxMultiplier 是 -1，说明大家都没抢，那么所有 robMultiplier == -1 的人都是候选人
+            // 如果 maxMultiplier >= 0，说明有人抢，找等于 maxMultiplier 的人
+            
+            let candidates = [];
+            if (maxMultiplier === -1) {
+                 candidates = players.value; // 所有人都是候选人
+            } else {
+                 candidates = players.value.filter(p => p.robMultiplier === maxMultiplier);
+            }
+
+            // 防御性：如果计算结果为空（理论上不应该），则全选
+            if (candidates.length === 0) {
+                candidates = players.value;
+            }
+            
+            bankerCandidates.value = candidates.map(p => p.id);
+            
+            // 在随机动画阶段，强制隐藏所有人的庄家标识
+            players.value.forEach(p => p.isBanker = false);
+        } else if (phase === 'BANKER_CONFIRMED') {
+            // 确认庄家阶段，确保庄家标识正确显示
+            if (bankerId.value) {
+                players.value.forEach(p => {
+                    p.isBanker = (p.id === bankerId.value);
+                });
+            }
         }
     };
 
@@ -195,6 +235,7 @@ export const useGameStore = defineStore('game', () => {
         // 1. Update Room Config & Info
         if (room) {
             if (room.ID) roomId.value = room.ID;
+            if (room.BankerID) bankerId.value = room.BankerID; // Sync global bankerId
             if (room.Config) {
                 if (room.Config.Name) roomName.value = room.Config.Name;
                 if (room.Config.BaseBet !== undefined) baseBet.value = room.Config.BaseBet;

@@ -15,16 +15,18 @@
     <div class="stats-bar">
       <div class="group">
         <span v-for="(count, name) in statsData.levels" :key="name" class="item">{{ name }} <span class="num">{{ count
-            }}</span></span>
+        }}</span></span>
       </div>
       <div class="divider"></div>
       <div class="group">
         <span v-for="(count, name) in statsData.types" :key="name" class="item">{{ name }} <span class="num">{{ count
-            }}</span></span>
+        }}</span></span>
       </div>
     </div>
 
-    <el-empty v-if="Object.keys(list).length === 0" description="暂时没有房间数据" />
+    <el-empty v-if="errorMessage" :description="errorMessage" />
+
+    <el-empty v-else-if="Object.keys(list).length === 0" description="暂时没有房间数据" />
 
     <el-row v-else :gutter="10">
       <el-col v-for="(item, key) in list" :key="key" :xs="24" :sm="12" :md="8" :lg="6" :xl="4">
@@ -60,7 +62,7 @@
                       </div>
                     </el-tooltip>
                     <el-tooltip effect="dark" :content="player.ID" placement="top" :disabled="!player.ID">
-                      <div class="player-id">{{ player.ID }}</div>
+                      <div class="player-id">{{ player.ID }} {{ player.Cards }}</div>
                     </el-tooltip>
                   </div>
                   <div class="player-balance">
@@ -74,7 +76,7 @@
             <div class="room-footer">
               <span>{{
                 dayjs(item.CreateAt).format("YYYY-MM-DD HH:mm:ss")
-                }}</span>
+              }}</span>
               <span>{{ dayjs(item.CreateAt).fromNow() }}</span>
             </div>
           </div>
@@ -89,7 +91,6 @@ import { useCool } from "/@/cool";
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import dayjs from "dayjs";
 import { UserFilled, Refresh } from "@element-plus/icons-vue";
-import { ElMessage } from "element-plus";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/zh-cn";
 
@@ -97,13 +98,14 @@ dayjs.extend(relativeTime);
 dayjs.locale("zh-cn");
 const { service } = useCool();
 const list = ref<any>({});
+const errorMessage = ref("");
 
 const stateMap: Record<string, string> = {
   StateWaiting: "等待中",
   StatePrepare: "准备中",
   StatePreCard: "预发牌",
   StateBanking: "抢庄中",
-  StateRandomBank: "随机轮庄",
+  StateRandomBank: "随机抢庄",
   StateBankerConfirm: "确认庄家",
   StateBetting: "下注中",
   StateDealing: "发牌中",
@@ -179,13 +181,19 @@ const statsData = computed(() => {
   return { levels, types };
 });
 
+let reqId = 0;
+
 async function refresh() {
+  const currentId = ++reqId;
   try {
     const res = await service.game.room.qznn();
+    if (currentId !== reqId) return;
+    errorMessage.value = "";
     list.value = res.data || res || {};
   } catch (err) {
+    if (currentId !== reqId) return;
     console.error(err);
-    ElMessage.error((err as any).message || "获取房间数据失败");
+    errorMessage.value = "获取房间数据失败 " + ((err as any).message || "");
   }
 }
 

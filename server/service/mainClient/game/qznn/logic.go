@@ -383,7 +383,7 @@ func (r *QZNNRoom) prepareDeck() {
 		if foundCards != nil {
 			p.Cards = foundCards
 			// 从牌堆中移除这些牌
-			RemoveCardsFromDeck(r.Deck, foundCards)
+			r.Deck = RemoveCardsFromDeck(r.Deck, foundCards)
 		} else {
 			// 兜底：如果找不到符合条件的牌（概率极低），直接发牌堆顶端的5张
 			if len(r.Deck) >= 5 {

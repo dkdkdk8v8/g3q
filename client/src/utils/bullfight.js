@@ -29,6 +29,47 @@ export function createDeck() {
   return deck;
 }
 
+// 将服务器牌ID (1-52) 转换为客户端牌对象
+export function transformServerCard(serverCardId) {
+    const id = parseInt(serverCardId);
+    if (isNaN(id) || id < 1 || id > 52) {
+        // Fallback for invalid ID or placeholder
+        return { suit: 'unknown', rank: 0, value: 0, label: '?', id: `ph-${serverCardId}` };
+    }
+
+    const suits = ['spade', 'heart', 'club', 'diamond'];
+    
+    // Calculate Rank (1-13)
+    // 1-4 -> 1 (A)
+    // 5-8 -> 2
+    // ...
+    const rank = Math.ceil(id / 4);
+    
+    // Calculate Suit Index (0-3)
+    // 1 -> 0 (spade), 2 -> 1 (heart), 3 -> 2 (club), 4 -> 3 (diamond)
+    const suitIndex = (id - 1) % 4;
+    const suit = suits[suitIndex];
+
+    // Label
+    let label = rank.toString();
+    if (rank === 1) label = 'A';
+    else if (rank === 11) label = 'J';
+    else if (rank === 12) label = 'Q';
+    else if (rank === 13) label = 'K';
+
+    // Game Value for Bull calculation (10, J, Q, K are 10)
+    let value = rank;
+    if (rank >= 10) value = 10;
+
+    return {
+        suit,
+        rank,
+        label,
+        value,
+        id: `${suit}-${rank}` // Consistent with createDeck IDs
+    };
+}
+
 // 洗牌
 export function shuffle(deck) {
   let currentIndex = deck.length, randomIndex;

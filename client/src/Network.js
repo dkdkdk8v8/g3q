@@ -164,7 +164,7 @@ export default class GameClient {
         };
 
         if (cmd !== "PingPong") {
-            loadingStore.startLoading();
+
             console.log("[Network] Send:", packet);
         }
 
@@ -181,7 +181,7 @@ export default class GameClient {
         }
 
         const loadingStore = useLoadingStore();
-        loadingStore.hideLoading(); // Hide loading for all non-pong responses
+
         console.log("[Network] Recv:", msg); // Log all non-pong responses
 
         // 通用错误处理：如果 code != 0，弹出提示

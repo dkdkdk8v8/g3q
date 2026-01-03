@@ -3,10 +3,10 @@ import { defineStore } from 'pinia'
 export const useLoadingStore = defineStore('loading', {
   state: () => ({
     _isLoading: false,
-    _loadingText: '努力加载中...',
-    _timeoutId: null, // For 10s auto-hide
-    _minDisplayTimeoutId: null, // For 500ms delay
-    _requestCount: 0, // To handle multiple concurrent requests
+    _loadingText: '连接中...', // Changed default text
+    // _timeoutId: null, // Removed 10s auto-hide as per user request
+    // _minDisplayTimeoutId: null, // Removed 500ms delay as per user request
+    // _requestCount: 0, // Removed to simplify loading logic
     _showReconnectDialog: false, // New state for reconnect dialog
   }),
   getters: {
@@ -16,45 +16,19 @@ export const useLoadingStore = defineStore('loading', {
   },
   actions: {
     startLoading() {
-      this._requestCount++;
-      if (this._requestCount === 1) { // Only start a new loading sequence if it's the first request
-        this._minDisplayTimeoutId = setTimeout(() => {
-          this._isLoading = true;
-          // No dot animation here, handled by CSS
+      // Simplifed loading: directly set isLoading to true
+      // No more requestCount or minDisplayTimeoutId
+      this._isLoading = true;
 
-          // Set 10s auto-hide timeout
-          if (this._timeoutId) {
-            clearTimeout(this._timeoutId);
-          }
-          this._timeoutId = setTimeout(() => {
-            this.forceHideLoading();
-          }, 10000); // 10 seconds
-        }, 500); // Show loading after 500ms
-      }
+      // No 10s auto-hide logic here either, as reconnection loading should persist until resolved
     },
     hideLoading() {
-      this._requestCount--;
-      if (this._requestCount <= 0) {
-        this._requestCount = 0; // Ensure it doesn't go below zero
-        clearTimeout(this._minDisplayTimeoutId);
-        // No dot animation cleanup here
-        if (this._timeoutId) {
-          clearTimeout(this._timeoutId);
-          this._timeoutId = null;
-        }
-        this._isLoading = false;
-      }
-    },
-    // Force hide in case of 10s timeout or other unexpected issues
-    forceHideLoading() {
-      clearTimeout(this._minDisplayTimeoutId);
-      // No dot animation cleanup here
-      if (this._timeoutId) {
-        clearTimeout(this._timeoutId);
-        this._timeoutId = null;
-      }
+      // Simplified loading: directly set isLoading to false
       this._isLoading = false;
-      this._requestCount = 0; // Reset request count
+    },
+    // Force hide for reconnection loading
+    forceHideLoading() {
+      this._isLoading = false;
     },
     setLoadingText(text) {
       this._loadingText = text;

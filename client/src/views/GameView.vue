@@ -830,7 +830,8 @@ const quitGame = () => {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    z-index: 200;
+    /* z-index: 200; Removed to avoid trapping children */
+    z-index: auto;
 }
 
 .menu-btn {
@@ -843,6 +844,11 @@ const quitGame = () => {
     align-items: center;
 }
 
+.menu-container {
+    position: relative;
+    z-index: 300; /* Increased to be above opponents */
+}
+
 .room-info-box {
     background: linear-gradient(to bottom, rgba(13, 148, 136, 0.8), rgba(17, 94, 89, 0.8));
     border: 1px solid rgba(255,255,255,0.4);
@@ -852,6 +858,8 @@ const quitGame = () => {
     font-size: 12px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     text-align: right;
+    position: relative;
+    z-index: 100; /* Lower than opponents/bubbles */
 }
 
 .opponents-layer {
@@ -861,6 +869,7 @@ const quitGame = () => {
     width: 100%;
     height: 100%;
     pointer-events: none; 
+    z-index: 200; /* Above room info, below menu */
 }
 
 .opponent-seat-abs {

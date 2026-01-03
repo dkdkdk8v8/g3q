@@ -166,7 +166,7 @@ export default class GameClient {
 
         if (cmd !== "PingPong") {
 
-            console.log("[Network] Send:", packet);
+            console.log("✉️[发送消息] Send:", packet);
         }
 
         this.ws.send(JSON.stringify(packet));
@@ -183,7 +183,7 @@ export default class GameClient {
 
         // 处理 ServerPush 消息
         if (msg.cmd === "onServerPush") {
-            console.log("[Network] Server Push:", msg);
+            console.log("📣 [收到广播] Server Push:", msg);
             if (this.pushHandlers.has(msg.pushType)) {
                 const handler = this.pushHandlers.get(msg.pushType);
                 try {
@@ -199,7 +199,7 @@ export default class GameClient {
 
         const loadingStore = useLoadingStore();
 
-        console.log("[Network] Recv:", msg); // Log all non-pong responses
+        console.log("📨[收到服务器回包] Recv:", msg); // Log all non-pong responses
 
         // 通用错误处理：如果 code != 0，弹出提示
         if (msg.code !== 0) {

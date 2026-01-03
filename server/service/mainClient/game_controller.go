@@ -102,10 +102,9 @@ func WSEntry(c *gin.Context) {
 	if existWsWrap, ok := wsConnectMap[userId]; ok {
 		if existWsWrap != nil {
 			existWsWrap.Mu.Lock()
-			existWsWrap.WriteJSON(comm.PushData{Cmd: comm.ServerPush, PushType: game.PushOtherConnect})
-			// 注意：这里假设 CloseNormal 是安全的，或者在 WriteJSON 失败后忽略
-			// 实际上最好在 WsConnWrap 中也封装 Close 方法
+			// Fix: 直接使用 WsConn.WriteJSON 避免死锁 (WriteJSON 会尝试获取 RLock，但当前已持有 Lock)
 			if existWsWrap.WsConn != nil {
+				_ = existWsWrap.WsConn.WriteJSON(comm.PushData{Cmd: comm.ServerPush, PushType: game.PushOtherConnect})
 				existWsWrap.WsConn.CloseNormal("handler exit")
 			}
 			existWsWrap.WsConn = conn

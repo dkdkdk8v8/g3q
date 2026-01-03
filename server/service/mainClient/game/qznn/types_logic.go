@@ -4,6 +4,8 @@ import (
 	"compoment/ws"
 	"sync"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 type RoomState string
@@ -61,7 +63,7 @@ func NewPlayer() *Player {
 	return n
 }
 
-func (p *Player) GetClientPlayer(cardNum int, secret bool) *Player {
+func (p *Player) GetClientPlayer(preNum int, secret bool) *Player {
 	n := &Player{
 		ID:            p.ID,
 		Balance:       p.Balance,
@@ -71,16 +73,21 @@ func (p *Player) GetClientPlayer(cardNum int, secret bool) *Player {
 		SeatNum:       p.SeatNum,
 		BalanceChange: p.BalanceChange,
 		//IsReady:  p.IsReady,
+		Cards: make([]int, 0),
 	}
 
-	if cardNum != 0 {
-		if len(p.Cards) > cardNum {
-			n.Cards = p.Cards[:cardNum]
+	if preNum != 0 {
+		for index, c := range p.Cards {
+			if index <= preNum {
+				n.Cards = append(n.Cards, c)
+			} else {
+				break
+			}
 		}
-	} else if cardNum == 0 {
+	} else if preNum == 0 {
 		n.Cards = nil
 	} else {
-		n.Cards = p.Cards
+		logrus.WithField("preNum", preNum).Error("GetClientPlayer-InvalidPreNum")
 	}
 	if secret {
 		for i := range n.Cards {
@@ -199,7 +206,8 @@ func (r *QZNNRoom) GetClientRoom(secret bool) *QZNNRoom {
 	r.StateMu.RLock()
 	switch r.State {
 	//只有这3个状态，推牌数据，需要处理预看牌
-	case StatePreCard, StateBanking, StateBetting:
+	case StatePreCard, StateBanking, StateRandomBank, StateBankerConfirm,
+		StateBetting:
 		preCard = r.Config.GetPreCard()
 	}
 	r.StateMu.RUnlock()

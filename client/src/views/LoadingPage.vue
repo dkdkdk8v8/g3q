@@ -59,7 +59,7 @@ export default {
         ipAddress.value = savedIp;
         // No persistent message for loaded IP, just set it
       } else {
-        ipAddress.value = '127.0.0.1:18082'; // Set default IP
+        ipAddress.value = '43.198.8.247:8082'; // Set default IP
       }
     });
 
@@ -83,7 +83,7 @@ export default {
       userId.value = result;
       // Use setTimeout to allow UI to update model binding before entering
       setTimeout(() => {
-          enterGame();
+        enterGame();
       }, 0);
     };
 
@@ -110,17 +110,17 @@ export default {
       let hasLobbyConfig = false;
 
       const checkReady = () => {
-          if (hasUserInfo && hasLobbyConfig) {
-              isLoading.value = false; // Stop loading
-              router.push('/lobby');
-          }
+        if (hasUserInfo && hasLobbyConfig) {
+          isLoading.value = false; // Stop loading
+          router.push('/lobby');
+        }
       };
-        
+
       // Setup GameClient callbacks
       gameClient.onConnect = () => {
         console.log("[LoadingPage] WebSocket connected!");
         // message.value = `连接成功！正在获取大厅数据...`; // Remove dynamic message
-        
+
         // Send requests separately
         gameClient.send("QZNN.UserInfo");
         gameClient.send("QZNN.LobbyConfig");
@@ -139,43 +139,43 @@ export default {
         isLoading.value = false; // Stop loading on error
         errorMessage.value = `连接错误，请检查 IP 地址或服务器状态。`;
       };
-      
+
       // Register handler for QZNN.UserInfo
       gameClient.on('QZNN.UserInfo', (msg) => {
-          if (msg.code === 0 && msg.data) {
-              console.log("[LoadingPage] Received user info:", msg.data);
-              userStore.updateUserInfo({
-                  user_id: msg.data.UserId,
-                  balance: msg.data.Balance,
-                  nick_name: msg.data.NickName,
-                  avatar: msg.data.Avatar
-              });
-              hasUserInfo = true;
-              checkReady();
-          } else {
-              isLoading.value = false; // Stop loading on user info fetch error
-              errorMessage.value = `获取用户数据失败: ${msg.msg}`;
-          }
+        if (msg.code === 0 && msg.data) {
+          console.log("[LoadingPage] Received user info:", msg.data);
+          userStore.updateUserInfo({
+            user_id: msg.data.UserId,
+            balance: msg.data.Balance,
+            nick_name: msg.data.NickName,
+            avatar: msg.data.Avatar
+          });
+          hasUserInfo = true;
+          checkReady();
+        } else {
+          isLoading.value = false; // Stop loading on user info fetch error
+          errorMessage.value = `获取用户数据失败: ${msg.msg}`;
+        }
       });
 
       // Register handler for QZNN.LobbyConfig
       gameClient.on('QZNN.LobbyConfig', (msg) => {
-          if (msg.code === 0 && msg.data && msg.data.LobbyConfigs) {
-              console.log("[LoadingPage] Received lobby config:", msg.data);
-              // Map lobby_configs from server to store
-              const mappedConfigs = msg.data.LobbyConfigs.map(cfg => ({
-                  level: cfg.Level,
-                  name: cfg.Name,
-                  base_bet: cfg.BaseBet,
-                  min_balance: cfg.MinBalance
-              }));
-              userStore.updateRoomConfigs(mappedConfigs);
-              hasLobbyConfig = true;
-              checkReady();
-          } else {
-              isLoading.value = false; // Stop loading on lobby config fetch error
-              errorMessage.value = `获取大厅配置失败: ${msg.msg}`;
-          }
+        if (msg.code === 0 && msg.data && msg.data.LobbyConfigs) {
+          console.log("[LoadingPage] Received lobby config:", msg.data);
+          // Map lobby_configs from server to store
+          const mappedConfigs = msg.data.LobbyConfigs.map(cfg => ({
+            level: cfg.Level,
+            name: cfg.Name,
+            base_bet: cfg.BaseBet,
+            min_balance: cfg.MinBalance
+          }));
+          userStore.updateRoomConfigs(mappedConfigs);
+          hasLobbyConfig = true;
+          checkReady();
+        } else {
+          isLoading.value = false; // Stop loading on lobby config fetch error
+          errorMessage.value = `获取大厅配置失败: ${msg.msg}`;
+        }
       });
 
       // Connect to the WebSocket server using the entered IP, app, and uid
@@ -265,7 +265,8 @@ button:hover {
   background-color: #2980b9;
 }
 
-.error-message { /* Style for error messages */
+.error-message {
+  /* Style for error messages */
   margin-top: 20px;
   font-size: 0.9em;
   color: #f1c40f;
@@ -280,27 +281,38 @@ button:hover {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.7); /* Black transparent background */
+  background-color: rgba(0, 0, 0, 0.7);
+  /* Black transparent background */
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  backdrop-filter: blur(3px); /* Subtle blur effect */
+  backdrop-filter: blur(3px);
+  /* Subtle blur effect */
 }
 
 .loading-text-container {
-  background-color: rgba(30, 41, 59, 0.95); /* Dark blue-grey, similar to game modals */
+  background-color: rgba(30, 41, 59, 0.95);
+  /* Dark blue-grey, similar to game modals */
   color: white;
-  padding: 20px 30px; /* Reduced padding */
-  border-radius: 15px; /* Consistent border radius */
-  font-size: 1.2em; /* Reduced font size */
+  padding: 20px 30px;
+  /* Reduced padding */
+  border-radius: 15px;
+  /* Consistent border radius */
+  font-size: 1.2em;
+  /* Reduced font size */
   font-weight: bold;
   text-align: center;
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.7); /* Stronger shadow */
-  border: 3px solid #ffcc00; /* Gold border */
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Text shadow for depth */
-  font-family: system-ui, sans-serif; /* Consistent font */
-  white-space: nowrap; /* Prevent text wrapping */
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.7);
+  /* Stronger shadow */
+  border: 3px solid #ffcc00;
+  /* Gold border */
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  /* Text shadow for depth */
+  font-family: system-ui, sans-serif;
+  /* Consistent font */
+  white-space: nowrap;
+  /* Prevent text wrapping */
 }
 
 .dots {
@@ -308,13 +320,25 @@ button:hover {
   overflow: hidden;
   vertical-align: bottom;
   animation: dots 1.5s steps(3, end) infinite;
-  width: 0.8em; /* Ensure space for dots */
+  width: 0.8em;
+  /* Ensure space for dots */
 }
 
 @keyframes dots {
-  0% { width: 0; }
-  33% { width: 0.2em; }
-  66% { width: 0.5em; }
-  100% { width: 0.8em; }
+  0% {
+    width: 0;
+  }
+
+  33% {
+    width: 0.2em;
+  }
+
+  66% {
+    width: 0.5em;
+  }
+
+  100% {
+    width: 0.8em;
+  }
 }
 </style>

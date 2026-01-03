@@ -191,9 +191,11 @@ func (r *QZNNRoom) AddPlayer(p *Player) (int, error) {
 	countExistPlayerNum++
 	r.PlayerMu.Unlock()
 
-	r.Broadcast(comm.Response{
-		Cmd:  CmdPlayerJoin,
-		Data: gin.H{"Room": r}})
+	r.Broadcast(comm.PushData{
+		PushType: PushPlayJoin,
+		Data: PushPlayerJoinStruct{
+			Room:   r,
+			UserId: p.ID}})
 	r.logicTick()
 	return emptySeat, nil
 }
@@ -480,9 +482,11 @@ func (r *QZNNRoom) StartGame() {
 			logrus.WithField("room_id", r.ID).Error("QZNNRoom-StatusChange-Fail-preGiveCards")
 		}
 		r.BroadcastWithPlayer(func(p *Player) interface{} {
-			return comm.Response{
-				Cmd:  StatePreCard,
-				Data: gin.H{"room": r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID)}}
+			return comm.PushData{
+				PushType: PushChangeState,
+				Data: PushChangeStateStruct{
+					Room:  r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID),
+					State: StatePreCard}}
 		})
 
 		//预先发牌，看3s后
@@ -494,9 +498,11 @@ func (r *QZNNRoom) StartGame() {
 		return
 	}
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
-		return comm.Response{
-			Cmd:  StateBanking,
-			Data: gin.H{"room": r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID)}}
+		return comm.PushData{
+			PushType: PushChangeState,
+			Data: PushChangeStateStruct{
+				Room:  r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID),
+				State: StateBanking}}
 	})
 
 	//开始抢10s
@@ -521,9 +527,11 @@ func (r *QZNNRoom) StartGame() {
 	} else {
 		//没人抢庄,系统随机分配庄家
 		r.BroadcastWithPlayer(func(p *Player) interface{} {
-			return comm.Response{
-				Cmd:  StateRandomBank,
-				Data: gin.H{"Room": r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID)}}
+			return comm.PushData{
+				PushType: PushChangeState,
+				Data: PushChangeStateStruct{
+					Room:  r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID),
+					State: StateRandomBank}}
 		})
 
 		candidates := r.GetActivePlayers(func(p *Player) bool {
@@ -533,9 +541,11 @@ func (r *QZNNRoom) StartGame() {
 		time.Sleep(time.Second * 2)
 	}
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
-		return comm.Response{
-			Cmd:  StateBankerConfirm,
-			Data: gin.H{"Room": r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID)}}
+		return comm.PushData{
+			PushType: PushChangeState,
+			Data: PushChangeStateStruct{
+				Room:  r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID),
+				State: StateBankerConfirm}}
 	})
 
 	//非庄家投注
@@ -544,9 +554,11 @@ func (r *QZNNRoom) StartGame() {
 		return
 	}
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
-		return comm.Response{
-			Cmd:  StateBetting,
-			Data: gin.H{"Room": r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID)}}
+		return comm.PushData{
+			PushType: PushChangeState,
+			Data: PushChangeStateStruct{
+				Room:  r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID),
+				State: StateBetting}}
 	})
 
 	//开始投注10s
@@ -559,9 +571,11 @@ func (r *QZNNRoom) StartGame() {
 	}
 
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
-		return comm.Response{
-			Cmd:  StateDealing,
-			Data: gin.H{"Room": r.GetClientRoom(5, p.ID == r.BankerID)}}
+		return comm.PushData{
+			PushType: PushChangeState,
+			Data: PushChangeStateStruct{
+				Room:  r.GetClientRoom(5, p.ID == r.BankerID),
+				State: StateDealing}}
 	})
 
 	//等待客户端播放补牌动画
@@ -569,9 +583,11 @@ func (r *QZNNRoom) StartGame() {
 
 	r.WaitTimer(5)
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
-		return comm.Response{
-			Cmd:  StateShowCard,
-			Data: gin.H{"Room": r.GetClientRoom(5, !p.IsShow && p.ID == r.BankerID)}}
+		return comm.PushData{
+			PushType: PushChangeState,
+			Data: PushChangeStateStruct{
+				Room:  r.GetClientRoom(5, !p.IsShow && p.ID == r.BankerID),
+				State: StateShowCard}}
 	})
 
 	//结算状态
@@ -579,9 +595,11 @@ func (r *QZNNRoom) StartGame() {
 		logrus.WithField("roomId", r.ID).Error("QZNNRoom-StatusChange-Fail-setting")
 		return
 	}
-	r.Broadcast(comm.Response{
-		Cmd:  StateSettling,
-		Data: gin.H{"Room": r}})
+	r.Broadcast(comm.PushData{
+		PushType: PushChangeState,
+		Data: PushChangeStateStruct{
+			Room:  r,
+			State: StateSettling}})
 
 	//客户端播放结算动画
 	time.Sleep(time.Second * 2)
@@ -646,9 +664,11 @@ func (r *QZNNRoom) StartGame() {
 		p.Mu.Unlock()
 	}
 
-	r.Broadcast(comm.Response{
-		Cmd:  CmdBalanceChange,
-		Data: gin.H{"Room": r}})
+	r.Broadcast(comm.PushData{
+		PushType: PushChangeState,
+		Data: PushChangeStateStruct{
+			Room:  r,
+			State: StateSettling}})
 
 	time.Sleep(time.Second * 2)
 	//清理数据
@@ -656,7 +676,9 @@ func (r *QZNNRoom) StartGame() {
 
 	//
 
-	r.Broadcast(comm.Response{
-		Cmd:  StateWaiting,
-		Data: gin.H{"Room": r}})
+	r.Broadcast(comm.PushData{
+		PushType: PushChangeState,
+		Data: PushChangeStateStruct{
+			Room:  r,
+			State: StateWaiting}})
 }

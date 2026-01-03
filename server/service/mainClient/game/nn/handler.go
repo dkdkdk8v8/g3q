@@ -5,7 +5,6 @@ import (
 	"service/comm"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
 
@@ -25,11 +24,11 @@ func HandlerPlayerLeave(r *QZNNRoom, userID string) {
 	}
 
 	if r.Leave(userID) {
-		r.Broadcast(comm.Response{
-			Cmd: CmdPlayerLeave,
-			Data: gin.H{
-				"Room":   r,
-				"UserId": userID}})
+		r.Broadcast(comm.PushData{
+			PushType: PushPlayLeave,
+			Data: PushPlayerLeaveStruct{
+				Room:    r,
+				UserIds: []string{userID}}})
 	}
 	r.logicTick()
 }
@@ -73,12 +72,12 @@ func HandleCallBanker(r *QZNNRoom, userID string, mult int64) {
 	p.CallMult = mult
 	p.Mu.Unlock()
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
-		return comm.Response{
-			Cmd: CmdPlayerCallBank,
-			Data: gin.H{
-				"Room":   r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID),
-				"UserId": userID,
-				"Mult":   mult}}
+		return comm.PushData{
+			PushType: PushPlayerCallBanker,
+			Data: PushPlayerCallBankerStruct{
+				Room:   r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID),
+				UserId: userID,
+				Mult:   mult}}
 	})
 	r.logicTick()
 }
@@ -107,12 +106,12 @@ func HandlePlaceBet(r *QZNNRoom, userID string, mult int64) {
 	p.BetMult = mult
 	p.Mu.Unlock()
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
-		return comm.Response{
-			Cmd: "nn.PlayerPlaceBet",
-			Data: gin.H{
-				"Room":   r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID),
-				"UserId": userID,
-				"Mult":   mult},
+		return comm.PushData{
+			PushType: PushPlayerPlaceBet,
+			Data: PushPlayerPlaceBetStruct{
+				Room:   r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID),
+				UserId: userID,
+				Mult:   mult},
 		}
 	})
 	r.logicTick()
@@ -137,11 +136,11 @@ func HandleShowCards(r *QZNNRoom, userID string) {
 	p.IsShow = true
 	p.Mu.Unlock()
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
-		return comm.Response{
-			Cmd: CmdPlayerShowCard,
-			Data: gin.H{
-				"Room":   r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID),
-				"UserId": userID}}
+		return comm.PushData{
+			PushType: PushPlayerShowCard,
+			Data: PushPlayerShowCardStruct{
+				Room:   r.GetClientRoom(r.Config.GetPreCard(), p.ID == r.BankerID),
+				UserId: userID}}
 	})
 	r.logicTick()
 

@@ -579,8 +579,11 @@ const quitGame = () => {
                 <div class="game-btn orange" @click="onBet(5)">5倍</div>
             </div>
             
+            <div v-if="store.currentPhase === 'BETTING' && myPlayer.isBanker" class="waiting-text">
+                等待闲家下注...
+            </div>
 
-            <div v-if="myPlayer.betMultiplier > 0 && store.currentPhase === 'BETTING'" class="waiting-text">
+            <div v-if="myPlayer.betMultiplier > 0 && store.currentPhase === 'BETTING' && !myPlayer.isBanker" class="waiting-text">
                 已下注，等待开牌...
             </div>
             

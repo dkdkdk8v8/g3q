@@ -23,7 +23,7 @@ const (
 )
 
 const (
-	StateWaiting2StartSec = 6
+	StateWaiting2StartSec = 600
 	StateCallingSec       = 10
 	StateBettingSec       = 10
 	StateDealingSec       = 5
@@ -31,9 +31,9 @@ const (
 
 // CardResult 牌型计算结果
 type CardResult struct {
-	Niu     int64 `json:"niu"`      // 0-10, 10为牛牛
-	Mult    int64 `json:"mult"`     // 牌型倍数
-	MaxCard int   `json:"max_card"` // 最大单牌，用于同牌型比大小
+	Niu     int64 // 0-10, 10为牛牛
+	Mult    int64 // 牌型倍数
+	MaxCard int   // 最大单牌，用于同牌型比大小
 }
 
 // Player 代表房间内的一个玩家
@@ -110,28 +110,28 @@ func (cfg *LobbyConfig) GetPreCard() int {
 	case BankerTypeLook4:
 		return 4
 	default:
-		return 5
+		return PlayerCardMax
 	}
 }
 
 // Room 代表一个游戏房间
 type QZNNRoom struct {
-	ID            string
-	State         RoomState
-	StateLeftSec  int
-	BankerID      string
-	Players       []*Player
-	Config        LobbyConfig    // 房间配置
-	StateMu       sync.RWMutex   `json:"-"` // 保护 State, Timer
-	Ticker        *time.Ticker   `json:"-"` // 倒计时定时器
-	Mu            sync.Mutex     `json:"-"` // 保护房间数据并发安全
-	PlayerMu      sync.RWMutex   `json:"-"` // 保护 Players
-	Deck          []int          `json:"-"` // 牌堆
-	TargetResults map[string]int `json:"-"` // 记录每个玩家本局被分配的目标分数 (牛几)
-	TotalBet      int64          `json:"-"` // 本局总下注额，用于更新库存
-	driverGo      chan struct{}  `json:"-"`
-	CreateAt      time.Time
-	OnBotAction   func(room *QZNNRoom) `json:"-"`
+	ID                 string
+	State              RoomState
+	StateLeftSec       int
+	BankerID           string
+	Players            []*Player
+	Config             LobbyConfig    // 房间配置
+	StateMu            sync.RWMutex   `json:"-"` // 保护 State, Timer
+	StateLeftSecTicker *time.Ticker   `json:"-"` // 倒计时定时器
+	Mu                 sync.Mutex     `json:"-"` // 保护房间数据并发安全
+	PlayerMu           sync.RWMutex   `json:"-"` // 保护 Players
+	Deck               []int          `json:"-"` // 牌堆
+	TargetResults      map[string]int `json:"-"` // 记录每个玩家本局被分配的目标分数 (牛几)
+	TotalBet           int64          `json:"-"` // 本局总下注额，用于更新库存
+	driverGo           chan struct{}  `json:"-"`
+	CreateAt           time.Time
+	OnBotAction        func(room *QZNNRoom) `json:"-"`
 }
 
 func (r *QZNNRoom) reset() {
@@ -147,16 +147,37 @@ func (r *QZNNRoom) reset() {
 	}
 }
 
-func (r *QZNNRoom) GetClientRoom(preCard int, secret bool) *QZNNRoom {
+func (r *QZNNRoom) SetBankerId(bankerId string) bool {
+	r.Mu.Lock()
+	defer r.Mu.Unlock()
+	if r.BankerID == bankerId {
+		return true
+	}
+	if r.BankerID == "" {
+		r.BankerID = bankerId
+		return true
+	}
+	return false
+}
+
+func (r *QZNNRoom) GetClientRoom(secret bool) *QZNNRoom {
 	n := &QZNNRoom{
 		ID:           r.ID,
 		State:        r.State,
 		StateLeftSec: r.StateLeftSec,
 		BankerID:     r.BankerID,
 	}
-	r.PlayerMu.RLock()
-	defer r.PlayerMu.RUnlock()
-	for _, p := range r.Players {
+	preCard := PlayerCardMax
+	r.StateMu.RLock()
+	switch r.State {
+	//只有这3个状态，推牌数据，需要处理预看牌
+	case StatePreCard, StateBanking, StateBetting:
+		preCard = r.Config.GetPreCard()
+	}
+	r.StateMu.RUnlock()
+
+	pushPlayers := r.GetBroadCasePlayers(nil)
+	for _, p := range pushPlayers {
 		n.Players = append(n.Players, p.GetClientPlayer(preCard, secret))
 	}
 	return n

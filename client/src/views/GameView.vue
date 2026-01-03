@@ -180,6 +180,7 @@ const startRobotSpeech = () => {
 
 const showMenu = ref(false);
 const showHistory = ref(false);
+const isDebugPanelExpanded = ref(false);
 
 const visibleCounts = ref({});
 
@@ -460,17 +461,22 @@ const quitGame = () => {
 
         <!-- Debug Control Panel -->
         <div class="debug-panel">
-            <div class="debug-title">Manual Control</div>
-            <button @click="store.enterStateWaiting()">Waiting</button>
-            <button @click="store.enterStatePrepare()">Prepare</button>
-            <button @click="store.enterStatePreCard()">PreCard</button>
-            <button @click="store.enterStateBanking()">Banking</button>
-            <button @click="store.enterStateRandomBank()">RandBank</button>
-            <button @click="store.enterStateBankerConfirm()">Confirm</button>
-            <button @click="store.enterStateBetting()">Betting</button>
-            <button @click="store.enterStateDealing()">Dealing</button>
-            <button @click="store.enterStateShowCard()">ShowCard</button>
-            <button @click="store.enterStateSettling()">Settling</button>
+            <div class="debug-title" @click="isDebugPanelExpanded = !isDebugPanelExpanded">
+                阶段控制
+                <span style="margin-left: 5px;float: right;">{{ isDebugPanelExpanded ? '▼' : '▲' }}</span>
+            </div>
+            <div v-show="isDebugPanelExpanded" class="debug-buttons">
+                <button @click="store.enterStateWaiting()">等待用户</button>
+                <button @click="store.enterStatePrepare()">准备开始</button>
+                <button @click="store.enterStatePreCard()">预先发牌</button>
+                <button @click="store.enterStateBanking()">开始抢庄</button>
+                <button @click="store.enterStateRandomBank()">随机选庄</button>
+                <button @click="store.enterStateBankerConfirm()">确认庄家</button>
+                <button @click="store.enterStateBetting()">闲家下注</button>
+                <button @click="store.enterStateDealing()">补充手牌</button>
+                <button @click="store.enterStateShowCard()">摊牌比拼</button>
+                <button @click="store.enterStateSettling()">结算对局</button>
+            </div>
         </div>
 
         <!-- 顶部栏 -->
@@ -689,6 +695,17 @@ const quitGame = () => {
     font-size: 12px;
     margin-bottom: 5px;
     text-align: center;
+    cursor: pointer;
+    user-select: none;
+    padding: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.debug-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
 }
 
 .debug-panel button {

@@ -162,7 +162,8 @@ export const useGameStore = defineStore('game', () => {
                 isShowHand: p.IsShow || false,
                 serverSeatNum: p.SeatNum,
                 clientSeatNum: clientSeatNum,
-                isReady: p.IsReady
+                isReady: p.IsReady,
+                balanceChange: p.BalanceChange // Map BalanceChange from server
             });
         });
 
@@ -184,6 +185,11 @@ export const useGameStore = defineStore('game', () => {
                 existing.clientSeatNum = newData.clientSeatNum;
                 existing.isReady = newData.isReady;
                 existing.handResult = newData.handResult; // Replace result object
+
+                // Update roundScore if BalanceChange is provided by server
+                if (newData.balanceChange !== undefined) {
+                    existing.roundScore = Number(newData.balanceChange);
+                }
 
                 // Smart update hand to prevent reactivity trigger if same
                 const isHandDifferent = existing.hand.length !== newData.hand.length ||

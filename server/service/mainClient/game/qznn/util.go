@@ -1,4 +1,4 @@
-package nn
+package qznn
 
 const (
 	// NiuNone 0:没牛 1-9:牛1-9 10:牛牛

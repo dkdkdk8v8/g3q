@@ -1,4 +1,4 @@
-package nn
+package qznn
 
 import "service/comm"
 
@@ -15,13 +15,13 @@ const (
 )
 
 const (
-	PushChangeState      comm.PushType = "ChangeState"
-	PushPlayJoin         comm.PushType = "PlayJoin"
-	PushPlayLeave        comm.PushType = "PlayLeave"
-	PushPlayerCallBanker comm.PushType = "CallBanker"
-	PushPlayerPlaceBet   comm.PushType = "PlaceBet"
-	PushPlayerShowCard   comm.PushType = "ShowCard"
-	PushBalanceChange    comm.PushType = "BalanceChange"
+	PushChangeState      comm.PushType = "PushChangeState"
+	PushPlayJoin         comm.PushType = "PushPlayJoin"
+	PushPlayLeave        comm.PushType = "PushPlayLeave"
+	PushPlayerCallBanker comm.PushType = "PushCallBanker"
+	PushPlayerPlaceBet   comm.PushType = "PushPlaceBet"
+	PushPlayerShowCard   comm.PushType = "PushShowCard"
+	PushBalanceChange    comm.PushType = "PushBalanceChange"
 )
 
 type PushChangeStateStruct struct {

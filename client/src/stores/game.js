@@ -118,19 +118,27 @@ export const useGameStore = defineStore('game', () => {
         // 1. Find myServerSeatNum
         let myServerSeatNum = -1;
         
-        // Prefer UserId from server push if available
-        if (userId) {
-            myPlayerId.value = userId;
-        } else if (!myPlayerId.value || myPlayerId.value === 'me') {
-                myPlayerId.value = userStore.userInfo.user_id || 'me';
+        // Ensure myPlayerId is consistent with UserStore
+        const storeUserId = userStore.userInfo.user_id;
+        if (storeUserId) {
+            myPlayerId.value = storeUserId;
+        } else {
+             // Fallback only if UserStore is empty (rare)
+             if (userId && (!myPlayerId.value || myPlayerId.value === 'me')) {
+                 myPlayerId.value = userId;
+             } else if (!myPlayerId.value) {
+                 myPlayerId.value = 'me';
+             }
         }
+        
         console.log("[GameStore] My Player ID:", myPlayerId.value);
 
         const meInServer = serverPlayers.find(p => p && p.ID === myPlayerId.value);
         if (meInServer) {
             myServerSeatNum = meInServer.SeatNum;
         } else {
-            console.warn("[GameStore] Current user's ID (" + myPlayerId.value + ") not found in serverPlayers, cannot determine myServerSeatNum.");
+            console.warn("[GameStore] Current user's ID (" + myPlayerId.value + ") not found in serverPlayers. Defaulting myServerSeatNum to 0 (Observer View).");
+            myServerSeatNum = 0; // Default to 0 so we can render others relative to seat 0
         }
         console.log("[GameStore] My Server Seat:", myServerSeatNum);
 
@@ -138,7 +146,8 @@ export const useGameStore = defineStore('game', () => {
             if (!p) return; // Skip null entries
 
             // 2. Calculate clientSeatNum
-            const clientSeatNum = (myServerSeatNum !== -1) ? getClientSeatIndex(myServerSeatNum, p.SeatNum) : -1;
+            // Always calculate if we have a reference seat (now defaulted to 0)
+            const clientSeatNum = getClientSeatIndex(myServerSeatNum, p.SeatNum);
             console.log(`[GameStore] Player ${p.ID} ServerSeat:${p.SeatNum} -> ClientSeat:${clientSeatNum}`);
 
             // Map Cards

@@ -29,13 +29,13 @@ func (r *QZNNRoom) Destory() {
 	close(r.driverGo)
 }
 
-func (r *QZNNRoom) CheckStatus(state string) bool {
+func (r *QZNNRoom) CheckStatus(state RoomState) bool {
 	r.StateMu.RLock()
 	defer r.StateMu.RUnlock()
 	return r.State == state
 }
 
-func (r *QZNNRoom) SetStatus(state string) bool {
+func (r *QZNNRoom) SetStatus(state RoomState) bool {
 	r.StateMu.Lock()
 	defer r.StateMu.Unlock()
 	if r.State == state {
@@ -89,7 +89,7 @@ func (r *QZNNRoom) GetPlayerCount() int {
 }
 
 // todo::StateSettlingDirectPreCard 这个 也要判断kickoff
-func (r *QZNNRoom) KickOffByWsDisconnect() bool {
+func (r *QZNNRoom) KickOffByWsDisconnect() ([]string, bool) {
 	var delIndex []int
 	r.PlayerMu.RLock()
 
@@ -106,20 +106,21 @@ func (r *QZNNRoom) KickOffByWsDisconnect() bool {
 		if p.ConnWrap.WsConn == nil {
 			delIndex = append(delIndex, i)
 		}
-
 	}
 	r.PlayerMu.RUnlock()
 
 	if len(delIndex) <= 0 {
-		return false
+		return nil, false
 	}
 
+	var delId []string
 	r.PlayerMu.Lock()
-	defer r.PlayerMu.Unlock()
 	for _, delIndex := range delIndex {
+		delId = append(delId, r.Players[delIndex].ID)
 		r.Players[delIndex] = nil
 	}
-	return true
+	r.PlayerMu.Unlock()
+	return delId, true
 }
 
 // 包含机器人
@@ -379,10 +380,10 @@ func (r *QZNNRoom) tickWaiting() {
 	// 		Cmd:  StatePrepare,
 	// 		Data: gin.H{"Room": r}})
 	// }
-	if r.KickOffByWsDisconnect() {
-		r.Broadcast(comm.Response{
-			Cmd:  StateWaiting,
-			Data: gin.H{"Room": r}})
+	if leaveIds, isLeave := r.KickOffByWsDisconnect(); isLeave {
+		r.Broadcast(comm.PushData{
+			PushType: PushPlayLeave,
+			Data:     PushPlayerLeaveStruct{UserIds: leaveIds, Room: r}})
 	}
 }
 
@@ -395,11 +396,17 @@ func (r *QZNNRoom) tickPrepare() {
 		r.StopTimer()
 		_ = r.SetStatus(StateWaiting)
 		//同步数据给客户端
-		r.Broadcast(comm.Response{
-			Cmd:  StateWaiting,
-			Data: gin.H{"Room": r}})
+		r.Broadcast(comm.PushData{
+			PushType: PushChangeState,
+			Data: PushChangeStateStruct{
+				State: StateWaiting,
+				Room:  r}})
 	}
-	isBroadCast := r.KickOffByWsDisconnect()
+	if leaveIds, isLeave := r.KickOffByWsDisconnect(); isLeave {
+		r.Broadcast(comm.PushData{
+			PushType: PushPlayLeave,
+			Data:     PushPlayerLeaveStruct{UserIds: leaveIds, Room: r}})
+	}
 	if r.GetWsOkPlayerCount() >= 2 {
 		go r.StartGame()
 	} else {
@@ -407,13 +414,13 @@ func (r *QZNNRoom) tickPrepare() {
 		r.StopTimer()
 		_ = r.SetStatus(StateWaiting)
 		//同步数据给客户端
-		isBroadCast = true
+		r.Broadcast(comm.PushData{
+			PushType: PushChangeState,
+			Data: PushChangeStateStruct{
+				State: StateWaiting,
+				Room:  r}})
 	}
-	if isBroadCast {
-		r.Broadcast(comm.Response{
-			Cmd:  StateWaiting,
-			Data: gin.H{"Room": r}})
-	}
+
 }
 
 func (r *QZNNRoom) tickBanking() {

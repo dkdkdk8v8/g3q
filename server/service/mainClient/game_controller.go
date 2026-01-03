@@ -101,7 +101,7 @@ func WSEntry(c *gin.Context) {
 	wsConnectMapMutex.Lock()
 	if existWsWrap, ok := wsConnectMap[userId]; ok {
 		if existWsWrap != nil && existWsWrap.WsConn != nil {
-			existWsWrap.WsConn.WriteJSON(comm.Response{Cmd: CmdOtherConnect, Msg: "其他设备登录"})
+			existWsWrap.WsConn.WriteJSON(comm.PushData{PushType: game.PushOtherConnect})
 			existWsWrap.WsConn.CloseNormal("handler exit")
 			existWsWrap.WsConn = conn
 			connWrap = existWsWrap
@@ -129,7 +129,7 @@ func handleConnection(connWrap *ws.WsConnWrap, appId, appUserId string) {
 			}
 		})
 
-		var msg comm.Message
+		var msg comm.Request
 		var err error
 		// 读取客户端发来的 JSON 消息
 		if initMain.DefCtx.IsDebug {
@@ -179,9 +179,9 @@ func logWSCloseErr(userId string, err error) {
 	}
 }
 
-func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, msg *comm.Message) {
+func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, msg *comm.Request) {
 	userId := appId + appUserId
-	if msg.Cmd == CmdPingPong {
+	if msg.Cmd == game.CmdPingPong {
 		atomic.AddInt64(&pingCount, 1)
 	} else {
 		logrus.WithFields(logrus.Fields{
@@ -209,7 +209,7 @@ func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, msg *comm
 			rsp.Msg = errRsp.Error()
 		}
 		if initMain.DefCtx.IsDebug {
-			if rsp.Cmd != CmdPingPong {
+			if rsp.Cmd != game.CmdPingPong {
 				logrus.WithField(
 					"uid", userId).WithField(
 					"msg", rsp.Cmd).WithField(
@@ -223,13 +223,13 @@ func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, msg *comm
 	}()
 
 	switch msg.Cmd {
-	case CmdPingPong: // 心跳处理
+	case game.CmdPingPong: // 心跳处理
 		//auto replay by defer
 	case nn.CmdPlayerJoin: // 抢庄牛牛进入
 		errRsp = handlePlayerJoin(connWrap, appId, appUserId, msg.Data)
 	case nn.CmdPlayerLeave:
 		handlePlayerLeave(userId, msg.Data)
-	case nn.CmdPlayerCallBank: // 抢庄请求
+	case nn.CmdPlayerCallBanker: // 抢庄请求
 		handlePlayerCallBank(userId, msg.Data)
 	case nn.CmdPlayerPlaceBet: // 下注请求
 		handlePlayerPlaceBet(userId, msg.Data)

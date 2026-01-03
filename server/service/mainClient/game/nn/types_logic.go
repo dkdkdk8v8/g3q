@@ -6,39 +6,20 @@ import (
 	"time"
 )
 
-const QZNN_Prefix = "QZNN."
-const (
-	StateWaiting               = "StateWaiting"               //房间等待中
-	StatePrepare               = "StatePrepare"               //房间倒计时中，马上开始
-	StatePreCard               = "StatePreCard"               //预先发牌
-	StateBanking               = "StateBanking"               //抢庄中
-	StateRandomBank            = "StateRandomBank"            //随机抢庄
-	StateBankerConfirm         = "StateBankerConfirm"         //庄家确认
-	StateBetting               = "StateBetting"               //非庄家下注
-	StateDealing               = "StateDealing"               //发牌或补牌
-	StateShowCard              = "StateShowCard"              //展示牌
-	StateSettling              = "StateSettling"              //结算中
-	StateSettlingDirectPreCard = "StateSettlingDirectPreCard" //结算中，开始倒计时发牌（5人不离开，直接下一场）
-)
+type RoomState string
 
 const (
-	CmdUserInfo           = QZNN_Prefix + "UserInfo"
-	CmdLobbyConfig        = QZNN_Prefix + "LobbyConfig"
-	CmdPlayerJoin         = QZNN_Prefix + "PlayerJoin"
-	CmdPlayerLeave        = QZNN_Prefix + "PlayerLeave"
-	CmdPlayerCallBank     = QZNN_Prefix + "PlayerCallBank"
-	CmdPlayerPlaceBet     = QZNN_Prefix + "PlayerPlaceBet"
-	CmdPlayerShowCard     = QZNN_Prefix + "PlayerShowCard"
-	CmdBalanceChange      = QZNN_Prefix + "BalanceChange"
-	CmdReconnectEnterRoom = QZNN_Prefix + "ReconnectEnterRoom"
-
-	CmdBroadCast = QZNN_Prefix + "BroadCast"
-)
-
-const (
-	BroadCastPlayJoin       = ""
-	BroadcastPlayLeave      = ""
-	BroadcastPlayerCallBank = ""
+	StateWaiting               RoomState = "StateWaiting"               //房间等待中
+	StatePrepare               RoomState = "StatePrepare"               //房间倒计时中，马上开始
+	StatePreCard               RoomState = "StatePreCard"               //预先发牌
+	StateBanking               RoomState = "StateBanking"               //抢庄中
+	StateRandomBank            RoomState = "StateRandomBank"            //随机抢庄
+	StateBankerConfirm         RoomState = "StateBankerConfirm"         //庄家确认
+	StateBetting               RoomState = "StateBetting"               //非庄家下注
+	StateDealing               RoomState = "StateDealing"               //发牌或补牌
+	StateShowCard              RoomState = "StateShowCard"              //展示牌
+	StateSettling              RoomState = "StateSettling"              //结算中
+	StateSettlingDirectPreCard RoomState = "StateSettlingDirectPreCard" //结算中，开始倒计时发牌（5人不离开，直接下一场）
 )
 
 const (
@@ -136,7 +117,7 @@ func (cfg *LobbyConfig) GetPreCard() int {
 // Room 代表一个游戏房间
 type QZNNRoom struct {
 	ID            string
-	State         string
+	State         RoomState
 	StateLeftSec  int
 	BankerID      string
 	Players       []*Player

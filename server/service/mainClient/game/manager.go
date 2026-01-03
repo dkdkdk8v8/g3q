@@ -58,7 +58,7 @@ func (rm *RoomManager) GetRoomByRoomId(roomId string) *qznn.QZNNRoom {
 	return rm.QZNNRooms[roomId]
 }
 
-func (rm *RoomManager) JoinOrCreateNNRoom(player *qznn.Player, config *qznn.LobbyConfig) (*qznn.QZNNRoom, error) {
+func (rm *RoomManager) JoinOrCreateNNRoom(player *qznn.Player, level int, bankerType int) (*qznn.QZNNRoom, error) {
 	rm.mu.Lock()
 	defer rm.mu.Unlock()
 
@@ -68,6 +68,12 @@ func (rm *RoomManager) JoinOrCreateNNRoom(player *qznn.Player, config *qznn.Lobb
 	}
 
 	for _, room := range rm.QZNNRooms {
+		if room.Config.BankerType != bankerType {
+			continue
+		}
+		if room.Config.Level != level {
+			continue
+		}
 		playerNum := room.GetPlayerCount()
 		if playerNum < room.GetPlayerCap() {
 			if _, err := room.AddPlayer(player); err != nil {
@@ -77,11 +83,8 @@ func (rm *RoomManager) JoinOrCreateNNRoom(player *qznn.Player, config *qznn.Lobb
 		}
 	}
 
-	roomID := fmt.Sprintf("R_%d_%d_%d", time.Now().Unix(), config.BankerType, config.Level)
-	newRoom := qznn.NewRoom(roomID)
-	if config != nil {
-		newRoom.Config = *config
-	}
+	roomID := fmt.Sprintf("R_%d_%d_%d", time.Now().Unix(), bankerType, level)
+	newRoom := qznn.NewRoom(roomID,bankerType, level)
 	newRoom.AddPlayer(player)
 	newRoom.OnBotAction = nil //RobotForQZNNRoom
 	rm.QZNNRooms[roomID] = newRoom

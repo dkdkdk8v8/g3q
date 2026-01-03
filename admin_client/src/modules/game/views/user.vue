@@ -3,10 +3,6 @@
     <cl-row>
       <!-- 刷新按钮 -->
       <cl-refresh-btn />
-      <!-- 新增按钮 -->
-      <cl-add-btn />
-      <!-- 删除按钮 -->
-      <cl-multi-delete-btn />
       <cl-filter label="状态">
         <cl-select :options="DictEnable" prop="enable" :width="160" />
       </cl-filter>
@@ -71,18 +67,48 @@ const DictIsRobot = [
 // cl-upsert
 const Upsert = useUpsert({
   items: [
-    { label: "用户ID", prop: "user_id", required: true },
-    { label: "应用ID", prop: "app_id", required: true },
-    { label: "应用用户ID", prop: "app_user_id", required: true },
-    { label: "昵称", prop: "nick_name" },
-    { label: "头像", prop: "avatar" },
-    { label: "备注", prop: "remark" },
-    { label: "是否为机器人", prop: "is_robot", required: true },
-    { label: "余额", prop: "balance", required: true },
-    { label: "最后游戏时间", prop: "last_played" },
-    { label: "是否启用", prop: "enable", required: true },
-    { label: "创建时间", prop: "created_at", required: true },
-    { label: "更新时间", prop: "updated_at", required: true },
+    {
+      label: "用户ID",
+      prop: "user_id",
+      component: {
+        name: "el-input",
+        props: {
+          disabled: true,
+        },
+      }
+    },
+    {
+      label: "昵称",
+      prop: "nick_name",
+      component: {
+        name: "el-input",
+        props: {
+          disabled: true,
+        },
+      }
+    },
+    {
+      label: "备注",
+      prop: "remark",
+      component: {
+        name: "el-input",
+        props: {
+          rows: 3,
+          type: "textarea"
+        }
+      }
+    },
+    {
+      label: "是否启用",
+      prop: "enable",
+      component: {
+        name: "cl-switch",
+        props: {
+          activeValue: 1,
+          inactiveValue: 0,
+        }
+      }
+    }
   ],
 });
 
@@ -123,11 +149,11 @@ const Table = useTable({
     {
       label: "状态",
       prop: "enable",
-      minWidth: 100,
+      width: 90,
       fixed: "right",
       dict: DictEnable,
     },
-    { type: "op", buttons: ["edit", "delete"] },
+    // { type: "op", buttons: ["edit"], width: 90 },
   ],
 });
 

@@ -55,6 +55,12 @@ type Player struct {
 	ConnWrap      *ws.WsConnWrap `json:"-"` // WebSocket 连接
 }
 
+func NewPlayer() *Player {
+	n := &Player{}
+	n.ResetGameData()
+	return n
+}
+
 func (p *Player) GetClientPlayer(cardNum int, secret bool) *Player {
 	n := &Player{
 		ID:            p.ID,
@@ -63,7 +69,7 @@ func (p *Player) GetClientPlayer(cardNum int, secret bool) *Player {
 		BetMult:       p.BetMult,
 		IsShow:        p.IsShow,
 		SeatNum:       p.SeatNum,
-		BalanceChange: 0,
+		BalanceChange: p.BalanceChange,
 		//IsReady:  p.IsReady,
 	}
 
@@ -77,18 +83,18 @@ func (p *Player) GetClientPlayer(cardNum int, secret bool) *Player {
 		n.Cards = p.Cards
 	}
 	if secret {
-		for _, c := range n.Cards {
-			n.Cards[c] = -1
+		for i := range n.Cards {
+			n.Cards[i] = -1
 		}
 	}
 
 	return n
 }
 
-func (p *Player) reset() {
+func (p *Player) ResetGameData() {
 	p.Cards = nil
-	p.CallMult = 0
-	p.BetMult = 0
+	p.CallMult = -1
+	p.BetMult = -1
 	p.IsShow = false
 	p.CardResult = CardResult{}
 	p.BalanceChange = 0
@@ -140,7 +146,7 @@ type QZNNRoom struct {
 	OnBotAction          func(room *QZNNRoom) `json:"-"`
 }
 
-func (r *QZNNRoom) reset() {
+func (r *QZNNRoom) ResetGameData() {
 	r.State = ""
 	r.StateLeftSec = 0
 	r.StateLeftSecDuration = 0
@@ -154,7 +160,7 @@ func (r *QZNNRoom) reset() {
 	}
 	for _, p := range r.Players {
 		if p != nil {
-			p.reset()
+			p.ResetGameData()
 		}
 	}
 }

@@ -3,13 +3,12 @@ package qznn
 import (
 	"math/rand"
 	"service/comm"
-	"sort"
 	"time"
 
 	"github.com/sirupsen/logrus"
 )
 
-func NewRoom(id string) *QZNNRoom {
+func NewRoom(id string, bankerType, level int) *QZNNRoom {
 	nRoom := &QZNNRoom{
 		ID:            id,
 		Players:       make([]*Player, 5),
@@ -20,6 +19,8 @@ func NewRoom(id string) *QZNNRoom {
 		driverGo:      make(chan struct{}),
 		CreateAt:      time.Now(),
 	}
+	nRoom.Config = *GetConfig(level)
+	nRoom.Config.BankerType = bankerType
 	go nRoom.driverLogicTick()
 	return nRoom
 }
@@ -371,7 +372,7 @@ func (r *QZNNRoom) prepareDeck() {
 		if p.IsOb {
 			continue
 		}
-		p.reset()
+		p.ResetGameData()
 		// 决定输赢概率 (目标牛几)
 		targetScore := GetArithmetic().DecideOutcome(p.ID, 0)
 		r.TargetResults[p.ID] = targetScore
@@ -414,10 +415,10 @@ func (r *QZNNRoom) driverLogicTick() {
 			r.StateMu.RUnlock()
 			if nLeftSecDuration > 0 {
 				r.DecreaseStateLeftSec(driverMill)
-				logrus.WithFields(logrus.Fields{
-					"room_id":         r.ID,
-					"stateLeftSecNew": r.StateLeftSec,
-				}).Info("QZNNRoom-LeftSec-Changed")
+				// logrus.WithFields(logrus.Fields{
+				// 	"room_id":         r.ID,
+				// 	"stateLeftSecNew": r.StateLeftSec,
+				// }).Info("QZNNRoom-LeftSec-Changed")
 			}
 			if r.OnBotAction != nil {
 				r.OnBotAction(r)
@@ -546,35 +547,54 @@ func (r *QZNNRoom) StartGame() {
 
 	// 查看是否已经有人抢庄
 	allCallPlayer := r.GetActivePlayers(func(p *Player) bool {
-		return p.CallMult >= 0
+		return p.CallMult > 0
 	})
 
-	//查看抢庄的用户id，查找最大的抢庄倍数，如果抢庄倍数一样的，根据用户带入金额大的获取庄家，并且设置房间的BankerID
+	// 确定庄家候选人列表
+	var candidates []*Player
+	bRandomBanker := false
+
 	if len(allCallPlayer) > 0 {
-
-		sort.Slice(allCallPlayer, func(i, j int) bool {
-			if allCallPlayer[i].CallMult == allCallPlayer[j].CallMult {
-				return allCallPlayer[i].Balance > allCallPlayer[j].Balance
+		// 1. 有人抢庄：找出抢庄倍数最高的玩家集合
+		maxMult := int64(0)
+		for _, p := range allCallPlayer {
+			if p.CallMult > maxMult {
+				maxMult = p.CallMult
 			}
-			return allCallPlayer[i].CallMult > allCallPlayer[j].CallMult
-		})
-
-		bankerPlayer := allCallPlayer[0]
-		r.SetBankerId(bankerPlayer.ID)
-
+		}
+		for _, p := range allCallPlayer {
+			if p.CallMult == maxMult {
+				candidates = append(candidates, p)
+			}
+		}
+		// 如果最高倍数有多人，标记为随机庄家
+		if len(candidates) > 1 {
+			bRandomBanker = true
+		}
 	} else {
-		//没人抢庄,系统随机分配庄家
-		r.SetStatus(StateRandomBank, 2)
+		// 2. 没人抢庄：所有活跃玩家参与随机
+		candidates = r.GetActivePlayers(nil)
+		bRandomBanker = true
+	}
 
-		candidates := r.GetActivePlayers(func(p *Player) bool {
-			return p.CallMult == -1
-		})
-		bankderId := candidates[rand.Intn(len(candidates))].ID
-		r.SetBankerId(bankderId)
-		r.WaitStateLeftTicker()
+	// 3. 确定庄家：从候选人中随机选取 (若只有1人，结果也是确定的)
+	if len(candidates) > 0 {
+		banker := candidates[rand.Intn(len(candidates))]
+		r.SetBankerId(banker.ID)
+		if banker.CallMult <= 0 {
+			banker.CallMult = r.Config.BankerMult[0]
+		}
+	}
+
+	// 4. 如果是随机产生的庄家（多人同倍数 或 无人抢庄），播放定庄动画
+	if bRandomBanker {
+		r.SetStatus(StateRandomBank, 0)
+		r.WaitSleep(time.Second * 2)
 	}
 
 	r.SetStatus(StateBankerConfirm, 0)
+
+	r.WaitSleep(time.Second * 1)
 
 	//非庄家投注
 	if !r.SetStatus(StateBetting, 10) {
@@ -584,8 +604,19 @@ func (r *QZNNRoom) StartGame() {
 
 	r.WaitStateLeftTicker()
 
+	//处理非庄家最低投注备注
+	activePlayer := r.GetActivePlayers(nil)
+	for _, p := range activePlayer {
+		if p.ID == r.BankerID {
+			continue
+		}
+		if p.BetMult <= 0 {
+			p.BetMult = r.Config.BetMult[0]
+		}
+	}
+
 	//补牌到5张，不看牌发5张，看3补2，看4
-	if !r.SetStatus(StateDealing, 10) {
+	if !r.SetStatus(StateDealing, 3) {
 		logrus.WithField("roomId", r.ID).Error("QZNNRoom-StatusChange-Fail-setting")
 		return
 	}
@@ -610,13 +641,6 @@ func (r *QZNNRoom) StartGame() {
 	//客户端播放结算动画
 	time.Sleep(time.Second * 2)
 
-	//结算状态
-	if !r.SetStatus(StateWaiting, 0) {
-		logrus.WithField("roomId", r.ID).Error("QZNNRoom-StatusChange-Fail-waiting")
-		return
-	}
-
-	activePlayer := r.GetActivePlayers(nil)
 	bankerPlayer, ok := r.GetPlayerByID(r.BankerID)
 	//计算牛牛，分配balance
 	for _, p := range activePlayer {
@@ -667,23 +691,7 @@ func (r *QZNNRoom) StartGame() {
 		p.Balance += p.BalanceChange
 		p.Mu.Unlock()
 	}
-
-	r.Broadcast(comm.PushData{
-		Cmd:      comm.ServerPush,
-		PushType: PushChangeState,
-		Data: PushChangeStateStruct{
-			Room:  r,
-			State: StateSettling}})
-
-	r.WaitSleep(time.Second * 2)
 	//清理数据
-	r.reset()
-	//
-
-	r.Broadcast(comm.PushData{
-		Cmd:      comm.ServerPush,
-		PushType: PushChangeState,
-		Data: PushChangeStateStruct{
-			Room:  r,
-			State: StateWaiting}})
+	r.ResetGameData()
+	r.SetStatus(StateWaiting, 0)
 }

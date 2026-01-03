@@ -80,12 +80,10 @@ func RobotForQZNNRoom(room *qznn.QZNNRoom) {
 		modelClient.BotRecharge(bot, minEntry)
 
 		// 创建机器人玩家对象并加入房间，Conn 设为 nil
-		p := &qznn.Player{
-			ID:       bot.UserId,
-			IsRobot:  true,
-			ConnWrap: nil,
-			Balance:  bot.Balance,
-		}
+		p := qznn.NewPlayer()
+		p.ID = bot.UserId
+		p.IsRobot = true
+		p.Balance = bot.Balance
 		room.AddPlayer(p)
 
 		processRobots(room, func(p *qznn.Player) {

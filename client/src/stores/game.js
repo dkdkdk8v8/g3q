@@ -257,6 +257,34 @@ export const useGameStore = defineStore('game', () => {
             else if (normalizedState === 'StateSettling') targetPhase = 'SETTLEMENT';
             
             if (targetPhase) {
+                // 强制修正逻辑：在随机选庄阶段，无论是否多次收到推送，都必须隐藏庄家标识
+                if (targetPhase === 'BANKER_SELECTION_ANIMATION') {
+                    players.value.forEach(p => p.isBanker = false);
+                }
+
+                // 强制修正逻辑：在发牌阶段，如果服务器未发送对手的手牌（为了防作弊），本地需填充占位牌以播放发牌动画
+                // 扩展到 SHOWDOWN 阶段，因为可能会瞬间切换到 SHOWDOWN，此时服务器发来的对手牌依然可能是空的（未摊牌）
+                if (['DEALING', 'SHOWDOWN'].includes(targetPhase)) {
+                    const targetCount = 5;
+                    players.value.forEach(p => {
+                        if (!p.hand) p.hand = [];
+                        if (p.hand.length < targetCount) {
+                            const currentLen = p.hand.length;
+                            const missing = targetCount - currentLen;
+                            for (let i = 0; i < missing; i++) {
+                                p.hand.push({
+                                    suit: 'unknown',
+                                    rank: 0,
+                                    value: 0,
+                                    label: '?',
+                                    id: `ph-${p.id}-${currentLen + i}`
+                                });
+                            }
+                        }
+                    });
+                    console.log(`[GameStore] Fixed Hands for ${targetPhase}:`, players.value.map(p => ({id: p.id, handLen: p.hand.length})));
+                }
+
                 // Check if different
                 if (currentPhase.value !== targetPhase) {
                     console.log(`[GameStore] State Switch: ${currentPhase.value} -> ${targetPhase}`);
@@ -282,11 +310,6 @@ export const useGameStore = defineStore('game', () => {
                              }
                          }
                     }
-                }
-
-                // 强制修正逻辑：在随机选庄阶段，无论是否多次收到推送，都必须隐藏庄家标识
-                if (targetPhase === 'BANKER_SELECTION_ANIMATION') {
-                    players.value.forEach(p => p.isBanker = false);
                 }
             }
         }

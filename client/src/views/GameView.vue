@@ -376,8 +376,16 @@ const startDealingAnimation = (isSupplemental = false) => {
                     total: total,
                     isMe: isMe
                 });
+            } else {
+                console.warn(`[GameView] No seat ref found for player ${p.id}`);
             }
         }
+    });
+
+    console.log("[GameView] Start Dealing Animation:", { 
+        targetsCount: targets.length, 
+        playersCount: store.players.length,
+        seatRefsCount: Object.keys(seatRefs.value).length 
     });
 
     if (targets.length === 0) return;

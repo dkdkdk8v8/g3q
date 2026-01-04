@@ -125,6 +125,8 @@ func WSEntry(c *gin.Context) {
 func handleConnection(connWrap *ws.WsConnWrap, appId, appUserId string) {
 	userId := appId + appUserId
 	var doOnce sync.Once
+	//大概20个不同的协议
+	lastCmdTime := make(map[comm.CmdType]time.Time, 20)
 	for {
 
 		doOnce.Do(func() {
@@ -137,7 +139,8 @@ func handleConnection(connWrap *ws.WsConnWrap, appId, appUserId string) {
 					PushType: game.PushRouter,
 					Data: game.PushRouterStruct{
 						Router: game.Game,
-						Room:   room}})
+						Room:   room,
+						SelfId: userId}})
 			} else {
 				//不在游戏内,默认客户端进入lobby
 				connWrap.WriteJSON(comm.PushData{
@@ -182,8 +185,19 @@ func handleConnection(connWrap *ws.WsConnWrap, appId, appUserId string) {
 				break
 			}
 		}
+		// 频率限制：同一用户同一Cmd 100ms内只能请求一次
+		if lastTime, ok := lastCmdTime[msg.Cmd]; ok {
+			if time.Since(lastTime) < 100*time.Millisecond {
+				logrus.WithFields(logrus.Fields{
+					"uid": userId,
+					"cmd": msg.Cmd}).Error("CmdLimited")
+				continue
+			}
+		}
+		lastCmdTime[msg.Cmd] = time.Now()
+
 		// 3. 路由分发 (Dispatcher)
-		dispatch(connWrap, appId, appUserId, &msg)
+		dispatch(connWrap, appId, appUserId, userId, &msg)
 	}
 }
 
@@ -200,8 +214,8 @@ func logWSCloseErr(userId string, err error) {
 	}
 }
 
-func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, msg *comm.Request) {
-	userId := appId + appUserId
+func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, userId string, msg *comm.Request) {
+
 	if msg.Cmd == game.CmdPingPong {
 		atomic.AddInt64(&pingCount, 1)
 	} else {
@@ -236,15 +250,15 @@ func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, msg *comm
 			}
 			logrus.WithField(
 				"uid", userId).WithField(
-				"msg", errRsp.Error()).WithField(
-				"cmd", rsp.Cmd).Error("Ws-Send-Msg")
-		}
-		if initMain.DefCtx.IsDebug {
-			if rsp.Cmd != game.CmdPingPong {
-				logrus.WithField(
-					"uid", userId).WithField(
-					"msg", rsp.Msg).WithField(
-					"cmd", rsp.Cmd).Info("Ws-Send-Msg")
+				"message", errRsp.Error()).WithField(
+				"cmd", rsp.Cmd).Error("SendMsg")
+		} else {
+			if initMain.DefCtx.IsDebug {
+				if rsp.Cmd != game.CmdPingPong {
+					logrus.WithField(
+						"uid", userId).WithField(
+						"cmd", rsp.Cmd).Info("SendMsg")
+				}
 			}
 		}
 		connWrap.WriteJSON(rsp)

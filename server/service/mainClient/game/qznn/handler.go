@@ -3,23 +3,26 @@ package qznn
 import (
 	"service/comm"
 
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
-
-
 
 func HandlerPlayerLeave(r *QZNNRoom, userID string) error {
 	if r == nil {
 		return comm.NewMyError("房间不存在")
 	}
 	err := r.CheckInMultiStatusDo([]RoomState{StateWaiting, StatePrepare}, func() error {
-		if r.Leave(userID) {
-			return nil
-		} else {
+		if !r.Leave(userID) {
+			//todo log
 			return comm.NewMyError("离开房间失败")
 		}
+		return nil
 	})
+
 	if err != nil {
+		if errors.As(err, &errorStateNotMatch) {
+			return comm.NewMyError("游戏已开始,无法离开房间")
+		}
 		return err
 	}
 	r.Broadcast(comm.PushData{

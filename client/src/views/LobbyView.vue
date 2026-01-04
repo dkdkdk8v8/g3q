@@ -6,7 +6,7 @@ import { useUserStore } from '../stores/user.js';
 import { useGameStore } from '../stores/game.js';
 import { useSettingsStore } from '../stores/settings.js';
 import gameClient from '../socket.js';
-import defaultAvatar from '@/assets/common/icon_avatar.png'; // Import avatar directly
+import defaultAvatar from '@/assets/common/default_avatar.png'; // Import avatar directly
 import lobbyBgSound from '@/assets/sounds/lobby_bg.mp3'; // Import background music
 
 const router = useRouter();

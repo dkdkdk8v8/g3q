@@ -24,12 +24,16 @@ import talk8 from '@/assets/sounds/talk_8.mp3';
 import talk9 from '@/assets/sounds/talk_9.mp3';
 import talk10 from '@/assets/sounds/talk_10.mp3';
 import gameBgSound from '@/assets/sounds/game_bg.mp3';
-import iconGameStart from '../assets/common/icon_game_start.png';
+import iconGameStart from '../assets/common/game_start.png';
 import gameStartSound from '@/assets/sounds/game_start.mp3';
 import gameWinImg from '../assets/common/game_win.png';
 import gameLoseImg from '../assets/common/game_lose.png';
 import gameWinSound from '@/assets/sounds/game_win.mp3';
 import gameLoseSound from '@/assets/sounds/game_lose.mp3';
+import sendCardSound from '@/assets/sounds/send_card.mp3';
+import randomBankSound from '@/assets/sounds/random_bank.mp3';
+import sendCoinSound from '@/assets/sounds/send_coin.mp3';
+import countdownSound from '@/assets/sounds/countdown.mp3';
 
 const phraseSounds = [
     talk0, talk1, talk2, talk3, talk4, talk5, talk6, talk7, talk8, talk9, talk10
@@ -206,7 +210,6 @@ const startRobotSpeech = () => {
 
 const showMenu = ref(false);
 const showHistory = ref(false);
-const isDebugPanelExpanded = ref(false);
 
 const visibleCounts = ref({});
 
@@ -300,6 +303,16 @@ watch(() => store.players.map(p => ({ id: p.id, bet: p.betMultiplier })), (newVa
     });
 }, { deep: true });
 
+// Watch countdown to play sound effect
+watch(() => store.countdown, (newVal, oldVal) => {
+    // Play sound only if countdown is active (greater than 0) and has changed
+    // And if the current phase is one that involves an active countdown, not just showing a static number
+    if (settingsStore.soundEnabled && newVal > 0 && newVal !== oldVal && ['READY_COUNTDOWN', 'ROB_BANKER', 'BETTING', 'SHOWDOWN'].includes(store.currentPhase)) {
+        const audio = new Audio(countdownSound);
+        audio.play().catch(() => { });
+    }
+});
+
 watch(() => store.currentPhase, async (newPhase, oldPhase) => {
     if (newPhase === 'IDLE' || newPhase === 'GAME_OVER') {
         visibleCounts.value = {};
@@ -358,6 +371,10 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
             animationIntervalId = setInterval(() => {
                 candidateIndex = (candidateIndex + 1) % candidates.length;
                 currentlyHighlightedPlayerId.value = candidates[candidateIndex];
+                if (settingsStore.soundEnabled) {
+                    const audio = new Audio(randomBankSound);
+                    audio.play().catch(() => { });
+                }
             }, 100);
         }
     }
@@ -422,6 +439,10 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
                     if (count < 5) count = 5;
                     if (count > 20) count = 20;
                     coinLayer.value.throwCoins(seatRect, bankerRect, count);
+                    if (settingsStore.soundEnabled) {
+                        const audio = new Audio(sendCoinSound);
+                        audio.play().catch(() => { });
+                    }
                 }
             }
         });
@@ -436,6 +457,10 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
                         if (count < 8) count = 8;
                         if (count > 30) count = 30;
                         coinLayer.value.throwCoins(bankerRect, seatRect, count);
+                        if (settingsStore.soundEnabled) {
+                            const audio = new Audio(sendCoinSound);
+                            audio.play().catch(() => { });
+                        }
                     }
                 }
             });
@@ -444,6 +469,11 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
 }, { immediate: true });
 
 const startDealingAnimation = (isSupplemental = false) => {
+    if (settingsStore.soundEnabled) {
+        const audio = new Audio(sendCardSound);
+        audio.play().catch(() => { });
+    }
+
     if (!isSupplemental) {
         visibleCounts.value = {}; // Reset visible counts ONLY if not supplemental
     }
@@ -600,10 +630,6 @@ const closeSettingsDebounced = debounce(() => {
     showSettings.value = false;
 }, 500);
 
-const toggleDebugPanelExpanded = debounce(() => {
-    isDebugPanelExpanded.value = !isDebugPanelExpanded.value;
-}, 500);
-
 const toggleShowMenu = debounce(() => {
     showMenu.value = !showMenu.value;
 }, 500);
@@ -615,26 +641,6 @@ const toggleShowMenu = debounce(() => {
         <img v-if="showResultAnim" :src="resultImage" class="result-icon" :class="resultAnimClass" />
         <DealingLayer ref="dealingLayer" />
         <CoinLayer ref="coinLayer" />
-
-        <!-- Debug Control Panel -->
-        <div class="debug-panel">
-            <div class="debug-title" @click="toggleDebugPanelExpanded()">
-                阶段控制
-                <span style="margin-left: 5px;float: right;">{{ isDebugPanelExpanded ? '▼' : '▲' }}</span>
-            </div>
-            <div v-show="isDebugPanelExpanded" class="debug-buttons">
-                <button @click="debounce(() => store.enterStateWaiting(), 500)()">等待用户</button>
-                <button @click="debounce(() => store.enterStatePrepare(), 500)()">准备开始</button>
-                <button @click="debounce(() => store.enterStatePreCard(), 500)()">预先发牌</button>
-                <button @click="debounce(() => store.enterStateBanking(), 500)()">开始抢庄</button>
-                <button @click="debounce(() => store.enterStateRandomBank(), 500)()">随机选庄</button>
-                <button @click="debounce(() => store.enterStateBankerConfirm(), 500)()">确认庄家</button>
-                <button @click="debounce(() => store.enterStateBetting(), 500)()">闲家下注</button>
-                <button @click="debounce(() => store.enterStateDealing(), 500)()">补充手牌</button>
-                <button @click="debounce(() => store.enterStateShowCard(), 500)()">摊牌比拼</button>
-                <button @click="debounce(() => store.enterStateSettling(), 500)()">结算对局</button>
-            </div>
-        </div>
 
         <!-- 顶部栏 -->
         <div class="top-bar">
@@ -694,7 +700,7 @@ const toggleShowMenu = debounce(() => {
                 <div class="alarm-clock">
                     <div class="alarm-body">
                         <div class="alarm-time">{{ store.countdown < 10 ? '0' + store.countdown : store.countdown
-                        }}</div>
+                                }}</div>
                         </div>
                         <div class="alarm-ears left"></div>
                         <div class="alarm-ears right"></div>
@@ -803,7 +809,7 @@ const toggleShowMenu = debounce(() => {
                             <div class="h-row top">
                                 <span class="h-time">{{ new Date(item.timestamp).toLocaleTimeString() }}</span>
                                 <span class="h-role" :class="{ banker: item.isBanker }">{{ item.isBanker ? '庄' : '闲'
-                                }}</span>
+                                    }}</span>
                             </div>
                             <div class="h-row main">
                                 <span class="h-result" :class="item.score >= 0 ? 'win' : 'lose'">

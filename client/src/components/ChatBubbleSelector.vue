@@ -77,8 +77,8 @@ onMounted(() => {
     ];
 });
 
-const selectEmoji = (emojiUrl) => {
-    emit('selectEmoji', emojiUrl);
+const selectEmoji = (emojiUrl, index) => {
+    emit('selectEmoji', emojiUrl, index);
     closeModal();
 };
 
@@ -131,7 +131,7 @@ onUnmounted(() => {
                 </div>
                 <div v-if="activeTab === 'emojis'" class="emojis-grid">
                     <img v-for="(emoji, index) in emojis" :key="index" :src="emoji" alt="emoji" class="emoji-item"
-                        @click="selectEmoji(emoji)">
+                        @click="selectEmoji(emoji, index)">
                 </div>
             </div>
         </div>

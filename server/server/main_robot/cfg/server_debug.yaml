@@ -1,0 +1,24 @@
+WorkId: 0
+HttpHost: 0.0.0.0
+HttpPort: 19082
+AdminHost: 0.0.0.0
+AdminPort: 19084
+ShutDownWait: 3
+SignMem: 1000
+TgMonitorBotToken: "7900191205:AAGVienxueRfb0RJh4yC3C2Nd4ZT5WjZHZE"
+TgMonitorChatID: -4824160224
+TgNormalChatID: -4824160224
+LogLevel: "debug"
+MysqlHost: "127.0.0.1"
+MysqlPort: "13306"
+MysqlUser: "admin"
+MysqlPwd: "S40bdYFgTy8uzz6A"
+MysqlConn: 10
+MysqlIdle: 5
+RedisAddr: "127.0.0.1:16379"
+RedisPwd: ""
+RedisTunnel:
+  Host: "13.251.18.153:22"
+  User: "ec2-user"
+  Rsa: "/Users/admin/Documents/ssh/fly"
+  Target: "hsxs-cache-nozgx2.serverless.apse1.cache.amazonaws.com:6379"

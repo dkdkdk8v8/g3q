@@ -305,35 +305,16 @@ watch(() => store.players.map(p => ({ id: p.id, bet: p.betMultiplier })), (newVa
 }, { deep: true });
 
 // Watch countdown to play sound effect
-
 watch(() => store.countdown, (newVal, oldVal) => {
-
     const isCountdownPhase = ['READY_COUNTDOWN', 'ROB_BANKER', 'BETTING', 'SHOWDOWN'].includes(store.currentPhase);
 
-
-
-    // Play general countdown sound
-
-    if (settingsStore.soundEnabled && newVal > 0 && newVal !== oldVal && isCountdownPhase) {
-
-        const audio = new Audio(countdownSound);
-
-        audio.play().catch(() => {});
-
+    if (settingsStore.soundEnabled && isCountdownPhase && newVal !== oldVal) {
+        // Play countdownAlertSound at 2 seconds
+        if (newVal === 1) {
+            const audio = new Audio(countdownAlertSound);
+            audio.play().catch(() => { });
+        }
     }
-
-
-
-    // Play alert sound for last 3 seconds
-
-    if (settingsStore.soundEnabled && isCountdownPhase && (newVal === 3 || newVal === 2 || newVal === 1) && newVal !== oldVal) {
-
-        const audio = new Audio(countdownAlertSound);
-
-        audio.play().catch(() => {});
-
-    }
-
 });
 
 watch(() => store.currentPhase, async (newPhase, oldPhase) => {
@@ -723,7 +704,7 @@ const toggleShowMenu = debounce(() => {
                 <div class="alarm-clock">
                     <div class="alarm-body">
                         <div class="alarm-time">{{ store.countdown < 10 ? '0' + store.countdown : store.countdown
-                                }}</div>
+                        }}</div>
                         </div>
                         <div class="alarm-ears left"></div>
                         <div class="alarm-ears right"></div>
@@ -832,7 +813,7 @@ const toggleShowMenu = debounce(() => {
                             <div class="h-row top">
                                 <span class="h-time">{{ new Date(item.timestamp).toLocaleTimeString() }}</span>
                                 <span class="h-role" :class="{ banker: item.isBanker }">{{ item.isBanker ? '庄' : '闲'
-                                    }}</span>
+                                }}</span>
                             </div>
                             <div class="h-row main">
                                 <span class="h-result" :class="item.score >= 0 ? 'win' : 'lose'">

@@ -139,22 +139,22 @@ const commonPhrases = [
     "作孽啊"
 ];
 
-import emoji1 from '@/assets/emoji/emoji_1.png';
-import emoji2 from '@/assets/emoji/emoji_2.png';
-import emoji3 from '@/assets/emoji/emoji_3.png';
-import emoji4 from '@/assets/emoji/emoji_4.png';
-import emoji5 from '@/assets/emoji/emoji_5.png';
-import emoji6 from '@/assets/emoji/emoji_6.png';
-import emoji7 from '@/assets/emoji/emoji_7.png';
-import emoji8 from '@/assets/emoji/emoji_8.png';
-import emoji9 from '@/assets/emoji/emoji_9.png';
-import emoji10 from '@/assets/emoji/emoji_10.png';
-import emoji11 from '@/assets/emoji/emoji_11.png';
-import emoji12 from '@/assets/emoji/emoji_12.png';
-import emoji13 from '@/assets/emoji/emoji_13.png';
-import emoji14 from '@/assets/emoji/emoji_14.png';
-import emoji15 from '@/assets/emoji/emoji_15.png';
-import emoji16 from '@/assets/emoji/emoji_16.png';
+import emoji1 from '@/assets/emoji/emoji_0.png';
+import emoji2 from '@/assets/emoji/emoji_1.png';
+import emoji3 from '@/assets/emoji/emoji_2.png';
+import emoji4 from '@/assets/emoji/emoji_3.png';
+import emoji5 from '@/assets/emoji/emoji_4.png';
+import emoji6 from '@/assets/emoji/emoji_5.png';
+import emoji7 from '@/assets/emoji/emoji_6.png';
+import emoji8 from '@/assets/emoji/emoji_7.png';
+import emoji9 from '@/assets/emoji/emoji_8.png';
+import emoji10 from '@/assets/emoji/emoji_9.png';
+import emoji11 from '@/assets/emoji/emoji_10.png';
+import emoji12 from '@/assets/emoji/emoji_11.png';
+import emoji13 from '@/assets/emoji/emoji_12.png';
+import emoji14 from '@/assets/emoji/emoji_13.png';
+import emoji15 from '@/assets/emoji/emoji_14.png';
+import emoji16 from '@/assets/emoji/emoji_15.png';
 
 const allEmojis = [
     emoji1, emoji2, emoji3, emoji4, emoji5, emoji6, emoji7, emoji8,
@@ -704,7 +704,7 @@ const toggleShowMenu = debounce(() => {
                 <div class="alarm-clock">
                     <div class="alarm-body">
                         <div class="alarm-time">{{ store.countdown < 10 ? '0' + store.countdown : store.countdown
-                        }}</div>
+                                }}</div>
                         </div>
                         <div class="alarm-ears left"></div>
                         <div class="alarm-ears right"></div>
@@ -813,7 +813,7 @@ const toggleShowMenu = debounce(() => {
                             <div class="h-row top">
                                 <span class="h-time">{{ new Date(item.timestamp).toLocaleTimeString() }}</span>
                                 <span class="h-role" :class="{ banker: item.isBanker }">{{ item.isBanker ? '庄' : '闲'
-                                }}</span>
+                                    }}</span>
                             </div>
                             <div class="h-row main">
                                 <span class="h-result" :class="item.score >= 0 ? 'win' : 'lose'">

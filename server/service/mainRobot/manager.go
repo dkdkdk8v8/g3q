@@ -15,7 +15,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const ROBOT_COUNT = 50                              // 机器人数量
+// 这两个参数，决定了多少时间内的活跃机器人数量
+const ROBOT_COUNT = 100                             // 机器人数量
+const MINUTE_WAIT_MAX = 10                          // 进入房间前等待的最长分钟数
 const SERVER_URL = "ws://172.20.10.11:18084/rpc/ws" // WebSocket 服务器地址
 const MIN_GAMES = 3                                 // 机器人至少玩几局
 const PROB_LEAVE_5_PLAYERS = 0.8                    // 5人时退出概率
@@ -37,13 +39,12 @@ func Start() {
 
 func maintainRobot(idx int) {
 	for {
+		minutes := rand.Intn(MINUTE_WAIT_MAX)
+		time.Sleep(time.Minute * time.Duration(minutes))
 		robot := NewRobot(idx)
-		logrus.Infof("机器人 %d 准备启动", idx)
 		robot.Run()
 		// 退出后随机等待一段时间再重连，模拟新用户进入
-		minutes := 1 + rand.Intn(30)
 		logrus.Infof("机器人 %d 已断开，等待 %d 分钟后重连...", idx, minutes)
-		time.Sleep(time.Minute * time.Duration(minutes))
 	}
 }
 
@@ -139,8 +140,6 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 		switch d.Router {
 		case game.Lobby:
 			logrus.Infof("机器人 %d 进入大厅...", r.Idx)
-			// 进入大厅后随机等待0-100秒再进入房间
-			time.Sleep(time.Duration(rand.Intn(100)) * time.Second)
 			// 根据配置随机选择房间等级
 			if len(qznn.Configs) > 0 {
 				randomConfig := qznn.Configs[rand.Intn(len(qznn.Configs))]
@@ -219,8 +218,8 @@ func (r *Robot) handleStateChange(state qznn.RoomState) {
 	r.mu.Unlock()
 
 	go func() {
-		// 模拟用户随机等待 1-10 秒
-		time.Sleep(time.Duration(rand.Intn(10)+1) * time.Second)
+		// 模拟用户随机等待 1-5 秒
+		time.Sleep(time.Duration(rand.Intn(5)+1) * time.Second)
 
 		switch state {
 		case qznn.StateBanking:

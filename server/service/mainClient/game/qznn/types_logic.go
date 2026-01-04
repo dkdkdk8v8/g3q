@@ -13,6 +13,7 @@ type RoomState string
 const (
 	StateWaiting               RoomState = "StateWaiting"               //房间等待中
 	StatePrepare               RoomState = "StatePrepare"               //房间倒计时中，马上开始
+	StateStartGame             RoomState = "StateStartGame"             //游戏开始
 	StatePreCard               RoomState = "StatePreCard"               //预先发牌
 	StateBanking               RoomState = "StateBanking"               //抢庄中
 	StateRandomBank            RoomState = "StateRandomBank"            //随机抢庄
@@ -194,7 +195,8 @@ func (r *QZNNRoom) DecreaseStateLeftSec(d time.Duration) {
 	if r.StateLeftSecDuration <= 0 {
 		r.StateLeftSecDuration = 0
 	}
-	r.StateLeftSec = int(r.StateLeftSecDuration / time.Second)
+	// 向上取整，避免 0.9s 变成 0s 导致提前结束
+	r.StateLeftSec = int((r.StateLeftSecDuration + time.Second - 1) / time.Second)
 }
 
 func (r *QZNNRoom) GetClientRoom(pushId string) *QZNNRoom {

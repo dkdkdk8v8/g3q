@@ -53,5 +53,4 @@ type PushPlayerShowCardStruct struct {
 
 type PushRoomStruct struct {
 	Room   *QZNNRoom
-	SelfId string
 }

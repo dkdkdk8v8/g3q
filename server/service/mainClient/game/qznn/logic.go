@@ -7,8 +7,12 @@ import (
 	"slices"
 	"time"
 
+	errors "github.com/pkg/errors"
+
 	"github.com/sirupsen/logrus"
 )
+
+var errorStateNotMatch = errors.New("stateNotMatch")
 
 func NewRoom(id string, bankerType, level int) *QZNNRoom {
 	nRoom := &QZNNRoom{
@@ -54,42 +58,49 @@ func (r *QZNNRoom) CheckInMultiStatusDo(state []RoomState, fn func() error) erro
 	if slices.Contains(state, r.State) {
 		return fn()
 	} else {
-		return fmt.Errorf("room state is %s, expect %v", r.State, state)
+		return errors.Wrap(errorStateNotMatch, fmt.Sprintf("%v", state))
 	}
 }
 
-func (r *QZNNRoom) SetStatus(state RoomState, stateLeftSec int) bool {
+func (r *QZNNRoom) SetStatus(oldStates []RoomState, newState RoomState, stateLeftSec int) bool {
 	r.StateMu.Lock()
-	if r.State == state {
+	if r.State == newState {
 		r.StateMu.Unlock()
 		logrus.WithFields(logrus.Fields{
 			"room_id": r.ID,
-			"state":   state,
-		}).Info("QZNNRoom-SetStatus-Ignored-SameState")
+			"state":   newState,
+		}).Warn("QZNNRoom-SetStatus-Ignored-SameState")
+		return false
+	}
+	if !slices.Contains(oldStates, r.State) {
+		r.StateMu.Unlock()
+		logrus.WithFields(logrus.Fields{
+			"room_id": r.ID,
+			"state":   newState,
+		}).Warn("QZNNRoom-SetStatus-Ignored-InvalidState")
 		return false
 	}
 	oldState := r.State
-	r.State = state
+	r.State = newState
 	r.StateLeftSec = stateLeftSec
 	r.StateLeftSecDuration = time.Duration(stateLeftSec) * time.Second
 	r.StateMu.Unlock()
 	logrus.WithFields(logrus.Fields{
 		"room_id":        r.ID,
 		"old_state":      oldState,
-		"new_state":      state,
+		"new_state":      newState,
 		"state_left_sec": stateLeftSec,
 	}).Info("QZNNRoom-SetStatus-Changed")
 
 	// 倒计时逻辑现在由 drvierLogicTick 统一接管，不再单独开启 goroutine
 	// 也不需要在这里处理 interuptStateLeftTicker，因为 StateLeftSec 已经被重置
-
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
 		return comm.PushData{
 			Cmd:      comm.ServerPush,
 			PushType: PushChangeState,
 			Data: PushChangeStateStruct{
 				Room:         r.GetClientRoom(p.ID),
-				State:        state,
+				State:        newState,
 				StateLeftSec: stateLeftSec}}
 	})
 	return true
@@ -140,7 +151,7 @@ func (r *QZNNRoom) GetPlayerCount() int {
 }
 
 // todo::StateSettlingDirectPreCard 这个 也要判断kickoff
-func (r *QZNNRoom) KickOffByWsDisconnect() ([]string, bool) {
+func (r *QZNNRoom) kickOffByWsDisconnect() ([]string, bool) {
 	var delIndex []int
 	r.PlayerMu.RLock()
 
@@ -449,7 +460,7 @@ func (r *QZNNRoom) driverLogicTick() {
 }
 
 func (r *QZNNRoom) tickWaiting() {
-	if leaveIds, isLeave := r.KickOffByWsDisconnect(); isLeave {
+	if leaveIds, isLeave := r.kickOffByWsDisconnect(); isLeave {
 		r.Broadcast(comm.PushData{
 			Cmd:      comm.ServerPush,
 			PushType: PushPlayLeave,
@@ -459,12 +470,12 @@ func (r *QZNNRoom) tickWaiting() {
 	countExistPlayerNum := r.GetPlayerCount()
 	//加入已经有2个人在房间，可以进行倒计时开始游戏
 	if countExistPlayerNum >= 2 {
-		r.SetStatus(StatePrepare, StateWaiting2StartSec)
+		r.SetStatus([]RoomState{StateWaiting}, StatePrepare, StateWaiting2StartSec)
 	}
 }
 
 func (r *QZNNRoom) tickPrepare() {
-	if leaveIds, isLeave := r.KickOffByWsDisconnect(); isLeave {
+	if leaveIds, isLeave := r.kickOffByWsDisconnect(); isLeave {
 		r.Broadcast(comm.PushData{
 			Cmd:      comm.ServerPush,
 			PushType: PushPlayLeave,
@@ -474,7 +485,7 @@ func (r *QZNNRoom) tickPrepare() {
 	countExistPlayerNum := r.GetPlayerCount()
 	//加入已经有2个人在房间，可以进行倒计时开始游戏
 	if countExistPlayerNum < 2 {
-		if r.SetStatus(StateWaiting, 0) {
+		if r.SetStatus([]RoomState{StatePrepare}, StateWaiting, 0) {
 			return
 		}
 	}
@@ -486,7 +497,7 @@ func (r *QZNNRoom) tickPrepare() {
 		}
 	} else {
 		//还是有掉线的，再等
-		if r.SetStatus(StateWaiting, 0) {
+		if r.SetStatus([]RoomState{StatePrepare}, StateWaiting, 0) {
 			return
 		}
 	}
@@ -554,27 +565,25 @@ func (r *QZNNRoom) logicTick() {
 }
 
 func (r *QZNNRoom) StartGame() {
-	//protect status check
-	if !(r.CheckStatus(StateWaiting) || r.CheckStatus(StatePrepare)) {
+	if !r.SetStatus([]RoomState{StatePrepare}, StateStartGame, 2) {
 		return
 	}
-
 	//准备牌堆并发牌
 	r.prepareDeck()
+	r.WaitStateLeftTicker()
 
 	if BankerTypeNoLook != r.Config.BankerType {
 		//预发牌
-		if !r.SetStatus(StatePreCard, 0) {
+		if !r.SetStatus([]RoomState{StateStartGame}, StatePreCard, 0) {
 			logrus.WithField("room_id", r.ID).Error("QZNNRoom-StatusChange-Fail-preGiveCards")
 			return
 		}
-
 		//预先发牌动画，看3s后
 		r.WaitSleep(3 * time.Second)
-	}
 
+	}
 	//抢庄
-	if !r.SetStatus(StateBanking, 3) {
+	if !r.SetStatus([]RoomState{StateStartGame, StatePreCard}, StateBanking, 3) {
 		logrus.WithField("roomId", r.ID).Error("QZNNRoom-StatusChange-Fail-callBanker")
 		return
 	}
@@ -625,16 +634,16 @@ func (r *QZNNRoom) StartGame() {
 
 	// 4. 如果是随机产生的庄家（多人同倍数 或 无人抢庄），播放定庄动画
 	if bRandomBanker {
-		r.SetStatus(StateRandomBank, 0)
+		r.SetStatus([]RoomState{StateBanking}, StateRandomBank, 0)
 		r.WaitSleep(time.Second * 2)
 	}
 
-	r.SetStatus(StateBankerConfirm, 0)
+	r.SetStatus([]RoomState{StateBanking, StateRandomBank}, StateBankerConfirm, 0)
 
 	r.WaitSleep(time.Second * 1)
 
 	//非庄家投注
-	if !r.SetStatus(StateBetting, 2) {
+	if !r.SetStatus([]RoomState{StateBankerConfirm}, StateBetting, 2) {
 		logrus.WithField("roomId", r.ID).Error("QZNNRoom-StatusChange-Fail-StateBetting")
 		return
 	}
@@ -653,14 +662,14 @@ func (r *QZNNRoom) StartGame() {
 	}
 
 	//补牌到5张，不看牌发5张，看3补2，看4
-	if !r.SetStatus(StateDealing, 0) {
+	if !r.SetStatus([]RoomState{StateBetting}, StateDealing, 0) {
 		logrus.WithField("roomId", r.ID).Error("QZNNRoom-StatusChange-Fail-StateDealing")
 		return
 	}
 
 	r.WaitSleep(time.Second * 3)
 
-	if !r.SetStatus(StateShowCard, 3) {
+	if !r.SetStatus([]RoomState{StateDealing}, StateShowCard, 3) {
 		logrus.WithField("roomId", r.ID).Error("QZNNRoom-StatusChange-Fail-StateShowCard")
 		return
 	}
@@ -718,7 +727,7 @@ func (r *QZNNRoom) StartGame() {
 	}
 
 	//结算状态
-	if !r.SetStatus(StateSettling, 0) {
+	if !r.SetStatus([]RoomState{StateShowCard}, StateSettling, 0) {
 		logrus.WithField("roomId", r.ID).Error("QZNNRoom-StatusChange-Fail-StateSettling")
 		return
 	}
@@ -728,5 +737,5 @@ func (r *QZNNRoom) StartGame() {
 
 	//清理数据
 	r.ResetGameData()
-	r.SetStatus(StateWaiting, 0)
+	r.SetStatus([]RoomState{StateSettling, RoomState("")}, StateWaiting, 0)
 }

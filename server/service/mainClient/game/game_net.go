@@ -20,5 +20,6 @@ const (
 
 type PushRouterStruct struct {
 	Router RouterType
-	Room   interface{} `json:",omitempty"`
+	Room   any    `json:",omitempty"`
+	SelfId string `json:",omitempty"`
 }

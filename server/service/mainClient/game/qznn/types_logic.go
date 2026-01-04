@@ -167,10 +167,6 @@ func (r *QZNNRoom) ResetGameData() {
 	r.Deck = []int{}
 	r.TargetResults = make(map[string]int, 5)
 	r.TotalBet = 0
-	// if r.StateLeftSecTicker != nil {
-	// 	r.StateLeftSecTicker.Stop()
-	// 	r.StateLeftSecTicker = nil
-	// }
 	for _, p := range r.Players {
 		if p != nil {
 			p.ResetGameData()
@@ -205,8 +201,7 @@ func (r *QZNNRoom) GetClientRoom(pushId string) *QZNNRoom {
 	n := &QZNNRoom{
 		QZNNRoomData: r.QZNNRoomData,
 	}
-	n.Players = nil // 清空 Players，重新生成，避免指向原切片
-
+	n.Players = make([]*Player, 0, 5) // 清空 Players，重新生成，避免指向原切片
 	preCard := PlayerCardMax
 	bSecret := true
 	r.StateMu.RLock()
@@ -222,7 +217,6 @@ func (r *QZNNRoom) GetClientRoom(pushId string) *QZNNRoom {
 		bSecret = false
 
 	}
-
 	r.StateMu.RUnlock()
 
 	pushPlayers := r.GetBroadCasePlayers(nil)

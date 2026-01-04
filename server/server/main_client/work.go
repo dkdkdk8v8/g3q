@@ -6,6 +6,7 @@ import (
 	"compoment/ormutil"
 	"compoment/uid"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"os"
 	"runtime"
@@ -13,12 +14,17 @@ import (
 	"service/initMain"
 	"service/mainClient"
 	"service/modelClient"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
 
 func cors(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")

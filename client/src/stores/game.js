@@ -58,6 +58,7 @@ export const useGameStore = defineStore('game', () => {
     const bankerCandidates = ref([]); // Store IDs of players who are candidates for banker
     const bankerMult = ref([]); // Store banker multiplier options
     const betMult = ref([]); // Store betting multiplier options
+    const playerSpeechQueue = ref([]); // Queue for incoming speech/emoji events
     const roomJoinedPromise = ref(null); // Added for async join completion
     let roomJoinedResolve = null;
     let roomJoinedReject = null;
@@ -262,6 +263,19 @@ export const useGameStore = defineStore('game', () => {
         // console.log(`[GameStore] Universal Push: ${pushType}`, data);
 
         if (!data) return;
+
+        // Handle PushTalk specifically
+        if (pushType === 'PushTalk') {
+            if (data.UserId && data.Type !== undefined && data.Index !== undefined) {
+                playerSpeechQueue.value.push({
+                    userId: data.UserId,
+                    type: data.Type,
+                    index: data.Index
+                });
+            }
+            return; // PushTalk is self-contained, no need to process general room data further for this pushType
+        }
+        
         const room = data.Room;
 
         // 1. Update Room Config & Info
@@ -591,6 +605,14 @@ export const useGameStore = defineStore('game', () => {
         bankerCandidates.value = [];
     };
 
+    const sendPlayerTalk = (type, index) => {
+        if (roomId.value) { // Ensure we are in a room
+            gameClient.send(QZNN_Prefix + "PlayerTalk", { RoomId: roomId.value, Type: type, Index: index });
+        } else {
+            console.warn("[GameStore] Cannot send PlayerTalk: Not in a room.");
+        }
+    };
+
     return {
         currentPhase,
         players,
@@ -612,8 +634,10 @@ export const useGameStore = defineStore('game', () => {
         baseBet,
         bankerMult,
         betMult,
+        playerSpeechQueue, // Export the new speech queue
         roomJoinedPromise, // Export roomJoinedPromise
         resetState, // Export resetState
+        sendPlayerTalk, // Export the new action
         // Manual Controls
         enterStateWaiting,
         enterStatePrepare,

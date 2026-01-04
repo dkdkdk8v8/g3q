@@ -122,7 +122,7 @@ export default {
         // message.value = `连接成功！正在获取大厅数据...`; // Remove dynamic message
 
         // Send requests separately
-        gameClient.send("QZNN.UserInfo");
+        gameClient.send("UserInfo");
         gameClient.send("QZNN.LobbyConfig");
       };
 

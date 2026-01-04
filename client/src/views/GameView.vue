@@ -230,6 +230,10 @@ const setSeatRef = (el, playerId) => {
 
 const myPlayer = computed(() => store.players.find(p => p.id === store.myPlayerId));
 
+watch(() => myPlayer.value?.betMultiplier, (newVal) => {
+    console.log(`[GameView Debug] myPlayer.betMultiplier changed to: ${newVal}`);
+}, { immediate: true });
+
 // Watch Music Setting
 watch(() => settingsStore.musicEnabled, (val) => {
     if (bgAudio.value) {
@@ -298,6 +302,11 @@ watch(() => store.players.map(p => ({ id: p.id, bet: p.betMultiplier })), (newVa
                 let count = 3 + (p.bet - 1) * 2;
                 if (count > 15) count = 15;
                 coinLayer.value.throwCoins(seatRect, centerRect, count);
+                // Play sendCoinSound when a bet is placed
+                if (settingsStore.soundEnabled) {
+                    const audio = new Audio(sendCoinSound);
+                    audio.play().catch(() => { });
+                }
             }
         }
         lastBetStates.value[p.id] = p.bet;
@@ -306,7 +315,7 @@ watch(() => store.players.map(p => ({ id: p.id, bet: p.betMultiplier })), (newVa
 
 // Watch countdown to play sound effect
 watch(() => store.countdown, (newVal, oldVal) => {
-    const isCountdownPhase = ['READY_COUNTDOWN', 'ROB_BANKER', 'BETTING', 'SHOWDOWN'].includes(store.currentPhase);
+    const isCountdownPhase = ['ROB_BANKER', 'BETTING'].includes(store.currentPhase);
 
     if (settingsStore.soundEnabled && isCountdownPhase && newVal !== oldVal) {
         // Play countdownAlertSound at 2 seconds
@@ -747,18 +756,19 @@ const toggleShowMenu = debounce(() => {
                     </transition>
 
 
-                    <div v-if="store.currentPhase === 'ROB_BANKER' && !myPlayer.isObserver" class="btn-group">
+                    <div v-if="store.currentPhase === 'ROB_BANKER' && !myPlayer.isObserver && myPlayer.robMultiplier === -1" class="btn-group">
                         <div class="game-btn blue" @click="onRob(0)">不抢</div>
-                        <div class="game-btn orange" @click="onRob(1)">1倍</div>
-                        <div class="game-btn orange" @click="onRob(2)">2倍</div>
-                        <div class="game-btn orange" @click="onRob(3)">3倍</div>
+                        <div v-for="mult in store.bankerMult.filter(m => m > 0)" :key="mult" class="game-btn orange"
+                            @click="onRob(mult)">
+                            {{ mult }}倍
+                        </div>
                     </div>
 
                     <div v-if="store.currentPhase === 'BETTING' && !myPlayer.isBanker && myPlayer.betMultiplier === 0 && !myPlayer.isObserver"
                         class="btn-group">
-                        <div class="game-btn orange" @click="onBet(1)">1倍</div>
-                        <div class="game-btn orange" @click="onBet(2)">2倍</div>
-                        <div class="game-btn orange" @click="onBet(5)">5倍</div>
+                        <div v-for="mult in store.betMult" :key="mult" class="game-btn orange" @click="onBet(mult)">
+                            {{ mult }}倍
+                        </div>
                     </div>
 
                     <div v-if="store.currentPhase === 'BETTING' && myPlayer.isBanker" class="waiting-text">

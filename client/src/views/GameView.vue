@@ -306,7 +306,7 @@ watch(() => store.players.map(p => ({ id: p.id, bet: p.betMultiplier })), (newVa
 
 // Watch countdown to play sound effect
 watch(() => store.countdown, (newVal, oldVal) => {
-    const isCountdownPhase = ['READY_COUNTDOWN', 'ROB_BANKER', 'BETTING', 'SHOWDOWN'].includes(store.currentPhase);
+    const isCountdownPhase = ['ROB_BANKER', 'BETTING'].includes(store.currentPhase);
 
     if (settingsStore.soundEnabled && isCountdownPhase && newVal !== oldVal) {
         // Play countdownAlertSound at 2 seconds

@@ -47,7 +47,7 @@ func (r *QZNNRoom) CheckStatusDo(state RoomState, fn func() error) error {
 	r.StateMu.RLock()
 	defer r.StateMu.RUnlock()
 	if r.State != state {
-		return fmt.Errorf("room state is %s, expect %s", r.State, state)
+		return errors.Wrap(errorStateNotMatch, fmt.Sprintf("%s", state))
 	}
 	return fn()
 }
@@ -67,30 +67,34 @@ func (r *QZNNRoom) SetStatus(oldStates []RoomState, newState RoomState, stateLef
 	if r.State == newState {
 		r.StateMu.Unlock()
 		logrus.WithFields(logrus.Fields{
-			"room_id": r.ID,
-			"state":   newState,
-		}).Warn("QZNNRoom-SetStatus-Ignored-SameState")
+			"roomId": r.ID,
+			"state":  newState,
+		}).Error("QZNNStatuSame")
 		return false
 	}
 	if !slices.Contains(oldStates, r.State) {
 		r.StateMu.Unlock()
 		logrus.WithFields(logrus.Fields{
-			"room_id": r.ID,
-			"state":   newState,
-		}).Warn("QZNNRoom-SetStatus-Ignored-InvalidState")
+			"roomId": r.ID,
+			"state":  newState,
+		}).Error("QZNNStatuIgnored")
 		return false
 	}
 	oldState := r.State
 	r.State = newState
 	r.StateLeftSec = stateLeftSec
-	r.StateLeftSecDuration = time.Duration(stateLeftSec) * time.Second
+	if stateLeftSec > 0 {
+		r.StateDeadline = time.Now().Add(time.Duration(stateLeftSec) * time.Second)
+	} else {
+		r.StateDeadline = time.Time{}
+	}
 	r.StateMu.Unlock()
 	logrus.WithFields(logrus.Fields{
-		"room_id":        r.ID,
-		"old_state":      oldState,
-		"new_state":      newState,
-		"state_left_sec": stateLeftSec,
-	}).Info("QZNNRoom-SetStatus-Changed")
+		"roomId":  r.ID,
+		"old":     oldState,
+		"new":     newState,
+		"leftSec": stateLeftSec,
+	}).Info("QZNNStatuChanged")
 
 	// 倒计时逻辑现在由 drvierLogicTick 统一接管，不再单独开启 goroutine
 	// 也不需要在这里处理 interuptStateLeftTicker，因为 StateLeftSec 已经被重置
@@ -176,17 +180,20 @@ func (r *QZNNRoom) kickOffByWsDisconnect() ([]string, bool) {
 	}
 
 	var delId []string
-	r.PlayerMu.Lock()
-	for _, delIndex := range delIndex {
-		delId = append(delId, r.Players[delIndex].ID)
-		r.Players[delIndex] = nil
-	}
-	r.PlayerMu.Unlock()
+	r.CheckInMultiStatusDo([]RoomState{StateWaiting, StatePrepare}, func() error {
+		r.PlayerMu.Lock()
+		for _, delIndex := range delIndex {
+			delId = append(delId, r.Players[delIndex].ID)
+			r.Players[delIndex] = nil
+		}
+		r.PlayerMu.Unlock()
+		return nil
+	})
 	return delId, true
 }
 
 // 包含机器人
-func (r *QZNNRoom) GetWsOkPlayerCount() int {
+func (r *QZNNRoom) GetStartGamePlayerCount(includeOb bool) int {
 	r.PlayerMu.RLock()
 	defer r.PlayerMu.RUnlock()
 	count := 0
@@ -195,7 +202,9 @@ func (r *QZNNRoom) GetWsOkPlayerCount() int {
 			continue
 		}
 		if p.IsOb {
-			continue
+			if !includeOb {
+				continue
+			}
 		}
 		if p.IsRobot || p.ConnWrap != nil {
 			count++
@@ -302,17 +311,20 @@ func (r *QZNNRoom) BroadcastExclude(msg interface{}, excludeId string) {
 	}
 }
 
-func (r *QZNNRoom) interuptStateLeftTicker(bResetLeft bool) {
+func (r *QZNNRoom) interuptStateLeftTicker(state RoomState) {
+	// 倒计时由 driverLogicTick 驱动，这里只需将剩余时间置为0即可打断等待
 	r.StateMu.Lock()
 	defer r.StateMu.Unlock()
-	if bResetLeft {
-		r.StateLeftSecDuration = 0
+	if r.State == state {
 		r.StateLeftSec = 0
+		r.StateDeadline = time.Time{}
 	}
-	// 倒计时由 driverLogicTick 驱动，这里只需将剩余时间置为0即可打断等待
 }
 
 func (r *QZNNRoom) WaitSleep(wait time.Duration) {
+	if wait <= 0 {
+		return
+	}
 	time.Sleep(wait)
 }
 
@@ -441,10 +453,10 @@ func (r *QZNNRoom) driverLogicTick() {
 		case <-driverTicker.C:
 			// 1. 处理倒计时
 			r.StateMu.RLock()
-			nLeftSecDuration := r.StateLeftSecDuration
+			hasDeadline := !r.StateDeadline.IsZero()
 			r.StateMu.RUnlock()
-			if nLeftSecDuration > 0 {
-				r.DecreaseStateLeftSec(driverMill)
+			if hasDeadline {
+				r.UpdateStateLeftSec()
 				// logrus.WithFields(logrus.Fields{
 				// 	"room_id":         r.ID,
 				// 	"stateLeftSecNew": r.StateLeftSec,
@@ -470,7 +482,7 @@ func (r *QZNNRoom) tickWaiting() {
 	countExistPlayerNum := r.GetPlayerCount()
 	//加入已经有2个人在房间，可以进行倒计时开始游戏
 	if countExistPlayerNum >= 2 {
-		r.SetStatus([]RoomState{StateWaiting}, StatePrepare, StateWaiting2StartSec)
+		r.SetStatus([]RoomState{StateWaiting}, StatePrepare, SecStatePrepareSec)
 	}
 }
 
@@ -491,7 +503,7 @@ func (r *QZNNRoom) tickPrepare() {
 	}
 
 	//make sure players Ok
-	if r.GetWsOkPlayerCount() >= 2 {
+	if r.GetStartGamePlayerCount(false) >= 2 {
 		if r.StateLeftSec <= 0 {
 			go r.StartGame()
 		}
@@ -510,16 +522,16 @@ func (r *QZNNRoom) tickBanking() {
 	activePlayers := r.GetActivePlayers(nil)
 	hasUnconfirmed := false
 	for _, p := range activePlayers {
-		p.Mu.Lock()
-		val := p.CallMult
-		p.Mu.Unlock()
-		if val == -1 {
+		p.Mu.RLock()
+		if p.CallMult == -1 {
 			hasUnconfirmed = true
+			p.Mu.RUnlock()
 			break
 		}
+		p.Mu.RUnlock()
 	}
 	if !hasUnconfirmed {
-		//r.interuptStateLeftTicker(true)
+		r.interuptStateLeftTicker(StateBanking)
 	}
 }
 
@@ -528,46 +540,84 @@ func (r *QZNNRoom) tickBetting() {
 	activePlayers := r.GetActivePlayers(nil)
 	hasUnconfirmed := false
 	for _, p := range activePlayers {
-		p.Mu.Lock()
-		val := p.BetMult
-		p.Mu.Unlock()
-		if val == -1 {
+		p.Mu.RLock()
+		if p.BetMult == -1 {
 			hasUnconfirmed = true
+			p.Mu.Unlock()
 			break
 		}
+		p.Mu.RUnlock()
 	}
 	if !hasUnconfirmed {
-		//r.interuptStateLeftTicker(true)
+		r.interuptStateLeftTicker(StateBetting)
+	}
+}
+
+func (r *QZNNRoom) tickShowCard() {
+	//查看是否都已经下注
+	activePlayers := r.GetActivePlayers(nil)
+	hasUnconfirmed := false
+	for _, p := range activePlayers {
+		p.Mu.RLock()
+		if p.IsShow == false {
+			hasUnconfirmed = true
+			p.Mu.RUnlock()
+			break
+		}
+		p.Mu.RUnlock()
+	}
+	if !hasUnconfirmed {
+		r.interuptStateLeftTicker(StateShowCard)
 	}
 }
 
 func (r *QZNNRoom) logicTick() {
-
+	r.StateMu.RLock()
 	switch r.State {
 	case StateWaiting:
+		r.StateMu.RUnlock()
 		r.tickWaiting()
-
 	case StatePrepare:
+		r.StateMu.RUnlock()
 		r.tickPrepare()
 	case StatePreCard:
+		r.StateMu.RUnlock()
 		// 预发牌状态
 	case StateBanking:
+		r.StateMu.RUnlock()
 		// 抢庄状态
 		r.tickBanking()
 	case StateBetting:
+		r.StateMu.RUnlock()
 		// 下注状态
 		r.tickBetting()
 	case StateDealing:
-		// 发牌补牌状态
+		r.StateMu.RUnlock()
+	// 发牌补牌状态
+	case StateShowCard:
+		r.StateMu.RUnlock()
+		r.tickBanking()
 	case StateSettling:
+		r.StateMu.RUnlock()
 		// 结算状态
+	default:
+		r.StateMu.RUnlock()
 	}
 }
 
 func (r *QZNNRoom) StartGame() {
-	if !r.SetStatus([]RoomState{StatePrepare}, StateStartGame, 2) {
+	if !r.SetStatus([]RoomState{StatePrepare}, StateStartGame, SecStateGameStart) {
 		return
 	}
+	//保底的检查，用户能不能玩，至少2个有效用户，不够要再踢回waiting
+	activePlayer := r.GetActivePlayers(nil)
+	if len(activePlayer) < 2 {
+		logrus.WithField("!", nil).WithField("roomId", r.ID).Error("InvalidPlayerCountForGame")
+		r.SetStatus([]RoomState{StateStartGame}, StateWaiting, 0)
+		//不判断set status 成功与否，强行return，保护数据
+		return
+	}
+
 	//准备牌堆并发牌
 	r.prepareDeck()
 	r.WaitStateLeftTicker()
@@ -579,11 +629,11 @@ func (r *QZNNRoom) StartGame() {
 			return
 		}
 		//预先发牌动画，看3s后
-		r.WaitSleep(3 * time.Second)
+		r.WaitSleep(time.Second * SecStatePrecard)
 
 	}
 	//抢庄
-	if !r.SetStatus([]RoomState{StateStartGame, StatePreCard}, StateBanking, 3) {
+	if !r.SetStatus([]RoomState{StateStartGame, StatePreCard}, StateBanking, SecStateCallBanking) {
 		logrus.WithField("roomId", r.ID).Error("QZNNRoom-StatusChange-Fail-callBanker")
 		return
 	}
@@ -635,23 +685,21 @@ func (r *QZNNRoom) StartGame() {
 	// 4. 如果是随机产生的庄家（多人同倍数 或 无人抢庄），播放定庄动画
 	if bRandomBanker {
 		r.SetStatus([]RoomState{StateBanking}, StateRandomBank, 0)
-		r.WaitSleep(time.Second * 2)
+		r.WaitSleep(time.Second * SecStateBankingRandom)
 	}
 
 	r.SetStatus([]RoomState{StateBanking, StateRandomBank}, StateBankerConfirm, 0)
 
-	r.WaitSleep(time.Second * 1)
+	r.WaitSleep(time.Second * SecStateConfirmBanking)
 
 	//非庄家投注
-	if !r.SetStatus([]RoomState{StateBankerConfirm}, StateBetting, 2) {
-		logrus.WithField("roomId", r.ID).Error("QZNNRoom-StatusChange-Fail-StateBetting")
+	if !r.SetStatus([]RoomState{StateBankerConfirm}, StateBetting, SecStateBeting) {
 		return
 	}
 
 	r.WaitStateLeftTicker()
 
 	//处理非庄家最低投注备注
-	activePlayer := r.GetActivePlayers(nil)
 	for _, p := range activePlayer {
 		if p.ID == r.BankerID {
 			continue
@@ -663,14 +711,12 @@ func (r *QZNNRoom) StartGame() {
 
 	//补牌到5张，不看牌发5张，看3补2，看4
 	if !r.SetStatus([]RoomState{StateBetting}, StateDealing, 0) {
-		logrus.WithField("roomId", r.ID).Error("QZNNRoom-StatusChange-Fail-StateDealing")
 		return
 	}
 
-	r.WaitSleep(time.Second * 3)
+	r.WaitSleep(time.Second * SecStateDealing)
 
-	if !r.SetStatus([]RoomState{StateDealing}, StateShowCard, 3) {
-		logrus.WithField("roomId", r.ID).Error("QZNNRoom-StatusChange-Fail-StateShowCard")
+	if !r.SetStatus([]RoomState{StateDealing}, StateShowCard, SecStateShowCard) {
 		return
 	}
 	r.WaitStateLeftTicker()
@@ -733,9 +779,25 @@ func (r *QZNNRoom) StartGame() {
 	}
 
 	//客户端播放结算动画
-	r.WaitSleep(time.Second * 5)
+	r.WaitSleep(time.Second * SecStateSetting)
 
 	//清理数据
 	r.ResetGameData()
-	r.SetStatus([]RoomState{StateSettling, RoomState("")}, StateWaiting, 0)
+	//检查在线用户
+	playerCount := r.GetStartGamePlayerCount(true)
+	prepareSec := SecStatePrepareSec
+	nextState := StateWaiting
+	switch playerCount {
+	case 5:
+		prepareSec = SecStatePrepareSecPlayer5
+		nextState = StatePrepare
+	case 4:
+		prepareSec = SecStatePrepareSecPlayer4
+		nextState = StatePrepare
+	case 3:
+		prepareSec = SecStatePrepareSecPlayer3
+		nextState = StatePrepare
+	default:
+	}
+	r.SetStatus([]RoomState{StateSettling, RoomState("")}, nextState, prepareSec)
 }

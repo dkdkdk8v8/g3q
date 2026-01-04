@@ -222,7 +222,7 @@ func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, userId st
 		logrus.WithFields(logrus.Fields{
 			"cmd": msg.Cmd,
 			"uid": userId,
-		}).Info("WS-Recv-Msg")
+		}).Info("RecvMsg")
 	}
 
 	// 检查全局维护状态（实际应从 Redis 或配置中心读取）

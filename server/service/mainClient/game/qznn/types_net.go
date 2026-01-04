@@ -10,6 +10,7 @@ const (
 	CmdPlayerCallBanker comm.CmdType = QZNN_Prefix + "PlayerCallBanker"
 	CmdPlayerPlaceBet   comm.CmdType = QZNN_Prefix + "PlayerPlaceBet"
 	CmdPlayerShowCard   comm.CmdType = QZNN_Prefix + "PlayerShowCard"
+	CmdTalk             comm.CmdType = QZNN_Prefix + "PlayerTalk"
 )
 
 const (
@@ -20,6 +21,7 @@ const (
 	PushPlayerPlaceBet   comm.PushType = "PushPlaceBet"
 	PushPlayerShowCard   comm.PushType = "PushShowCard"
 	PushBalanceChange    comm.PushType = "PushBalanceChange"
+	PushTalk             comm.PushType = "PushTalk"
 	PushRoom             comm.PushType = "PushRoom"
 )
 
@@ -52,5 +54,5 @@ type PushPlayerShowCardStruct struct {
 }
 
 type PushRoomStruct struct {
-	Room   *QZNNRoom
+	Room *QZNNRoom
 }

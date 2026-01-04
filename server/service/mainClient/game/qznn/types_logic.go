@@ -11,25 +11,33 @@ import (
 type RoomState string
 
 const (
-	StateWaiting               RoomState = "StateWaiting"               //房间等待中
-	StatePrepare               RoomState = "StatePrepare"               //房间倒计时中，马上开始
-	StateStartGame             RoomState = "StateStartGame"             //游戏开始
-	StatePreCard               RoomState = "StatePreCard"               //预先发牌
-	StateBanking               RoomState = "StateBanking"               //抢庄中
-	StateRandomBank            RoomState = "StateRandomBank"            //随机抢庄
-	StateBankerConfirm         RoomState = "StateBankerConfirm"         //庄家确认
-	StateBetting               RoomState = "StateBetting"               //非庄家下注
-	StateDealing               RoomState = "StateDealing"               //发牌或补牌
-	StateShowCard              RoomState = "StateShowCard"              //展示牌
-	StateSettling              RoomState = "StateSettling"              //结算中
-	StateSettlingDirectPreCard RoomState = "StateSettlingDirectPreCard" //结算中，开始倒计时发牌（5人不离开，直接下一场）
+	StateWaiting       RoomState = "StateWaiting"       //房间等待中
+	StatePrepare       RoomState = "StatePrepare"       //房间倒计时中，马上开始
+	StateStartGame     RoomState = "StateStartGame"     //游戏开始
+	StatePreCard       RoomState = "StatePreCard"       //预先发牌
+	StateBanking       RoomState = "StateBanking"       //抢庄中
+	StateRandomBank    RoomState = "StateRandomBank"    //随机抢庄
+	StateBankerConfirm RoomState = "StateBankerConfirm" //庄家确认
+	StateBetting       RoomState = "StateBetting"       //非庄家下注
+	StateDealing       RoomState = "StateDealing"       //发牌或补牌
+	StateShowCard      RoomState = "StateShowCard"      //展示牌
+	StateSettling      RoomState = "StateSettling"      //结算中
 )
 
 const (
-	StateWaiting2StartSec = 6
-	StateCallingSec       = 10
-	StateBettingSec       = 10
-	StateDealingSec       = 5
+	SecStatePrepareSec        = 6
+	SecStatePrepareSecPlayer5 = 3 //结算中，开始倒计时发牌（5人不离开，直接下一场）
+	SecStatePrepareSecPlayer4 = 4 //结算中，开始倒计时发牌（5人不离开，直接下一场）
+	SecStatePrepareSecPlayer3 = 5 //结算中，开始倒计时发牌（5人不离开，直接下一场）
+	SecStateGameStart         = 2
+	SecStatePrecard           = 2
+	SecStateCallBanking       = 5
+	SecStateBankingRandom     = 2
+	SecStateConfirmBanking    = 0
+	SecStateBeting            = 5
+	SecStateDealing           = 2
+	SecStateShowCard          = 8
+	SecStateSetting           = 4
 )
 
 // CardResult 牌型计算结果
@@ -59,7 +67,7 @@ type PlayerData struct {
 // Player 代表房间内的一个玩家
 type Player struct {
 	PlayerData
-	Mu       sync.Mutex     `json:"-"`
+	Mu       sync.RWMutex     `json:"-"`
 	ConnWrap *ws.WsConnWrap `json:"-"` // WebSocket 连接
 }
 
@@ -148,9 +156,9 @@ type QZNNRoomData struct {
 // Room 代表一个游戏房间
 type QZNNRoom struct {
 	QZNNRoomData
-	StateLeftSecDuration time.Duration `json:"-"`
-	StateMu              sync.RWMutex  `json:"-"` // 保护 State, Timer
-	//StateLeftSecTicker   *time.Ticker   `json:"-"` // 倒计时定时器
+	//StateLeftSecDuration time.Duration `json:"-"`
+	StateDeadline time.Time            `json:"-"`
+	StateMu       sync.RWMutex         `json:"-"` // 保护 State, Timer
 	Mu            sync.Mutex           `json:"-"` // 保护房间数据并发安全
 	PlayerMu      sync.RWMutex         `json:"-"` // 保护 Players
 	Deck          []int                `json:"-"` // 牌堆
@@ -163,7 +171,8 @@ type QZNNRoom struct {
 func (r *QZNNRoom) ResetGameData() {
 	r.State = "" //不能给wait，不然set wait，导致不能广播
 	r.StateLeftSec = 0
-	r.StateLeftSecDuration = 0
+	//r.StateLeftSecDuration = 0
+	r.StateDeadline = time.Time{}
 	r.BankerID = ""
 	r.Deck = []int{}
 	r.TargetResults = make(map[string]int, 5)
@@ -188,15 +197,20 @@ func (r *QZNNRoom) SetBankerId(bankerId string) bool {
 	return false
 }
 
-func (r *QZNNRoom) DecreaseStateLeftSec(d time.Duration) {
+func (r *QZNNRoom) UpdateStateLeftSec() {
 	r.StateMu.Lock()
 	defer r.StateMu.Unlock()
-	r.StateLeftSecDuration -= d
-	if r.StateLeftSecDuration <= 0 {
-		r.StateLeftSecDuration = 0
+	if r.StateDeadline.IsZero() {
+		return
+	}
+	tDeadline := time.Until(r.StateDeadline)
+	if tDeadline <= 0 {
+		r.StateLeftSec = 0
+		r.StateDeadline = time.Time{}
+		return
 	}
 	// 向上取整，避免 0.9s 变成 0s 导致提前结束
-	r.StateLeftSec = int((r.StateLeftSecDuration + time.Second - 1) / time.Second)
+	r.StateLeftSec = int((tDeadline + time.Second - 1) / time.Second)
 }
 
 func (r *QZNNRoom) GetClientRoom(pushId string) *QZNNRoom {
@@ -214,8 +228,8 @@ func (r *QZNNRoom) GetClientRoom(pushId string) *QZNNRoom {
 	}
 
 	switch r.State {
-	//只有这3个状态，推牌数据，默认秘密
-	case StateSettling, StateSettlingDirectPreCard:
+	//推牌数据，默认秘密
+	case StateSettling:
 		bSecret = false
 
 	}

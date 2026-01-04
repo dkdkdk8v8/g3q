@@ -2,9 +2,9 @@ package game
 
 // CardResult 牌型计算结果
 type CardResult struct {
-	Niu     int `json:"niu"`      // 0-10, 10为牛牛
-	Mult    int `json:"mult"`     // 牌型倍数
-	MaxCard int `json:"max_card"` // 最大单牌，用于同牌型比大小
+	Niu     int // 0-10, 10为牛牛
+	Mult    int // 牌型倍数
+	MaxCard int // 最大单牌，用于同牌型比大小
 }
 
 // RemoveCardsFromDeck 从牌堆中移除指定的牌

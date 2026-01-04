@@ -447,6 +447,20 @@ onMounted(() => {
     const gameMode = route.query.mode !== undefined ? route.query.mode : 0;
     store.initGame(gameMode);
 
+    if (route.query.autoJoin) {
+        // Display speech bubble for re-joining
+        setTimeout(() => {
+            playerSpeech.value.set(store.myPlayerId, { type: 'text', content: '上一局游戏未结束，自动进入房间' });
+        }, 500); // Small delay to ensure UI is ready
+
+        setTimeout(() => {
+            playerSpeech.value.delete(store.myPlayerId);
+        }, 3500);
+
+        // Remove query param
+        router.replace({ query: { ...route.query, autoJoin: undefined } });
+    }
+
     startRobotSpeech();
 
     bgAudio.value = new Audio(gameBgSound);

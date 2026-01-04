@@ -261,6 +261,12 @@ func (r *QZNNRoom) Broadcast(msg interface{}) {
 	}
 }
 
+func (r *QZNNRoom) PushPlayer(p *Player, msg interface{}) {
+	if p != nil && p.ConnWrap != nil && p.ConnWrap.WsConn != nil {
+		_ = p.ConnWrap.WsConn.WriteJSON(msg)
+	}
+}
+
 func (r *QZNNRoom) BroadcastWithPlayer(getMsg func(*Player) interface{}) {
 	r.PlayerMu.RLock()
 	defer r.PlayerMu.RUnlock()

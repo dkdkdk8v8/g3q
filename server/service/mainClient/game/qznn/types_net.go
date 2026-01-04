@@ -4,7 +4,6 @@ import "service/comm"
 
 const QZNN_Prefix = "QZNN."
 const (
-	
 	CmdLobbyConfig      comm.CmdType = QZNN_Prefix + "LobbyConfig"
 	CmdPlayerJoin       comm.CmdType = QZNN_Prefix + "PlayerJoin"
 	CmdPlayerLeave      comm.CmdType = QZNN_Prefix + "PlayerLeave"
@@ -21,9 +20,8 @@ const (
 	PushPlayerPlaceBet   comm.PushType = "PushPlaceBet"
 	PushPlayerShowCard   comm.PushType = "PushShowCard"
 	PushBalanceChange    comm.PushType = "PushBalanceChange"
-	
+	PushRoom             comm.PushType = "PushRoom"
 )
-
 
 type PushChangeStateStruct struct {
 	Room         *QZNNRoom
@@ -53,3 +51,6 @@ type PushPlayerShowCardStruct struct {
 	UserId string
 }
 
+type PushRoomStruct struct {
+	Room *QZNNRoom
+}

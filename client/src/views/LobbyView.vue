@@ -3,6 +3,7 @@ import { useRouter } from 'vue-router';
 import { ref, computed, watch, onMounted, onUnmounted, onActivated, onDeactivated } from 'vue'; // Added onDeactivated
 import { useUserStore } from '../stores/user.js';
 import { useGameStore } from '../stores/game.js';
+import { useSettingsStore } from '../stores/settings.js';
 import gameClient from '../socket.js';
 import defaultAvatar from '@/assets/common/icon_avatar.png'; // Import avatar directly
 import lobbyBgSound from '@/assets/sounds/lobby_bg.mp3'; // Import background music
@@ -10,6 +11,7 @@ import lobbyBgSound from '@/assets/sounds/lobby_bg.mp3'; // Import background mu
 const router = useRouter();
 const userStore = useUserStore();
 const gameStore = useGameStore();
+const settingsStore = useSettingsStore();
 const bgAudio = ref(null); // Background audio ref
 
 // 模拟用户信息 - map from store
@@ -71,6 +73,8 @@ const fetchData = () => {
 };
 
 const playMusic = () => {
+    if (!settingsStore.musicEnabled) return;
+
     if (!bgAudio.value) {
         bgAudio.value = new Audio(lobbyBgSound);
         bgAudio.value.loop = true;

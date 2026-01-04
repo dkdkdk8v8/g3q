@@ -103,6 +103,7 @@ const lastRobotSpeechTime = ref(new Map());
 const ROBOT_SPEECH_PROBABILITY = 0.2;
 const ROBOT_SPEECH_CHECK_INTERVAL_SECONDS = 5;
 const ROBOT_SPEECH_COOLDOWN_SECONDS = 15;
+const showAutoJoinMessage = ref(false);
 
 const commonPhrases = [
     "猜猜我是牛几呀",
@@ -214,7 +215,7 @@ const myPlayer = computed(() => store.players.find(p => p.id === store.myPlayerI
 watch(() => settingsStore.musicEnabled, (val) => {
     if (bgAudio.value) {
         if (val) {
-            bgAudio.value.play().catch(() => {});
+            bgAudio.value.play().catch(() => { });
         } else {
             bgAudio.value.pause();
         }
@@ -448,14 +449,12 @@ onMounted(() => {
     store.initGame(gameMode);
 
     if (route.query.autoJoin) {
-        // Display speech bubble for re-joining
-        setTimeout(() => {
-            playerSpeech.value.set(store.myPlayerId, { type: 'text', content: '上一局游戏未结束，自动进入房间' });
-        }, 500); // Small delay to ensure UI is ready
+        // Show prominent message for re-joining
+        showAutoJoinMessage.value = true;
 
         setTimeout(() => {
-            playerSpeech.value.delete(store.myPlayerId);
-        }, 3500);
+            showAutoJoinMessage.value = false;
+        }, 5000); // 5 seconds duration
 
         // Remove query param
         router.replace({ query: { ...route.query, autoJoin: undefined } });
@@ -466,7 +465,7 @@ onMounted(() => {
     bgAudio.value = new Audio(gameBgSound);
     bgAudio.value.loop = true;
     bgAudio.value.volume = 0.5;
-    
+
     if (settingsStore.musicEnabled) {
         bgAudio.value.play().catch(() => { });
     }
@@ -589,7 +588,7 @@ const quitGame = () => {
                 <div class="alarm-clock">
                     <div class="alarm-body">
                         <div class="alarm-time">{{ store.countdown < 10 ? '0' + store.countdown : store.countdown
-                                }}</div>
+                        }}</div>
                         </div>
                         <div class="alarm-ears left"></div>
                         <div class="alarm-ears right"></div>
@@ -623,6 +622,13 @@ const quitGame = () => {
             <!-- 自己区域 -->
 
             <div class="my-area" v-if="myPlayer">
+                <!-- Auto Join Banner -->
+                <transition name="fade">
+                    <div v-if="showAutoJoinMessage" class="auto-join-banner">
+                        上一局游戏未结束，自动进入此房间
+                    </div>
+                </transition>
+
                 <div class="controls-container">
 
 
@@ -691,7 +697,7 @@ const quitGame = () => {
                             <div class="h-row top">
                                 <span class="h-time">{{ new Date(item.timestamp).toLocaleTimeString() }}</span>
                                 <span class="h-role" :class="{ banker: item.isBanker }">{{ item.isBanker ? '庄' : '闲'
-                                    }}</span>
+                                }}</span>
                             </div>
                             <div class="h-row main">
                                 <span class="h-result" :class="item.score >= 0 ? 'win' : 'lose'">
@@ -720,15 +726,18 @@ const quitGame = () => {
                     <div class="settings-list">
                         <div class="setting-item">
                             <span>背景音乐</span>
-                            <van-switch v-model="settingsStore.musicEnabled" size="24px" active-color="#13ce66" inactive-color="#ff4949" />
+                            <van-switch v-model="settingsStore.musicEnabled" size="24px" active-color="#13ce66"
+                                inactive-color="#ff4949" />
                         </div>
                         <div class="setting-item">
                             <span>游戏音效</span>
-                            <van-switch v-model="settingsStore.soundEnabled" size="24px" active-color="#13ce66" inactive-color="#ff4949" />
+                            <van-switch v-model="settingsStore.soundEnabled" size="24px" active-color="#13ce66"
+                                inactive-color="#ff4949" />
                         </div>
                         <div class="setting-item">
                             <span>屏蔽他人发言</span>
-                            <van-switch v-model="settingsStore.muteUsers" size="24px" active-color="#13ce66" inactive-color="#ff4949" />
+                            <van-switch v-model="settingsStore.muteUsers" size="24px" active-color="#13ce66"
+                                inactive-color="#ff4949" />
                         </div>
                     </div>
                 </div>
@@ -763,13 +772,15 @@ const quitGame = () => {
 
 /* Observer Banner Style */
 .observer-waiting-banner {
-    color: #fef3c7; /* Light gold/cream */
+    color: #fef3c7;
+    /* Light gold/cream */
     font-size: 16px;
     font-weight: bold;
     background: linear-gradient(to right, rgba(0, 0, 0, 0.7), rgba(17, 24, 39, 0.9), rgba(0, 0, 0, 0.7));
     padding: 10px 30px;
     border-radius: 24px;
-    border: 1px solid rgba(251, 191, 36, 0.4); /* Gold border */
+    border: 1px solid rgba(251, 191, 36, 0.4);
+    /* Gold border */
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     display: flex;
     align-items: center;
@@ -789,7 +800,7 @@ const quitGame = () => {
 
 @keyframes dots-loading {
     to {
-        width: 1.25em; 
+        width: 1.25em;
     }
 }
 
@@ -1404,5 +1415,32 @@ const quitGame = () => {
 .toast-fade-enter-from,
 .toast-fade-leave-to {
     opacity: 0;
+}
+
+.auto-join-banner {
+    color: #fff;
+    background: linear-gradient(90deg, rgba(245, 158, 11, 0.9), rgba(234, 88, 12, 0.9));
+    /* Orange/Red */
+    padding: 10px 24px;
+    border-radius: 24px;
+    font-size: 15px;
+    font-weight: bold;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    margin-bottom: 12px;
+    animation: slideDown 0.5s ease;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 </style>

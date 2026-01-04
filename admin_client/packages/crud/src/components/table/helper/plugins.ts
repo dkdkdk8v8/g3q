@@ -1,5 +1,6 @@
 import { getCurrentInstance } from "vue";
 import { useConfig } from "../../../hooks";
+import { uniqueFns } from "../../../utils";
 
 export function usePlugins() {
 	const that: any = getCurrentInstance();
@@ -8,7 +9,7 @@ export function usePlugins() {
 	// 插件创建
 	function create(plugins: ClTable.Plugin[] = []) {
 		// 执行
-		[...(style.table.plugins || []), ...plugins].forEach((p) => {
+		uniqueFns([...(style.table.plugins || []), ...plugins]).forEach((p) => {
 			p({
 				exposed: that.exposed
 			});

@@ -1,5 +1,6 @@
+import { assign } from "lodash-es";
 import { TestService } from "../test/service";
-import { watch, ref, nextTick, getCurrentInstance, Ref, inject, provide } from "vue";
+import { watch, ref, nextTick, getCurrentInstance, type Ref, inject, provide } from "vue";
 
 // 获取上级
 function useParent(name: string, r: Ref) {
@@ -107,7 +108,7 @@ export function useUpsert<T = any>(options?: ClUpsert.Options<T>) {
 						isChild
 					});
 
-					Object.assign(val.config, event);
+					assign(val.config, event);
 				}
 			}
 		},
@@ -120,13 +121,21 @@ export function useUpsert<T = any>(options?: ClUpsert.Options<T>) {
 }
 
 // 表格
-export function useTable<T = any>(options?: ClTable.Options<T>) {
+export function useTable<T = any>(options?: ClTable.Options<T>, cb?: (table: ClTable.Ref) => void) {
 	const Table = ref<ClTable.Ref<T>>();
 	useParent("cl-table", Table);
 
 	if (options) {
 		provide("useTable__options", options);
 	}
+
+	watch(Table, (val) => {
+		if (val) {
+			if (cb) {
+				cb(val);
+			}
+		}
+	});
 
 	return Table;
 }
@@ -162,9 +171,7 @@ export function useSearch<T = any>(options?: ClSearch.Options<T>) {
 	const Search = ref<ClSearch.Ref<T>>();
 	useParent("cl-search", Search);
 
-	if (options) {
-		provide("useSearch__options", options);
-	}
+	provide("useSearch__options", options);
 
 	return Search;
 }

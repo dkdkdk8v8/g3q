@@ -68,12 +68,15 @@ func (rm *RoomManager) JoinOrCreateNNRoom(player *qznn.Player, level int, banker
 	for _, room := range rm.QZNNRooms {
 		// 1. 核心检查：确认玩家是否已经在该房间中
 		// GetPlayerByID 内部使用了读锁，配合外层的 rm.mu 写锁是安全的
-		if _, ok := room.GetPlayerByID(player.ID); ok {
+		if alreadyPlayer, ok := room.GetPlayerByID(player.ID); ok {
 			rm.mu.Unlock()
 			//客户端弹框，确认要不要重新进入
+			room.PushPlayer(alreadyPlayer, comm.PushData{
+				Cmd:      comm.ServerPush,
+				PushType: qznn.PushRoom,
+				Data:     qznn.PushRoomStruct{Room: room}})
 			return nil, comm.ErrPlayerInRoom
 		}
-
 		// 2. 在遍历的同时，寻找一个合适的房间 (如果尚未找到)
 		// 这样可以避免多次遍历
 		if targetRoom == nil {

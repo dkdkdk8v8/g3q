@@ -1,14 +1,15 @@
-import { useCrud } from "@cool-vue/crud";
-import { ElMessage } from "element-plus";
-import { defineComponent, ref, watch } from "vue";
-import { isBoolean, isFunction } from "lodash-es";
+import { useCrud } from '@cool-vue/crud';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { defineComponent, ref, watch } from 'vue';
+import { isBoolean, isFunction } from 'lodash-es';
+import { CrudProps } from '../../comm';
+import { useI18n } from 'vue-i18n';
 
 export default defineComponent({
-	name: "cl-switch",
+	name: 'cl-switch',
 
 	props: {
-		scope: null,
-		column: null,
+		...CrudProps,
 		modelValue: [Number, String, Boolean],
 		activeValue: {
 			type: [Number, String, Boolean],
@@ -18,12 +19,15 @@ export default defineComponent({
 			type: [Number, String, Boolean],
 			default: 0
 		},
-		api: Function
+		api: Function,
+		isCheck: Boolean
 	},
 
-	emits: ["update:modelValue", "change"],
+	emits: ['update:modelValue', 'change'],
 
 	setup(props, { emit }) {
+		const { t } = useI18n();
+
 		// cl-crud
 		const Crud = useCrud();
 
@@ -37,7 +41,7 @@ export default defineComponent({
 		// 监听值
 		watch(
 			() => props.modelValue,
-			(val) => {
+			val => {
 				status.value = val;
 
 				if (val !== undefined) {
@@ -59,35 +63,49 @@ export default defineComponent({
 
 		// 监听改变
 		function onChange(val: boolean | string | number) {
-			if (props.column && props.scope) {
-				if (val !== undefined) {
-					if (
-						status.value === activeValue.value ||
-						status.value === inactiveValue.value
-					) {
-						const params = {
-							id: props.scope.id,
-							[props.column.property]: val
-						};
+			const next = () => {
+				if (props.column && props.scope) {
+					if (val !== undefined) {
+						if (
+							status.value === activeValue.value ||
+							status.value === inactiveValue.value
+						) {
+							const params = {
+								id: props.scope.id,
+								[props.column.property]: val
+							};
 
-						const req: Promise<any> = isFunction(props.api)
-							? props.api(params)
-							: Crud.value?.service.update(params);
+							const req: Promise<any> = isFunction(props.api)
+								? props.api(params)
+								: Crud.value?.service.update(params);
 
-						if (req) {
-							req.then(() => {
-								emit("update:modelValue", val);
-								emit("change", val);
-								ElMessage.success("更新成功");
-							}).catch((err) => {
-								ElMessage.error(err.message);
-							});
+							if (req) {
+								req.then(() => {
+									emit('update:modelValue', val);
+									emit('change', val);
+									ElMessage.success(t('更新成功'));
+								}).catch(err => {
+									ElMessage.error(err.message);
+								});
+							}
 						}
 					}
+				} else {
+					emit('update:modelValue', val);
+					emit('change', val);
 				}
+			};
+
+			if (props.isCheck) {
+				ElMessageBox.confirm(val ? t('确定要开启吗？') : t('确定要关闭吗？'), t('提示'), {
+					type: 'warning'
+				})
+					.then(() => {
+						next();
+					})
+					.catch(() => null);
 			} else {
-				emit("update:modelValue", val);
-				emit("change", val);
+				next();
 			}
 		}
 
@@ -102,6 +120,7 @@ export default defineComponent({
 					model-value={status.value}
 					active-value={activeValue.value}
 					inactive-value={inactiveValue.value}
+					disabled={props.disabled}
 					onChange={onChange}
 					onClick={onClick}
 				/>

@@ -1,4 +1,4 @@
-import { VNode } from "vue";
+import { VNode } from 'vue';
 interface Options {
     prop?: string;
     scope?: any;

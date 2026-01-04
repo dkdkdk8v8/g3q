@@ -1,8 +1,10 @@
-import { defineComponent, h, resolveComponent, ref, reactive, watch } from "vue";
-import { isComponent } from "/@/cool/utils";
+import { defineComponent, h, resolveComponent, ref, reactive, watch } from 'vue';
+import { isComponent } from '/@/cool/utils';
+import { assign } from 'lodash-es';
+import { useI18n } from 'vue-i18n';
 
 export default defineComponent({
-	name: "cl-editor",
+	name: 'cl-editor',
 
 	props: {
 		name: {
@@ -14,10 +16,11 @@ export default defineComponent({
 	setup(props, { slots, expose }) {
 		const Editor = ref();
 		const ex = reactive({});
+		const { t } = useI18n();
 
-		watch(Editor, (v) => {
+		watch(Editor, v => {
 			if (v) {
-				Object.assign(ex, v);
+				assign(ex, v);
 			}
 		});
 
@@ -26,7 +29,6 @@ export default defineComponent({
 		return () => {
 			return isComponent(props.name) ? (
 				h(
-					// @ts-ignore
 					resolveComponent(props.name),
 					{
 						...props,
@@ -35,7 +37,7 @@ export default defineComponent({
 					slots
 				)
 			) : (
-				<el-input type="textarea" rows={4} placeholder="请输入" {...props} />
+				<el-input type="textarea" rows={4} placeholder={t('请输入')} {...props} />
 			);
 		};
 	}

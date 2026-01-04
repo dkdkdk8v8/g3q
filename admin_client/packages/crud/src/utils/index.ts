@@ -1,6 +1,7 @@
-import { isRef, mergeProps } from "vue";
-import { flatMap, isArray, isFunction, isNumber, isString, mergeWith } from "lodash-es";
+import { isRef, mergeProps, toValue } from "vue";
+import { assign, flatMap, isArray, isFunction, isNumber, mergeWith } from "lodash-es";
 
+// 是否对象
 export function isObject(val: any) {
 	return val !== null && typeof val === "object";
 }
@@ -49,7 +50,7 @@ export function dataset(obj: any, key: string, value: any): any {
 					return d[n];
 				} else {
 					if (isObject(value)) {
-						Object.assign(d[n], value);
+						assign(d[n], value);
 					} else {
 						d[n] = value;
 					}
@@ -85,31 +86,27 @@ export function merge(d1: any, d2: any) {
 
 // 添加元素
 export function addClass(el: Element, name: string) {
-	if (isString(el?.className)) {
-		const f = el.className.includes(name);
-
-		if (!f) {
-			el.className += " " + name;
-		}
+	if (el?.classList) {
+		el.classList.add(name);
 	}
 }
 
 // 移除元素
 export function removeClass(el: Element, name: string) {
-	if (isString(el?.className)) {
-		el.className = el.className.replace(name, "");
+	if (el?.classList) {
+		el.classList.remove(name);
 	}
 }
 
 // 获取值
-export function getValue(data: any, params?: any) {
-	if (isRef(data)) {
-		return data.value;
+export function getValue<T = any>(value: T | Vue.Ref<T> | ((d: any) => T), data?: any): T {
+	if (isRef(value)) {
+		return toValue(value) as T;
 	} else {
-		if (isFunction(data)) {
-			return data(params);
+		if (isFunction(value)) {
+			return value(data);
 		} else {
-			return data;
+			return value as T;
 		}
 	}
 }
@@ -118,9 +115,9 @@ export function getValue(data: any, params?: any) {
 export function deepFind(value: any, list: any[], options?: { allLevels: boolean }) {
 	const { allLevels = true } = options || {};
 
-	function deep(arr: any[], name: string[]): any | undefined {
+	function deep(arr: DictOptions, name: string[]): any | undefined {
 		for (const e of arr) {
-			if (e.value == value) { // 不用===，保证数字和字符串能匹配上
+			if (e.value === value) {
 				if (allLevels) {
 					return {
 						...e,
@@ -130,7 +127,7 @@ export function deepFind(value: any, list: any[], options?: { allLevels: boolean
 					return e;
 				}
 			} else if (e.children) {
-				const d = deep(e.children, [...name, e.label]);
+				const d = deep(e.children, [...name!, e.label!]);
 
 				if (d !== undefined) {
 					return d;
@@ -155,4 +152,13 @@ export function uuid(separator = "-"): string {
 	s[8] = s[13] = s[18] = s[23] = separator;
 
 	return s.join("");
+}
+
+// 移除相同的方法
+export function uniqueFns(fns: any[]) {
+	const arr = new Map();
+	fns.forEach((fn) => {
+		arr.set(fn.name, fn);
+	});
+	return Array.from(arr.values());
 }

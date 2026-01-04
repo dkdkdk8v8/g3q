@@ -26,7 +26,7 @@ export default defineComponent({
 		// 宽度
 		width: {
 			type: [String, Number],
-			default: 260
+			default: 280
 		},
 		// 是否实时刷新
 		refreshOnInput: Boolean
@@ -67,7 +67,6 @@ export default defineComponent({
 
 		// 搜索
 		function search() {
-			value.value = value.value?.trim();
 			if (!lock) {
 				const params: obj = {};
 
@@ -83,7 +82,10 @@ export default defineComponent({
 						...params,
 						[selectField.value]: value.value || undefined,
 						...newParams
-					});
+					})
+						.catch(err => {
+							console.error(err);
+						})
 
 					loading.value = false;
 				}

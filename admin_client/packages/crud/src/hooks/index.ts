@@ -71,11 +71,4 @@ export function useElApi(keys: string[], el: any) {
 	return apis;
 }
 
-export function useEventListener(name: string, cb: () => any) {
-	window.removeEventListener(name, cb);
-	window.addEventListener(name, cb);
-
-	cb();
-}
-
 export * from "./crud";

@@ -1,35 +1,51 @@
 <template>
-	<div class="tab-chart">
-		<div class="tab-chart__header">
-			<ul class="tab-chart__tab">
-				<li class="active">销售额</li>
-				<li>访问量</li>
-			</ul>
+	<div class="card">
+		<div class="card__header">
+			<cl-select-button v-model="tab.active" :options="tab.list" @change="onChange" />
 
-			<span class="tab-chart__year">2023</span>
+			<span class="year">{{ $t('{year}年', { year: dayjs().year() }) }}</span>
 		</div>
 
-		<div class="tab-chart__container">
-			<v-chart :option="chartOption" autoresize />
-		</div>
+		<v-chart :option="chartOption" autoresize />
 	</div>
 </template>
 
 <script lang="ts" setup>
-import { reactive } from "vue";
+import { range } from 'lodash-es';
+import { computed, onMounted, reactive } from 'vue';
+import dayjs from 'dayjs';
+import { useDark } from '@vueuse/core';
+import { useI18n } from 'vue-i18n';
+import { useTheme } from '/#/theme';
 
-const barWidth = 15;
+const { t } = useI18n();
+const isDark = useDark();
+const theme = useTheme();
 
-const chartOption = reactive<any>({
+const tab = reactive({
+	active: 'sales',
+
+	list: [
+		{
+			label: t('销售金额'),
+			value: 'sales'
+		},
+		{
+			label: t('销售订单'),
+			value: 'order'
+		}
+	]
+});
+
+const chartOption = reactive({
 	grid: {
-		top: "20px",
-		bottom: "30px",
-		right: "10px",
-		containLabel: true
+		containLabel: true,
+		left: '5%',
+		right: '5%'
 	},
 	xAxis: {
-		type: "category",
-		data: [],
+		type: 'category',
+		data: [] as string[],
 		offset: 5,
 		axisLine: {
 			show: false
@@ -39,7 +55,7 @@ const chartOption = reactive<any>({
 		}
 	},
 	yAxis: {
-		type: "value",
+		type: 'value',
 		offset: 20,
 		splitLine: {
 			show: false
@@ -52,100 +68,85 @@ const chartOption = reactive<any>({
 		}
 	},
 	tooltip: {
-		trigger: "axis",
+		trigger: 'axis',
 		formatter: (comp: any) => {
-			const [serie] = comp;
+			const name = tab.list.find(e => e.value === tab.active)?.label;
 
-			return `${serie.seriesName}：${serie.value}`;
+			return `${name}：${comp[0]?.value || 0}`;
 		},
 		axisPointer: {
 			show: true,
-			status: "shadow",
+			status: 'shadow',
 			z: -1,
-			type: "shadow"
+			type: 'shadow'
 		},
-		extraCssText: "width:120px; white-space:pre-wrap"
+		extraCssText: 'width:120px; white-space:pre-wrap'
 	},
 	series: [
 		{
-			barWidth,
-			name: "付款笔数",
-			type: "bar",
-			data: [],
+			barWidth: 25,
+			type: 'bar',
+			data: [] as number[],
 			itemStyle: {
-				color: "#4165d7"
+				color: computed(() => theme.color)
 			}
 		},
 		{
-			type: "bar",
-			barWidth,
+			type: 'bar',
+			barWidth: 25,
 			xAxisIndex: 0,
-			barGap: "-100%",
-			data: [],
+			barGap: '-100%',
+			data: [] as number[],
 			itemStyle: {
-				color: "#f1f1f9"
+				color: computed(() => (isDark.value ? '#f1f1f911' : '#f1f1f9'))
 			},
 			zlevel: -1
 		}
 	]
 });
 
-chartOption.xAxis.data = new Array(12).fill(1).map((e, i) => i + 1 + "月");
-chartOption.series[0].data = new Array(12).fill(1).map(() => parseInt(String(Math.random() * 100)));
-chartOption.series[1].data = new Array(12).fill(100);
+function refresh() {
+	chartOption.xAxis.data = range(12).map((_, i) => t('{i}月', { i: i + 1 }));
+	chartOption.series[0].data = range(12).map(() => parseInt(String(Math.random() * 10000)));
+	chartOption.series[1].data = range(12).map(() => 10000);
+}
+
+function onChange() {
+	refresh();
+}
+
+onMounted(() => {
+	refresh();
+});
 </script>
 
 <style lang="scss" scoped>
-.tab-chart {
+.card {
 	&__header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		height: 50px;
-		padding: 0 20px;
+		padding: 10px 20px 10px 10px !important;
 
-		ul {
-			li {
-				list-style: none;
-				float: left;
-				margin-right: 20px;
-				font-size: 15px;
-				color: #dbdbdb;
-				cursor: pointer;
+		.year {
+			display: flex;
+			align-items: center;
+			font-size: 14px;
+			line-height: 1;
+			color: var(--el-text-color-primary);
 
-				&.active {
-					color: #000;
-					font-weight: bold;
-				}
+			&::before {
+				content: '';
+				display: inline-block;
+				width: 6px;
+				height: 6px;
+				border-radius: 50%;
+				background-color: var(--el-color-info);
+				margin-right: 6px;
 			}
 		}
 	}
 
-	&__year {
-		font-size: 14px;
-		position: relative;
-
-		&::before {
-			display: block;
-			content: "";
-			height: 8px;
-			width: 8px;
-			border-radius: 8px;
-			background-color: #000;
-			position: absolute;
-			left: -15px;
-			top: 4px;
-		}
-	}
-
-	&__container {
-		height: 300px;
-		padding: 0 15px;
-
-		.echarts {
-			height: 100%;
-			width: 100%;
-		}
+	.echarts {
+		height: 500px;
+		width: 100%;
 	}
 }
 </style>

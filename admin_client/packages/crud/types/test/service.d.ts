@@ -16,7 +16,7 @@ declare class TestService {
         account: string;
         occupation: number;
         phone: number;
-    } | undefined>;
+    }>;
     delete(params: {
         ids: any[];
     }): Promise<void>;
@@ -30,5 +30,23 @@ declare class TestService {
         occupation: number;
         phone: number;
     }[]>;
+    search: {
+        fieldEq: {
+            propertyName: string;
+            comment: string;
+            source: string;
+        }[];
+        fieldLike: {
+            propertyName: string;
+            comment: string;
+            dict: string[];
+            source: string;
+        }[];
+        keyWordLikeFields: {
+            propertyName: string;
+            comment: string;
+            source: string;
+        }[];
+    };
 }
 export { TestService };

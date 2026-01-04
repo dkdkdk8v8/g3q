@@ -1,7 +1,7 @@
 <template>
 	<div class="scope">
 		<div class="h">
-			<el-tag size="small" effect="dark">crud</el-tag>
+			<el-tag size="small" effect="dark" disable-transitions>crud</el-tag>
 			<span>内嵌CRUD</span>
 		</div>
 
@@ -27,7 +27,7 @@
 
 						<cl-row>
 							<!-- 数据表格 -->
-							<cl-table size="small" ref="Table" />
+							<cl-table ref="Table" />
 						</cl-row>
 
 						<cl-row>
@@ -50,26 +50,23 @@
 </template>
 
 <script setup lang="ts">
-import { useCrud, useForm, useTable, useUpsert } from "@cool-vue/crud";
-import { useCool } from "/@/cool";
-
-const { service } = useCool();
+import { useCrud, useForm, useTable, useUpsert } from '@cool-vue/crud';
 
 // cl-upsert
 const Upsert = useUpsert({
 	items: [
 		{
-			label: "姓名",
-			prop: "name",
+			label: '姓名',
+			prop: 'name',
 			component: {
-				name: "el-input"
+				name: 'el-input'
 			}
 		},
 		{
-			label: "创建时间",
-			prop: "createTime",
+			label: '创建时间',
+			prop: 'createTime',
 			component: {
-				name: "el-date-picker"
+				name: 'el-date-picker'
 			}
 		}
 	]
@@ -80,20 +77,20 @@ const Table = useTable({
 	autoHeight: false,
 	columns: [
 		{
-			type: "selection"
+			type: 'selection'
 		},
 		{
-			label: "姓名",
-			prop: "name",
+			label: '姓名',
+			prop: 'name',
 			minWidth: 140
 		},
 		{
-			label: "手机号",
-			prop: "phone",
+			label: '手机号',
+			prop: 'phone',
 			minWidth: 140
 		},
 		{
-			type: "op"
+			type: 'op'
 		}
 	]
 });
@@ -101,9 +98,9 @@ const Table = useTable({
 // cl-crud
 const Crud = useCrud(
 	{
-		service: service.test
+		service: 'test'
 	},
-	(app) => {
+	app => {
 		app.refresh({
 			size: 10
 		});
@@ -114,33 +111,33 @@ const Form = useForm();
 
 function open() {
 	Form.value?.open({
-		title: "内嵌CRUD",
+		title: '内嵌CRUD',
 		props: {
-			labelPosition: "top"
+			labelPosition: 'top'
 		},
 		dialog: {
-			height: "70vh",
-			width: "1000px"
+			height: '70vh',
+			width: '1000px'
 		},
 		items: [
 			{
-				label: "姓名",
-				prop: "name",
+				label: '姓名',
+				prop: 'name',
 				component: {
-					name: "el-input",
+					name: 'el-input',
 					props: {
-						placeholder: "请填写姓名"
+						placeholder: '请填写姓名'
 					}
 				},
 				rules: {
 					required: true,
-					message: "姓名不能为空"
+					message: '姓名不能为空'
 				}
 			},
 			{
-				label: "内嵌 cl-crud",
+				label: '内嵌 cl-crud',
 				component: {
-					name: "slot-crud"
+					name: 'slot-crud'
 				}
 			}
 		],

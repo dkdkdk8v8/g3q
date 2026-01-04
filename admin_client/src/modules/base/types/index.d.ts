@@ -1,10 +1,8 @@
-import { RouteComponent, RouteLocationNormalized } from "vue-router";
-
-export declare namespace Menu {
+declare namespace Menu {
 	enum Type {
-		"目录" = 0,
-		"菜单" = 1,
-		"权限" = 2
+		'目录' = 0,
+		'菜单' = 1,
+		'权限' = 2
 	}
 
 	interface Item {
@@ -16,6 +14,8 @@ export declare namespace Menu {
 		type: Type;
 		name: string;
 		icon: string;
+		badge?: number;
+		badgeColor?: 'primary' | 'success' | 'warning' | 'danger' | 'info';
 		orderNum: number;
 		isShow: number | boolean;
 		keepAlive?: number;
@@ -27,7 +27,7 @@ export declare namespace Menu {
 			[key: string]: any;
 		};
 		children?: Item[];
-		component?: RouteComponent;
+		component?: any;
 		redirect?: string;
 		[key: string]: any;
 	}
@@ -35,9 +35,17 @@ export declare namespace Menu {
 	type List = Item[];
 }
 
-export declare namespace Process {
-	interface Item extends RouteLocationNormalized {
+declare namespace Process {
+	interface Item {
 		active: boolean;
+		name: string;
+		path: string;
+		fullPath: string;
+		meta: {
+			label: string;
+			[key: string]: any;
+		};
+		[key: string]: any;
 	}
 
 	type List = Item[];

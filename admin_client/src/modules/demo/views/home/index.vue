@@ -1,120 +1,104 @@
 <template>
 	<el-scrollbar>
-		<div class="view-home">
-			<el-row :gutter="15">
+		<div class="demo-home">
+			<el-row :gutter="10">
 				<el-col :lg="6" :md="12" :xs="24">
-					<div class="card">
-						<count-user />
-					</div>
+					<count-user />
 				</el-col>
 				<el-col :lg="6" :md="12" :xs="24">
-					<div class="card">
-						<count-views />
-					</div>
+					<count-views />
 				</el-col>
 				<el-col :lg="6" :md="12" :xs="24">
-					<div class="card">
-						<count-paid />
-					</div>
+					<count-paid />
 				</el-col>
 				<el-col :lg="6" :md="12" :xs="24">
-					<div class="card">
-						<count-effect />
-					</div>
+					<count-effect />
 				</el-col>
 			</el-row>
 
-			<el-row :gutter="15">
-				<el-col :lg="14" :xs="24">
-					<div class="card">
-						<tab-chart />
-					</div>
-				</el-col>
-				<el-col :lg="10" :xs="24">
-					<div class="card">
-						<sales-rank />
-					</div>
+			<el-row :gutter="10">
+				<el-col :lg="24" :xs="24">
+					<tab-chart />
 				</el-col>
 			</el-row>
 
-			<el-row :gutter="15">
+			<el-row :gutter="10">
 				<el-col :lg="14" :sm="24">
-					<div class="card card--last">
-						<hot-search />
-					</div>
+					<hot-goods />
 				</el-col>
 				<el-col :lg="10" :sm="24">
-					<div class="card card--last">
-						<category-ratio />
-					</div>
+					<category-ratio />
 				</el-col>
 			</el-row>
 		</div>
 	</el-scrollbar>
 </template>
 
-<script lang="ts" name="home" setup>
-import CategoryRatio from "./components/category-ratio.vue";
-import CountUser from "./components/count-user.vue";
-import CountViews from "./components/count-views.vue";
-import CountPaid from "./components/count-paid.vue";
-import CountEffect from "./components/count-effect.vue";
-import TabChart from "./components/tab-chart.vue";
-import SalesRank from "./components/sales-rank.vue";
-import HotSearch from "./components/hot-search.vue";
+<script lang="ts" setup>
+defineOptions({
+	name: 'home'
+});
+
+import CategoryRatio from './components/category-ratio.vue';
+import CountUser from './components/count-user.vue';
+import CountViews from './components/count-views.vue';
+import CountPaid from './components/count-paid.vue';
+import CountEffect from './components/count-effect.vue';
+import TabChart from './components/tab-chart.vue';
+import HotGoods from './components/hot-goods.vue';
 </script>
 
 <style lang="scss">
-.view-home {
+.demo-home {
 	overflow-x: hidden;
 
 	.card {
-		background-color: #fff;
-		border-radius: 6px;
-		margin-bottom: 15px;
-		font-size: 12px;
-		letter-spacing: 0.5px;
-		color: #000;
-		line-height: 1;
+		border-radius: 10px;
+		margin-bottom: 10px;
+		border: 1px solid var(--el-border-color-extra-light);
+		background-color: var(--el-bg-color);
+		color: var(--el-text-color-primary);
+		user-select: none;
 
 		&__header {
 			display: flex;
 			align-items: center;
-			height: 50px;
-			padding: 0 20px;
+			justify-content: space-between;
+			padding: 10px 20px;
+			min-height: 50px;
 
 			.label {
-				font-size: 12px;
+				font-size: 15px;
 			}
 
-			.value {
-				font-size: 18px;
-				font-weight: bold;
-				margin-left: 10px;
+			.icon {
+				font-size: 30px;
+				background-color: var(--el-fill-color-light);
+				padding: 5px;
+				border-radius: 6px;
 			}
 		}
 
 		&__container {
 			padding: 0 20px;
-			height: 50px;
+			min-height: 50px;
+
+			.num {
+				font-size: 32px;
+			}
 		}
 
 		&__footer {
 			display: flex;
 			align-items: center;
 			height: 50px;
-			border-top: 1px solid #f7f7f7;
-			font-size: 12px;
 			margin: 0 5px;
 			padding: 0 15px;
 			box-sizing: border-box;
+			font-size: 12px;
 
 			.label {
 				margin-right: 10px;
-			}
-
-			.value {
-				font-size: 13px;
 			}
 		}
 	}

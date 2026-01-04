@@ -1,11 +1,12 @@
 import { inject, reactive, ref } from "vue";
 import { useConfig } from "../../../hooks";
 import { getValue, mergeConfig } from "../../../utils";
+import type { TableInstance } from "element-plus";
 
 export function useTable(props: any) {
 	const { style } = useConfig();
 
-	const Table = ref();
+	const Table = ref<TableInstance>();
 
 	// 配置
 	const config = reactive<ClTable.Config>(mergeConfig(props, inject("useTable__options") || {}));
@@ -18,6 +19,16 @@ export function useTable(props: any) {
 
 	// 右键菜单
 	config.contextMenu = config.contextMenu ?? style.table.contextMenu;
+
+	// 事件
+	if (!config.on) {
+		config.on = {};
+	}
+
+	// 参数
+	if (!config.props) {
+		config.props = {};
+	}
 
 	return { Table, config };
 }

@@ -10,14 +10,14 @@
 
 			<template v-if="user.token || isLogout">
 				<div class="error-page__btns">
-					<el-button @click="home">回到首页</el-button>
-					<el-button type="primary" @click="reLogin">重新登录</el-button>
+					<el-button @click="home">{{ $t('返回首页') }}</el-button>
+					<el-button type="primary" @click="reLogin">{{ $t('重新登录') }}</el-button>
 				</div>
 			</template>
 
 			<template v-else>
 				<div class="error-page__btns">
-					<el-button type="primary" @click="toLogin">返回登录页</el-button>
+					<el-button type="primary" @click="toLogin">{{ $t('返回登录页') }}</el-button>
 				</div>
 			</template>
 		</div>
@@ -33,9 +33,13 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref } from "vue";
-import { useCool } from "/@/cool";
-import { useBase } from "/$/base";
+defineOptions({
+	name: 'error-page'
+});
+
+import { computed, ref } from 'vue';
+import { useCool } from '/@/cool';
+import { useBase } from '/$/base';
 
 const props = defineProps({
 	code: Number,
@@ -48,11 +52,11 @@ const { user } = useBase();
 const isLogout = ref(false);
 
 const codes = computed(() => {
-	return (props.code || "").toString().split("");
+	return (props.code || '').toString().split('');
 });
 
 function toLogin() {
-	router.push("/login");
+	router.push('/login');
 }
 
 async function reLogin() {
@@ -61,8 +65,7 @@ async function reLogin() {
 }
 
 function home() {
-	window.location.href = "/";
-	// router.push("/");
+	router.push('/');
 }
 </script>
 

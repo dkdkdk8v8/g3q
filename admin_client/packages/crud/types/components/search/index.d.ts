@@ -1,58 +1,66 @@
-/// <reference types="../index" />
-import { PropType } from "vue";
-declare const _default: import("vue").DefineComponent<{
+import { PropType } from 'vue';
+declare const _default: import('vue').DefineComponent<import('vue').ExtractPropTypes<{
     inline: {
         type: BooleanConstructor;
         default: boolean;
     };
     props: {
         type: ObjectConstructor;
-        default: () => void;
+        default: () => {};
     };
     data: {
         type: ObjectConstructor;
         default: () => {};
     };
     items: {
-        type: PropType<ClForm.Item<any>[]>;
-        default: () => never[];
+        type: PropType<ClForm.Item[]>;
+        default: () => any[];
     };
     resetBtn: {
         type: BooleanConstructor;
         default: boolean;
     };
+    collapse: {
+        type: BooleanConstructor;
+        default: boolean;
+    };
     onLoad: FunctionConstructor;
     onSearch: FunctionConstructor;
-}, () => any, unknown, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, "reset"[], "reset", import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
+}>, () => any, {}, {}, {}, import('vue').ComponentOptionsMixin, import('vue').ComponentOptionsMixin, "reset"[], "reset", import('vue').PublicProps, Readonly<import('vue').ExtractPropTypes<{
     inline: {
         type: BooleanConstructor;
         default: boolean;
     };
     props: {
         type: ObjectConstructor;
-        default: () => void;
+        default: () => {};
     };
     data: {
         type: ObjectConstructor;
         default: () => {};
     };
     items: {
-        type: PropType<ClForm.Item<any>[]>;
-        default: () => never[];
+        type: PropType<ClForm.Item[]>;
+        default: () => any[];
     };
     resetBtn: {
         type: BooleanConstructor;
         default: boolean;
     };
+    collapse: {
+        type: BooleanConstructor;
+        default: boolean;
+    };
     onLoad: FunctionConstructor;
     onSearch: FunctionConstructor;
-}>> & {
-    onReset?: ((...args: any[]) => any) | undefined;
-}, {
-    items: ClForm.Item<any>[];
-    props: Record<string, any>;
-    inline: boolean;
+}>> & Readonly<{
+    onReset?: (...args: any[]) => any;
+}>, {
     data: Record<string, any>;
+    props: Record<string, any>;
+    items: ClForm.Item<any>[];
+    inline: boolean;
     resetBtn: boolean;
-}, {}>;
+    collapse: boolean;
+}, {}, {}, {}, string, import('vue').ComponentProvideOptions, true, {}, any>;
 export default _default;

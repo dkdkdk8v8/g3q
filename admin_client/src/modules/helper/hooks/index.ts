@@ -1,3 +1,2 @@
-export * from "./ai";
-export * from "./menu";
-export * from "./code";
+export * from './menu';
+export * from './plugin';

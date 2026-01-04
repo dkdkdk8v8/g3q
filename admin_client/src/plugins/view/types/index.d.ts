@@ -1,7 +1,4 @@
-import { TreeData } from "element-plus/es/components/tree/src/tree.type";
-import Node from "element-plus/es/components/tree/src/model/node";
-
-export declare namespace ClViewGroup {
+declare namespace ClViewGroup {
 	interface Item {
 		id: any;
 		name: string;
@@ -21,6 +18,24 @@ export declare namespace ClViewGroup {
 		refresh(params?: any): void;
 	}
 
+	interface Node {
+		id: number;
+		text: string;
+		checked: boolean;
+		indeterminate: boolean;
+		data: any;
+		expanded: boolean;
+		visible: boolean;
+		isCurrent: boolean;
+		store: any;
+		isLeaf: boolean;
+		level: number;
+		loaded: boolean;
+		childNodes: Node[];
+		loading: boolean;
+		[key: string]: any;
+	}
+
 	interface Options<T = Item> {
 		label: string;
 		title: string;
@@ -37,25 +52,9 @@ export declare namespace ClViewGroup {
 				isLeaf?: string | ((node: Node, data: any) => string);
 				class?: any;
 			};
-			onLoad?(node: Node, resolve: (data: TreeData) => void): void;
+			onLoad?(node: Node, resolve: (data: any) => void): void;
 		};
-		service: {
-			_permission: {
-				[key: string]: boolean;
-			};
-			permission: {
-				[key: string]: string;
-			};
-			page(data?: any): Promise<{
-				list: any[];
-				pagination: { page: number; size: number; total: number };
-			}>;
-			list(data?: any): Promise<any[]>;
-			update(data: any): Promise<any>;
-			add(data: any): Promise<any>;
-			delete(data: any): Promise<any>;
-			[key: string]: any;
-		};
+		service: any;
 		enableContextMenu?: boolean;
 		enableAdd?: boolean;
 		enableRefresh?: boolean;

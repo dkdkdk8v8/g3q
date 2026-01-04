@@ -1,7 +1,7 @@
 <template>
 	<div class="scope">
 		<div class="h">
-			<el-tag size="small" effect="dark">tips</el-tag>
+			<el-tag size="small" effect="dark" disable-transitions>tips</el-tag>
 			<span>代码类型提示</span>
 		</div>
 
@@ -14,7 +14,6 @@
 				<cl-crud ref="Crud">
 					<cl-row>
 						<cl-refresh-btn />
-						<cl-add-btn />
 						<cl-multi-delete-btn />
 
 						<cl-flex1 />
@@ -23,7 +22,7 @@
 					</cl-row>
 
 					<cl-row>
-						<cl-table size="small" ref="Table" />
+						<cl-table ref="Table" />
 					</cl-row>
 
 					<cl-row>
@@ -44,114 +43,97 @@
 </template>
 
 <script setup lang="ts">
-import { useCrud, useTable, useUpsert } from "@cool-vue/crud";
-import { ref } from "vue";
-import { useCool } from "/@/cool";
+import { useCrud, useTable, useUpsert } from '@cool-vue/crud';
+import { ref } from 'vue';
+import { useCool } from '/@/cool';
 
 const { service } = useCool();
 
 // cl-crud 配置
 const Crud = useCrud(
 	{
-		service: service.demo.goods
+		service: service.base.sys.user
 	},
-	(app) => {
+	app => {
 		app.refresh();
 	}
 );
 
 // cl-table 配置
-//【很重要】添加类型标注 <Eps.DemoGoodsEntity>，也可以自定义<{ title: string; price: number }>
-const Table = useTable<Eps.DemoGoodsEntity>({
+//【很重要】添加类型标注 <Eps.BaseSysUserEntity>，也可以自定义类型
+const Table = useTable<Eps.BaseSysUserEntity>({
 	autoHeight: false,
-	contextMenu: ["refresh"],
+	contextMenu: ['refresh'],
 
 	columns: [
 		{
-			type: "selection"
+			type: 'selection'
 		},
 		{
-			label: "商品标题",
-			prop: "title", //【很重要】编辑的时候会提示 DemoGoodsEntity 实体的属性名
+			prop: 'headImg', //【很重要】编辑的时候会提示 BaseSysUserEntity 实体的属性名
+			label: '头像',
+			component: {
+				name: 'cl-avatar'
+			},
 			minWidth: 140
 		},
 		{
-			label: "主图",
-			prop: "mainImage",
-			minWidth: 140,
-			component: {
-				name: "cl-image",
-				props: {
-					size: 60
-				}
-			}
+			prop: 'name',
+			label: '姓名',
+			minWidth: 150
 		},
 		{
-			label: "价格",
-			prop: "price",
-			minWidth: 120
+			prop: 'nickName',
+			label: '昵称',
+			minWidth: 150
 		},
 		{
-			label: "库存",
-			prop: "stock",
-			minWidth: 120
-		},
-		{
-			label: "创建时间",
-			prop: "createTime",
+			label: '创建时间',
+			prop: 'createTime',
 			minWidth: 170,
-			sortable: "desc"
+			sortable: 'desc'
 		},
 		{
-			type: "op"
+			type: 'op'
 		}
 	]
 });
 
 // cl-upsert 配置
-//【很重要】添加类型标注 <Eps.DemoGoodsEntity>，也可以自定义<{ title: string; price: number }>
-const Upsert = useUpsert<Eps.DemoGoodsEntity>({
+//【很重要】添加类型标注 <Eps.BaseSysUserEntity>，也可以自定义类型
+const Upsert = useUpsert<Eps.BaseSysUserEntity>({
 	items: [
 		{
-			label: "商品标题",
-			prop: "title", //【很重要】编辑的时候会提示 DemoGoodsEntity 实体的属性名
+			prop: 'headImg', //【很重要】编辑的时候会提示 BaseSysUserEntity 实体的属性名
+			label: '头像',
 			component: {
-				name: "el-input"
-			}
-		},
-		{
-			label: "主图",
-			prop: "mainImage",
-			component: {
-				name: "cl-upload"
-			}
-		},
-		{
-			label: "价格",
-			prop: "price",
-			hook: "number",
-			component: {
-				name: "el-input-number",
+				name: 'cl-upload',
 				props: {
-					min: 0.01,
-					max: 10000
+					text: '选择头像'
 				}
 			}
 		},
 		{
-			label: "库存",
-			prop: "stock",
+			prop: 'name',
+			label: '姓名',
+			span: 12,
+			required: true,
 			component: {
-				name: "el-input-number",
-				props: {
-					min: 0,
-					max: 1000
-				}
+				name: 'el-input'
+			}
+		},
+		{
+			prop: 'username',
+			label: '用户名',
+			required: true,
+			span: 12,
+			component: {
+				name: 'el-input'
 			}
 		}
 	],
 	onSubmit(data, { next }) {
-		// 【很重要】data 的类型也会被定义成 DemoGoodsEntity
+		// 【很重要】data 的类型也会被定义成 BaseSysUserEntity
 
 		next({
 			...data,

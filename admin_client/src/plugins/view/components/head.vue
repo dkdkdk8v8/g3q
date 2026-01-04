@@ -1,8 +1,8 @@
 <template>
-	<div class="cl-view-head" :class="{ 'is-border': border }">
-		<el-icon class="cl-view-head__back" @click="router.back()">
-			<arrow-left />
-		</el-icon>
+	<div class="cl-view-head">
+		<div class="cl-view-head__back" @click="router.back()">
+			<cl-svg name="back" />
+		</div>
 
 		<span class="cl-view-head__title">{{ title }}</span>
 
@@ -12,10 +12,13 @@
 	</div>
 </template>
 
-<script setup lang="ts" name="cl-view-head">
-import { computed } from "vue";
-import { useCool } from "/@/cool";
-import { ArrowLeft } from "@element-plus/icons-vue";
+<script setup lang="ts">
+defineOptions({
+	name: 'cl-view-head'
+});
+
+import { computed } from 'vue';
+import { useCool } from '/@/cool';
 
 const props = defineProps({
 	title: String,
@@ -36,16 +39,20 @@ const title = computed(() => props.title || route.query.title);
 	height: 30px;
 
 	&__back {
+		display: flex;
+		align-items: center;
+		justify-content: center;
 		cursor: pointer;
 		height: 30px;
 		width: 30px;
-		font-size: 16px;
-		border-radius: 4px;
+		font-size: 18px;
+		border-radius: 6px;
 		margin-right: 10px;
 		background-color: var(--el-fill-color-lighter);
 
 		&:hover {
-			color: var(--color-primary);
+			background-color: var(--el-fill-color-light);
+			color: var(--el-color-primary);
 		}
 	}
 
@@ -53,11 +60,6 @@ const title = computed(() => props.title || route.query.title);
 		font-size: 14px;
 		line-height: 1;
 		margin-right: auto;
-	}
-
-	&.is-border {
-		border-bottom: 1px solid var(--el-border-color-light);
-		padding-bottom: 10px;
 	}
 }
 </style>

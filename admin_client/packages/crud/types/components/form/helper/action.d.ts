@@ -1,4 +1,3 @@
-/// <reference types="../index" />
 export declare function useAction({ config, form, Form }: {
     config: ClForm.Config;
     form: obj;

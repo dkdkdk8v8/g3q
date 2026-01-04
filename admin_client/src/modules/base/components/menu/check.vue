@@ -1,6 +1,6 @@
 <template>
 	<div class="cl-menu-check">
-		<el-input v-model="keyword" placeholder="输入关键字进行过滤" />
+		<el-input v-model="keyword" :placeholder="$t('输入关键字进行过滤')" />
 
 		<div class="cl-menu-check__scroller">
 			<el-scrollbar max-height="200px">
@@ -21,11 +21,18 @@
 	</div>
 </template>
 
-<script lang="ts" name="cl-menu-check" setup>
-import { ref, watch } from "vue";
-import { deepTree } from "/@/cool/utils";
-import { useCool } from "/@/cool";
-import { useUpsert } from "@cool-vue/crud";
+<script lang="ts" setup>
+defineOptions({
+	name: 'cl-menu-check'
+});
+
+import { ref, watch } from 'vue';
+import { deepTree } from '/@/cool/utils';
+import { useCool } from '/@/cool';
+import { useUpsert } from '@cool-vue/crud';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
 	modelValue: {
@@ -34,7 +41,7 @@ const props = defineProps({
 	}
 });
 
-const emit = defineEmits(["update:modelValue"]);
+const emit = defineEmits(['update:modelValue']);
 
 const { service } = useCool();
 
@@ -45,11 +52,11 @@ const Tree = ref();
 const list = ref();
 
 // 搜索关键字
-const keyword = ref("");
+const keyword = ref('');
 
 // 刷新列表
 async function refresh() {
-	return service.base.sys.menu.list().then((res) => {
+	return service.base.sys.menu.list().then(res => {
 		list.value = deepTree(res);
 	});
 }
@@ -62,7 +69,7 @@ function filterNode(val: string, data: any) {
 
 // 值改变
 function onCheckChange(_: any, { checkedKeys, halfCheckedKeys }: any) {
-	emit("update:modelValue", [...checkedKeys, ...halfCheckedKeys]);
+	emit('update:modelValue', [...checkedKeys, ...halfCheckedKeys]);
 }
 
 // 过滤监听
@@ -74,7 +81,7 @@ useUpsert({
 	async onOpened() {
 		await refresh();
 		Tree.value?.setCheckedKeys(
-			(props.modelValue || []).filter((e) => Tree.value.getNode(e)?.isLeaf)
+			(props.modelValue || []).filter(e => Tree.value.getNode(e)?.isLeaf)
 		);
 	}
 });

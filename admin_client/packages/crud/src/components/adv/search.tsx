@@ -1,8 +1,9 @@
-import { defineComponent, h, inject, mergeProps, nextTick, PropType, reactive, ref } from "vue";
+import { defineComponent, h, inject, mergeProps, nextTick, type PropType, reactive, ref } from "vue";
 import { Close } from "@element-plus/icons-vue";
 import { useBrowser, useConfig, useCore } from "../../hooks";
 import { renderNode } from "../../utils/vnode";
 import { useApi } from "../form/helper";
+import { isArray } from "lodash-es";
 
 export default defineComponent({
 	name: "cl-adv-search",
@@ -58,7 +59,7 @@ export default defineComponent({
 		function open() {
 			visible.value = true;
 
-			nextTick(function () {
+			nextTick(() => {
 				Form.value?.open({
 					items: config.items || [],
 					op: {
@@ -76,9 +77,30 @@ export default defineComponent({
 
 		// 重置数据
 		function reset() {
+			const d: any = {};
+
+			config.items?.map((e) => {
+				if (typeof e.hook != 'string' && e.hook?.reset) {
+					const props = e.hook.reset(e.prop!)
+
+					if (isArray(props)) {
+						props.forEach((prop) => {
+							d[prop] = undefined;
+						})
+					}
+				}
+
+				d[e.prop!] = undefined;
+			});
+
+			// 重置表单
 			Form.value?.reset();
-			emit("reset");
+
+			// 列表刷新
 			search();
+
+			// 重置事件
+			emit("reset", d);
 		}
 
 		// 清空数据
@@ -88,24 +110,25 @@ export default defineComponent({
 		}
 
 		// 搜素请求
-		function search() {
-			Form.value?.submit((data) => {
-				function next(params: any) {
-					Form.value?.done();
-					close();
+		function search(params?: any) {
+			const form = Form.value?.getForm();
 
-					return crud.refresh({
-						...params,
-						page: 1
-					});
-				}
+			function next(data: any) {
+				Form.value?.done();
+				close();
 
-				if (config.onSearch) {
-					config.onSearch(data, { next, close });
-				} else {
-					next(data);
-				}
-			});
+				return crud.refresh({
+					...data,
+					...params,
+					page: 1
+				});
+			}
+
+			if (config.onSearch) {
+				config.onSearch(form, { next, close });
+			} else {
+				next(form);
+			}
 		}
 
 		// 消息事件
@@ -131,7 +154,9 @@ export default defineComponent({
 							{
 								type: e == "search" ? "primary" : null,
 								size: style.size,
-								onClick: fns[e]
+								onClick: () => {
+									fns[e]()
+								}
 							},
 							{ default: () => crud.dict.label[e] }
 						);
@@ -150,7 +175,8 @@ export default defineComponent({
 			close,
 			clear,
 			...useApi({ Form }),
-			reset
+			reset,
+			Form
 		});
 
 		return () => {

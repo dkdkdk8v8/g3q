@@ -1,16 +1,21 @@
-import { defineComponent, h } from "vue";
-import { useBase, Menu } from "/$/base";
-import { useCool } from "/@/cool";
+import { defineComponent, h, watch } from 'vue';
+import { useBase } from '/$/base';
+import { useCool } from '/@/cool';
+import { debounce } from 'lodash-es';
 
 export default defineComponent({
-	name: "b-menu",
+	name: 'b-menu',
 
-	setup() {
-		const { router, route, browser } = useCool();
+	props: {
+		keyWord: String
+	},
+
+	setup(props) {
+		const { router, route, browser, refs, setRefs } = useCool();
 		const { menu, app } = useBase();
 
 		// 页面跳转
-		function toView(url: string) {
+		function onSelect(url: string) {
 			if (url != route.path) {
 				router.push(url);
 			}
@@ -23,70 +28,121 @@ export default defineComponent({
 
 		// 渲染子菜单
 		function renderMenu() {
-			function deep(list: Menu.Item[], index: number) {
-				return list
-					.filter((e) => e.isShow)
-					.map((e) => {
-						const item = (e: Menu.Item) => {
-							return [
-								<el-icon>
-									<cl-svg name={e.icon} />
-								</el-icon>,
-								<span v-show={!app.isFold || index != 1}>{e.meta?.label}</span>
-							];
-						};
+			function deep(list: Menu.Item[], show?: boolean) {
+				const keyWord = props.keyWord?.toLowerCase() || '';
 
-						if (e.type == 0) {
-							return h(
-								<el-sub-menu />,
-								{
-									index: String(e.id),
-									key: e.id,
-									popperClass: "app-slider__menu"
-								},
-								{
-									title() {
-										return item(e);
-									},
-									default() {
-										return deep(e.children || [], index + 1);
-									}
-								}
-							);
-						} else {
-							return h(
-								<el-menu-item />,
-								{
-									index:
-										route.path == "/"
-											? e.meta?.isHome
-												? "/"
-												: e.path
-											: e.path,
-									key: e.id
-								},
-								{
-									default() {
-										return item(e);
-									}
-								}
+				function filterMenu(item: Menu.Item): boolean {
+					if (!item.isShow) return false;
+
+					if (show) {
+						return true;
+					}
+
+					if (item.meta?.label?.toLowerCase().includes(keyWord)) return true;
+
+					if (item.children) {
+						return item.children.some(filterMenu);
+					}
+
+					return false;
+				}
+
+				return list.filter(filterMenu).map(e => {
+					if (e.meta?.label?.toLowerCase().includes(keyWord)) {
+						show = true;
+					}
+
+					const item = (e: Menu.Item) => {
+						const arr = [
+							<cl-svg name={e.icon} size={18} />,
+							<span class="ml-4 tracking-wider text-[14px] mr-auto text-ellipsis overflow-hidden whitespace-nowrap">
+								{e.meta?.label}
+							</span>
+						];
+
+						if (e.type == 1 && e.badge) {
+							arr.push(
+								<div class={['b-menu__badge', `is-${e.badgeColor}`]}>
+									<span>{e.badge}</span>
+								</div>
 							);
 						}
-					});
+						return arr;
+					};
+
+					if (e.type == 0) {
+						return h(
+							<el-sub-menu />,
+							{
+								index: String(e.id),
+								key: e.id,
+								popperClass: 'app-slider__menu'
+							},
+							{
+								title() {
+									return item(e);
+								},
+								default() {
+									return deep(e.children || [], show);
+								}
+							}
+						);
+					} else {
+						return h(
+							<el-menu-item />,
+							{
+								index: e.meta?.isHome ? '/' : e.path,
+								key: e.id
+							},
+							{
+								default() {
+									return item(e);
+								}
+							}
+						);
+					}
+				});
 			}
 
-			return deep(menu.list, 1);
+			return deep(menu.list);
 		}
+
+		// 展开所有
+		const expand = debounce(() => {
+			if (!props.keyWord) {
+				return;
+			}
+
+			const deep = (list: Menu.Item[]) => {
+				list.forEach(e => {
+					if (e.type == 0) {
+						try {
+							refs.menu?.open(String(e.id));
+						} catch (err) { }
+
+						if (e.children) {
+							deep(e.children);
+						}
+					}
+				});
+			};
+
+			deep(menu.list);
+		}, 300);
+
+		watch(() => props.keyWord, expand);
 
 		return () => {
 			return (
 				<div class="app-slider__menu">
 					<el-menu
+						ref={setRefs('menu')}
 						default-active={route.path}
 						background-color="transparent"
 						collapse-transition={false}
 						collapse={browser.isMini ? false : app.isFold}
-						onSelect={toView}
+						onSelect={onSelect}
+						popper-offset={10}
 					>
 						{renderMenu()}
 					</el-menu>

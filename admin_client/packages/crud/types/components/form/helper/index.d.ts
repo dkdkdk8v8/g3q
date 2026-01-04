@@ -1,6 +1,5 @@
-/// <reference types="../index" />
 export declare function useForm(): {
-    Form: import("vue").Ref<any>;
+    Form: import('vue').Ref<any, any>;
     config: {
         [x: string]: any;
         title?: any;
@@ -8,42 +7,42 @@ export declare function useForm(): {
         width?: any;
         props: {
             [x: string]: any;
-            inline?: boolean | undefined;
-            labelPosition?: "left" | "right" | "top" | undefined;
-            labelWidth?: string | number | undefined;
-            labelSuffix?: string | undefined;
-            hideRequiredAsterisk?: boolean | undefined;
-            showMessage?: boolean | undefined;
-            inlineMessage?: boolean | undefined;
-            statusIcon?: boolean | undefined;
-            validateOnRuleChange?: boolean | undefined;
-            size?: ElementPlus.Size | undefined;
-            disabled?: boolean | undefined;
+            inline?: boolean;
+            labelPosition?: "left" | "right" | "top";
+            labelWidth?: string | number;
+            labelSuffix?: string;
+            hideRequiredAsterisk?: boolean;
+            showMessage?: boolean;
+            inlineMessage?: boolean;
+            statusIcon?: boolean;
+            validateOnRuleChange?: boolean;
+            size?: ElementPlus.Size;
+            disabled?: boolean;
         };
         items: {
             [x: string]: any;
-            type?: "tabs" | undefined;
-            prop?: (string & {}) | undefined;
+            type?: "tabs";
+            prop?: string & {};
             props?: {
                 [x: string]: any;
                 labels?: {
                     [x: string]: any;
                     label: string;
                     value: string;
-                    name?: string | undefined;
+                    name?: string;
                     icon?: any;
-                    lazy?: boolean | undefined;
-                }[] | undefined;
-                justify?: "center" | "left" | "right" | undefined;
-                color?: string | undefined;
-                mergeProp?: boolean | undefined;
-                labelWidth?: string | undefined;
-                error?: string | undefined;
-                showMessage?: boolean | undefined;
-                inlineMessage?: boolean | undefined;
-                size?: "default" | "small" | "medium" | undefined;
-            } | undefined;
-            span?: number | undefined;
+                    lazy?: boolean;
+                }[];
+                justify?: "left" | "center" | "right";
+                color?: string;
+                mergeProp?: boolean;
+                labelWidth?: string;
+                error?: string;
+                showMessage?: boolean;
+                inlineMessage?: boolean;
+                size?: "medium" | "default" | "small";
+            };
+            span?: number;
             col?: {
                 span: number;
                 offset: number;
@@ -55,182 +54,184 @@ export declare function useForm(): {
                 lg: any;
                 xl: any;
                 tag: string;
-            } | undefined;
-            group?: string | undefined;
-            collapse?: boolean | undefined;
+            };
+            group?: string;
+            collapse?: boolean;
             value?: any;
-            label?: string | undefined;
+            label?: string;
             renderLabel?: any;
-            flex?: boolean | undefined;
-            hook?: ClForm.HookKey | {
-                bind?: ClForm.HookPipe | ClForm.HookPipe[] | undefined;
-                submit?: ClForm.HookPipe | ClForm.HookPipe[] | undefined;
-            } | undefined;
+            flex?: boolean;
+            hook?: "string" | "number" | "boolean" | "join" | "split" | AnyString | "empty" | "booleanNumber" | "datetimeRange" | "splitJoin" | "json" | {
+                bind?: ClForm.Hook["Pipe"] | ClForm.Hook["Pipe"][];
+                submit?: ClForm.Hook["Pipe"] | ClForm.Hook["Pipe"][];
+                reset?: (prop: string) => string[];
+            };
             hidden?: boolean | ((options: {
                 scope: obj;
-            }) => boolean) | undefined;
+            }) => boolean);
             prepend?: {
                 [x: string]: any;
-                name?: string | undefined;
+                name?: string;
                 options?: {
                     [x: string]: any;
-                    label?: string | undefined;
+                    label?: string;
                     value?: any;
-                    color?: string | undefined;
-                    type?: string | undefined;
+                    color?: string;
+                    type?: string;
                 }[] | {
                     value: {
                         [x: string]: any;
-                        label?: string | undefined;
+                        label?: string;
                         value?: any;
-                        color?: string | undefined;
-                        type?: string | undefined;
+                        color?: string;
+                        type?: string;
                     }[];
-                } | undefined;
+                };
                 props?: {
                     [x: string]: any;
-                    onChange?: ((value: any) => void) | undefined;
+                    onChange?: (value: any) => void;
                 } | {
                     value: {
                         [x: string]: any;
-                        onChange?: ((value: any) => void) | undefined;
+                        onChange?: (value: any) => void;
                     };
-                } | undefined;
-                style?: obj | undefined;
+                };
+                style?: obj;
                 slots?: {
                     [key: string]: (data?: any) => any;
-                } | undefined;
+                };
                 vm?: any;
-            } | undefined;
+            };
             component?: {
                 [x: string]: any;
-                name?: string | undefined;
+                name?: string;
                 options?: {
                     [x: string]: any;
-                    label?: string | undefined;
+                    label?: string;
                     value?: any;
-                    color?: string | undefined;
-                    type?: string | undefined;
+                    color?: string;
+                    type?: string;
                 }[] | {
                     value: {
                         [x: string]: any;
-                        label?: string | undefined;
+                        label?: string;
                         value?: any;
-                        color?: string | undefined;
-                        type?: string | undefined;
+                        color?: string;
+                        type?: string;
                     }[];
-                } | undefined;
+                };
                 props?: {
                     [x: string]: any;
-                    onChange?: ((value: any) => void) | undefined;
+                    onChange?: (value: any) => void;
                 } | {
                     value: {
                         [x: string]: any;
-                        onChange?: ((value: any) => void) | undefined;
+                        onChange?: (value: any) => void;
                     };
-                } | undefined;
-                style?: obj | undefined;
+                };
+                style?: obj;
                 slots?: {
                     [key: string]: (data?: any) => any;
-                } | undefined;
+                };
                 vm?: any;
-            } | undefined;
+            };
             append?: {
                 [x: string]: any;
-                name?: string | undefined;
+                name?: string;
                 options?: {
                     [x: string]: any;
-                    label?: string | undefined;
+                    label?: string;
                     value?: any;
-                    color?: string | undefined;
-                    type?: string | undefined;
+                    color?: string;
+                    type?: string;
                 }[] | {
                     value: {
                         [x: string]: any;
-                        label?: string | undefined;
+                        label?: string;
                         value?: any;
-                        color?: string | undefined;
-                        type?: string | undefined;
+                        color?: string;
+                        type?: string;
                     }[];
-                } | undefined;
+                };
                 props?: {
                     [x: string]: any;
-                    onChange?: ((value: any) => void) | undefined;
+                    onChange?: (value: any) => void;
                 } | {
                     value: {
                         [x: string]: any;
-                        onChange?: ((value: any) => void) | undefined;
+                        onChange?: (value: any) => void;
                     };
-                } | undefined;
-                style?: obj | undefined;
+                };
+                style?: obj;
                 slots?: {
                     [key: string]: (data?: any) => any;
-                } | undefined;
+                };
                 vm?: any;
-            } | undefined;
+            };
             rules?: {
                 [x: string]: any;
-                type?: "string" | "number" | "boolean" | "object" | "method" | "regexp" | "integer" | "float" | "array" | "enum" | "date" | "url" | "hex" | "email" | "any" | undefined;
-                required?: boolean | undefined;
-                message?: string | undefined;
-                min?: number | undefined;
-                max?: number | undefined;
+                type?: "string" | "number" | "boolean" | "method" | "regexp" | "integer" | "float" | "array" | "object" | "enum" | "date" | "url" | "hex" | "email" | "any";
+                required?: boolean;
+                message?: string;
+                min?: number;
+                max?: number;
                 trigger?: any;
-                validator?: ((rule: any, value: any, callback: (error?: Error | undefined) => void) => void) | undefined;
+                validator?: (rule: any, value: any, callback: (error?: Error) => void) => void;
             } | {
                 [x: string]: any;
-                type?: "string" | "number" | "boolean" | "object" | "method" | "regexp" | "integer" | "float" | "array" | "enum" | "date" | "url" | "hex" | "email" | "any" | undefined;
-                required?: boolean | undefined;
-                message?: string | undefined;
-                min?: number | undefined;
-                max?: number | undefined;
+                type?: "string" | "number" | "boolean" | "method" | "regexp" | "integer" | "float" | "array" | "object" | "enum" | "date" | "url" | "hex" | "email" | "any";
+                required?: boolean;
+                message?: string;
+                min?: number;
+                max?: number;
                 trigger?: any;
-                validator?: ((rule: any, value: any, callback: (error?: Error | undefined) => void) => void) | undefined;
-            }[] | undefined;
-            required?: boolean | undefined;
-            children?: any[] | undefined;
+                validator?: (rule: any, value: any, callback: (error?: Error) => void) => void;
+            }[];
+            required?: boolean;
+            children?: /*elided*/ any[];
         }[];
         form: obj;
-        isReset?: boolean | undefined;
+        isReset?: boolean;
         on?: {
-            open?: ((data: any) => void) | undefined;
-            close?: ((action: ClForm.CloseAction, done: fn) => void) | undefined;
-            submit?: ((data: any, event: {
+            open?: (data: any) => void;
+            close?: (action: ClForm.CloseAction, done: fn) => void;
+            submit?: (data: any, event: {
                 close: fn;
                 done: fn;
-            }) => void) | undefined;
-        } | undefined;
+            }) => void;
+            change?: (data: any, prop: string) => void;
+        };
         op: {
-            hidden?: boolean | undefined;
-            saveButtonText?: string | undefined;
-            closeButtonText?: string | undefined;
-            justify?: "center" | "flex-start" | "flex-end" | undefined;
-            buttons?: (ClForm.CloseAction | `slot-${string}` | {
+            hidden?: boolean;
+            saveButtonText?: string;
+            closeButtonText?: string;
+            justify?: "flex-start" | "center" | "flex-end";
+            buttons?: (`slot-${string}` | ClForm.CloseAction | {
                 [x: string]: any;
                 label: string;
-                type?: string | undefined;
-                hidden?: boolean | undefined;
+                type?: string;
+                hidden?: boolean;
                 onClick: (options: {
                     scope: obj;
                 }) => void;
-            })[] | undefined;
+            })[];
         };
         dialog: {
             [x: string]: any;
             title?: any;
-            height?: string | undefined;
-            width?: string | undefined;
-            hideHeader?: boolean | undefined;
-            controls?: ("close" | AnyString | "fullscreen")[] | undefined;
+            height?: string;
+            width?: string;
+            hideHeader?: boolean;
+            controls?: Array<"fullscreen" | "close" | AnyString>;
         };
     };
     form: obj;
-    visible: import("vue").Ref<boolean>;
-    saving: import("vue").Ref<boolean>;
-    loading: import("vue").Ref<boolean>;
-    disabled: import("vue").Ref<boolean>;
+    visible: import('vue').Ref<boolean, boolean>;
+    saving: import('vue').Ref<boolean, boolean>;
+    loading: import('vue').Ref<boolean, boolean>;
+    disabled: import('vue').Ref<boolean, boolean>;
 };
-export * from "./action";
-export * from "./api";
-export * from "./plugins";
-export * from "./tabs";
+export * from './action';
+export * from './api';
+export * from './plugins';
+export * from './tabs';

@@ -5,11 +5,11 @@
 			<cl-add-btn />
 			<cl-multi-delete-btn />
 			<cl-flex1 />
-			<cl-search-key placeholder="搜索名称" />
+			<cl-search-key :placeholder="$t('搜索名称')" />
 		</cl-row>
 
 		<cl-row>
-			<cl-table size="small" ref="Table" />
+			<cl-table  ref="Table" />
 		</cl-row>
 
 		<cl-row>
@@ -23,82 +23,93 @@
 					<el-row>
 						<cl-switch v-model="scope.relevance" />
 
-						<span :style="{
-				marginLeft: '10px',
-				fontSize: '12px'
-			}">
-							是否关联上下级
+						<span
+							:style="{
+								marginLeft: '10px',
+								fontSize: '12px'
+							}"
+						>
+							{{ t('是否关联上下级') }}
 						</span>
 					</el-row>
 
-					<cl-dept-check v-model="scope.departmentIdList" :check-strictly="scope.relevance == 0" />
+					<cl-dept-check
+						v-model="scope.departmentIdList"
+						:check-strictly="scope.relevance == 0"
+					/>
 				</div>
 			</template>
 		</cl-upsert>
 	</cl-crud>
 </template>
 
-<script lang="ts" setup name="sys-role">
-import { useTable, useUpsert, useCrud } from "@cool-vue/crud";
-import { useCool } from "/@/cool";
+<script lang="ts" setup>
+defineOptions({
+	name: 'sys-role'
+});
 
+import { useTable, useUpsert, useCrud } from '@cool-vue/crud';
+import { useCool } from '/@/cool';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 const { service } = useCool();
 
 // cl-crud
-const Crud = useCrud({ service: service.base.sys.role }, (app) => {
+const Crud = useCrud({ service: service.base.sys.role }, app => {
 	app.refresh();
 });
 
 // cl-upsert
 const Upsert = useUpsert({
 	dialog: {
-		width: "800px"
+		width: '800px'
 	},
 
 	items: [
 		{
-			prop: "name",
-			label: "名称",
+			prop: 'name',
+			label: t('名称'),
 			span: 12,
 			required: true,
 			component: {
-				name: "el-input"
+				name: 'el-input'
 			}
 		},
 		{
-			prop: "label",
-			label: "标识",
+			prop: 'label',
+			label: t('标识'),
 			span: 12,
 			required: true,
 			component: {
-				name: "el-input"
+				name: 'el-input'
 			}
 		},
 		{
-			prop: "remark",
-			label: "备注",
+			prop: 'remark',
+			label: t('备注'),
 			span: 24,
 			component: {
-				name: "el-input",
+				name: 'el-input',
 				props: {
-					type: "textarea",
+					type: 'textarea',
 					rows: 4
 				}
 			}
 		},
 		{
-			label: "功能权限",
-			prop: "menuIdList",
+			label: t('功能权限'),
+			prop: 'menuIdList',
 			value: [],
 			component: {
-				name: "cl-menu-check"
+				name: 'cl-menu-check'
 			}
 		},
 		{
-			label: "数据权限",
-			prop: "relevance",
+			label: t('数据权限'),
+			prop: 'relevance',
 			component: {
-				name: "slot-relevance"
+				name: 'slot-relevance'
 			}
 		}
 	],
@@ -115,41 +126,39 @@ const Upsert = useUpsert({
 const Table = useTable({
 	columns: [
 		{
-			type: "selection",
+			type: 'selection',
 			width: 60
 		},
 		{
-			prop: "name",
-			label: "名称",
+			prop: 'name',
+			label: t('名称'),
 			minWidth: 150
 		},
 		{
-			prop: "label",
-			label: "标识",
+			prop: 'label',
+			label: t('标识'),
 			minWidth: 120
 		},
 		{
-			prop: "remark",
-			label: "备注",
+			prop: 'remark',
+			label: t('备注'),
 			showOverflowTooltip: true,
 			minWidth: 150
 		},
 		{
-			prop: "createTime",
-			label: "创建时间",
-			sortable: "desc",
+			prop: 'createTime',
+			label: t('创建时间'),
+			sortable: 'desc',
 			minWidth: 170
 		},
 		{
-			prop: "updateTime",
-			label: "更新时间",
-			sortable: "custom",
+			prop: 'updateTime',
+			label: t('更新时间'),
+			sortable: 'custom',
 			minWidth: 170
 		},
 		{
-			label: "操作",
-			type: "op",
-			buttons: ["edit", "delete"]
+			type: 'op'
 		}
 	]
 });

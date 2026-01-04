@@ -1,11 +1,11 @@
-import { defineStore } from "pinia";
-import { reactive, ref } from "vue";
-import { merge } from "lodash-es";
-import { useBrowser } from "/@/cool";
-import { storage } from "/@/cool/utils";
-import { config } from "/@/config";
+import { defineStore } from 'pinia';
+import { reactive, ref } from 'vue';
+import { merge } from 'lodash-es';
+import { useBrowser } from '/@/cool';
+import { storage } from '/@/cool/utils';
+import { config } from '/@/config';
 
-export const useAppStore = defineStore("app", function () {
+export const useAppStore = defineStore('app', function () {
 	const { browser, onScreenChange } = useBrowser();
 
 	// 基本信息
@@ -13,13 +13,14 @@ export const useAppStore = defineStore("app", function () {
 		...config.app
 	});
 
+	// 设置基本信息
+	function set(data: any) {
+		merge(info, data);
+		storage.set('__app__', info);
+	}
+
 	// 是否折叠
 	const isFold = ref(false);
-
-	// 事件
-	const events = reactive<{ [key: string]: any[] }>({
-		hasToken: []
-	});
 
 	// 折叠
 	function fold(v?: boolean) {
@@ -30,11 +31,18 @@ export const useAppStore = defineStore("app", function () {
 		isFold.value = v;
 	}
 
-	// 设置基本信息
-	function set(data: any) {
-		merge(info, data);
-		storage.set("__app__", info);
+	// 是否全屏
+	const isFull = ref(false);
+
+	// 设置全屏
+	function setFull(state: boolean) {
+		isFull.value = state;
 	}
+
+	// 事件
+	const events = reactive<{ [key: string]: any[] }>({
+		hasToken: []
+	});
 
 	// 添加事件
 	function addEvent(name: string, func: any) {
@@ -52,6 +60,8 @@ export const useAppStore = defineStore("app", function () {
 		info,
 		isFold,
 		fold,
+		isFull,
+		setFull,
 		events,
 		set,
 		addEvent

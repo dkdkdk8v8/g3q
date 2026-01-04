@@ -1,6 +1,6 @@
 import { createApp } from "vue";
 import App from "./App.vue";
-import Crud, { locale } from "./index";
+import { Crud, locale } from "./entry";
 // import Crud, { locale } from "../dist/index.umd";
 // import "../dist/index.css";
 
@@ -16,7 +16,7 @@ app.use(ElementPlus)
 				prop: "order",
 				order: "sort"
 			},
-			label: locale.zhCn
+			label: locale["zh-cn"]
 		},
 		style: {
 			// size: "default"

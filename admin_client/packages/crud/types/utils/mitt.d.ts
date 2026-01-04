@@ -1,4 +1,4 @@
-declare const mitt: import("mitt").Emitter<Record<import("mitt").EventType, unknown>>;
+declare const mitt: import('mitt').Emitter<Record<import('mitt').EventType, unknown>>;
 declare class Mitt {
     id: number;
     constructor(id?: number);

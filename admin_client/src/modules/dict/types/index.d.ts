@@ -1,4 +1,6 @@
-export namespace Dict {
+namespace Dict {
+	type Key = Eps.DictKey | (string & {});
+
 	interface Item {
 		id: string;
 		label: string;

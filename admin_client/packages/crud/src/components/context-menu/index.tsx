@@ -97,9 +97,36 @@ const ClContextMenu = defineComponent({
 			// 显示
 			visible.value = true;
 
-			nextTick(() => {
-				const el = refs["context-menu"].querySelector(".cl-context-menu__box");
+			// 元素
+			const el = refs["context-menu"].querySelector(".cl-context-menu__box") as HTMLElement;
 
+			// 点击样式
+			if (options?.hover) {
+				const d = options.hover === true ? {} : options.hover;
+				targetEl = event.target;
+
+				if (targetEl && isString(targetEl.className)) {
+					if (d.target) {
+						while (!targetEl.className.includes(d.target)) {
+							targetEl = targetEl.parentNode;
+						}
+					}
+
+					addClass(targetEl, d.className || "cl-context-menu__target");
+				}
+			}
+
+			// 自定义样式
+			if (options?.class) {
+				addClass(el, options.class);
+			}
+
+			// 菜单列表
+			if (options?.list) {
+				list.value = parseList(options.list);
+			}
+
+			nextTick(() => {
 				// 计算位置
 				let left = event.pageX;
 				let top = event.pageY;
@@ -123,33 +150,7 @@ const ClContextMenu = defineComponent({
 
 				style.left = left + "px";
 				style.top = top + "px";
-
-				// 点击样式
-				if (options?.hover) {
-					const d = options.hover === true ? {} : options.hover;
-					targetEl = event.target;
-
-					if (targetEl && isString(targetEl.className)) {
-						if (d.target) {
-							while (!targetEl.className.includes(d.target)) {
-								targetEl = targetEl.parentNode;
-							}
-						}
-
-						addClass(targetEl, d.className || "cl-context-menu__target");
-					}
-				}
-
-				// 自定义样式
-				if (options?.class) {
-					addClass(el, options.class);
-				}
-
-				// 菜单列表
-				if (options?.list) {
-					list.value = parseList(options.list);
-				}
-			});
+			})
 
 			return {
 				close
@@ -221,15 +222,17 @@ const ClContextMenu = defineComponent({
 											"is-active": ids.value.includes(id),
 											"is-ellipsis": e.ellipsis ?? true,
 											"is-disabled": e.disabled
-										}}>
+										}}
+										onClick={(ev: MouseEvent) => {
+											rowClick(e, id);
+											ev.stopPropagation();
+										}}
+									>
 										{/* 前缀图标 */}
 										{e.prefixIcon && <ElIcon>{h(toRaw(e.prefixIcon))}</ElIcon>}
 
 										{/* 标题 */}
-										<span
-											onClick={() => {
-												rowClick(e, id);
-											}}>
+										<span>
 											{e.label}
 										</span>
 

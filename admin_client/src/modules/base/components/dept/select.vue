@@ -15,15 +15,19 @@
 			default-expand-all
 			@change="onChange"
 			@check="onCheckChange"
-		></el-tree-select>
+		/>
 	</div>
 </template>
 
-<script lang="ts" name="cl-dept-select" setup>
-import { ElMessage } from "element-plus";
-import { onMounted, ref, useModel } from "vue";
-import { useCool } from "/@/cool";
-import { deepTree } from "/@/cool/utils";
+<script lang="ts" setup>
+defineOptions({
+	name: 'cl-dept-select'
+});
+
+import { ElMessage } from 'element-plus';
+import { onMounted, ref, useModel } from 'vue';
+import { useCool } from '/@/cool';
+import { deepTree } from '/@/cool/utils';
 
 const props = defineProps({
 	modelValue: [Array, Number, String],
@@ -34,25 +38,25 @@ const props = defineProps({
 	}
 });
 
-const emit = defineEmits(["update:modelValue", "change"]);
+const emit = defineEmits(['update:modelValue', 'change']);
 
 const { service } = useCool();
 
-const value = useModel(props, "modelValue");
+const value = useModel(props, 'modelValue');
 
 const list = ref();
 
 // 单选改变
 function onChange(val: string) {
 	if (!props.multiple) {
-		emit("update:modelValue", val);
+		emit('update:modelValue', val);
 	}
 }
 
 // 多选改变
 function onCheckChange(_: any, { checkedKeys }: any) {
 	if (props.multiple) {
-		emit("update:modelValue", checkedKeys);
+		emit('update:modelValue', checkedKeys);
 	}
 }
 
@@ -60,10 +64,10 @@ function onCheckChange(_: any, { checkedKeys }: any) {
 function refresh() {
 	service.base.sys.department
 		.list()
-		.then((res) => {
+		.then(res => {
 			list.value = deepTree(res);
 		})
-		.catch((err) => {
+		.catch(err => {
 			list.value = [];
 			ElMessage.error(err.message);
 		});

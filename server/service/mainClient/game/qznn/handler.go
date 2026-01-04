@@ -1,17 +1,12 @@
 package qznn
 
 import (
-	"math/rand"
 	"service/comm"
-	"time"
 
 	"github.com/sirupsen/logrus"
 )
 
-func init() {
-	//todo 放到main client里面
-	rand.Seed(time.Now().UnixNano())
-}
+
 
 func HandlerPlayerLeave(r *QZNNRoom, userID string) error {
 	if r == nil {
@@ -27,14 +22,12 @@ func HandlerPlayerLeave(r *QZNNRoom, userID string) error {
 	if err != nil {
 		return err
 	}
-	if err == nil {
-		r.Broadcast(comm.PushData{
-			Cmd:      comm.ServerPush,
-			PushType: PushPlayLeave,
-			Data: PushPlayerLeaveStruct{
-				Room:    r,
-				UserIds: []string{userID}}})
-	}
+	r.Broadcast(comm.PushData{
+		Cmd:      comm.ServerPush,
+		PushType: PushPlayLeave,
+		Data: PushPlayerLeaveStruct{
+			Room:    r,
+			UserIds: []string{userID}}})
 	r.logicTick()
 	return nil
 }

@@ -65,7 +65,8 @@ async function reLogin() {
 }
 
 function home() {
-	router.push('/');
+	window.location.href = "/";
+	//router.push('/');
 }
 </script>
 

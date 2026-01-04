@@ -9,9 +9,6 @@ export class GameRpcService extends BaseService {
     @Inject()
     ctx: Context;
 
-    @Config('rpc.qznn')
-    qznnUrl: string;
-
     @Inject()
     baseSysParamService: BaseSysParamService;
 

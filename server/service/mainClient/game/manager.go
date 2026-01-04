@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"service/comm"
 	"service/mainClient/game/qznn"
+	"sort"
 	"sync"
 	"time"
 )
@@ -62,6 +63,11 @@ func (rm *RoomManager) JoinOrCreateNNRoom(player *qznn.Player, level int, banker
 
 	// 使用写锁，确保“检查玩家是否在房间”和“加入房间”的操作是原子的
 	// 避免在检查和加入之间发生并发变更
+	type roomHolder struct {
+		Room      *qznn.QZNNRoom
+		PlayerNum int
+	}
+	var sortPlayerRoom []roomHolder
 	rm.mu.Lock()
 	var targetRoom *qznn.QZNNRoom
 	// 遍历所有房间
@@ -77,20 +83,23 @@ func (rm *RoomManager) JoinOrCreateNNRoom(player *qznn.Player, level int, banker
 				Data:     qznn.PushRoomStruct{Room: room}})
 			return nil, comm.ErrPlayerInRoom
 		}
-		// 2. 在遍历的同时，寻找一个合适的房间 (如果尚未找到)
-		// 这样可以避免多次遍历
-		if targetRoom == nil {
-			if room.Config.BankerType == bankerType && room.Config.Level == level {
-				// 检查房间人数是否未满
-				if room.GetPlayerCount() < room.GetPlayerCap() {
-					targetRoom = room
-				}
+		//2. 在遍历的同时，寻找一个合适的房间 (如果尚未找到)这样可以避免多次遍历
+		if room.Config.BankerType == bankerType && room.Config.Level == level {
+			// 检查房间人数是否未满
+			if room.GetPlayerCount() < room.GetPlayerCap() {
+				sortPlayerRoom = append(sortPlayerRoom, roomHolder{Room: room, PlayerNum: room.GetPlayerCount()})
 			}
 		}
 	}
 	rm.mu.Unlock()
 	// 3. 循环结束，此时已确认玩家不在任何房间内
 	// 如果找到了合适的房间，则尝试加入
+	sort.Slice(sortPlayerRoom, func(i, j int) bool {
+		return sortPlayerRoom[i].PlayerNum > sortPlayerRoom[j].PlayerNum
+	})
+	for _, r := range sortPlayerRoom {
+		targetRoom = r.Room
+	}
 	if targetRoom != nil {
 		if _, err := targetRoom.AddPlayer(player); err != nil {
 			return nil, err

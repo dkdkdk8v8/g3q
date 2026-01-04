@@ -25,6 +25,10 @@ import talk10 from '@/assets/sounds/talk_10.mp3';
 import gameBgSound from '@/assets/sounds/game_bg.mp3';
 import iconGameStart from '../assets/common/icon_game_start.png';
 import gameStartSound from '@/assets/sounds/game_start.mp3';
+import gameWinImg from '../assets/common/game_win.png';
+import gameLoseImg from '../assets/common/game_lose.png';
+import gameWinSound from '@/assets/sounds/game_win.mp3';
+import gameLoseSound from '@/assets/sounds/game_lose.mp3';
 
 const phraseSounds = [
     talk0, talk1, talk2, talk3, talk4, talk5, talk6, talk7, talk8, talk9, talk10
@@ -50,6 +54,11 @@ const seatRefs = ref({}); // 存储所有座位的引用 key: playerId
 const tableCenterRef = ref(null); // 桌面中心元素引用
 const bgAudio = ref(null);
 const startAnimationClass = ref('');
+const showStartAnim = ref(false);
+const resultImage = ref('');
+const resultAnimClass = ref('');
+const showResultAnim = ref(false);
+const resultTypeClass = ref('');
 
 // Chat/Emoji selector state
 const showChatSelector = ref(false);
@@ -295,17 +304,26 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
         visibleCounts.value = {};
         lastBetStates.value = {};
     } else if (newPhase === 'GAME_START_ANIMATION') {
-         startAnimationClass.value = 'enter';
-         if (settingsStore.soundEnabled) {
-             const audio = new Audio(gameStartSound);
-             audio.play().catch(() => {});
-         }
-         setTimeout(() => {
-             startAnimationClass.value = 'leave';
-         }, 1500);
-         setTimeout(() => {
-             startAnimationClass.value = '';
-         }, 2500);
+        startAnimationClass.value = '';
+        showStartAnim.value = true;
+
+        if (settingsStore.soundEnabled) {
+            const audio = new Audio(gameStartSound);
+            audio.play().catch(() => { });
+        }
+
+        setTimeout(() => {
+            startAnimationClass.value = 'enter';
+        }, 50);
+
+        setTimeout(() => {
+            startAnimationClass.value = 'leave';
+        }, 1550);
+
+        setTimeout(() => {
+            showStartAnim.value = false;
+            startAnimationClass.value = '';
+        }, 2550);
     } else if (newPhase === 'PRE_DEAL') {
         visibleCounts.value = {};
         setTimeout(() => {
@@ -353,6 +371,36 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
 
 
     if (newPhase === 'SETTLEMENT' && tableCenterRef.value && coinLayer.value) {
+        // Trigger Win/Loss Animation
+        const me = store.players.find(p => p.id === store.myPlayerId);
+        if (me) {
+            // Determine result (0 is also win/draw, but typically > 0 is win. Logic says >= 0 is win in display)
+            const isWin = me.roundScore >= 0;
+            resultImage.value = isWin ? gameWinImg : gameLoseImg;
+
+            if (settingsStore.soundEnabled) {
+                const audio = new Audio(isWin ? gameWinSound : gameLoseSound);
+                audio.play().catch(() => { });
+            }
+
+            showResultAnim.value = true;
+            resultAnimClass.value = ''; // Reset class
+
+            setTimeout(() => {
+                resultAnimClass.value = 'pop';
+            }, 50);
+
+            setTimeout(() => {
+                resultAnimClass.value = 'bounce';
+            }, 600);
+
+            // Cleanup
+            setTimeout(() => {
+                showResultAnim.value = false;
+                resultAnimClass.value = '';
+            }, 4000);
+        }
+
         const banker = store.players.find(p => p.isBanker);
         let bankerRect = null;
         if (banker) {
@@ -534,7 +582,8 @@ const quitGame = () => {
 
 <template>
     <div class="game-table">
-        <img v-if="startAnimationClass" :src="iconGameStart" class="game-start-icon" :class="startAnimationClass" />
+        <img v-if="showStartAnim" :src="iconGameStart" class="game-start-icon" :class="startAnimationClass" />
+        <img v-if="showResultAnim" :src="resultImage" class="result-icon" :class="resultAnimClass" />
         <DealingLayer ref="dealingLayer" />
         <CoinLayer ref="coinLayer" />
 
@@ -616,7 +665,7 @@ const quitGame = () => {
                 <div class="alarm-clock">
                     <div class="alarm-body">
                         <div class="alarm-time">{{ store.countdown < 10 ? '0' + store.countdown : store.countdown
-                        }}</div>
+                                }}</div>
                         </div>
                         <div class="alarm-ears left"></div>
                         <div class="alarm-ears right"></div>
@@ -725,7 +774,7 @@ const quitGame = () => {
                             <div class="h-row top">
                                 <span class="h-time">{{ new Date(item.timestamp).toLocaleTimeString() }}</span>
                                 <span class="h-role" :class="{ banker: item.isBanker }">{{ item.isBanker ? '庄' : '闲'
-                                }}</span>
+                                    }}</span>
                             </div>
                             <div class="h-row main">
                                 <span class="h-result" :class="item.score >= 0 ? 'win' : 'lose'">
@@ -1464,5 +1513,25 @@ const quitGame = () => {
 .game-start-icon.leave {
     left: 150%;
     transition: left 0.5s ease-in;
+}
+
+.result-icon {
+    position: fixed;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    width: 60vw;
+    height: auto;
+    z-index: 6000;
+    pointer-events: none;
+    transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.result-icon.pop {
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.result-icon.bounce {
+    transform: translate(-50%, -50%) scale(0.666);
 }
 </style>

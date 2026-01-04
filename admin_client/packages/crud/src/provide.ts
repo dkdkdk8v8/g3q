@@ -38,30 +38,20 @@ function setConfig(app: App, options: Options = {}) {
 					order: "order",
 					prop: "prop"
 				},
-				label: locale.zhCn
+				label: locale["zh-cn"]
 			},
 			style: {
 				colors: [
-					"#3949ab",
-					"#d81b60",
-					"#8e24aa",
-					"#5e35b1",
-					"#1e88e5",
-					"#00897b",
-					"#43a047",
-					"#7cb342",
-					"#f4511e",
-					"#fb8c00",
-					"#6d4c41",
-					"#546e7a",
-					"#c62828",
-					"#ad1457",
-					"#6a1b9a",
-					"#283593",
-					"#1565c0",
-					"#2e7d32",
-					"#ef6c00",
-					"#37474f"
+					"#d42ca8",
+					"#1c109d",
+					"#6d17c3",
+					"#6dc9f1",
+					"#04c273",
+					"#06b31c",
+					"#f9f494",
+					"#aa7a24",
+					"#d57121",
+					"#e93f4d"
 				],
 				form: {
 					labelPostion: "right",
@@ -75,7 +65,7 @@ function setConfig(app: App, options: Options = {}) {
 					contextMenu: ["refresh", "check", "edit", "delete", "order-asc", "order-desc"],
 					column: {
 						align: "center",
-						opWidth: 160
+						opWidth: 180
 					}
 				}
 			},

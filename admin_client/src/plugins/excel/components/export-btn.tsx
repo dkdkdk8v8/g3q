@@ -1,13 +1,14 @@
-import { defineComponent, type PropType, ref } from "vue";
-import { useCrud, useForm } from "@cool-vue/crud";
-import { ElMessage } from "element-plus";
-import dayjs from "dayjs";
-import { isEmpty, orderBy } from "lodash-es";
-import { export_json_to_excel } from "../utils";
-import { deepFind } from "/$/dict/utils";
+import { defineComponent, type PropType, ref } from 'vue';
+import { useCrud, useForm } from '@cool-vue/crud';
+import { ElMessage } from 'element-plus';
+import dayjs from 'dayjs';
+import { isEmpty, orderBy } from 'lodash-es';
+import { export_json_to_excel } from '../utils';
+import { deepFind } from '/$/dict/utils';
+import { useI18n } from 'vue-i18n';
 
 export default defineComponent({
-	name: "cl-export-btn",
+	name: 'cl-export-btn',
 
 	props: {
 		filename: [Function, String],
@@ -17,7 +18,7 @@ export default defineComponent({
 		},
 		bookType: {
 			type: String,
-			default: "xlsx"
+			default: 'xlsx'
 		},
 		header: Array,
 		columns: {
@@ -28,6 +29,8 @@ export default defineComponent({
 	},
 
 	setup(props, { slots }) {
+		const { t } = useI18n();
+
 		// crud
 		const Crud = useCrud();
 
@@ -39,7 +42,7 @@ export default defineComponent({
 
 		// 获取表头数据
 		async function getHeader(columns: any[], fields: any[]) {
-			return columns.filter((e) => !e.hidden && fields.includes(e.prop)).map((e) => e.label);
+			return columns.filter(e => !e.hidden && fields.includes(e.prop)).map(e => e.label);
 		}
 
 		// 获取表格数据
@@ -50,7 +53,7 @@ export default defineComponent({
 				isExport: true
 			};
 
-			if (typeof props.data === "function") {
+			if (typeof props.data === 'function') {
 				return props.data(params);
 			} else {
 				if (props.data) {
@@ -59,10 +62,10 @@ export default defineComponent({
 					if (Crud.value?.service) {
 						return Crud.value?.service
 							.page(params)
-							.then((res) => {
+							.then(res => {
 								return res.list.map((e, i) => {
 									for (const k in e) {
-										const col = props.columns?.find((c) => c.prop == k);
+										const col = props.columns?.find(c => c.prop == k);
 
 										if (col) {
 											// 格式化
@@ -72,8 +75,8 @@ export default defineComponent({
 
 											// 字典
 											if (col.dict) {
-												// @ts-ignore
-												e[k] = deepFind(e[k], col.dict)?.label || e[k];
+												e[k] =
+													deepFind(e[k], col.dict as any)?.label || e[k];
 											}
 										}
 									}
@@ -81,12 +84,12 @@ export default defineComponent({
 									return e;
 								});
 							})
-							.catch((err) => {
+							.catch(err => {
 								ElMessage.error(err.message);
 								return [];
 							});
 					} else {
-						console.error("useCrud 中未设置 service 参数");
+						console.error('[cl-crud] Service is required');
 						return [];
 					}
 				}
@@ -95,10 +98,10 @@ export default defineComponent({
 
 		// 获取文件名
 		async function getFileName() {
-			if (typeof props.filename === "function") {
+			if (typeof props.filename === 'function') {
 				return await props?.filename();
 			} else {
-				return props.filename || `报表（${dayjs().format("YYYY-MM-DD HH_mm_ss")}）`;
+				return props.filename || `Doc（${dayjs().format('YYYY-MM-DD HH_mm_ss')}）`;
 			}
 		}
 
@@ -108,7 +111,7 @@ export default defineComponent({
 			loading.value = true;
 
 			// 字段
-			const fields = columns.map((e) => e.prop).filter(Boolean);
+			const fields = columns.map(e => e.prop).filter(Boolean);
 
 			// 表头
 			const header = await getHeader(columns, fields);
@@ -118,14 +121,14 @@ export default defineComponent({
 
 			if (!data) {
 				loading.value = false;
-				return ElMessage.error("导出数据异常");
+				return ElMessage.error(t('导出数据异常'));
 			}
 
 			// 文件名
 			const filename = await getFileName();
 
 			// 过滤
-			data = data.map((d) => fields.map((f) => d[f]));
+			data = data.map(d => fields.map(f => d[f]));
 
 			// 导出 excel
 			export_json_to_excel({
@@ -141,36 +144,36 @@ export default defineComponent({
 
 		function open() {
 			if (!props.columns) {
-				return console.error("<cl-export-btn /> columns is required");
+				return console.error('[cl-export-btn] Columns is required');
 			}
 
 			// 表格列
-			const columns = orderBy(props.columns, "orderNum", "asc").filter(
-				(e) =>
+			const columns = orderBy(props.columns, 'orderNum', 'asc').filter(
+				e =>
 					!(
 						e.hidden === true ||
-						["selection", "expand", "index", "op"].includes(e.type) ||
+						['selection', 'expand', 'index', 'op'].includes(e.type) ||
 						e.filterExport ||
-						e["filter-export"]
+						e['filter-export']
 					)
 			);
 
 			Form.value?.open({
-				title: "导出",
-				width: "600px",
+				title: t('导出'),
+				width: '600px',
 				props: {
-					labelPosition: "top"
+					labelPosition: 'top'
 				},
 				form: {
-					checked: columns.map((e) => e.prop)
+					checked: columns.map(e => e.prop)
 				},
 				items: [
 					{
-						label: "选择列",
-						prop: "checked",
+						label: t('选择列'),
+						prop: 'checked',
 						component: {
-							name: "el-checkbox-group",
-							options: columns.map((e) => {
+							name: 'el-checkbox-group',
+							options: columns.map(e => {
 								return {
 									label: String(e.label),
 									value: e.prop
@@ -182,10 +185,10 @@ export default defineComponent({
 				on: {
 					submit(data, { close, done }) {
 						if (isEmpty(data.checked)) {
-							ElMessage.warning("请先选择要导出的列");
+							ElMessage.warning(t('请先选择要导出的列'));
 							done();
 						} else {
-							toExport(columns.filter((e) => data.checked.includes(e.prop)));
+							toExport(columns.filter(e => data.checked.includes(e.prop)));
 							close();
 						}
 					}
@@ -196,7 +199,7 @@ export default defineComponent({
 		return () => {
 			return (
 				<el-button loading={loading.value} onClick={open}>
-					{slots.default ? slots.default() : "导出"}
+					{slots.default ? slots.default() : t('导出')}
 
 					<cl-form ref={Form} />
 				</el-button>

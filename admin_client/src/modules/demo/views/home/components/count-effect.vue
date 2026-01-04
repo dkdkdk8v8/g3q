@@ -2,18 +2,19 @@
 	<div class="count-effect">
 		<div class="card">
 			<div class="card__header">
-				<span class="label">总销售额</span>
-				<span class="value">￥15920</span>
+				<span class="label">{{ $t('总销售额') }}</span>
+
+				<cl-svg name="amount" class="icon" />
 			</div>
 
 			<div class="card__container">
-				<el-progress :percentage="value" :stroke-width="10" :show-text="false" />
+				<cl-number :value="num" class="num" type="amount" suffix="元" />
 			</div>
 
 			<div class="card__footer">
-				<ul class="count-effect__cop">
+				<ul class="cop">
 					<li>
-						<span>周同比</span>
+						<span>{{ $t('周同比') }}</span>
 
 						<div class="fall">
 							<el-icon>
@@ -25,7 +26,7 @@
 					</li>
 
 					<li>
-						<span>日同比</span>
+						<span>{{ $t('日同比') }}</span>
 
 						<div class="rise">
 							<el-icon>
@@ -42,19 +43,22 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from "vue";
-import { BottomRight, TopRight } from "@element-plus/icons-vue";
+import { BottomRight, TopRight } from '@element-plus/icons-vue';
+import { random } from 'lodash-es';
+import { onMounted, ref } from 'vue';
 
-const value = ref(0);
+const rate = ref(0);
+const num = ref(0);
 
-setTimeout(() => {
-	value.value = Math.random() * 30 + 30;
-}, 0);
+onMounted(() => {
+	rate.value = Math.random() * 30 + 30;
+	num.value = random(10000000);
+});
 </script>
 
 <style lang="scss" scoped>
 .count-effect {
-	&__cop {
+	.cop {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
@@ -73,18 +77,13 @@ setTimeout(() => {
 			}
 
 			.fall {
-				color: #13ae7c;
+				color: var(--el-color-success);
 			}
 
 			.rise {
-				color: #f21e37;
+				color: var(--el-color-danger);
 			}
 		}
-	}
-
-	.card__container {
-		padding-top: 15px;
-		box-sizing: border-box;
 	}
 }
 </style>

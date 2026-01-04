@@ -6,8 +6,9 @@ export declare function mergeConfig(a: any, b?: any): any;
 export declare function merge(d1: any, d2: any): any;
 export declare function addClass(el: Element, name: string): void;
 export declare function removeClass(el: Element, name: string): void;
-export declare function getValue(data: any, params?: any): any;
+export declare function getValue<T = any>(value: T | Vue.Ref<T> | ((d: any) => T), data?: any): T;
 export declare function deepFind(value: any, list: any[], options?: {
     allLevels: boolean;
 }): any;
 export declare function uuid(separator?: string): string;
+export declare function uniqueFns(fns: any[]): any[];

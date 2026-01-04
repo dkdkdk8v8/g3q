@@ -1,8 +1,20 @@
-@forward "element-plus/theme-chalk/src/common/var.scss" with (
-	$scrollbar: ()
+@use 'sass:math';
+@use 'sass:map';
+@use 'sass:color';
+
+$border-radius: () !default;
+
+@forward 'element-plus/theme-chalk/src/common/var.scss' with (
+	$scrollbar: (),
+	$border-radius: map.merge(
+			(
+				'base': 5px
+			),
+			$border-radius
+		)
 );
 
-@use "element-plus/theme-chalk/src/index.scss" as *;
+@use 'element-plus/theme-chalk/src/index.scss' as *;
 
 // Element-plus
 .el-input-number {
@@ -31,8 +43,84 @@
 	}
 }
 
+.el-message-box {
+	border-radius: 12px;
+	padding: 20px;
+
+	&__header {
+		padding-bottom: 20px;
+	}
+
+	&__headerbtn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		height: 28px;
+		width: 28px;
+		border-radius: 28px;
+		margin: 10px 10px 0 0;
+		display: none;
+
+		.el-icon {
+			color: var(--el-text-color-primary);
+			font-weight: bold;
+			font-size: 18px;
+		}
+
+		&:hover {
+			background-color: var(--el-fill-color-darker);
+
+			.el-icon {
+				color: var(--el-text-color-primary);
+			}
+		}
+	}
+
+	&__content {
+		margin-bottom: 20px;
+	}
+}
+
 @media only screen and (max-width: 768px) {
 	.el-message-box {
 		width: 90% !important;
+	}
+}
+
+.el-dialog {
+	--el-dialog-box-shadow: none;
+}
+
+.el-button {
+	outline: none;
+}
+
+.el-table {
+	&__header {
+		.cell {
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+	}
+}
+
+.el-popper {
+	border-radius: 6px;
+
+	.el-scrollbar {
+		border-radius: inherit;
+	}
+
+	.el-dropdown-menu {
+		padding: 5px;
+
+		&__item {
+			border-radius: 6px;
+		}
+	}
+
+	&__arrow {
+		display: none;
 	}
 }

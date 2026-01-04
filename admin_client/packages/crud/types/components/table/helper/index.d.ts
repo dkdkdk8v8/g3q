@@ -1,6 +1,6 @@
-/// <reference types="../index" />
+import { TableInstance } from 'element-plus';
 export declare function useTable(props: any): {
-    Table: import("vue").Ref<any>;
+    Table: import('vue').Ref<TableInstance, TableInstance>;
     config: {
         columns: {
             [x: string]: any;
@@ -10,90 +10,89 @@ export declare function useTable(props: any): {
             };
             component: {
                 [x: string]: any;
-                name?: string | undefined;
+                name?: string;
                 options?: {
                     [x: string]: any;
-                    label?: string | undefined;
+                    label?: string;
                     value?: any;
-                    color?: string | undefined;
-                    type?: string | undefined;
+                    color?: string;
+                    type?: string;
                 }[] | {
                     value: {
                         [x: string]: any;
-                        label?: string | undefined;
+                        label?: string;
                         value?: any;
-                        color?: string | undefined;
-                        type?: string | undefined;
+                        color?: string;
+                        type?: string;
                     }[];
-                } | undefined;
+                };
                 props?: {
                     [x: string]: any;
-                    onChange?: ((value: any) => void) | undefined;
+                    onChange?: (value: any) => void;
                 } | {
                     value: {
                         [x: string]: any;
-                        onChange?: ((value: any) => void) | undefined;
+                        onChange?: (value: any) => void;
                     };
-                } | undefined;
-                style?: obj | undefined;
+                };
+                style?: obj;
                 slots?: {
                     [key: string]: (data?: any) => any;
-                } | undefined;
+                };
                 vm?: any;
             };
             search: {
                 isInput: boolean;
                 value: any;
-                refreshOnChange: {
-                    valueOf: () => boolean;
-                };
+                icon: () => any;
+                refreshOnChange: boolean;
                 component: {
                     [x: string]: any;
-                    name?: string | undefined;
+                    name?: string;
                     options?: {
                         [x: string]: any;
-                        label?: string | undefined;
+                        label?: string;
                         value?: any;
-                        color?: string | undefined;
-                        type?: string | undefined;
+                        color?: string;
+                        type?: string;
                     }[] | {
                         value: {
                             [x: string]: any;
-                            label?: string | undefined;
+                            label?: string;
                             value?: any;
-                            color?: string | undefined;
-                            type?: string | undefined;
+                            color?: string;
+                            type?: string;
                         }[];
-                    } | undefined;
+                    };
                     props?: {
                         [x: string]: any;
-                        onChange?: ((value: any) => void) | undefined;
+                        onChange?: (value: any) => void;
                     } | {
                         value: {
                             [x: string]: any;
-                            onChange?: ((value: any) => void) | undefined;
+                            onChange?: (value: any) => void;
                         };
-                    } | undefined;
-                    style?: obj | undefined;
+                    };
+                    style?: obj;
                     slots?: {
                         [key: string]: (data?: any) => any;
-                    } | undefined;
+                    };
                     vm?: any;
                 };
             };
             dict: {
                 [x: string]: any;
-                label?: string | undefined;
+                label?: string;
                 value?: any;
-                color?: string | undefined;
-                type?: string | undefined;
+                color?: string;
+                type?: string;
             }[] | {
                 value: {
                     [x: string]: any;
-                    label?: string | undefined;
+                    label?: string;
                     value?: any;
-                    color?: string | undefined;
-                    type?: string | undefined;
+                    color?: string;
+                    type?: string;
                 }[];
             };
             dictFormatter: (values: DictOptions) => string;
@@ -105,31 +104,40 @@ export declare function useTable(props: any): {
             }) => ClTable.OpButton) | ("info" | "delete" | "edit" | AnyString | `slot-${string}` | {
                 [x: string]: any;
                 label: string;
-                type?: string | undefined;
-                hidden?: boolean | undefined;
+                type?: string;
+                hidden?: boolean;
                 onClick: (options: {
                     scope: obj;
                 }) => void;
             })[];
             align: ElementPlus.Align;
             label: any;
+            renderLabel: (options: {
+                column: any;
+                $index: number;
+            }) => any;
             className: string;
             prop: string & {};
             orderNum: number;
-            width: number;
-            minWidth: string | number;
+            width: string | number | {
+                value: string | number;
+            };
+            minWidth: string | number | {
+                value: string | number;
+            };
             renderHeader: (options: {
                 column: any;
                 $index: number;
             }) => any;
-            sortable: boolean | "asc" | "desc" | "custom" | "descending" | "ascending";
+            sortable: boolean | "desc" | "descending" | "ascending" | "asc" | "custom";
             sortMethod: fn;
             sortBy: string | any[] | ((row: any, index: number) => any);
             resizable: boolean;
             columnKey: string;
             headerAlign: ElementPlus.Align;
             showOverflowTooltip: boolean;
-            fixed: string | boolean;
+            fixed: boolean | string;
+            render: (row: any, column: any, value: any, index: number) => any;
             formatter: (row: any, column: any, value: any, index: number) => any;
             selectable: (row: any, index: number) => boolean;
             reserveSelection: boolean;
@@ -138,9 +146,9 @@ export declare function useTable(props: any): {
             filters: unknown[];
             filterPlacement: string;
             filterMultiple: boolean;
-            index: number | ((index: number) => number);
+            index: ((index: number) => number) | number;
             sortOrders: unknown[];
-            children: any[];
+            children: /*elided*/ any[];
         }[];
         autoHeight: boolean;
         height: any;
@@ -149,12 +157,12 @@ export declare function useTable(props: any): {
             label: string;
             prefixIcon?: any;
             suffixIcon?: any;
-            ellipsis?: boolean | undefined;
-            disabled?: boolean | undefined;
-            hidden?: boolean | undefined;
-            children?: any[] | undefined;
-            showChildren?: boolean | undefined;
-            callback?: ((done: fn) => void) | undefined;
+            ellipsis?: boolean;
+            disabled?: boolean;
+            hidden?: boolean;
+            children?: /*elided*/ any[];
+            showChildren?: boolean;
+            callback?: (done: fn) => void;
         } | ((row: obj, column: obj, event: PointerEvent) => ClContextMenu.Item) | "check" | "order-desc" | "order-asc")[];
         defaultSort: {
             prop: string;
@@ -163,15 +171,21 @@ export declare function useTable(props: any): {
         sortRefresh: boolean;
         emptyText: string;
         rowKey: string;
-        plugins?: ClTable.Plugin[] | undefined;
-        onRowContextmenu?: ((row: any, column: any, event: any) => void) | undefined;
+        on?: {
+            [key: string]: (...args: any[]) => void;
+        };
+        props?: {
+            [key: string]: any;
+        };
+        plugins?: ClTable.Plugin[];
+        onRowContextmenu?: (row: any, column: any, event: any) => void;
     };
 };
-export * from "./data";
-export * from "./height";
-export * from "./op";
-export * from "./render";
-export * from "./row";
-export * from "./selection";
-export * from "./sort";
-export * from "./header";
+export * from './data';
+export * from './height';
+export * from './op';
+export * from './render';
+export * from './row';
+export * from './selection';
+export * from './sort';
+export * from './header';

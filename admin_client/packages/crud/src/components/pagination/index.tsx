@@ -68,7 +68,8 @@ export default defineComponent({
 		return () => {
 			return h(
 				<el-pagination
-					size="default"
+					class="cl-pagination"
+					size={browser.isMini ? 'small' : style.size}
 					background
 					page-sizes={[10, 20, 30, 40, 50, 100]}
 					pager-count={browser.isMini ? 5 : 7}

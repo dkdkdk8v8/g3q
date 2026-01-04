@@ -1,6 +1,5 @@
-/// <reference types="../index" />
-import { type PropType } from "vue";
-declare const ClContextMenu: import("vue").DefineComponent<{
+import { PropType } from 'vue';
+declare const ClContextMenu: import('vue').DefineComponent<import('vue').ExtractPropTypes<{
     show: BooleanConstructor;
     options: {
         type: PropType<ClContextMenu.Options>;
@@ -10,7 +9,7 @@ declare const ClContextMenu: import("vue").DefineComponent<{
         type: ObjectConstructor;
         default: () => {};
     };
-}, () => any, unknown, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, string, import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
+}>, () => any, {}, {}, {}, import('vue').ComponentOptionsMixin, import('vue').ComponentOptionsMixin, {}, string, import('vue').PublicProps, Readonly<import('vue').ExtractPropTypes<{
     show: BooleanConstructor;
     options: {
         type: PropType<ClContextMenu.Options>;
@@ -20,11 +19,11 @@ declare const ClContextMenu: import("vue").DefineComponent<{
         type: ObjectConstructor;
         default: () => {};
     };
-}>>, {
+}>> & Readonly<{}>, {
     options: ClContextMenu.Options;
     show: boolean;
     event: Record<string, any>;
-}, {}>;
+}, {}, {}, {}, string, import('vue').ComponentProvideOptions, true, {}, any>;
 export declare const ContextMenu: {
     open(event: any, options: ClContextMenu.Options): ClContextMenu.Exposed;
 };

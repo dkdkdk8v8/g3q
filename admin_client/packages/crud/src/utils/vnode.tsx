@@ -1,4 +1,4 @@
-import { h, resolveComponent, toRaw, VNode } from "vue";
+import { h, resolveComponent, toRaw, type VNode } from "vue";
 import { isObject } from "./index";
 import { parseExtensionComponent } from "./parse";
 import global from "./global";
@@ -30,7 +30,7 @@ const regs: Map<string, any> = new Map();
 
 // 解析节点
 export function parseNode(vnode: any, options: Options): VNode {
-	const { scope, prop, slots, children, _data } = options || [];
+	const { scope, prop, slots, children, _data } = options || {};
 
 	// 渲染后组件
 	let comp: VNode | null = null;
@@ -95,9 +95,10 @@ export function parseNode(vnode: any, options: Options): VNode {
 	}
 
 	// 挂载到 refs 中
-	if (isFunction(vnode.ref)) {
+	const refBind = vnode.ref || options.ref;
+	if (isFunction(refBind)) {
 		setTimeout(() => {
-			vnode.ref(comp?.component?.exposed);
+			refBind(comp?.component?.exposed);
 		}, 0);
 	}
 
@@ -131,18 +132,11 @@ export function renderNode(vnode: any, options: Options) {
 				case "el-input":
 					placeholder = config.dict.label.placeholder;
 					break;
-
-				case "el-select":
-					placeholder = config.dict.label.placeholderSelect;
-					break;
-
-				default:
-					break;
 			}
 
 			if (placeholder) {
 				if (!item.component.props.placeholder) {
-					item.component.props.placeholder = placeholder + item.label;
+					item.component.props.placeholder = placeholder;
 				}
 			}
 		}
@@ -182,7 +176,7 @@ export function renderNode(vnode: any, options: Options) {
 				return options.custom(vnode);
 			}
 
-			return <cl-error-message title={`Error，name is required`} />;
+			return <cl-error-message title="Error，component name is required" />;
 		}
 	}
 }

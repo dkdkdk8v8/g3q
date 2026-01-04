@@ -1,19 +1,18 @@
 <template>
 	<slot>
-		<el-button @click="open()" v-if="showBtn">{{ text }}</el-button>
+		<el-button v-if="showBtn" @click="open()">{{ btnText }}</el-button>
 	</slot>
 
 	<cl-dialog
+		v-model="visible"
 		:height="height"
 		:width="width"
 		:title="title"
-		:scrollbar="isScroll"
+		scrollbar
 		append-to-body
-		v-model="visible"
-		v-bind="$attrs"
 	>
 		<div class="cl-editor-preview">
-			<el-tabs v-model="active" type="card" v-if="list.length > 1" @tab-change="onTabChange">
+			<el-tabs v-if="list.length > 1" v-model="active" type="card" @tab-change="onTabChange">
 				<el-tab-pane
 					v-for="(item, index) in list"
 					:key="index"
@@ -27,32 +26,41 @@
 				<slot name="prepend"></slot>
 
 				<cl-editor
-					:name="`cl-editor-${name}`"
 					:ref="setRefs('editor')"
 					:key="active"
-					height="100%"
-					preview
 					v-bind="editConfig"
 					v-model="content"
+					:name="`cl-editor-${name}`"
+					height="100%"
+					preview
+					v-if="name"
 				/>
+
+				<div class="content" v-else>{{ content }}</div>
 
 				<slot name="append"></slot>
 			</div>
 		</div>
 
 		<template #footer>
-			<el-button @click="close">关闭</el-button>
-			<el-button type="success" @click="toCopy" v-if="isCopy">复制</el-button>
+			<el-button @click="close">{{ $t('关闭') }}</el-button>
+			<el-button v-if="isCopy" type="success" @click="toCopy">{{ $t('复制') }}</el-button>
 		</template>
 	</cl-dialog>
 </template>
 
-<script lang="ts" name="cl-editor-preview" setup>
-import { useClipboard } from "@vueuse/core";
-import { ElMessage } from "element-plus";
-import { isObject, isString } from "lodash-es";
-import { nextTick, ref, computed, type PropType } from "vue";
-import { useCool } from "/@/cool";
+<script lang="ts" setup>
+defineOptions({
+	name: 'cl-editor-preview'
+});
+
+import { useClipboard } from '@vueuse/core';
+import { ElMessage } from 'element-plus';
+import { isObject, isString } from 'lodash-es';
+import { nextTick, ref, computed, type PropType } from 'vue';
+import { useCool } from '/@/cool';
+import { CrudProps } from '/#/crud';
+import { useI18n } from 'vue-i18n';
 
 interface TabItem {
 	name: string;
@@ -61,15 +69,14 @@ interface TabItem {
 }
 
 const props = defineProps({
+	...CrudProps,
 	modelValue: String,
 	title: String,
-	name: {
-		type: String,
-		required: true
-	},
-	text: {
-		type: String,
-		default: "点击查看"
+	name: String,
+	text: String,
+	type: {
+		type: String as PropType<'code' | 'text'>,
+		default: 'text'
 	},
 	showBtn: {
 		type: Boolean,
@@ -77,29 +84,28 @@ const props = defineProps({
 	},
 	height: {
 		type: String,
-		default: "60vh"
+		default: '60vh'
 	},
 	width: {
 		type: String,
-		default: "60%"
+		default: '60%'
 	},
 	formatter: Function,
-
 	// 多个内容展示
 	tabs: Array as PropType<TabItem[]>,
-
 	// 组件参数
 	props: Object
 });
 
 const { refs, setRefs } = useCool();
 const { copy } = useClipboard();
+const { t } = useI18n();
 
 // 是否可见
 const visible = ref(false);
 
 // 内容
-const content = ref("");
+const content = ref('');
 
 // 语言
 const language = ref();
@@ -112,11 +118,8 @@ const list = ref<TabItem[]>([]);
 
 // 是否代码预览
 const isCode = computed(() => {
-	return props.name == "monaco";
+	return props.type == 'code';
 });
-
-// 是否可以滚动
-const isScroll = computed(() => !isCode.value);
 
 // 是否可以复制
 const isCopy = computed(() => isCode);
@@ -131,7 +134,12 @@ const editConfig = computed(() => {
 
 // 标题
 const title = computed(() => {
-	return props.title || (isCode.value ? "代码预览" : "文本预览");
+	return props.title || (isCode.value ? t('代码预览') : t('文本预览'));
+});
+
+// 按钮
+const btnText = computed(() => {
+	return props.text || t('点击查看');
 });
 
 // 打开
@@ -189,7 +197,7 @@ function close() {
 // 复制
 function toCopy() {
 	copy(content.value);
-	ElMessage.success("复制成功");
+	ElMessage.success(t('复制成功'));
 }
 
 defineExpose({
@@ -210,6 +218,13 @@ defineExpose({
 
 	&__container {
 		flex: 1;
+
+		.content {
+			white-space: pre-wrap;
+			background-color: var(--el-fill-color-light);
+			border-radius: 8px;
+			padding: 10px;
+		}
 	}
 }
 </style>

@@ -15,7 +15,6 @@ export default {
 	advSearch: "高度な検索",
 	searchKey: "検索キーワード",
 	placeholder: "入力してください",
-	placeholderSelect: "選択してください",
 	tips: "ヒント",
 	saveSuccess: "保存が成功しました",
 	deleteSuccess: "削除が成功しました",
@@ -27,5 +26,7 @@ export default {
 	deselect: "選択解除",
 	seeMore: "詳細を表示",
 	hideContent: "コンテンツを非表示",
-	nonEmpty: "空にできません"
+	nonEmpty: "{label}は空にできません",
+	collapse: "折り畳む",
+	expand: "展開"
 };

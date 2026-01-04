@@ -1,6 +1,17 @@
-export type Type = "app" | "admin";
+export declare type Type = "admin" | "app" | "uniapp-x";
 
-export namespace Eps {
+export declare namespace Eps {
+	interface Column {
+		comment: string;
+		nullable: boolean;
+		propertyName: string;
+		source: string;
+		type: string;
+		dict: string[] | string;
+		defaultValue: any;
+		[key: string]: any;
+	}
+
 	interface Entity {
 		api: {
 			dts: {
@@ -20,13 +31,18 @@ export namespace Eps {
 			summary: string;
 			tag: string;
 		}[];
-		columns: {
-			comment: string;
-			length: string;
-			nullable: boolean;
-			propertyName: string;
-			type: string;
-		}[];
+		columns: Column[];
+		pageColumns: Column[];
+		pageQueryOp: {
+			fieldEq: string[];
+			fieldLike: string[];
+			keyWordLikeFields: string[];
+		};
+		search: {
+			fieldEq: Column[];
+			fieldLike: Column[];
+			keyWordLikeFields: Column[];
+		};
 		module: string;
 		name: string;
 		prefix: string;
@@ -34,7 +50,7 @@ export namespace Eps {
 	}
 }
 
-export namespace Ctx {
+export declare namespace Ctx {
 	type Pages = {
 		path?: string;
 		style?: {
@@ -59,12 +75,15 @@ export namespace Ctx {
 	}
 }
 
-export namespace Config {
-	type Type = "app" | "admin";
+export declare namespace Config {
 	interface Eps {
+		// 是否开启Eps
 		enable: boolean;
+		// 请求地址
 		api: "app" | "admin" | (string & {});
+		// 输出目录
 		dist: string;
+		// 映射
 		mapping: {
 			type?: string;
 			test?: string[];
@@ -72,16 +91,39 @@ export namespace Config {
 		}[];
 	}
 	interface Options {
-		type: Config.Type;
-		proxy: any;
+		// 应用类型
+		type: Type;
+		// 代理配置
+		proxy?: any;
+		// Eps
 		eps?: Partial<Config.Eps>;
+		// 是否开启演示模式
 		demo?: boolean;
-	}
-	interface Data {
-		type: Config.Type;
-		reqUrl: string;
-		eps: Config.Eps;
-		demo: boolean;
-		[key: string]: any;
+		// 是否开启名称标签
+		nameTag?: boolean;
+		// svg
+		svg?: {
+			// 跳过拼接模块名
+			skipNames?: string[];
+		};
+		// tailwind
+		tailwind?: {
+			// 是否开启tailwind
+			enable?: boolean;
+			// 根元素字体大小
+			remUnit?: number;
+			// 小数位数
+			remPrecision?: number;
+			// 转换比例
+			rpxRatio?: number;
+			// 暗黑模式文本类名
+			darkTextClass?: string;
+		};
+		// uniapp X
+		uniapp?: {
+			isPlugin?: boolean;
+		};
+		// 是否纯净版
+		clean?: boolean;
 	}
 }

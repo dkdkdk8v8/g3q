@@ -3,13 +3,6 @@
 		<div v-if="svg" class="svg" v-html="svg" />
 		<img v-else-if="base64" class="base64" :src="base64" alt="" />
 
-		<template v-else-if="isError">
-			<el-text type="danger"> 后端未启动 </el-text>
-			<el-icon color="#f56c6c" :size="16">
-				<warning-filled />
-			</el-icon>
-		</template>
-
 		<template v-else>
 			<el-icon class="is-loading" :size="18">
 				<loading />
@@ -19,57 +12,64 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref } from "vue";
-import { ElMessage } from "element-plus";
-import { Loading, WarningFilled } from "@element-plus/icons-vue";
-import { useCool } from "/@/cool";
+defineOptions({
+	name: 'pic-captcha'
+});
 
-const emit = defineEmits(["update:modelValue", "change"]);
+import { onMounted, ref } from 'vue';
+import { ElMessageBox } from 'element-plus';
+import { Loading } from '@element-plus/icons-vue';
+import { useCool } from '/@/cool';
+import { useI18n } from 'vue-i18n';
+
+const emit = defineEmits(['update:modelValue', 'change']);
 
 const { service } = useCool();
-
-// 是否异常
-const isError = ref(false);
+const { t } = useI18n();
 
 // base64
-const base64 = ref("");
+const base64 = ref('');
 
 // svg
-const svg = ref("");
+const svg = ref('');
 
 // 刷新
 async function refresh() {
-	isError.value = false;
-	svg.value = "";
-	base64.value = "";
+	svg.value = '';
+	base64.value = '';
 
 	await service.base.open
 		.captcha({
 			height: 45,
 			width: 150,
-			color: "#2c3142"
+			color: '#2c3142'
 		})
 		.then(({ captchaId, data }) => {
 			if (data) {
-				if (data.includes(";base64,")) {
+				if (data.includes(';base64,')) {
 					base64.value = data;
 				} else {
 					svg.value = data;
 				}
 
-				emit("update:modelValue", captchaId);
-				emit("change", {
+				emit('update:modelValue', captchaId);
+				emit('change', {
 					base64,
 					svg,
 					captchaId
 				});
 			} else {
-				ElMessage.error("验证码获取失败");
+				ElMessageBox.alert(t('验证码获取失败'), {
+					title: t('提示'),
+					type: 'error'
+				});
 			}
 		})
-		.catch((err) => {
-			ElMessage.error(err.message);
-			isError.value = true;
+		.catch(err => {
+			ElMessageBox.alert(err.message, {
+				title: t('提示'),
+				type: 'error'
+			});
 		});
 }
 
@@ -102,9 +102,9 @@ defineExpose({
 		height: 100%;
 	}
 
-	.el-icon {
+	.is-loading {
 		position: absolute;
-		right: 20px;
+		right: 15px;
 	}
 }
 </style>

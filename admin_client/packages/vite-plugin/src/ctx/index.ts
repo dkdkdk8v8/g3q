@@ -1,10 +1,11 @@
 import { join } from "path";
 import { readFile, rootDir, writeFile, error } from "../utils";
 import { glob } from "glob";
-import { assign, cloneDeep, isEqual, orderBy } from "lodash";
+import { assign, cloneDeep, orderBy } from "lodash";
 import { config } from "../config";
 import fs from "fs";
 import axios from "axios";
+import util from "node:util";
 import type { Ctx } from "../../types";
 
 export async function createCtx() {
@@ -12,7 +13,7 @@ export async function createCtx() {
 		serviceLang: "Node",
 	};
 
-	if (config.type == "app") {
+	if (config.type == "app" || config.type == "uniapp-x") {
 		const manifest = readFile(rootDir("manifest.json"), true);
 
 		// 文件路径
@@ -27,6 +28,13 @@ export async function createCtx() {
 		// 删除临时页面
 		ctx.pages = ctx.pages?.filter((e) => !e.isTemp);
 		ctx.subPackages = ctx.subPackages?.filter((e) => !e.isTemp);
+
+		// 删除不需要的数据
+		for (const i in ctx) {
+			if (!["pages", "subPackages", "tabBar", "globalStyle", "uniIdRouter"].includes(i)) {
+				delete ctx[i];
+			}
+		}
 
 		// 加载 uni_modules 配置文件
 		const files = await glob(rootDir("uni_modules") + "/**/pages_init.json", {
@@ -73,7 +81,7 @@ export async function createCtx() {
 		}
 
 		// 是否需要更新 pages.json
-		if (!isEqual(order(ctxData), order(ctx))) {
+		if (!util.isDeepStrictEqual(order(ctxData), order(ctx))) {
 			console.log("[cool-ctx] pages updated");
 			writeFile(ctxPath, JSON.stringify(ctx, null, 4));
 		}

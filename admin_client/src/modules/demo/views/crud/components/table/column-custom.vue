@@ -1,7 +1,7 @@
 <template>
 	<div class="scope">
 		<div class="h">
-			<el-tag size="small" effect="dark">column-custom</el-tag>
+			<el-tag size="small" effect="dark" disable-transitions>column-custom</el-tag>
 			<span>自定义列展示</span>
 		</div>
 
@@ -18,7 +18,7 @@
 					</cl-row>
 
 					<cl-row>
-						<cl-table size="small" ref="Table"></cl-table>
+						<cl-table ref="Table"></cl-table>
 					</cl-row>
 
 					<cl-row>
@@ -36,18 +36,18 @@
 </template>
 
 <script setup lang="ts">
-import { useCrud, useTable } from "@cool-vue/crud";
-import { ref } from "vue";
-import { useDict } from "/$/dict";
+import { useCrud, useTable } from '@cool-vue/crud';
+import { ref } from 'vue';
+import { useDict } from '/$/dict';
 
 const { dict } = useDict();
 
 // cl-crud 配置
 const Crud = useCrud(
 	{
-		service: "test"
+		service: 'test'
 	},
-	(app) => {
+	app => {
 		app.refresh();
 	}
 );
@@ -55,47 +55,47 @@ const Crud = useCrud(
 // cl-table 配置
 const Table = useTable({
 	autoHeight: false,
-	contextMenu: ["refresh"],
+	contextMenu: ['refresh'],
 
 	columns: [
 		{
-			label: "姓名",
-			prop: "name",
+			label: '姓名',
+			prop: 'name',
 			minWidth: 140
 		},
 		{
-			label: "手机号",
-			prop: "phone",
+			label: '手机号',
+			prop: 'phone',
 			minWidth: 140
 		},
 		{
-			label: "工作",
-			prop: "occupation",
-			dict: dict.get("occupation"),
+			label: '工作',
+			prop: 'occupation',
+			dict: dict.get('occupation'),
 			minWidth: 140
 		},
 		{
-			label: "状态",
-			prop: "status",
+			label: '状态',
+			prop: 'status',
 			dict: [
 				{
-					label: "启用",
+					label: '启用',
 					value: 1,
-					type: "success"
+					type: 'success'
 				},
 				{
-					label: "禁用",
+					label: '禁用',
 					value: 0,
-					type: "danger"
+					type: 'danger'
 				}
 			],
 			minWidth: 140
 		},
 		{
-			label: "创建时间",
-			prop: "createTime",
+			label: '创建时间',
+			prop: 'createTime',
 			minWidth: 170,
-			sortable: "desc"
+			sortable: 'desc'
 		}
 	]
 });

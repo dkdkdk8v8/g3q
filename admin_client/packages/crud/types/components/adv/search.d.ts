@@ -1,9 +1,8 @@
-/// <reference types="../index" />
-import { PropType } from "vue";
-declare const _default: import("vue").DefineComponent<{
+import { PropType } from 'vue';
+declare const _default: import('vue').DefineComponent<import('vue').ExtractPropTypes<{
     items: {
-        type: PropType<ClForm.Item<any>[]>;
-        default: () => never[];
+        type: PropType<ClForm.Item[]>;
+        default: () => any[];
     };
     title: StringConstructor;
     size: {
@@ -15,10 +14,10 @@ declare const _default: import("vue").DefineComponent<{
         default: () => string[];
     };
     onSearch: FunctionConstructor;
-}, () => any, unknown, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, ("clear" | "reset")[], "clear" | "reset", import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
+}>, () => any, {}, {}, {}, import('vue').ComponentOptionsMixin, import('vue').ComponentOptionsMixin, ("clear" | "reset")[], "clear" | "reset", import('vue').PublicProps, Readonly<import('vue').ExtractPropTypes<{
     items: {
-        type: PropType<ClForm.Item<any>[]>;
-        default: () => never[];
+        type: PropType<ClForm.Item[]>;
+        default: () => any[];
     };
     title: StringConstructor;
     size: {
@@ -30,12 +29,14 @@ declare const _default: import("vue").DefineComponent<{
         default: () => string[];
     };
     onSearch: FunctionConstructor;
-}>> & {
-    onReset?: ((...args: any[]) => any) | undefined;
-    onClear?: ((...args: any[]) => any) | undefined;
-}, {
+}>> & Readonly<{
+    onReset?: (...args: any[]) => any;
+    onClear?: (...args: any[]) => any;
+}>, {
     size: string | number;
     items: ClForm.Item<any>[];
     op: unknown[];
-}, {}>;
+}, {}, {
+    Close: import('vue').DefineComponent<{}, {}, {}, {}, {}, import('vue').ComponentOptionsMixin, import('vue').ComponentOptionsMixin, {}, string, import('vue').VNodeProps & import('vue').AllowedComponentProps & import('vue').ComponentCustomProps, Readonly<import('vue').ExtractPropTypes<{}>>, {}, {}, {}, {}, string, import('vue').ComponentProvideOptions, true, {}, any>;
+}, {}, string, import('vue').ComponentProvideOptions, true, {}, any>;
 export default _default;

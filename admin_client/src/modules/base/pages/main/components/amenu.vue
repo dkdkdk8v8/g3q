@@ -1,41 +1,46 @@
 <template>
 	<div class="a-menu">
-		<el-menu
-			:default-active="active"
-			mode="horizontal"
-			background-color="transparent"
-			@select="select"
+		<div
+			class="a-menu__item"
+			v-for="(item, index) in list"
+			:key="item.id"
+			:class="{
+				'is-active': index == active
+			}"
+			@click="select(index)"
 		>
-			<template v-for="(item, index) in list" :key="item.id">
-				<el-menu-item :index="`${index}`">
-					<cl-svg v-if="item.icon" :name="item.icon" :size="18" />
-					<span class="a-menu__name">{{ item.meta?.label }}</span>
-				</el-menu-item>
-			</template>
-		</el-menu>
+			<cl-svg class="mr-3" :name="item.icon" :size="16" v-if="item.icon" />
+			<span class="text-[12px] tracking-wider whitespace-nowrap">{{ item.meta?.label }}</span>
+		</div>
 	</div>
 </template>
 
-<script lang="ts" name="a-menu" setup>
-import { computed, ref, watch } from "vue";
-import { useBase, Menu } from "/$/base";
-import { useCool } from "/@/cool";
-import { ElMessage } from "element-plus";
+<script lang="ts" setup>
+defineOptions({
+	name: 'a-menu'
+});
+
+import { computed, ref, watch } from 'vue';
+import { useBase } from '/$/base';
+import { useCool } from '/@/cool';
+import { ElMessage } from 'element-plus';
+import { useI18n } from 'vue-i18n';
 
 const { router, route } = useCool();
 const { menu } = useBase();
+const { t } = useI18n();
 
 // 选中标识
-const active = ref("0");
+const active = ref(0);
 
 // 组列表
 const list = computed(() => {
-	return menu.group.filter((e) => e.isShow);
+	return menu.group.filter(e => e.isShow);
 });
 
 // 选择导航
-function select(index: any) {
-	if (String(index) == active.value) {
+function select(index: number) {
+	if (index == active.value) {
 		return false;
 	}
 
@@ -52,7 +57,7 @@ function select(index: any) {
 		// 跳转
 		router.push(url);
 	} else {
-		ElMessage.warning(`“${item.meta?.label}”下没有菜单，请先添加`);
+		ElMessage.warning(t('{label} 没有子菜单，请先添加', { label: item.meta?.label }));
 	}
 }
 
@@ -64,7 +69,7 @@ function refresh() {
 		switch (e.type) {
 			case 0:
 				if (e.children) {
-					e.children.forEach((e) => {
+					e.children.forEach(e => {
 						deep(e, i);
 					});
 				}
@@ -84,7 +89,7 @@ function refresh() {
 	list.value.forEach(deep);
 
 	// 确认选择
-	active.value = String(index);
+	active.value = index;
 
 	// 设置该分组下的菜单
 	menu.setMenu(index);
@@ -104,46 +109,38 @@ watch(
 
 <style lang="scss" scoped>
 .a-menu {
-	margin: 5px 0 0 10px;
+	display: flex;
+	align-items: center;
+	flex: 1;
+	user-select: none;
 
-	.el-menu {
-		height: 40px;
-		background: transparent;
+	&__item {
+		display: flex;
+		align-items: center;
+		height: 32px;
+		padding: 0 16px 0 12px;
 		border: 0;
+		color: var(--el-color-info);
+		position: relative;
+		background-color: transparent;
+		border-radius: 6px;
+		cursor: pointer;
+		border: 1px solid transparent;
+		margin-right: 6px;
+		transition: all 0.3s;
 
-		:deep(.el-sub-menu__title) {
-			border: 0 !important;
+		&.is-active {
+			border-color: var(--el-color-primary-light-8);
+			color: var(--el-color-primary);
 		}
 
-		:deep(.el-menu-item) {
-			display: flex;
-			align-items: center;
-			height: 40px;
-			padding: 0 15px;
-			background: transparent;
-			border: 0;
-			color: #999;
+		&.is-active,
+		&:hover {
+			background-color: var(--el-color-primary-light-9);
+		}
 
-			span {
-				font-size: 12px;
-				margin-left: 3px;
-				line-height: normal;
-			}
-
-			&:hover {
-				background: transparent;
-			}
-
-			&.is-active {
-				color: var(--color-primary);
-				border-radius: 6px 6px 0 0;
-				background: #fff;
-				color: #000;
-			}
-
-			.cl-svg {
-				margin-right: 5px;
-			}
+		&:last-child {
+			margin-right: 0;
 		}
 	}
 

@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from "fs";
 import { basename, extname } from "path";
 import { rootDir } from "../utils";
 import svgo from "svgo";
+import { config } from "../config";
 
 let svgIcons: string[] = [];
 
@@ -10,12 +11,28 @@ function findSvg(dir: string) {
 	const dirs = readdirSync(dir, {
 		withFileTypes: true,
 	});
+
+	// 获取当前目录的模块名
+	const moduleName = dir.match(/[/\\](?:src[/\\](?:plugins|modules)[/\\])([^/\\]+)/)?.[1] || "";
+
 	for (const d of dirs) {
 		if (d.isDirectory()) {
 			arr.push(...findSvg(dir + d.name + "/"));
 		} else {
 			if (extname(d.name) == ".svg") {
-				svgIcons.push(basename(d.name, ".svg"));
+				const baseName = basename(d.name, ".svg");
+
+				// 判断是否需要跳过拼接模块名
+				let shouldSkip = config.svg.skipNames?.includes(moduleName);
+
+				// 跳过包含icon-
+				if (baseName.includes("icon-")) {
+					shouldSkip = true;
+				}
+
+				const iconName = shouldSkip ? baseName : `${moduleName}-${baseName}`;
+
+				svgIcons.push(iconName);
 
 				const svg = readFileSync(dir + d.name)
 					.toString()
@@ -37,7 +54,7 @@ function findSvg(dir: string) {
 						if (!/(viewBox="[^>+].*?")/g.test($2)) {
 							content += `viewBox="0 0 ${width} ${height}"`;
 						}
-						return `<symbol id="icon-${d.name.replace(".svg", "")}" ${content}>`;
+						return `<symbol id="icon-${iconName}" ${content}>`;
 					})
 					.replace("</svg>", "</symbol>");
 
@@ -45,6 +62,7 @@ function findSvg(dir: string) {
 			}
 		}
 	}
+
 	return arr;
 }
 

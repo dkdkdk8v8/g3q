@@ -1,4 +1,4 @@
-export declare namespace Upload {
+declare namespace Upload {
 	interface Rule {
 		name: string;
 		type: string;
@@ -22,7 +22,7 @@ export declare namespace Upload {
 		[key: string]: any;
 	}
 
-	type Respose = Promise<{
+	type Response = Promise<{
 		key: string;
 		url: string;
 		fileId: string;

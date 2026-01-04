@@ -126,7 +126,11 @@ const isBullPart = (index) => {
     const type = props.player.handResult.type;
     // 只有有牛的牌型才凸起前三张 (BULL_1 ~ BULL_BULL)
     if (type.startsWith('BULL_') && type !== 'NO_BULL') {
-        return index < 3;
+        const indices = props.player.handResult.bullIndices;
+        if (indices && indices.includes(index)) {
+            return true;
+        }
+        return false;
     }
     return false;
 };

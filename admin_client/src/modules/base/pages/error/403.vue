@@ -1,7 +1,11 @@
 <template>
-	<error-page :code="403" desc="您无权访问此页面" />
+	<error-page :code="403" :desc="$t('您无权访问此页面')" />
 </template>
 
-<script lang="ts" name="403" setup>
-import ErrorPage from "./components/error-page.vue";
+<script lang="ts" setup>
+defineOptions({
+	name: '403'
+});
+
+import ErrorPage from './components/error-page.vue';
 </script>

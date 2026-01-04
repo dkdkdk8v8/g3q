@@ -1,16 +1,16 @@
-import { type PropType } from "vue";
-declare const _default: import("vue").DefineComponent<{
+import { PropType } from 'vue';
+declare const _default: import('vue').DefineComponent<import('vue').ExtractPropTypes<{
     modelValue: StringConstructor;
     field: {
         type: StringConstructor;
         default: string;
     };
     fieldList: {
-        type: PropType<{
+        type: PropType<Array<{
             label: string;
             value: string;
-        }[]>;
-        default: () => never[];
+        }>>;
+        default: () => any[];
     };
     onSearch: FunctionConstructor;
     placeholder: StringConstructor;
@@ -19,18 +19,18 @@ declare const _default: import("vue").DefineComponent<{
         default: number;
     };
     refreshOnInput: BooleanConstructor;
-}, () => any, unknown, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, ("change" | "update:modelValue" | "field-change")[], "change" | "update:modelValue" | "field-change", import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
+}>, () => any, {}, {}, {}, import('vue').ComponentOptionsMixin, import('vue').ComponentOptionsMixin, ("change" | "update:modelValue" | "field-change")[], "change" | "update:modelValue" | "field-change", import('vue').PublicProps, Readonly<import('vue').ExtractPropTypes<{
     modelValue: StringConstructor;
     field: {
         type: StringConstructor;
         default: string;
     };
     fieldList: {
-        type: PropType<{
+        type: PropType<Array<{
             label: string;
             value: string;
-        }[]>;
-        default: () => never[];
+        }>>;
+        default: () => any[];
     };
     onSearch: FunctionConstructor;
     placeholder: StringConstructor;
@@ -39,17 +39,17 @@ declare const _default: import("vue").DefineComponent<{
         default: number;
     };
     refreshOnInput: BooleanConstructor;
-}>> & {
-    onChange?: ((...args: any[]) => any) | undefined;
-    "onUpdate:modelValue"?: ((...args: any[]) => any) | undefined;
-    "onField-change"?: ((...args: any[]) => any) | undefined;
-}, {
+}>> & Readonly<{
+    onChange?: (...args: any[]) => any;
+    "onUpdate:modelValue"?: (...args: any[]) => any;
+    "onField-change"?: (...args: any[]) => any;
+}>, {
     width: string | number;
+    refreshOnInput: boolean;
     field: string;
     fieldList: {
         label: string;
         value: string;
     }[];
-    refreshOnInput: boolean;
-}, {}>;
+}, {}, {}, {}, string, import('vue').ComponentProvideOptions, true, {}, any>;
 export default _default;

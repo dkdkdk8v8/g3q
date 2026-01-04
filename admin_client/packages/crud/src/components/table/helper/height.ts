@@ -1,6 +1,6 @@
 import { debounce, last } from "lodash-es";
 import { nextTick, onActivated, onMounted, ref } from "vue";
-import { addClass } from "../../../utils";
+import { addClass, removeClass } from "../../../utils";
 import { mitt } from "../../../utils/mitt";
 
 // 表格高度
@@ -53,6 +53,11 @@ export function useHeight({ config, Table }: { Table: Vue.Ref<any>; config: ClTa
 
 					n = n.nextSibling;
 				}
+
+				// 移除 cl-row--last
+				arr.forEach((e) => {
+					removeClass(e, "cl-row--last");
+				});
 
 				// 最后一个可视元素
 				const z = last(arr);

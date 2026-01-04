@@ -1,18 +1,30 @@
 <template>
 	<div class="cl-upload__wrap" :class="[customClass]">
-		<div class="cl-upload" :class="[
-		`cl-upload--${type}`,
-		{
-			'is-disabled': disabled,
-			'is-multiple': multiple,
-			'is-small': small
-		}
-	]">
+		<div
+			class="cl-upload"
+			:class="[
+				`cl-upload--${type}`,
+				{
+					'is-disabled': disabled,
+					'is-multiple': multiple,
+					'is-small': small
+				}
+			]"
+		>
 			<template v-if="!drag">
-				<div class="cl-upload__file-btn" v-if="type == 'file'">
-					<el-upload :ref="setRefs('upload')" :drag="drag" action="" :accept="accept" :show-file-list="false"
-						:before-upload="onBeforeUpload" :http-request="httpRequest" :headers="headers"
-						:multiple="multiple" :disabled="disabled">
+				<div v-if="type == 'file'" class="cl-upload__file-btn">
+					<el-upload
+						:ref="setRefs('upload')"
+						:drag="drag"
+						action=""
+						:accept="accept"
+						:show-file-list="false"
+						:before-upload="onBeforeUpload"
+						:http-request="httpRequest"
+						:headers="headers"
+						:multiple="multiple"
+						:disabled="disabled"
+					>
 						<slot>
 							<el-button type="success">{{ text }}</el-button>
 						</slot>
@@ -21,32 +33,54 @@
 			</template>
 
 			<!-- 列表 -->
-			<vue-draggable class="cl-upload__list" tag="div" v-model="list" ghost-class="Ghost" drag-class="Drag"
-				item-key="uid" :disabled="!draggable" @end="update" v-if="showList">
+			<vue-draggable
+				v-if="showList"
+				v-model="list"
+				class="cl-upload__list"
+				tag="div"
+				ghost-class="Ghost"
+				drag-class="Drag"
+				item-key="uid"
+				:disabled="!draggable"
+				@end="update"
+			>
 				<!-- 触发器 -->
 				<template #footer>
-					<div class="cl-upload__footer" v-if="(type == 'image' || drag) && isAdd">
-						<el-upload action="" :drag="drag" :ref="setRefs('upload')" :accept="accept"
-							:show-file-list="false" :before-upload="onBeforeUpload" :http-request="httpRequest"
-							:headers="headers" :multiple="multiple" :disabled="disabled">
+					<div v-if="(type == 'image' || drag) && isAdd" class="cl-upload__footer">
+						<el-upload
+							:ref="setRefs('upload')"
+							action=""
+							:drag="drag"
+							:accept="accept"
+							:show-file-list="false"
+							:before-upload="onBeforeUpload"
+							:http-request="httpRequest"
+							:headers="headers"
+							:multiple="multiple"
+							:disabled="disabled"
+						>
 							<slot>
 								<!-- 拖拽方式 -->
-								<div class="cl-upload__demo is-dragger" v-if="drag">
+								<div v-if="drag" class="cl-upload__demo is-dragger">
 									<el-icon :size="46">
 										<upload-filled />
 									</el-icon>
 									<div>
-										点击上传或将文件拖动到此处，文件大小限制{{ limitSize }}M
+										{{
+											t('点击上传或将文件拖动到此处，文件大小限制{n}M', {
+												n: limitSize
+											})
+										}}
 									</div>
 								</div>
 
 								<!-- 点击方式 -->
-								<div class="cl-upload__demo" v-else>
+								<div v-else class="cl-upload__demo">
 									<el-icon :size="36">
 										<component :is="icon" v-if="icon" />
 										<picture-filled v-else />
 									</el-icon>
-									<span class="text" v-if="text">{{ text }}</span>
+									<span v-if="text" class="text">{{ text }}</span>
 								</div>
 							</slot>
 						</el-upload>
@@ -55,20 +89,40 @@
 
 				<!-- 列表 -->
 				<template #item="{ element: item, index }">
-					<el-upload action="" :accept="accept" :show-file-list="false" :http-request="(req) => {
-		return httpRequest(req, item);
-	}
-		" :before-upload="(file) => {
-		onBeforeUpload(file, item);
-	}
-		" :headers="headers" :disabled="disabled">
+					<el-upload
+						action=""
+						:accept="accept"
+						:show-file-list="false"
+						:http-request="
+							req => {
+								return httpRequest(req, item);
+							}
+						"
+						:before-upload="
+							file => {
+								onBeforeUpload(file, item);
+							}
+						"
+						:headers="headers"
+						:disabled="disabled"
+					>
 						<slot name="item" :item="item" :index="index">
 							<div class="cl-upload__item">
-								<upload-item :show-tag="showTag" :item="item" :list="list" :disabled="disabled"
-									:deletable="deletable" @remove="remove(index)" />
+								<upload-item
+									:show-tag="showTag"
+									:item="item"
+									:list="list"
+									:disabled="disabled"
+									:deletable="deletable"
+									@remove="remove(index)"
+								/>
 
 								<!-- 小图模式 -->
-								<el-icon class="cl-upload__item-remove" v-if="small" @click.stop="remove(index)">
+								<el-icon
+									v-if="small"
+									class="cl-upload__item-remove"
+									@click.stop="remove(index)"
+								>
 									<circle-close-filled />
 								</el-icon>
 							</div>
@@ -80,22 +134,28 @@
 	</div>
 </template>
 
-<script lang="ts" setup name="cl-upload">
-import { computed, ref, watch, type PropType, nextTick } from "vue";
-import { isArray, isEmpty, isNumber } from "lodash-es";
-import VueDraggable from "vuedraggable";
-import { ElMessage } from "element-plus";
-import { PictureFilled, UploadFilled, CircleCloseFilled } from "@element-plus/icons-vue";
-import { useForm } from "@cool-vue/crud";
-import { useCool } from "/@/cool";
-import { useBase } from "/$/base";
-import { uuid, isPromise } from "/@/cool/utils";
-import { getUrls, getType } from "../utils";
-import { useUpload } from "../hooks";
-import UploadItem from "./upload-item/index.vue";
-import type { Upload } from "../types";
+<script lang="ts" setup>
+defineOptions({
+	name: 'cl-upload'
+});
+
+import { computed, ref, watch, type PropType, nextTick } from 'vue';
+import { assign, isArray, isEmpty, isNumber } from 'lodash-es';
+import VueDraggable from 'vuedraggable';
+import { ElMessage } from 'element-plus';
+import { PictureFilled, UploadFilled, CircleCloseFilled } from '@element-plus/icons-vue';
+import { useForm } from '@cool-vue/crud';
+import { useCool } from '/@/cool';
+import { useBase } from '/$/base';
+import { uuid, isPromise } from '/@/cool/utils';
+import { getUrls, getType } from '../utils';
+import { useUpload } from '../hooks';
+import UploadItem from './upload-item/index.vue';
+import { CrudProps } from '/#/crud';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps({
+	...CrudProps,
 	// 绑定值，单选时字符串，多选时字符串数组
 	modelValue: {
 		type: [String, Array],
@@ -103,8 +163,8 @@ const props = defineProps({
 	},
 	// 上传类型
 	type: {
-		type: String as PropType<"image" | "file">,
-		default: "image"
+		type: String as PropType<'image' | 'file'>,
+		default: 'image'
 	},
 	// 允许上传的文件类型
 	accept: String,
@@ -150,25 +210,21 @@ const props = defineProps({
 	// 上传前钩子
 	beforeUpload: Function,
 	// 云端上传路径前缀
-	prefixPath: String,
-	// CRUD穿透值
-	isEdit: Boolean,
-	scope: Object,
-	prop: String,
-	isDisabled: Boolean
+	prefixPath: String
 });
 
-const emit = defineEmits(["update:modelValue", "change", "upload", "success", "error", "progress"]);
+const emit = defineEmits(['update:modelValue', 'change', 'upload', 'success', 'error', 'progress']);
 
 const { refs, setRefs } = useCool();
 const { user } = useBase();
 const Form = useForm();
 const { options, toUpload } = useUpload();
+const { t } = useI18n();
 
 // 元素尺寸
 const size = computed(() => {
 	const d = props.size || options.size;
-	return (isArray(d) ? d : [d, d]).map((e: string | number) => (isNumber(e) ? e + "px" : e));
+	return (isArray(d) ? d : [d, d]).map((e: string | number) => (isNumber(e) ? e + 'px' : e));
 });
 
 // 是否禁用
@@ -188,14 +244,14 @@ const text = computed(() => {
 		return props.text;
 	} else {
 		switch (props.type) {
-			case "file":
-				return "选择文件";
+			case 'file':
+				return t('选择文件');
 
-			case "image":
-				return "选择图片";
+			case 'image':
+				return t('选择图片');
 
 			default:
-				return "";
+				return '';
 		}
 	}
 });
@@ -212,7 +268,7 @@ const list = ref<Upload.Item[]>([]);
 
 // 显示上传列表
 const showList = computed(() => {
-	if (props.type == "file") {
+	if (props.type == 'file') {
 		return props.showFileList ? !isEmpty(list.value) : false;
 	} else {
 		return true;
@@ -221,12 +277,12 @@ const showList = computed(() => {
 
 // 文件格式
 const accept = computed(() => {
-	return props.accept || (props.type == "file" ? "" : "image/*");
+	return props.accept || (props.type == 'file' ? '' : 'image/*');
 });
 
 // 能否添加
 const isAdd = computed(() => {
-	let len = list.value.length;
+	const len = list.value.length;
 
 	if (props.multiple && !disabled.value) {
 		return limit - len > 0;
@@ -244,28 +300,28 @@ async function onBeforeUpload(file: any, item?: Upload.Item) {
 			name: file.name,
 			type: getType(file.name),
 			progress: props.autoUpload ? 0 : 100, // 非自动上传时默认100%
-			url: "",
-			preload: "",
-			error: ""
+			url: '',
+			preload: '',
+			error: ''
 		};
 
 		// 图片预览地址
-		if (d.type == "image") {
+		if (d.type == 'image') {
 			if (file instanceof File) {
 				d.preload = window.webkitURL.createObjectURL(file);
 			}
 		}
 
 		// 上传事件
-		emit("upload", d, file);
+		emit('upload', d, file);
 
 		// 赋值
 		if (item) {
-			Object.assign(item, d);
+			assign(item, d);
 		} else {
 			if (props.multiple) {
 				if (!isAdd.value) {
-					ElMessage.warning(`最多只能上传${limit}个文件`);
+					ElMessage.warning(t('最多只能上传{n}个文件', { n: limit }));
 					return false;
 				} else {
 					list.value.push(d);
@@ -276,6 +332,12 @@ async function onBeforeUpload(file: any, item?: Upload.Item) {
 		}
 
 		return true;
+	}
+
+	// 文件大小限制
+	if (file.size / 1024 / 1024 >= limitSize) {
+		ElMessage.error(t('上传文件大小不能超过 {n}MB!', { n: limitSize }));
+		return false;
 	}
 
 	// 自定义上传事件
@@ -292,11 +354,6 @@ async function onBeforeUpload(file: any, item?: Upload.Item) {
 
 		return r;
 	} else {
-		if (file.size / 1024 / 1024 >= limitSize) {
-			ElMessage.error(`上传文件大小不能超过 ${limitSize}MB!`);
-			return false;
-		}
-
 		return next();
 	}
 }
@@ -315,7 +372,7 @@ function clear() {
 // 文件上传请求
 async function httpRequest(req: any, item?: Upload.Item) {
 	if (!item) {
-		item = list.value.find((e) => e.uid == req.file.uid);
+		item = list.value.find(e => e.uid == req.file.uid);
 	}
 
 	if (!item) {
@@ -327,23 +384,23 @@ async function httpRequest(req: any, item?: Upload.Item) {
 		prefixPath: props.prefixPath,
 		onProgress(progress) {
 			item!.progress = progress;
-			emit("progress", item);
+			emit('progress', item);
 		}
 	})
-		.then((res) => {
-			Object.assign(item!, res);
-			emit("success", item);
+		.then(res => {
+			assign(item!, res);
+			emit('success', item);
 			update();
 		})
-		.catch((err) => {
+		.catch(err => {
 			item!.error = err.message;
-			emit("error", item);
+			emit('error', item);
 		});
 }
 
 // 检测是否还有未上传的文件
 function check() {
-	return list.value.find((e) => !e.url);
+	return list.value.find(e => !e.url);
 }
 
 // 更新
@@ -351,11 +408,11 @@ function update() {
 	if (!check()) {
 		const urls = getUrls(list.value);
 
-		const val = props.multiple ? getUrls(list.value) : urls[0] || "";
+		const val = props.multiple ? getUrls(list.value) : urls[0] || '';
 
 		// 更新绑定值
-		emit("update:modelValue", val);
-		emit("change", val);
+		emit('update:modelValue', val);
+		emit('change', val);
 
 		nextTick(() => {
 			if (props.prop) {
@@ -394,7 +451,7 @@ watch(
 			.map((url, index) => {
 				const old = list.value[index] || {};
 
-				return Object.assign(
+				return assign(
 					{
 						progress: 100,
 						uid: uuid()
@@ -456,11 +513,11 @@ defineExpose({
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		height: v-bind("size[0]");
-		width: v-bind("size[1]");
+		height: v-bind('size[0]');
+		width: v-bind('size[1]');
 		background-color: var(--el-fill-color-light);
 		color: var(--el-text-color-regular);
-		border-radius: 6px;
+		border-radius: 8px;
 		cursor: pointer;
 		box-sizing: border-box;
 		position: relative;
@@ -484,7 +541,7 @@ defineExpose({
 	}
 
 	&__file-btn {
-		&+.cl-upload__list {
+		& + .cl-upload__list {
 			margin-top: 10px;
 		}
 	}
@@ -501,7 +558,7 @@ defineExpose({
 			&.is-dragover {
 				&::after {
 					display: block;
-					content: "";
+					content: '';
 					position: absolute;
 					left: 0;
 					top: 0;
@@ -562,7 +619,6 @@ defineExpose({
 		}
 
 		:deep(.cl-upload-item) {
-
 			.cl-upload-item__progress-bar,
 			.cl-upload-item__actions,
 			.cl-upload-item__tag {

@@ -1,3 +1,4 @@
+import { assign } from "lodash-es";
 import { dataset } from "../../../utils";
 
 export function useAction({
@@ -48,7 +49,7 @@ export function useAction({
 						break;
 
 					case "props":
-						Object.assign(d.component.props, data);
+						assign(d.component.props, data);
 						break;
 
 					case "hidden":
@@ -60,7 +61,7 @@ export function useAction({
 						break;
 
 					default:
-						Object.assign(d, data);
+						assign(d, data);
 						break;
 				}
 			} else {

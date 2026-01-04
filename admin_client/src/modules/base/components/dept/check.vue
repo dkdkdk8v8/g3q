@@ -1,7 +1,7 @@
 <template>
 	<div class="cl-dept-check">
 		<div class="cl-dept-check__search">
-			<el-input v-model="keyword" placeholder="输入关键字进行过滤" />
+			<el-input v-model="keyword" :placeholder="$t('输入关键字进行过滤')" />
 		</div>
 
 		<div class="cl-dept-check__tree">
@@ -24,11 +24,18 @@
 	</div>
 </template>
 
-<script lang="ts" name="cl-dept-check" setup>
-import { ref, watch } from "vue";
-import { deepTree } from "/@/cool/utils";
-import { useCool } from "/@/cool";
-import { useUpsert } from "@cool-vue/crud";
+<script lang="ts" setup>
+defineOptions({
+	name: 'cl-dept-check'
+});
+
+import { ref, watch } from 'vue';
+import { deepTree } from '/@/cool/utils';
+import { useCool } from '/@/cool';
+import { useUpsert } from '@cool-vue/crud';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
 	modelValue: {
@@ -38,7 +45,7 @@ const props = defineProps({
 	checkStrictly: Boolean
 });
 
-const emit = defineEmits(["update:modelValue"]);
+const emit = defineEmits(['update:modelValue']);
 
 const { service } = useCool();
 
@@ -49,11 +56,11 @@ const Tree = ref();
 const list = ref();
 
 // 关键字搜素
-const keyword = ref("");
+const keyword = ref('');
 
 // 刷新树形列表
 async function refresh() {
-	return service.base.sys.department.list().then((res) => {
+	return service.base.sys.department.list().then(res => {
 		list.value = deepTree(res);
 	});
 }
@@ -66,7 +73,7 @@ function filterNode(val: string, data: any) {
 
 // 值改变
 function onCheckChange(_: any, { checkedKeys }: any) {
-	emit("update:modelValue", checkedKeys);
+	emit('update:modelValue', checkedKeys);
 }
 
 // 监听过滤

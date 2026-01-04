@@ -6,24 +6,34 @@
 		:disabled="loading"
 		@upload="onUpload"
 	>
-		<el-button type="success" :icon="Upload" :loading="loading">导入</el-button>
+		<el-button type="success" :loading="loading">
+			<cl-svg name="import" class="mr-[5px]" />
+			{{ $t('导入') }}
+		</el-button>
 	</cl-upload>
 
 	<cl-form ref="Form">
 		<template #slot-tips>
-			<el-alert type="warning">如遇到问题无法导入菜单，请检查文件并尝试重新导入。</el-alert>
+			<el-alert type="warning">
+				{{ $t('如遇到问题无法导入菜单，请检查文件并尝试重新导入。') }}
+			</el-alert>
 		</template>
 	</cl-form>
 </template>
 
 <script lang="ts" setup>
-import { Upload } from "@element-plus/icons-vue";
-import { ElMessage } from "element-plus";
-import { useCool } from "/@/cool";
-import { useCrud, useForm } from "@cool-vue/crud";
-import { orderBy } from "lodash-es";
-import { ref } from "vue";
+defineOptions({
+	name: 'menu-imp'
+});
 
+import { ElMessage } from 'element-plus';
+import { useCool } from '/@/cool';
+import { useCrud, useForm } from '@cool-vue/crud';
+import { orderBy } from 'lodash-es';
+import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 const { service } = useCool();
 const Form = useForm();
 const Crud = useCrud();
@@ -46,39 +56,39 @@ function onUpload(_: any, file: File) {
 
 			// 打开表单
 			Form.value?.open({
-				title: "菜单导入",
-				height: "400px",
-				width: "600px",
+				title: t('菜单导入'),
+				height: '400px',
+				width: '600px',
 				props: {
-					labelWidth: "0px"
+					labelWidth: '0px'
 				},
 				op: {
-					saveButtonText: "添加"
+					saveButtonText: t('添加')
 				},
 				items: [
 					{
 						component: {
-							name: "slot-tips"
+							name: 'slot-tips'
 						}
 					},
 					{
 						component: {
-							name: "el-tree",
+							name: 'el-tree',
 							props: {
-								data: orderBy(data, "orderNum", "asc"),
-								nodeKey: "name",
+								data: orderBy(data, 'orderNum', 'asc'),
+								nodeKey: 'name',
 								props: {
-									label: "name",
-									children: "childMenus"
+									label: 'name',
+									children: 'childMenus'
 								},
 								renderContent(_: any, { data }: any) {
 									return data.name;
 								}
 							},
 							style: {
-								padding: "5px",
-								borderRadius: "var(--el-border-radius-base)",
-								border: "1px solid var(--el-border-color)"
+								padding: '5px',
+								borderRadius: 'var(--el-border-radius-base)',
+								border: '1px solid var(--el-border-color)'
 							}
 						}
 					}
@@ -90,11 +100,11 @@ function onUpload(_: any, file: File) {
 								menus: data
 							})
 							.then(() => {
-								ElMessage.success("导入成功");
+								ElMessage.success(t('导入成功'));
 								Crud.value?.refresh();
 								close();
 							})
-							.catch((err) => {
+							.catch(err => {
 								ElMessage.error(err.message);
 								done();
 							});
@@ -102,7 +112,7 @@ function onUpload(_: any, file: File) {
 				}
 			});
 		} catch (error) {
-			ElMessage.error(`${file.name}文件格式错误：${error}`);
+			ElMessage.error(t('{file}文件格式错误：{error}', { file: file.name, error }));
 		}
 	};
 

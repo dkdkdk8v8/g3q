@@ -6,6 +6,6 @@ import zhTw from "./zh-tw";
 export const locale = {
 	en,
 	ja,
-	zhCn,
-	zhTw
+	"zh-cn": zhCn,
+	"zh-tw": zhTw
 };

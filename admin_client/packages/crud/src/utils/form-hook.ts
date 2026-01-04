@@ -1,6 +1,6 @@
 import { isArray, isEmpty, isFunction, isObject, isString } from "lodash-es";
 
-export const format: { [key: string]: ClForm.HookFn } = {
+export const format: { [key: string]: ClForm.Hook["Fn"] } = {
 	number(value) {
 		return value ? (isArray(value) ? value.map(Number) : Number(value)) : value;
 	},
@@ -100,7 +100,6 @@ function parse(method: "submit" | "bind", { value, hook: pipe, form, prop }: any
 	} else if (isArray(pipe)) {
 		pipes = pipe;
 	} else if (isObject(pipe)) {
-		// @ts-ignore
 		pipes = isArray(pipe[method]) ? pipe[method] : [pipe[method]];
 	} else if (isFunction(pipe)) {
 		pipes = [pipe];
@@ -143,7 +142,7 @@ const formHook = {
 	}
 };
 
-export function registerFormHook(name: string, fn: ClForm.HookFn) {
+export function registerFormHook(name: string, fn: ClForm.Hook["Fn"]) {
 	format[name] = fn;
 }
 

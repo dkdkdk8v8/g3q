@@ -55,7 +55,9 @@ export default defineComponent({
 		scrollbar: {
 			type: Boolean,
 			default: true
-		}
+		},
+		// 背景透明
+		transparent: Boolean
 	},
 
 	emits: ["update:modelValue", "fullscreen-change"],
@@ -232,7 +234,7 @@ export default defineComponent({
 			return h(
 				<el-dialog
 					ref={Dialog}
-					class="cl-dialog"
+					class={["cl-dialog", { 'is-transparent': props.transparent }]}
 					width={props.width}
 					beforeClose={props.beforeClose}
 					show-close={false}

@@ -1,4 +1,3 @@
-/// <reference types="../index" />
 export declare function useSelection({ emit }: {
     emit: Vue.Emit;
 }): {

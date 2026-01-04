@@ -223,6 +223,7 @@ export default class GameClient {
                 message: msg.msg,
                 confirmButtonText: '继续游戏',
                 cancelButtonText: '关闭提示',
+                className: 'game-theme-dialog', // Custom class for styling
             })
                 .then(() => {
                     // Confirm (Continue Game)

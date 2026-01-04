@@ -1,5 +1,6 @@
 <script setup>
 import { onMounted, computed, onUnmounted, ref, watch } from 'vue';
+import { debounce } from '../utils/debounce.js';
 import { useGameStore } from '../stores/game.js';
 import { useSettingsStore } from '../stores/settings.js';
 import PlayerSeat from '../components/PlayerSeat.vue';
@@ -557,27 +558,55 @@ onUnmounted(() => {
     gameClient.off('QZNN.PlayerLeave');
 });
 
-const onRob = (multiplier) => {
+const onRob = debounce((multiplier) => {
     store.playerRob(multiplier);
-};
+}, 500);
 
-const onBet = (multiplier) => {
+const onBet = debounce((multiplier) => {
     store.playerBet(multiplier);
-};
+}, 500);
 
-const openHistory = () => {
+const playerShowHandDebounced = debounce((playerId) => {
+    store.playerShowHand(playerId);
+}, 500);
+
+const startGameDebounced = debounce(() => {
+    store.startGame();
+}, 500);
+
+const openHistoryDebounced = debounce(() => {
     showMenu.value = false;
     showHistory.value = true;
-};
+}, 500);
 
-const openSettings = () => {
+const openSettingsDebounced = debounce(() => {
     showMenu.value = false;
     showSettings.value = true;
-};
+}, 500);
 
-const quitGame = () => {
+const quitGameDebounced = debounce(() => {
     gameClient.send("QZNN.PlayerLeave", { RoomId: store.roomId });
-};
+}, 500);
+
+const toggleShowChatSelector = debounce(() => {
+    showChatSelector.value = !showChatSelector.value;
+}, 500);
+
+const closeHistoryDebounced = debounce(() => {
+    showHistory.value = false;
+}, 500);
+
+const closeSettingsDebounced = debounce(() => {
+    showSettings.value = false;
+}, 500);
+
+const toggleDebugPanelExpanded = debounce(() => {
+    isDebugPanelExpanded.value = !isDebugPanelExpanded.value;
+}, 500);
+
+const toggleShowMenu = debounce(() => {
+    showMenu.value = !showMenu.value;
+}, 500);
 </script>
 
 <template>
@@ -589,43 +618,43 @@ const quitGame = () => {
 
         <!-- Debug Control Panel -->
         <div class="debug-panel">
-            <div class="debug-title" @click="isDebugPanelExpanded = !isDebugPanelExpanded">
+            <div class="debug-title" @click="toggleDebugPanelExpanded()">
                 阶段控制
                 <span style="margin-left: 5px;float: right;">{{ isDebugPanelExpanded ? '▼' : '▲' }}</span>
             </div>
             <div v-show="isDebugPanelExpanded" class="debug-buttons">
-                <button @click="store.enterStateWaiting()">等待用户</button>
-                <button @click="store.enterStatePrepare()">准备开始</button>
-                <button @click="store.enterStatePreCard()">预先发牌</button>
-                <button @click="store.enterStateBanking()">开始抢庄</button>
-                <button @click="store.enterStateRandomBank()">随机选庄</button>
-                <button @click="store.enterStateBankerConfirm()">确认庄家</button>
-                <button @click="store.enterStateBetting()">闲家下注</button>
-                <button @click="store.enterStateDealing()">补充手牌</button>
-                <button @click="store.enterStateShowCard()">摊牌比拼</button>
-                <button @click="store.enterStateSettling()">结算对局</button>
+                <button @click="debounce(() => store.enterStateWaiting(), 500)()">等待用户</button>
+                <button @click="debounce(() => store.enterStatePrepare(), 500)()">准备开始</button>
+                <button @click="debounce(() => store.enterStatePreCard(), 500)()">预先发牌</button>
+                <button @click="debounce(() => store.enterStateBanking(), 500)()">开始抢庄</button>
+                <button @click="debounce(() => store.enterStateRandomBank(), 500)()">随机选庄</button>
+                <button @click="debounce(() => store.enterStateBankerConfirm(), 500)()">确认庄家</button>
+                <button @click="debounce(() => store.enterStateBetting(), 500)()">闲家下注</button>
+                <button @click="debounce(() => store.enterStateDealing(), 500)()">补充手牌</button>
+                <button @click="debounce(() => store.enterStateShowCard(), 500)()">摊牌比拼</button>
+                <button @click="debounce(() => store.enterStateSettling(), 500)()">结算对局</button>
             </div>
         </div>
 
         <!-- 顶部栏 -->
         <div class="top-bar">
             <div class="menu-container">
-                <div class="menu-btn" @click.stop="showMenu = !showMenu">
+                <div class="menu-btn" @click.stop="toggleShowMenu()">
                     <van-icon name="wap-nav" size="20" color="white" />
                     <span style="margin-left:4px;font-size:14px;">菜单</span>
                 </div>
                 <!-- 下拉菜单 -->
                 <transition name="fade">
                     <div v-if="showMenu" class="menu-dropdown" @click.stop>
-                        <div class="menu-item" @click="openHistory">
+                        <div class="menu-item" @click="openHistoryDebounced()">
                             <van-icon name="balance-list-o" /> 投注记录
                         </div>
                         <div class="menu-divider"></div>
-                        <div class="menu-item" @click="openSettings">
+                        <div class="menu-item" @click="openSettingsDebounced()">
                             <van-icon name="setting-o" /> 游戏设置
                         </div>
                         <div class="menu-divider"></div>
-                        <div class="menu-item danger" @click="quitGame">
+                        <div class="menu-item danger" @click="quitGameDebounced()">
                             <van-icon name="close" /> 退出游戏
                         </div>
                     </div>
@@ -691,7 +720,7 @@ const quitGame = () => {
                     class="phase-info settlement-info">结算中...</div>
 
                 <!-- 重新开始按钮 -->
-                <div v-if="store.currentPhase === 'GAME_OVER'" class="restart-btn" @click="store.startGame()">
+                <div v-if="store.currentPhase === 'GAME_OVER'" class="restart-btn" @click="startGameDebounced()">
                     继续游戏
                 </div>
             </div>
@@ -734,7 +763,8 @@ const quitGame = () => {
                     <!-- 摊牌按钮 -->
                     <div v-if="store.currentPhase === 'SHOWDOWN' && !myPlayer.isShowHand && store.countdown > 0 && !myPlayer.isObserver"
                         class="btn-group">
-                        <div class="game-btn orange" style="width: 100px" @click="store.playerShowHand(myPlayer.id)">摊牌
+                        <div class="game-btn orange" style="width: 100px"
+                            @click="playerShowHandDebounced(myPlayer.id)">摊牌
                         </div>
                     </div>
 
@@ -753,10 +783,10 @@ const quitGame = () => {
             </div>
 
             <!-- 全局点击关闭菜单 -->
-            <div v-if="showMenu" class="mask-transparent" @click="showMenu = false"></div>
+            <div v-if="showMenu" class="mask-transparent" @click="toggleShowMenu()"></div>
 
             <!-- 评论/表情按钮 -->
-            <div class="chat-toggle-btn" @click="showChatSelector = true">
+            <div class="chat-toggle-btn" @click="toggleShowChatSelector()">
                 <van-icon name="comment" size="24" color="white" />
             </div>
 
@@ -765,7 +795,7 @@ const quitGame = () => {
                 <div class="modal-content">
                     <div class="modal-header">
                         <h3>投注记录</h3>
-                        <div class="close-icon" @click="showHistory = false">×</div>
+                        <div class="close-icon" @click="closeHistoryDebounced()">×</div>
                     </div>
                     <div class="history-list">
                         <div v-if="store.history.length === 0" class="empty-tip">暂无记录</div>
@@ -797,7 +827,7 @@ const quitGame = () => {
                 <div class="modal-content">
                     <div class="modal-header">
                         <h3>游戏设置</h3>
-                        <div class="close-icon" @click="showSettings = false">×</div>
+                        <div class="close-icon" @click="closeSettingsDebounced()">×</div>
                     </div>
                     <div class="settings-list">
                         <div class="setting-item">

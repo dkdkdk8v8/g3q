@@ -557,16 +557,22 @@ export const useGameStore = defineStore('game', () => {
                 return;
             }
 
-            p.hand = []; // Clear hand to ensure a fresh deal for 5 cards
+            // p.hand = []; // REMOVED: Do not clear hand, we want to supplement it
 
-            const cardsToDeal = 5; // Always deal 5 cards in this phase
+            const targetCount = 5;
+            const currentCount = p.hand ? p.hand.length : 0;
+            
+            if (!p.hand) p.hand = [];
 
-            if (deck.value.length >= cardsToDeal) {
-                for (let i = 0; i < cardsToDeal; i++) {
-                    p.hand.push(deck.value.pop());
+            if (currentCount < targetCount) {
+                const needed = targetCount - currentCount;
+                if (deck.value.length >= needed) {
+                    for (let i = 0; i < needed; i++) {
+                        p.hand.push(deck.value.pop());
+                    }
+                } else {
+                    console.warn("Not enough cards in deck to deal supplemental cards to player " + p.id + "!");
                 }
-            } else {
-                console.warn("Not enough cards in deck to deal 5 cards to player " + p.id + "!");
             }
         });
 
@@ -574,7 +580,7 @@ export const useGameStore = defineStore('game', () => {
         players.value.forEach(p => {
             const result = calculateHandType(p.hand);
             p.handResult = { type: result.type, typeName: result.typeName, multiplier: result.multiplier };
-            p.hand = result.sortedCards; // 排序
+            // p.hand = result.sortedCards; // 暂时不排序，以免打乱补牌动画顺序，或者在最后统一排序
         });
     };
 

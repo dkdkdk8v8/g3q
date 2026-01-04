@@ -95,21 +95,25 @@ const onPhraseSelected = (phrase, index) => {
     if (!checkCooldown()) {
         return;
     }
-    playPhraseSound(index);
-    playerSpeech.value.set(store.myPlayerId, { type: 'text', content: phrase });
-    setTimeout(() => {
-        playerSpeech.value.delete(store.myPlayerId);
-    }, 3000);
+    store.sendPlayerTalk(0, index); // Send PlayerTalk command
+    // Local display will be handled by PushTalk from server
+    // playPhraseSound(index); // Sound will be triggered by PushTalk
+    // playerSpeech.value.set(store.myPlayerId, { type: 'text', content: phrase });
+    // setTimeout(() => {
+    //     playerSpeech.value.delete(store.myPlayerId);
+    // }, 3000);
 };
 
-const onEmojiSelected = (emojiUrl) => {
+const onEmojiSelected = (emojiUrl, index) => { // Added index parameter
     if (!checkCooldown()) {
         return;
     }
-    playerSpeech.value.set(store.myPlayerId, { type: 'emoji', content: emojiUrl });
-    setTimeout(() => {
-        playerSpeech.value.delete(store.myPlayerId);
-    }, 3000);
+    store.sendPlayerTalk(1, index); // Send PlayerTalk command
+    // Local display will be handled by PushTalk from server
+    // playerSpeech.value.set(store.myPlayerId, { type: 'emoji', content: emojiUrl });
+    // setTimeout(() => {
+    //     playerSpeech.value.delete(store.myPlayerId);
+    // }, 3000);
 };
 
 // Banker selection animation state
@@ -117,13 +121,10 @@ const currentlyHighlightedPlayerId = ref(null);
 let animationIntervalId = null;
 let candidateIndex = 0;
 
-// Robot Speech/Emoji Logic
-const robotSpeechInterval = ref(null);
-const lastRobotSpeechTime = ref(new Map());
-const ROBOT_SPEECH_PROBABILITY = 0.2;
-const ROBOT_SPEECH_CHECK_INTERVAL_SECONDS = 5;
-const ROBOT_SPEECH_COOLDOWN_SECONDS = 15;
+// Auto-join message state
 const showAutoJoinMessage = ref(false);
+
+// Robot Speech/Emoji Logic Removed (now server-driven)
 
 const commonPhrases = [
     "猜猜我是牛几呀",
@@ -161,54 +162,6 @@ const allEmojis = [
     emoji9, emoji10, emoji11, emoji12, emoji13, emoji14, emoji15, emoji16
 ];
 
-const triggerRobotSpeech = (robotId, type, content) => {
-    playerSpeech.value.set(robotId, { type, content });
-    playerSpeech.value = new Map(playerSpeech.value);
-
-    lastRobotSpeechTime.value.set(robotId, Date.now());
-    setTimeout(() => {
-        playerSpeech.value.delete(robotId);
-        playerSpeech.value = new Map(playerSpeech.value);
-    }, 3000);
-};
-
-const startRobotSpeech = () => {
-    robotSpeechInterval.value = setInterval(() => {
-        // If mute users is enabled, robots should be silent (visual and audio)
-        if (settingsStore.muteUsers) return;
-
-        const currentPlayers = store.players;
-        if (!currentPlayers || currentPlayers.length <= 1) {
-            return;
-        }
-
-        currentPlayers.forEach(p => {
-            if (p.id === store.myPlayerId) return;
-
-            const robotId = p.id;
-            const now = Date.now();
-            const lastSpoke = lastRobotSpeechTime.value.get(robotId) || 0;
-
-            if (now - lastSpoke < ROBOT_SPEECH_COOLDOWN_SECONDS * 1000) {
-                return;
-            }
-
-            if (Math.random() < ROBOT_SPEECH_PROBABILITY) {
-                if (Math.random() < 0.5) {
-                    const randomIndex = Math.floor(Math.random() * commonPhrases.length);
-                    const phrase = commonPhrases[randomIndex];
-                    playPhraseSound(randomIndex);
-                    triggerRobotSpeech(robotId, 'text', phrase);
-                } else {
-                    const randomIndex = Math.floor(Math.random() * allEmojis.length);
-                    const emojiUrl = allEmojis[randomIndex];
-                    triggerRobotSpeech(robotId, 'emoji', emojiUrl);
-                }
-            }
-        });
-    }, ROBOT_SPEECH_CHECK_INTERVAL_SECONDS * 1000);
-};
-
 const showMenu = ref(false);
 const showHistory = ref(false);
 
@@ -229,6 +182,46 @@ const setSeatRef = (el, playerId) => {
 };
 
 const myPlayer = computed(() => store.players.find(p => p.id === store.myPlayerId));
+
+watch(() => myPlayer.value?.betMultiplier, (newVal) => {
+    console.log(`[GameView Debug] myPlayer.betMultiplier changed to: ${newVal}`);
+});
+
+watch(() => [...store.playerSpeechQueue], (newQueue) => { // Watch a copy to trigger on push
+    if (newQueue.length > 0) {
+        const speechEvent = newQueue[0]; // Process the first event in the queue
+        const { userId, type, index } = speechEvent;
+
+        // Play sound if not muted and it's a phrase
+        if (settingsStore.soundEnabled && type === 0) {
+            playPhraseSound(index);
+        }
+
+        // Determine content for display
+        let content = '';
+        if (type === 0 && commonPhrases[index]) {
+            content = commonPhrases[index];
+        } else if (type === 1 && allEmojis[index]) {
+            content = allEmojis[index];
+        } else {
+            console.warn(`[GameView] Unknown speech type/index: Type=${type}, Index=${index}`);
+            return;
+        }
+
+        // Update playerSpeech map for display
+        playerSpeech.value.set(userId, { type: type === 0 ? 'text' : 'emoji', content: content });
+        playerSpeech.value = new Map(playerSpeech.value); // Trigger reactivity for Map
+
+        // Remove speech bubble after 3 seconds
+        setTimeout(() => {
+            playerSpeech.value.delete(userId);
+            playerSpeech.value = new Map(playerSpeech.value); // Trigger reactivity for Map
+        }, 3000);
+
+        // Remove the processed event from the queue
+        store.playerSpeechQueue.shift();
+    }
+}, { deep: true });
 
 // Watch Music Setting
 watch(() => settingsStore.musicEnabled, (val) => {
@@ -294,10 +287,7 @@ watch(() => store.players.map(p => ({ id: p.id, bet: p.betMultiplier })), (newVa
         if (oldBet === 0 && p.bet > 0) {
             const seatEl = seatRefs.value[p.id];
             if (seatEl) {
-                const seatRect = seatEl.getBoundingClientRect();
-                let count = 3 + (p.bet - 1) * 2;
-                if (count > 15) count = 15;
-                coinLayer.value.throwCoins(seatRect, centerRect, count);
+                // No animation or sound for placing bet as per user request.
             }
         }
         lastBetStates.value[p.id] = p.bet;
@@ -306,7 +296,7 @@ watch(() => store.players.map(p => ({ id: p.id, bet: p.betMultiplier })), (newVa
 
 // Watch countdown to play sound effect
 watch(() => store.countdown, (newVal, oldVal) => {
-    const isCountdownPhase = ['READY_COUNTDOWN', 'ROB_BANKER', 'BETTING', 'SHOWDOWN'].includes(store.currentPhase);
+    const isCountdownPhase = ['ROB_BANKER', 'BETTING'].includes(store.currentPhase);
 
     if (settingsStore.soundEnabled && isCountdownPhase && newVal !== oldVal) {
         // Play countdownAlertSound at 2 seconds
@@ -560,7 +550,7 @@ onMounted(() => {
         router.replace({ query: { ...route.query, autoJoin: undefined } });
     }
 
-    startRobotSpeech();
+
 
     bgAudio.value = new Audio(gameBgSound);
     bgAudio.value.loop = true;
@@ -582,9 +572,7 @@ onMounted(() => {
 
 onUnmounted(() => {
     store.resetState();
-    if (robotSpeechInterval.value) {
-        clearInterval(robotSpeechInterval.value);
-    }
+
     if (bgAudio.value) {
         bgAudio.value.pause();
         bgAudio.value = null;
@@ -747,18 +735,19 @@ const toggleShowMenu = debounce(() => {
                     </transition>
 
 
-                    <div v-if="store.currentPhase === 'ROB_BANKER' && !myPlayer.isObserver" class="btn-group">
+                    <div v-if="store.currentPhase === 'ROB_BANKER' && !myPlayer.isObserver && myPlayer.robMultiplier === -1" class="btn-group">
                         <div class="game-btn blue" @click="onRob(0)">不抢</div>
-                        <div class="game-btn orange" @click="onRob(1)">1倍</div>
-                        <div class="game-btn orange" @click="onRob(2)">2倍</div>
-                        <div class="game-btn orange" @click="onRob(3)">3倍</div>
+                        <div v-for="mult in store.bankerMult.filter(m => m > 0)" :key="mult" class="game-btn orange"
+                            @click="onRob(mult)">
+                            {{ mult }}倍
+                        </div>
                     </div>
 
                     <div v-if="store.currentPhase === 'BETTING' && !myPlayer.isBanker && myPlayer.betMultiplier === 0 && !myPlayer.isObserver"
                         class="btn-group">
-                        <div class="game-btn orange" @click="onBet(1)">1倍</div>
-                        <div class="game-btn orange" @click="onBet(2)">2倍</div>
-                        <div class="game-btn orange" @click="onBet(5)">5倍</div>
+                        <div v-for="mult in store.betMult" :key="mult" class="game-btn orange" @click="onBet(mult)">
+                            {{ mult }}倍
+                        </div>
                     </div>
 
                     <div v-if="store.currentPhase === 'BETTING' && myPlayer.isBanker" class="waiting-text">

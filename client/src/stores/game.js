@@ -5,6 +5,7 @@ import gameClient from '../socket.js'
 import defaultAvatar from '@/assets/common/default_avatar.png'; // Use import for asset
 import { useUserStore } from './user.js';
 
+const QZNN_Prefix = "QZNN."; // 定义QZNN游戏协议前缀
 const DEFAULT_AVATAR = defaultAvatar;
 
 /**
@@ -55,6 +56,9 @@ export const useGameStore = defineStore('game', () => {
     const gameMode = ref(0); // 0: Bukan, 1: Kan3, 2: Kan4
     const history = ref([]); // 游戏记录
     const bankerCandidates = ref([]); // Store IDs of players who are candidates for banker
+    const bankerMult = ref([]); // Store banker multiplier options
+    const betMult = ref([]); // Store betting multiplier options
+    const playerSpeechQueue = ref([]); // Queue for incoming speech/emoji events
     const roomJoinedPromise = ref(null); // Added for async join completion
     let roomJoinedResolve = null;
     let roomJoinedReject = null;
@@ -101,30 +105,38 @@ export const useGameStore = defineStore('game', () => {
     const updatePlayersList = (serverPlayers, bankerID, currentUserId) => {
         const newPlayers = [];
 
-        // 1. Determine My Seat & ID
+        // 1. Determine My Server Seat Number based on my permanent ID
         let myServerSeatNum = -1;
-        const storeUserId = userStore.userInfo.user_id;
+        const myPermanentUserId = userStore.userInfo.user_id; // My actual user ID from UserStore
 
-        // Strategy: prefer currentUserId (from push/SelfId), then storeUserId, then existing myPlayerId
-        let myId = currentUserId;
-        if (!myId) myId = storeUserId;
-        if (!myId || myId === 'me') {
+        // Determine my ID for this update cycle. Prioritize:
+        // 1. myPermanentUserId (from UserStore - most stable)
+        // 2. currentUserId (from push data - e.g., SelfId from PushRouter)
+        // 3. existing myPlayerId.value
+        let effectiveMyId = myPermanentUserId;
+        if (!effectiveMyId) { // If userStore hasn't provided it yet
+            effectiveMyId = currentUserId; // Try to use currentUserId from push data
+        }
+        // If effectiveMyId is still not set or is 'me', and myPlayerId.value holds a valid ID, use it.
+        if (effectiveMyId === 'me' || !effectiveMyId) {
             if (myPlayerId.value && myPlayerId.value !== 'me') {
-                myId = myPlayerId.value;
-            } else {
-                myId = 'me';
+                effectiveMyId = myPlayerId.value;
             }
         }
 
-        // Update global ref
-        if (myId !== 'me') myPlayerId.value = myId;
+        // Update the global myPlayerId ref if a new effectiveMyId is found and it's not 'me'
+        if (effectiveMyId && effectiveMyId !== 'me' && myPlayerId.value !== effectiveMyId) {
+            myPlayerId.value = effectiveMyId;
+        }
 
+        // Now, use the established myPlayerId.value to find *me* in serverPlayers
         const meInServer = serverPlayers.find(p => p && p.ID === myPlayerId.value);
         if (meInServer) {
             myServerSeatNum = meInServer.SeatNum;
         } else {
-            // console.warn("[GameStore] Current user not found in serverPlayers. Defaulting to Observer (0).");
-            myServerSeatNum = 0;
+            // If current user (myPlayerId.value) is not in serverPlayers, they are not seated (e.g., observer).
+            // Let myServerSeatNum remain -1 (invalid value) for relative seat calculation.
+            myServerSeatNum = -1;
         }
 
         const newPlayersData = [];
@@ -251,6 +263,19 @@ export const useGameStore = defineStore('game', () => {
         // console.log(`[GameStore] Universal Push: ${pushType}`, data);
 
         if (!data) return;
+
+        // Handle PushTalk specifically
+        if (pushType === 'PushTalk') {
+            if (data.UserId && data.Type !== undefined && data.Index !== undefined) {
+                playerSpeechQueue.value.push({
+                    userId: data.UserId,
+                    type: data.Type,
+                    index: data.Index
+                });
+            }
+            return; // PushTalk is self-contained, no need to process general room data further for this pushType
+        }
+        
         const room = data.Room;
 
         // 1. Update Room Config & Info
@@ -261,6 +286,8 @@ export const useGameStore = defineStore('game', () => {
                 if (room.Config.Name) roomName.value = room.Config.Name;
                 if (room.Config.BaseBet !== undefined) baseBet.value = room.Config.BaseBet;
                 if (room.Config.BankerType !== undefined) gameMode.value = room.Config.BankerType;
+                if (room.Config.BankerMult) bankerMult.value = room.Config.BankerMult;
+                if (room.Config.BetMult) betMult.value = room.Config.BetMult;
             }
 
             // 2. Update Players
@@ -448,267 +475,40 @@ export const useGameStore = defineStore('game', () => {
     const playerRob = (multiplier) => {
         const me = players.value.find(p => p.id === myPlayerId.value);
         if (me && currentPhase.value === 'ROB_BANKER' && !me.isObserver) {
-            me.robMultiplier = multiplier;
-            checkAllRobbed();
+            // me.robMultiplier = multiplier; // Local state update will happen via server push
+            // checkAllRobbed(); // Local logic will be replaced by server
+            gameClient.send(QZNN_Prefix + "PlayerCallBanker", { RoomId: roomId.value, Mult: multiplier });
         }
     };
 
-    // 检查是否都抢庄完毕
-    const checkAllRobbed = () => {
-        // 简单模拟其他机器人随机抢庄
-        players.value.filter(p => p.id !== myPlayerId.value && !p.isObserver && p.robMultiplier === -1).forEach(p => {
-            if (Math.random() > 0.5) p.robMultiplier = 0; // 一半概率不抢
-            else p.robMultiplier = Math.floor(Math.random() * 3) + 1; // 1-3倍
-        });
 
-        if (players.value.filter(p => !p.isObserver).every(p => p.robMultiplier !== -1)) {
-            stopTimer();
-            determineBanker();
-        }
-    };
 
-    // 定庄
-    const determineBanker = () => {
-        // 安全清理：确保没有多余的庄家
-        players.value.forEach(p => p.isBanker = false);
 
-        // Filter out observers for consideration
-        const activePlayers = players.value.filter(p => !p.isObserver);
-
-        // 找出倍数最高的
-        const maxMultiplier = Math.max(...activePlayers.map(p => p.robMultiplier));
-        const candidates = activePlayers.filter(p => p.robMultiplier === maxMultiplier);
-
-        if (candidates.length > 1) { // If there's a tie, trigger animation
-            bankerCandidates.value = candidates.map(p => p.id); // Store IDs for animation
-            currentPhase.value = 'BANKER_SELECTION_ANIMATION';
-
-            // Animate selection for 2 seconds, then pick a winner
-            transitionTimeout = setTimeout(() => {
-                finalizeBanker(candidates);
-            }, 2000); // 2 second animation delay
-        } else { // No tie, directly select the banker
-            finalizeBanker(candidates);
-        }
-    };
-
-    const finalizeBanker = (candidates) => {
-        const winner = candidates[Math.floor(Math.random() * candidates.length)];
-        winner.isBanker = true;
-        bankerId.value = winner.id;
-        currentPhase.value = 'BETTING'; // Transition to betting phase
-
-        bankerCandidates.value = []; // Clear candidates after selection
-
-        // 庄家不需要下注，其他人下注
-        players.value.forEach(p => {
-            if (p.id !== winner.id) {
-                p.state = 'BETTING';
-            } else {
-                p.state = 'IDLE'; // 庄家等待
-            }
-        });
-
-        startCountdown(5, () => {
-            // 强制下注1倍
-            players.value.filter(p => !p.isBanker && p.betMultiplier === 0).forEach(p => p.betMultiplier = 1);
-            startShowdown();
-        });
-    }
 
     // 玩家操作：下注
     const playerBet = (multiplier) => {
         const me = players.value.find(p => p.id === myPlayerId.value);
         if (me && currentPhase.value === 'BETTING' && !me.isBanker && !me.isObserver) {
-            me.betMultiplier = multiplier;
-            checkAllBetted();
+            // me.betMultiplier = multiplier; // Local state update will happen via server push
+            // checkAllBetted(); // Local logic will be replaced by server
+            gameClient.send(QZNN_Prefix + "PlayerPlaceBet", { RoomId: roomId.value, Mult: multiplier });
         }
     };
 
-    const checkAllBetted = () => {
-        // 模拟机器人下注
-        players.value.filter(p => p.id !== myPlayerId.value && !p.isObserver && !p.isBanker && p.betMultiplier === 0).forEach(p => {
-            p.betMultiplier = Math.floor(Math.random() * 3) + 1;
-        });
 
-        if (players.value.filter(p => !p.isBanker && !p.isObserver).every(p => p.betMultiplier > 0)) {
-            stopTimer();
-            startShowdown();
-        }
-    };
 
-    // Split: Perform Supplemental Deal
-    const performSupplementalDeal = () => {
-        // 注意：这里需要配合 View 层的动画。View 层可能监听 SHOWDOWN 或 DEALING
-        // 为了支持 Manual Dealing 阶段，我们引入 DEALING 状态
-        currentPhase.value = 'DEALING';
 
-        players.value.forEach(p => {
-            p.state = 'SHOWDOWN'; // Update state label
-            p.isShowHand = false;
-        });
-
-        // Create and shuffle a new deck for every dealing phase to ensure fresh cards and animation restart
-        deck.value = shuffle(createDeck());
-
-        // 补齐手牌
-        players.value.forEach(p => {
-            if (p.isObserver) {
-                p.hand = []; // Ensure observers have no cards
-                return;
-            }
-
-            // p.hand = []; // REMOVED: Do not clear hand, we want to supplement it
-
-            const targetCount = 5;
-            const currentCount = p.hand ? p.hand.length : 0;
-
-            if (!p.hand) p.hand = [];
-
-            if (currentCount < targetCount) {
-                const needed = targetCount - currentCount;
-                if (deck.value.length >= needed) {
-                    for (let i = 0; i < needed; i++) {
-                        p.hand.push(deck.value.pop());
-                    }
-                } else {
-                    console.warn("Not enough cards in deck to deal supplemental cards to player " + p.id + "!");
-                }
-            }
-        });
-
-        // 计算每个人的牌型 (数据先算好，展示由 isShowHand 控制)
-        players.value.forEach(p => {
-            const result = calculateHandType(p.hand);
-            p.handResult = { type: result.type, typeName: result.typeName, multiplier: result.multiplier, bullIndices: result.bullIndices };
-            // p.hand = result.sortedCards; // 暂时不排序，以免打乱补牌动画顺序，或者在最后统一排序
-        });
-    };
-
-    // Split: Start Showdown Timer
-    const startShowdownTimer = () => {
-        currentPhase.value = 'SHOWDOWN';
-        countdown.value = 0;
-
-        // 模拟其他玩家陆续摊牌 (在倒计时开始后才行动)
-        players.value.forEach(p => {
-            if (p.id !== myPlayerId.value && !p.isObserver) {
-                // 随机延迟 1-4秒 摊牌
-                setTimeout(() => {
-                    playerShowHand(p.id);
-                }, 1000 + Math.random() * 3000);
-            }
-        });
-
-        // 摊牌倒计时 5秒
-        startCountdown(5);
-    };
-
-    // 阶段：摊牌 (Original Auto Flow)
-    const startShowdown = () => {
-        stopAllTimers();
-        performSupplementalDeal();
-
-        // 等待发牌开始 2.5秒 后，启动摊牌倒计时
-        transitionTimeout = setTimeout(() => {
-            // 如果动画期间已经全部摊牌结算，不再启动倒计时
-            if (currentPhase.value !== 'DEALING' && currentPhase.value !== 'SHOWDOWN') return;
-            startShowdownTimer();
-        }, 2000);
-    };
 
     // 玩家摊牌动作
     const playerShowHand = (playerId) => {
         const p = players.value.find(pl => pl.id === playerId);
-        if (p && !p.isShowHand) {
-            p.isShowHand = true;
-            checkAllShowed();
+        // Only send if it's my player and they haven't shown hand yet, and it's the SHOWDOWN phase
+        if (p && p.id === myPlayerId.value && !p.isShowHand && currentPhase.value === 'SHOWDOWN') {
+            gameClient.send(QZNN_Prefix + "PlayerShowCard", { RoomId: roomId.value, IsShow: true });
         }
     };
 
-    // 检查是否都摊牌了
-    const checkAllShowed = () => {
-        if (players.value.filter(p => !p.isObserver).every(p => p.isShowHand)) {
-            stopTimer();
-            // 稍微停顿一下再结算，让最后一个摊牌动画播完
-            transitionTimeout = setTimeout(() => {
-                calculateScore();
-            }, 500);
-        }
-    };
 
-    // 结算
-    const calculateScore = () => {
-        stopAllTimers();
-        currentPhase.value = 'SETTLEMENT';
-        const banker = players.value.find(p => p.isBanker);
-
-        if (!banker) return; // Safety check
-
-        players.value.forEach(p => {
-            if (p.isBanker || p.isObserver) return; // Skip banker and observers
-
-            // 比较 p 和 banker
-            const pRank = getHandRankScore(p.handResult);
-            const bRank = getHandRankScore(banker.handResult);
-
-            let win = false;
-            if (pRank > bRank) win = true;
-            else if (pRank === bRank) {
-                // 同牌型比最大牌 (简化：庄家赢)
-                win = false;
-            }
-
-            // 分数计算 = 底分 * 庄倍数 * 闲倍数 * 牌型倍数(赢家牌型)
-            const baseScore = 50;
-            const bankerRobM = banker.robMultiplier === 0 ? 1 : banker.robMultiplier;
-
-            let score = 0;
-            if (win) {
-                score = baseScore * bankerRobM * p.betMultiplier * p.handResult.multiplier;
-                p.coins += score;
-                p.roundScore = score;
-                banker.coins -= score;
-                banker.roundScore = (banker.roundScore || 0) - score;
-            } else {
-                score = baseScore * bankerRobM * p.betMultiplier * banker.handResult.multiplier;
-                p.coins -= score;
-                p.roundScore = -score;
-                banker.coins += score;
-                banker.roundScore = (banker.roundScore || 0) + score;
-            }
-        });
-
-        // 记录本次对局历史 (针对自己)
-        const me = players.value.find(p => p.id === myPlayerId.value);
-        if (me) {
-            let modeName = '不看牌';
-            if (gameMode.value === 1) modeName = '看三张';
-            if (gameMode.value === 2) modeName = '看四张';
-
-            history.value.unshift({
-                timestamp: Date.now(),
-                mode: modeName,
-                isBanker: me.isBanker,
-                handType: me.handResult ? me.handResult.typeName : '未知',
-                multiplier: me.handResult ? me.handResult.multiplier : 1,
-                score: me.roundScore,
-                balance: me.coins
-            });
-        }
-
-        // 4秒后进入结束状态，等待用户操作下一局
-        transitionTimeout = setTimeout(() => {
-            currentPhase.value = 'GAME_OVER';
-        }, 4000);
-    };
-
-    // 辅助：牌型大小评分
-    const getHandRankScore = (res) => {
-        if (!res) return 0;
-        const types = ['NO_BULL', 'BULL_1', 'BULL_2', 'BULL_3', 'BULL_4', 'BULL_5', 'BULL_6', 'BULL_7', 'BULL_8', 'BULL_9', 'BULL_BULL', 'FIVE_FLOWER', 'BOMB'];
-        return types.indexOf(res.type);
-    };
 
     // --- MANUAL CONTROL FUNCTIONS ---
 
@@ -722,28 +522,9 @@ export const useGameStore = defineStore('game', () => {
         startGame(); // This has internal timer for auto-progression. User can interrupt.
     };
 
-    // 新函数：初始发牌（用于 precard 阶段）
-    const performPreDeal = () => {
-        stopAllTimers();
-        currentPhase.value = 'PRE_DEAL'; // Set phase to PRE_DEAL
 
-        // Create and shuffle a new deck
-        deck.value = shuffle(createDeck());
 
-        // Reset all player hands and deal initial cards (e.g., 2 cards each)
-        players.value.forEach(p => {
-            p.hand = []; // Clear current hand
-            // This function is now only responsible for creating and shuffling the deck.
-            // Initial cards will be dealt by performSupplementalDeal based on gameMode.
-            // p.hand is cleared here to ensure a fresh start before any dealing logic.
-        });
-    };
 
-    const enterStatePreCard = () => {
-        stopAllTimers();
-        performPreDeal(); // Call the newly defined function
-        // Do not auto-start banking timer
-    };
 
     const enterStateBanking = () => {
         stopAllTimers();
@@ -810,21 +591,9 @@ export const useGameStore = defineStore('game', () => {
         startCountdown(5);
     };
 
-    const enterStateDealing = () => {
-        stopAllTimers();
-        performSupplementalDeal();
-        // Do not auto-start showdown timer
-    };
 
-    const enterStateShowCard = () => {
-        stopAllTimers();
-        startShowdownTimer();
-    };
 
-    const enterStateSettling = () => {
-        stopAllTimers();
-        calculateScore();
-    };
+
 
     const resetState = () => {
         stopAllTimers();
@@ -834,6 +603,14 @@ export const useGameStore = defineStore('game', () => {
         roomId.value = null;
         deck.value = [];
         bankerCandidates.value = [];
+    };
+
+    const sendPlayerTalk = (type, index) => {
+        if (roomId.value) { // Ensure we are in a room
+            gameClient.send(QZNN_Prefix + "PlayerTalk", { RoomId: roomId.value, Type: type, Index: index });
+        } else {
+            console.warn("[GameStore] Cannot send PlayerTalk: Not in a room.");
+        }
     };
 
     return {
@@ -855,19 +632,20 @@ export const useGameStore = defineStore('game', () => {
         roomId,
         roomName,
         baseBet,
+        bankerMult,
+        betMult,
+        playerSpeechQueue, // Export the new speech queue
         roomJoinedPromise, // Export roomJoinedPromise
         resetState, // Export resetState
+        sendPlayerTalk, // Export the new action
         // Manual Controls
         enterStateWaiting,
         enterStatePrepare,
-        enterStatePreCard,
         enterStateBanking,
         enterStateRandomBank,
         enterStateBankerConfirm,
         enterStateBetting,
-        enterStateDealing,
-        enterStateShowCard,
-        enterStateSettling,
-        performPreDeal // Add performPreDeal here
+
+
     }
 })

@@ -157,6 +157,11 @@ func handleConnection(connWrap *ws.WsConnWrap, appId, appUserId string) {
 		if initMain.DefCtx.IsDebug {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 			connWrap.Mu.RLock()
+			if connWrap.WsConn == nil {
+				connWrap.Mu.RUnlock()
+				cancel()
+				break
+			}
 			_, buffer, err1 := connWrap.WsConn.Conn.Read(ctx)
 			connWrap.Mu.RUnlock()
 			cancel() // 显式调用 cancel，避免在 for 循环中 defer 导致资源泄露
@@ -281,6 +286,8 @@ func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, userId st
 		errRsp = handlePlayerShowCard(userId, msg.Data)
 	case qznn.CmdLobbyConfig: // 大厅配置请求
 		rsp.Data = handleLobbyConfig()
+	case qznn.CmdTalk:
+		errRsp = handlerPlayerTalk(userId, msg.Data)
 	case game.CmdSaveSetting: // 保存用户设置
 		errRsp = handleSaveSetting(userId, msg.Data)
 	default:
@@ -432,6 +439,30 @@ func handleSaveSetting(userId string, data []byte) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func handlerPlayerTalk(userId string, data []byte) error {
+	var req struct {
+		RoomId string
+		Type   int
+		Index  int
+	}
+	if err := json.Unmarshal(data, &req); err != nil {
+		return comm.ErrClientParam
+	}
+
+	room := game.GetMgr().GetRoomByRoomId(req.RoomId)
+	if room != nil {
+		room.Broadcast(comm.PushData{
+			Cmd:      comm.ServerPush,
+			PushType: qznn.PushTalk,
+			Data: qznn.PushTalkStruct{
+				UserId: userId,
+				Type:   req.Type,
+				Index:  req.Index}})
+	}
+
 	return nil
 }
 

@@ -188,7 +188,7 @@ export default class GameClient {
         if (msg.cmd === "onServerPush") {
             // Try to extract State from msg.data (top-level) or msg.data.Room (nested)
             const roomState = msg.data?.State || msg.data?.Room?.State || "N/A";
-            console.log(`📣 [收到广播] Server Push, Room State: 🔥${roomState}🔥`, msg);
+            console.log(`📣 [收到广播] Server Push Type: ${msg.pushType} Room State: 🔥${roomState}🔥`, msg);
 
             // 优先执行全局监听
             if (this.globalPushHandler) {

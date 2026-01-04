@@ -107,7 +107,7 @@ export const useGameStore = defineStore('game', () => {
         // 1. Determine My Server Seat Number based on my permanent ID
         let myServerSeatNum = -1;
         const myPermanentUserId = userStore.userInfo.user_id; // My actual user ID from UserStore
-        
+
         // Determine my ID for this update cycle. Prioritize:
         // 1. myPermanentUserId (from UserStore - most stable)
         // 2. currentUserId (from push data - e.g., SelfId from PushRouter)
@@ -135,7 +135,7 @@ export const useGameStore = defineStore('game', () => {
         } else {
             // If current user (myPlayerId.value) is not in serverPlayers, they are not seated (e.g., observer).
             // Let myServerSeatNum remain -1 (invalid value) for relative seat calculation.
-            myServerSeatNum = -1; 
+            myServerSeatNum = -1;
         }
 
         const newPlayersData = [];
@@ -477,7 +477,7 @@ export const useGameStore = defineStore('game', () => {
         if (me && currentPhase.value === 'BETTING' && !me.isBanker && !me.isObserver) {
             // me.betMultiplier = multiplier; // Local state update will happen via server push
             // checkAllBetted(); // Local logic will be replaced by server
-            gameClient.send(QZNN_Prefix + "PlayerPlaceBet", { RoomId: roomId.value, BetMult: multiplier });
+            gameClient.send(QZNN_Prefix + "PlayerPlaceBet", { RoomId: roomId.value, Mult: multiplier });
         }
     };
 

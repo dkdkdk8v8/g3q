@@ -302,6 +302,11 @@ watch(() => store.players.map(p => ({ id: p.id, bet: p.betMultiplier })), (newVa
                 let count = 3 + (p.bet - 1) * 2;
                 if (count > 15) count = 15;
                 coinLayer.value.throwCoins(seatRect, centerRect, count);
+                // Play sendCoinSound when a bet is placed
+                if (settingsStore.soundEnabled) {
+                    const audio = new Audio(sendCoinSound);
+                    audio.play().catch(() => { });
+                }
             }
         }
         lastBetStates.value[p.id] = p.bet;

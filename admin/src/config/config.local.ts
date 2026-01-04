@@ -60,7 +60,4 @@ export default {
         // 是否自动导入模块菜单
         initMenu: true,
     } as CoolConfig,
-    rpc: {
-        qznn: "http://172.20.10.11:18082",
-    },
 } as MidwayConfig;

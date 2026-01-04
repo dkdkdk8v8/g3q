@@ -34,26 +34,26 @@ watch(currentMode, (newVal) => {
 });
 
 const enterGame = async (level) => {
-  // 传递房间等级(level)和玩法模式(mode)
-  // 发送匹配协议
-  try {
-    await gameStore.joinRoom(level, currentMode.value); // Await the promise
-    router.push({
-        path: `/game/${level}`,
-        query: { mode: currentMode.value }
-    });
-  } catch (error) {
-    console.error("Failed to join room:", error);
-    // Optionally show a toast message to the user
-    // showToast('加入房间失败，请稍后再试');
-  }
+    // 传递房间等级(level)和玩法模式(mode)
+    // 发送匹配协议
+    try {
+        await gameStore.joinRoom(level, currentMode.value); // Await the promise
+        router.push({
+            path: '/game',
+            query: { mode: currentMode.value }
+        });
+    } catch (error) {
+        console.error("Failed to join room:", error);
+        // Optionally show a toast message to the user
+        // showToast('加入房间失败，请稍后再试');
+    }
 };
 
 // Map server room configs to UI
 const rooms = computed(() => {
     const configs = userStore.roomConfigs || [];
     const colorClasses = ['room-cyan', 'room-blue', 'room-purple', 'room-red'];
-    
+
     return configs.map((cfg, index) => {
         return {
             level: cfg.level,
@@ -68,7 +68,7 @@ const rooms = computed(() => {
 
 const fetchData = () => {
     // 主动获取数据
-    gameClient.send("QZNN.UserInfo");
+    gameClient.send("UserInfo");
     gameClient.send("QZNN.LobbyConfig");
 };
 
@@ -80,7 +80,7 @@ const playMusic = () => {
         bgAudio.value.loop = true;
         bgAudio.value.volume = 0.5;
     }
-    bgAudio.value.play().catch(() => {});
+    bgAudio.value.play().catch(() => { });
 };
 
 const stopMusic = () => {
@@ -92,14 +92,16 @@ const stopMusic = () => {
 onMounted(() => {
     // 注册消息监听
     gameClient.on('QZNN.UserInfo', (msg) => {
-        if (msg.code === 0 && msg.data) {
-            userStore.updateUserInfo({
-                user_id: msg.data.UserId,
-                balance: msg.data.Balance,
-                nick_name: msg.data.NickName,
-                avatar: msg.data.Avatar
-            });
-        }
+        // Update User Info
+        userStore.updateUserInfo({
+            avatar: msg.data.Avatar,
+            balance: msg.data.Balance,
+            nick_name: msg.data.NickName,
+            user_id: msg.data.UserId
+        });
+
+        // Sync Settings from Server
+        settingsStore.updateFromServer(msg.data);
     });
 
     gameClient.on('QZNN.LobbyConfig', (msg) => {
@@ -135,84 +137,69 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="lobby">
-    <!-- 顶部用户信息栏 -->
-    <div class="user-header">
-        <div class="user-info-left">
-            <div class="avatar-wrapper">
-                <img :src="userInfo.avatar" class="user-avatar" />
-            </div>
-            <div class="user-details">
-                <div class="user-name">{{ userInfo.name }}</div>
-                <div class="user-id">ID: {{ userInfo.id }}</div>
-            </div>
-        </div>
-        <div class="user-assets">
-            <div class="coin-display">
-                <span class="coin-icon">🟡</span>
-                <span class="coin-text">{{ userInfo.coins }}</span>
-                <div class="add-btn">+</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 玩法切换 Tab -->
-    <div class="mode-tabs-container">
-        <div class="tab-group-pill">
-            <div 
-                class="tab-item" 
-                :class="{ 'active-purple': currentMode === 0 }"
-                @click="currentMode = 0"
-            >不看牌抢庄</div>
-             <div 
-                class="tab-item" 
-                :class="{ 'active-blue': currentMode === 1 }"
-                @click="currentMode = 1"
-            >看三张抢庄</div>
-            <div 
-                class="tab-item" 
-                :class="{ 'active-cyan': currentMode === 2 }"
-                @click="currentMode = 2"
-            >看四张抢庄</div>
-        </div>
-    </div>
-
-    <!-- 房间列表 -->
-    <div class="room-container">
-        <div 
-            v-for="room in rooms" 
-            :key="room.level" 
-            class="room-card" 
-            :class="room.colorClass"
-            @click="enterGame(room.level)"
-        >
-            <div class="room-title">{{ room.name }}</div>
-            <div class="room-info">
-                <span class="base-badge">底分 {{ room.base }}</span>
-            </div>
-            <div class="room-footer">
-                <div class="entry-limit">
-                    <span class="coin-icon">🟡</span> {{ room.min }}
+    <div class="lobby">
+        <!-- 顶部用户信息栏 -->
+        <div class="user-header">
+            <div class="user-info-left">
+                <div class="avatar-wrapper">
+                    <img :src="userInfo.avatar" class="user-avatar" />
                 </div>
-                <div class="online-count">
-                    👤 {{ room.players }}
+                <div class="user-details">
+                    <div class="user-name">{{ userInfo.name }}</div>
+                    <div class="user-id">ID: {{ userInfo.id }}</div>
+                </div>
+            </div>
+            <div class="user-assets">
+                <div class="coin-display">
+                    <span class="coin-icon">🟡</span>
+                    <span class="coin-text">{{ userInfo.coins }}</span>
+                    <div class="add-btn">+</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 玩法切换 Tab -->
+        <div class="mode-tabs-container">
+            <div class="tab-group-pill">
+                <div class="tab-item" :class="{ 'active-purple': currentMode === 0 }" @click="currentMode = 0">不看牌抢庄
+                </div>
+                <div class="tab-item" :class="{ 'active-blue': currentMode === 1 }" @click="currentMode = 1">看三张抢庄</div>
+                <div class="tab-item" :class="{ 'active-cyan': currentMode === 2 }" @click="currentMode = 2">看四张抢庄</div>
+            </div>
+        </div>
+
+        <!-- 房间列表 -->
+        <div class="room-container">
+            <div v-for="room in rooms" :key="room.level" class="room-card" :class="room.colorClass"
+                @click="enterGame(room.level)">
+                <div class="room-title">{{ room.name }}</div>
+                <div class="room-info">
+                    <span class="base-badge">底分 {{ room.base }}</span>
+                </div>
+                <div class="room-footer">
+                    <div class="entry-limit">
+                        <span class="coin-icon">🟡</span> {{ room.min }}
+                    </div>
+                    <div class="online-count">
+                        👤 {{ room.players }}
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-  </div>
 </template>
 
 <style scoped>
 .lobby {
-  height: 100vh;
-  background: radial-gradient(circle at center, #1e3a8a 0%, #0f172a 100%);
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-  font-family: system-ui, -apple-system, sans-serif;
-  color: white;
-  padding-bottom: 20px; /* 底部留白 */
+    height: 100vh;
+    background: radial-gradient(circle at center, #1e3a8a 0%, #0f172a 100%);
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    font-family: system-ui, -apple-system, sans-serif;
+    color: white;
+    padding-bottom: 20px;
+    /* 底部留白 */
 }
 
 /* 用户信息栏 */
@@ -221,9 +208,9 @@ onUnmounted(() => {
     justify-content: space-between;
     align-items: center;
     padding: 15px 20px;
-    background: rgba(0,0,0,0.2);
+    background: rgba(0, 0, 0, 0.2);
     backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(255,255,255,0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .user-info-left {
@@ -238,7 +225,7 @@ onUnmounted(() => {
     border-radius: 50%;
     border: 2px solid #fff;
     overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 .user-avatar {
@@ -255,7 +242,7 @@ onUnmounted(() => {
 .user-name {
     font-size: 16px;
     font-weight: bold;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .user-id {
@@ -270,12 +257,12 @@ onUnmounted(() => {
 }
 
 .coin-display {
-    background: rgba(0,0,0,0.5);
+    background: rgba(0, 0, 0, 0.5);
     border-radius: 20px;
     padding: 4px 4px 4px 12px;
     display: flex;
     align-items: center;
-    border: 1px solid rgba(255,255,255,0.2);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     gap: 6px;
 }
 
@@ -301,7 +288,7 @@ onUnmounted(() => {
     font-weight: bold;
     font-size: 16px;
     cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 /* 模式切换栏 */
@@ -313,12 +300,13 @@ onUnmounted(() => {
 
 .tab-group-pill {
     display: flex;
-    background: rgba(0,0,0,0.3);
+    background: rgba(0, 0, 0, 0.3);
     border-radius: 24px;
     padding: 4px;
-    width: 80%; /* 宽度控制 */
+    width: 80%;
+    /* 宽度控制 */
     max-width: 300px;
-    border: 1px solid rgba(255,255,255,0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .tab-item {
@@ -353,7 +341,8 @@ onUnmounted(() => {
 
 .room-container {
     display: grid;
-    grid-template-columns: 1fr 1fr; /* 双列布局 */
+    grid-template-columns: 1fr 1fr;
+    /* 双列布局 */
     gap: 16px;
     flex: 1;
     overflow-y: auto;
@@ -366,8 +355,8 @@ onUnmounted(() => {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-    border: 1px solid rgba(255,255,255,0.2);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     position: relative;
     overflow: hidden;
     min-height: 100px;
@@ -386,19 +375,31 @@ onUnmounted(() => {
     left: 0;
     right: 0;
     height: 40%;
-    background: linear-gradient(to bottom, rgba(255,255,255,0.2), transparent);
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.2), transparent);
     pointer-events: none;
 }
 
-.room-cyan { background: linear-gradient(135deg, #2dd4bf 0%, #0f766e 100%); }
-.room-blue { background: linear-gradient(135deg, #60a5fa 0%, #1e40af 100%); }
-.room-purple { background: linear-gradient(135deg, #c084fc 0%, #7e22ce 100%); }
-.room-red { background: linear-gradient(135deg, #f87171 0%, #991b1b 100%); }
+.room-cyan {
+    background: linear-gradient(135deg, #2dd4bf 0%, #0f766e 100%);
+}
+
+.room-blue {
+    background: linear-gradient(135deg, #60a5fa 0%, #1e40af 100%);
+}
+
+.room-purple {
+    background: linear-gradient(135deg, #c084fc 0%, #7e22ce 100%);
+}
+
+.room-red {
+    background: linear-gradient(135deg, #f87171 0%, #991b1b 100%);
+}
 
 .room-title {
     font-size: 20px;
-    font-weight: 900; /* Extra bold */
-    text-shadow: 0 2px 2px rgba(0,0,0,0.3);
+    font-weight: 900;
+    /* Extra bold */
+    text-shadow: 0 2px 2px rgba(0, 0, 0, 0.3);
     margin-bottom: 8px;
     letter-spacing: 1px;
 }
@@ -409,7 +410,7 @@ onUnmounted(() => {
 }
 
 .base-badge {
-    background: rgba(0,0,0,0.4);
+    background: rgba(0, 0, 0, 0.4);
     padding: 2px 8px;
     border-radius: 10px;
     font-size: 12px;

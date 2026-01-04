@@ -311,14 +311,14 @@ func (r *QZNNRoom) BroadcastExclude(msg interface{}, excludeId string) {
 	}
 }
 
-func (r *QZNNRoom) interuptStateLeftTicker(bResetLeft bool) {
+func (r *QZNNRoom) interuptStateLeftTicker(state RoomState) {
+	// 倒计时由 driverLogicTick 驱动，这里只需将剩余时间置为0即可打断等待
 	r.StateMu.Lock()
 	defer r.StateMu.Unlock()
-	if bResetLeft {
+	if r.State == state {
 		r.StateLeftSec = 0
 		r.StateDeadline = time.Time{}
 	}
-	// 倒计时由 driverLogicTick 驱动，这里只需将剩余时间置为0即可打断等待
 }
 
 func (r *QZNNRoom) WaitSleep(wait time.Duration) {
@@ -522,16 +522,16 @@ func (r *QZNNRoom) tickBanking() {
 	activePlayers := r.GetActivePlayers(nil)
 	hasUnconfirmed := false
 	for _, p := range activePlayers {
-		p.Mu.Lock()
-		val := p.CallMult
-		p.Mu.Unlock()
-		if val == -1 {
+		p.Mu.RLock()
+		if p.CallMult == -1 {
 			hasUnconfirmed = true
+			p.Mu.RUnlock()
 			break
 		}
+		p.Mu.RUnlock()
 	}
 	if !hasUnconfirmed {
-		//r.interuptStateLeftTicker(true)
+		r.interuptStateLeftTicker(StateBanking)
 	}
 }
 
@@ -540,16 +540,34 @@ func (r *QZNNRoom) tickBetting() {
 	activePlayers := r.GetActivePlayers(nil)
 	hasUnconfirmed := false
 	for _, p := range activePlayers {
-		p.Mu.Lock()
-		val := p.BetMult
-		p.Mu.Unlock()
-		if val == -1 {
+		p.Mu.RLock()
+		if p.BetMult == -1 {
 			hasUnconfirmed = true
+			p.Mu.Unlock()
 			break
 		}
+		p.Mu.RUnlock()
 	}
 	if !hasUnconfirmed {
-		//r.interuptStateLeftTicker(true)
+		r.interuptStateLeftTicker(StateBetting)
+	}
+}
+
+func (r *QZNNRoom) tickShowCard() {
+	//查看是否都已经下注
+	activePlayers := r.GetActivePlayers(nil)
+	hasUnconfirmed := false
+	for _, p := range activePlayers {
+		p.Mu.RLock()
+		if p.IsShow == false {
+			hasUnconfirmed = true
+			p.Mu.RUnlock()
+			break
+		}
+		p.Mu.RUnlock()
+	}
+	if !hasUnconfirmed {
+		r.interuptStateLeftTicker(StateShowCard)
 	}
 }
 
@@ -575,7 +593,10 @@ func (r *QZNNRoom) logicTick() {
 		r.tickBetting()
 	case StateDealing:
 		r.StateMu.RUnlock()
-		// 发牌补牌状态
+	// 发牌补牌状态
+	case StateShowCard:
+		r.StateMu.RUnlock()
+		r.tickBanking()
 	case StateSettling:
 		r.StateMu.RUnlock()
 		// 结算状态
@@ -695,7 +716,7 @@ func (r *QZNNRoom) StartGame() {
 
 	r.WaitSleep(time.Second * SecStateDealing)
 
-	if !r.SetStatus([]RoomState{StateDealing}, StateShowCard, SecStateShow) {
+	if !r.SetStatus([]RoomState{StateDealing}, StateShowCard, SecStateShowCard) {
 		return
 	}
 	r.WaitStateLeftTicker()

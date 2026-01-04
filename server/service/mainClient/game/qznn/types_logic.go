@@ -36,7 +36,7 @@ const (
 	SecStateConfirmBanking    = 0
 	SecStateBeting            = 5
 	SecStateDealing           = 2
-	SecStateShow              = 8
+	SecStateShowCard          = 8
 	SecStateSetting           = 4
 )
 
@@ -67,7 +67,7 @@ type PlayerData struct {
 // Player 代表房间内的一个玩家
 type Player struct {
 	PlayerData
-	Mu       sync.Mutex     `json:"-"`
+	Mu       sync.RWMutex     `json:"-"`
 	ConnWrap *ws.WsConnWrap `json:"-"` // WebSocket 连接
 }
 

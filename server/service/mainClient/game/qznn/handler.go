@@ -53,8 +53,10 @@ func HandleCallBanker(r *QZNNRoom, userID string, mult int64) error {
 		p.CallMult = mult
 		return nil
 	})
-
 	if err != nil {
+		if errors.As(err, &errorStateNotMatch) {
+			return comm.NewMyError("抢庄已结束")
+		}
 		return err
 	}
 
@@ -97,7 +99,9 @@ func HandlePlaceBet(r *QZNNRoom, userID string, mult int64) error {
 	})
 
 	if err != nil {
-		logrus.WithField("roomId", r.ID).WithField("userId", userID).Error("HandlePlaceBet_InvalidState")
+		if errors.As(err, &errorStateNotMatch) {
+			return comm.NewMyError("投注已结束")
+		}
 		return err
 	}
 
@@ -128,15 +132,19 @@ func HandleShowCards(r *QZNNRoom, userID string) error {
 		p.Mu.Lock()
 		defer p.Mu.Unlock()
 		if p.IsShow {
-			return comm.NewMyError("已展示牌")
+			return comm.NewMyError("已明牌")
 		}
 		p.IsShow = true
 		return nil
 	})
 
 	if err != nil {
+		if errors.As(err, &errorStateNotMatch) {
+			return comm.NewMyError("已经明牌")
+		}
 		return err
 	}
+
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
 		return comm.PushData{
 			Cmd:      comm.ServerPush,

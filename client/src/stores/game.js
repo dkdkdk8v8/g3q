@@ -104,30 +104,25 @@ export const useGameStore = defineStore('game', () => {
     const updatePlayersList = (serverPlayers, bankerID, currentUserId) => {
         const newPlayers = [];
 
-        // 1. Determine My Seat & ID
+        // 1. Determine My Server Seat Number based on my permanent ID
         let myServerSeatNum = -1;
-        const storeUserId = userStore.userInfo.user_id;
-
-        // Strategy: prefer currentUserId (from push/SelfId), then storeUserId, then existing myPlayerId
-        let myId = currentUserId;
-        if (!myId) myId = storeUserId;
-        if (!myId || myId === 'me') {
-            if (myPlayerId.value && myPlayerId.value !== 'me') {
-                myId = myPlayerId.value;
-            } else {
-                myId = 'me';
-            }
+        const myPermanentUserId = userStore.userInfo.user_id; // My actual user ID from UserStore
+        
+        // Ensure myPlayerId.value is set to my permanent user ID from UserStore
+        // This ref should represent *my* actual ID throughout the game.
+        // It should *not* be overwritten by `currentUserId` from general push data.
+        if (myPermanentUserId && myPlayerId.value !== myPermanentUserId) {
+            myPlayerId.value = myPermanentUserId;
         }
 
-        // Update global ref
-        if (myId !== 'me') myPlayerId.value = myId;
-
+        // Find *me* in the serverPlayers list based on myPlayerId.value (which is *my* ID)
         const meInServer = serverPlayers.find(p => p && p.ID === myPlayerId.value);
         if (meInServer) {
             myServerSeatNum = meInServer.SeatNum;
         } else {
-            // console.warn("[GameStore] Current user not found in serverPlayers. Defaulting to Observer (0).");
-            myServerSeatNum = 0;
+            // If current user (myPlayerId.value) is not in serverPlayers, they are not seated (e.g., observer).
+            // Let myServerSeatNum remain -1 (invalid value) for relative seat calculation.
+            myServerSeatNum = -1; 
         }
 
         const newPlayersData = [];

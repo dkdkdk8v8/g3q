@@ -35,26 +35,6 @@ func HandlerPlayerLeave(r *QZNNRoom, userID string) error {
 	return nil
 }
 
-// func HandlePlayerReady(r *QZNNRoom, userID string) {
-// 	if r == nil {
-// 		return
-// 	}
-// 	if !r.CheckStatus(StateWaiting) {
-// 		return
-// 	}
-// 	p, ok := r.GetPlayerByID(userID)
-// 	if !ok || p.IsReady {
-// 		return
-// 	}
-// 	p.IsReady = true
-// 	r.Broadcast(comm.Response{
-// 		Cmd: CmdPlayerReady,
-// 		Data: gin.H{
-// 			"Room":   r,
-// 			"UserId": userID}})
-// 	r.logicTick()
-// }
-
 func HandleCallBanker(r *QZNNRoom, userID string, mult int64) error {
 	if r == nil {
 		return comm.NewMyError("房间不存在")

@@ -34,6 +34,7 @@ import sendCardSound from '@/assets/sounds/send_card.mp3';
 import randomBankSound from '@/assets/sounds/random_bank.mp3';
 import sendCoinSound from '@/assets/sounds/send_coin.mp3';
 import countdownSound from '@/assets/sounds/countdown.mp3';
+import countdownAlertSound from '@/assets/sounds/countdown_alert.mp3';
 
 const phraseSounds = [
     talk0, talk1, talk2, talk3, talk4, talk5, talk6, talk7, talk8, talk9, talk10
@@ -304,13 +305,35 @@ watch(() => store.players.map(p => ({ id: p.id, bet: p.betMultiplier })), (newVa
 }, { deep: true });
 
 // Watch countdown to play sound effect
+
 watch(() => store.countdown, (newVal, oldVal) => {
-    // Play sound only if countdown is active (greater than 0) and has changed
-    // And if the current phase is one that involves an active countdown, not just showing a static number
-    if (settingsStore.soundEnabled && newVal > 0 && newVal !== oldVal && ['READY_COUNTDOWN', 'ROB_BANKER', 'BETTING', 'SHOWDOWN'].includes(store.currentPhase)) {
+
+    const isCountdownPhase = ['READY_COUNTDOWN', 'ROB_BANKER', 'BETTING', 'SHOWDOWN'].includes(store.currentPhase);
+
+
+
+    // Play general countdown sound
+
+    if (settingsStore.soundEnabled && newVal > 0 && newVal !== oldVal && isCountdownPhase) {
+
         const audio = new Audio(countdownSound);
-        audio.play().catch(() => { });
+
+        audio.play().catch(() => {});
+
     }
+
+
+
+    // Play alert sound for last 3 seconds
+
+    if (settingsStore.soundEnabled && isCountdownPhase && (newVal === 3 || newVal === 2 || newVal === 1) && newVal !== oldVal) {
+
+        const audio = new Audio(countdownAlertSound);
+
+        audio.play().catch(() => {});
+
+    }
+
 });
 
 watch(() => store.currentPhase, async (newPhase, oldPhase) => {

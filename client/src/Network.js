@@ -199,6 +199,43 @@ export default class GameClient {
                 }
             }
 
+            // Handle specific push types
+            if (msg.pushType === "PushOtherConnect") {
+                console.warn("[Network] Received PushOtherConnect, handling manual intervention.");
+                // 1. Stop current connection and prevent automatic reconnection
+                this.close();
+
+                // 2. Display secondary confirmation dialog
+                showConfirmDialog({
+                    title: '提示',
+                    message: msg.data?.message || '您已在其他设备登录，请选择操作。',
+                    confirmButtonText: '继续游戏',
+                    cancelButtonText: '取消',
+                    className: 'game-theme-dialog',
+                })
+                .then(() => {
+                    // User chose "继续游戏" (Continue Game)
+                    console.log("[Network] User chose to retry connection after PushOtherConnect.");
+                    // Re-initiate connection, which will also reset reconnection attempts
+                    this.retryConnection();
+                })
+                .catch(() => {
+                    // User chose "取消" (Cancel)
+                    console.log("[Network] User cancelled after PushOtherConnect. Connection remains closed.");
+                    // The connection is already closed by this.close()
+                });
+                return; // Stop further processing for this specific push type
+            }
+
+            // 优先执行全局监听
+            if (this.globalPushHandler) {
+                try {
+                    this.globalPushHandler(msg.pushType, msg.data);
+                } catch (err) {
+                    console.error("[Network] Error in global push handler:", err);
+                }
+            }
+
             if (this.pushHandlers.has(msg.pushType)) {
                 const handler = this.pushHandlers.get(msg.pushType);
                 try {

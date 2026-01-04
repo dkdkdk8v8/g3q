@@ -374,7 +374,7 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
     if (newPhase === 'SETTLEMENT' && tableCenterRef.value && coinLayer.value) {
         // Trigger Win/Loss Animation
         const me = store.players.find(p => p.id === store.myPlayerId);
-        if (me) {
+        if (me && !me.isObserver) {
             // Determine result (0 is also win/draw, but typically > 0 is win. Logic says >= 0 is win in display)
             const isWin = me.roundScore >= 0;
             resultImage.value = isWin ? gameWinImg : gameLoseImg;
@@ -694,7 +694,7 @@ const toggleShowMenu = debounce(() => {
                 <div class="alarm-clock">
                     <div class="alarm-body">
                         <div class="alarm-time">{{ store.countdown < 10 ? '0' + store.countdown : store.countdown
-                                }}</div>
+                        }}</div>
                         </div>
                         <div class="alarm-ears left"></div>
                         <div class="alarm-ears right"></div>
@@ -763,8 +763,8 @@ const toggleShowMenu = debounce(() => {
                     <!-- 摊牌按钮 -->
                     <div v-if="store.currentPhase === 'SHOWDOWN' && !myPlayer.isShowHand && store.countdown > 0 && !myPlayer.isObserver"
                         class="btn-group">
-                        <div class="game-btn orange" style="width: 100px"
-                            @click="playerShowHandDebounced(myPlayer.id)">摊牌
+                        <div class="game-btn orange" style="width: 100px" @click="playerShowHandDebounced(myPlayer.id)">
+                            摊牌
                         </div>
                     </div>
 
@@ -803,7 +803,7 @@ const toggleShowMenu = debounce(() => {
                             <div class="h-row top">
                                 <span class="h-time">{{ new Date(item.timestamp).toLocaleTimeString() }}</span>
                                 <span class="h-role" :class="{ banker: item.isBanker }">{{ item.isBanker ? '庄' : '闲'
-                                    }}</span>
+                                }}</span>
                             </div>
                             <div class="h-row main">
                                 <span class="h-result" :class="item.score >= 0 ? 'win' : 'lose'">
@@ -1414,7 +1414,8 @@ const toggleShowMenu = debounce(() => {
 
 .phase-info.settlement-info {
     /* Added for the independent settlement info */
-    margin-top: 10px;
+    margin-top: 50px;
+    /* Adjusted to move text down slightly */
     /* To maintain some distance from other elements if not in wrapper */
 }
 
@@ -1438,7 +1439,8 @@ const toggleShowMenu = debounce(() => {
 
 .controls-container {
     margin-bottom: 20px;
-    min-height: 50px;
+    /* min-height: 50px; */
+    /* Removed to fix waiting-text height */
     display: flex;
     justify-content: center;
     width: 100%;

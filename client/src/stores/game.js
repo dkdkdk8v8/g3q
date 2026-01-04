@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { createDeck, shuffle, calculateHandType, transformServerCard } from '../utils/bullfight.js'
 import gameClient from '../socket.js'
-import defaultAvatar from '@/assets/common/icon_avatar.png'; // Use import for asset
+import defaultAvatar from '@/assets/common/default_avatar.png'; // Use import for asset
 import { useUserStore } from './user.js';
 
 const DEFAULT_AVATAR = defaultAvatar;

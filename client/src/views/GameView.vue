@@ -1,5 +1,6 @@
 <script setup>
 import { onMounted, computed, onUnmounted, ref, watch } from 'vue';
+import { debounce } from '../utils/debounce.js';
 import { useGameStore } from '../stores/game.js';
 import { useSettingsStore } from '../stores/settings.js';
 import PlayerSeat from '../components/PlayerSeat.vue';
@@ -23,12 +24,17 @@ import talk8 from '@/assets/sounds/talk_8.mp3';
 import talk9 from '@/assets/sounds/talk_9.mp3';
 import talk10 from '@/assets/sounds/talk_10.mp3';
 import gameBgSound from '@/assets/sounds/game_bg.mp3';
-import iconGameStart from '../assets/common/icon_game_start.png';
+import iconGameStart from '../assets/common/game_start.png';
 import gameStartSound from '@/assets/sounds/game_start.mp3';
 import gameWinImg from '../assets/common/game_win.png';
 import gameLoseImg from '../assets/common/game_lose.png';
 import gameWinSound from '@/assets/sounds/game_win.mp3';
 import gameLoseSound from '@/assets/sounds/game_lose.mp3';
+import sendCardSound from '@/assets/sounds/send_card.mp3';
+import randomBankSound from '@/assets/sounds/random_bank.mp3';
+import sendCoinSound from '@/assets/sounds/send_coin.mp3';
+import countdownSound from '@/assets/sounds/countdown.mp3';
+import countdownAlertSound from '@/assets/sounds/countdown_alert.mp3';
 
 const phraseSounds = [
     talk0, talk1, talk2, talk3, talk4, talk5, talk6, talk7, talk8, talk9, talk10
@@ -133,22 +139,22 @@ const commonPhrases = [
     "作孽啊"
 ];
 
-import emoji1 from '@/assets/emoji/emoji_1.png';
-import emoji2 from '@/assets/emoji/emoji_2.png';
-import emoji3 from '@/assets/emoji/emoji_3.png';
-import emoji4 from '@/assets/emoji/emoji_4.png';
-import emoji5 from '@/assets/emoji/emoji_5.png';
-import emoji6 from '@/assets/emoji/emoji_6.png';
-import emoji7 from '@/assets/emoji/emoji_7.png';
-import emoji8 from '@/assets/emoji/emoji_8.png';
-import emoji9 from '@/assets/emoji/emoji_9.png';
-import emoji10 from '@/assets/emoji/emoji_10.png';
-import emoji11 from '@/assets/emoji/emoji_11.png';
-import emoji12 from '@/assets/emoji/emoji_12.png';
-import emoji13 from '@/assets/emoji/emoji_13.png';
-import emoji14 from '@/assets/emoji/emoji_14.png';
-import emoji15 from '@/assets/emoji/emoji_15.png';
-import emoji16 from '@/assets/emoji/emoji_16.png';
+import emoji1 from '@/assets/emoji/emoji_0.png';
+import emoji2 from '@/assets/emoji/emoji_1.png';
+import emoji3 from '@/assets/emoji/emoji_2.png';
+import emoji4 from '@/assets/emoji/emoji_3.png';
+import emoji5 from '@/assets/emoji/emoji_4.png';
+import emoji6 from '@/assets/emoji/emoji_5.png';
+import emoji7 from '@/assets/emoji/emoji_6.png';
+import emoji8 from '@/assets/emoji/emoji_7.png';
+import emoji9 from '@/assets/emoji/emoji_8.png';
+import emoji10 from '@/assets/emoji/emoji_9.png';
+import emoji11 from '@/assets/emoji/emoji_10.png';
+import emoji12 from '@/assets/emoji/emoji_11.png';
+import emoji13 from '@/assets/emoji/emoji_12.png';
+import emoji14 from '@/assets/emoji/emoji_13.png';
+import emoji15 from '@/assets/emoji/emoji_14.png';
+import emoji16 from '@/assets/emoji/emoji_15.png';
 
 const allEmojis = [
     emoji1, emoji2, emoji3, emoji4, emoji5, emoji6, emoji7, emoji8,
@@ -205,7 +211,6 @@ const startRobotSpeech = () => {
 
 const showMenu = ref(false);
 const showHistory = ref(false);
-const isDebugPanelExpanded = ref(false);
 
 const visibleCounts = ref({});
 
@@ -299,6 +304,19 @@ watch(() => store.players.map(p => ({ id: p.id, bet: p.betMultiplier })), (newVa
     });
 }, { deep: true });
 
+// Watch countdown to play sound effect
+watch(() => store.countdown, (newVal, oldVal) => {
+    const isCountdownPhase = ['READY_COUNTDOWN', 'ROB_BANKER', 'BETTING', 'SHOWDOWN'].includes(store.currentPhase);
+
+    if (settingsStore.soundEnabled && isCountdownPhase && newVal !== oldVal) {
+        // Play countdownAlertSound at 2 seconds
+        if (newVal === 1) {
+            const audio = new Audio(countdownAlertSound);
+            audio.play().catch(() => { });
+        }
+    }
+});
+
 watch(() => store.currentPhase, async (newPhase, oldPhase) => {
     if (newPhase === 'IDLE' || newPhase === 'GAME_OVER') {
         visibleCounts.value = {};
@@ -357,6 +375,10 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
             animationIntervalId = setInterval(() => {
                 candidateIndex = (candidateIndex + 1) % candidates.length;
                 currentlyHighlightedPlayerId.value = candidates[candidateIndex];
+                if (settingsStore.soundEnabled) {
+                    const audio = new Audio(randomBankSound);
+                    audio.play().catch(() => { });
+                }
             }, 100);
         }
     }
@@ -373,7 +395,7 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
     if (newPhase === 'SETTLEMENT' && tableCenterRef.value && coinLayer.value) {
         // Trigger Win/Loss Animation
         const me = store.players.find(p => p.id === store.myPlayerId);
-        if (me) {
+        if (me && !me.isObserver) {
             // Determine result (0 is also win/draw, but typically > 0 is win. Logic says >= 0 is win in display)
             const isWin = me.roundScore >= 0;
             resultImage.value = isWin ? gameWinImg : gameLoseImg;
@@ -421,6 +443,10 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
                     if (count < 5) count = 5;
                     if (count > 20) count = 20;
                     coinLayer.value.throwCoins(seatRect, bankerRect, count);
+                    if (settingsStore.soundEnabled) {
+                        const audio = new Audio(sendCoinSound);
+                        audio.play().catch(() => { });
+                    }
                 }
             }
         });
@@ -435,6 +461,10 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
                         if (count < 8) count = 8;
                         if (count > 30) count = 30;
                         coinLayer.value.throwCoins(bankerRect, seatRect, count);
+                        if (settingsStore.soundEnabled) {
+                            const audio = new Audio(sendCoinSound);
+                            audio.play().catch(() => { });
+                        }
                     }
                 }
             });
@@ -443,6 +473,11 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
 }, { immediate: true });
 
 const startDealingAnimation = (isSupplemental = false) => {
+    if (settingsStore.soundEnabled) {
+        const audio = new Audio(sendCardSound);
+        audio.play().catch(() => { });
+    }
+
     if (!isSupplemental) {
         visibleCounts.value = {}; // Reset visible counts ONLY if not supplemental
     }
@@ -557,27 +592,51 @@ onUnmounted(() => {
     gameClient.off('QZNN.PlayerLeave');
 });
 
-const onRob = (multiplier) => {
+const onRob = debounce((multiplier) => {
     store.playerRob(multiplier);
-};
+}, 500);
 
-const onBet = (multiplier) => {
+const onBet = debounce((multiplier) => {
     store.playerBet(multiplier);
-};
+}, 500);
 
-const openHistory = () => {
+const playerShowHandDebounced = debounce((playerId) => {
+    store.playerShowHand(playerId);
+}, 500);
+
+const startGameDebounced = debounce(() => {
+    store.startGame();
+}, 500);
+
+const openHistoryDebounced = debounce(() => {
     showMenu.value = false;
     showHistory.value = true;
-};
+}, 500);
 
-const openSettings = () => {
+const openSettingsDebounced = debounce(() => {
     showMenu.value = false;
     showSettings.value = true;
-};
+}, 500);
 
-const quitGame = () => {
+const quitGameDebounced = debounce(() => {
     gameClient.send("QZNN.PlayerLeave", { RoomId: store.roomId });
-};
+}, 500);
+
+const toggleShowChatSelector = debounce(() => {
+    showChatSelector.value = !showChatSelector.value;
+}, 500);
+
+const closeHistoryDebounced = debounce(() => {
+    showHistory.value = false;
+}, 500);
+
+const closeSettingsDebounced = debounce(() => {
+    showSettings.value = false;
+}, 500);
+
+const toggleShowMenu = debounce(() => {
+    showMenu.value = !showMenu.value;
+}, 500);
 </script>
 
 <template>
@@ -587,45 +646,25 @@ const quitGame = () => {
         <DealingLayer ref="dealingLayer" />
         <CoinLayer ref="coinLayer" />
 
-        <!-- Debug Control Panel -->
-        <div class="debug-panel">
-            <div class="debug-title" @click="isDebugPanelExpanded = !isDebugPanelExpanded">
-                阶段控制
-                <span style="margin-left: 5px;float: right;">{{ isDebugPanelExpanded ? '▼' : '▲' }}</span>
-            </div>
-            <div v-show="isDebugPanelExpanded" class="debug-buttons">
-                <button @click="store.enterStateWaiting()">等待用户</button>
-                <button @click="store.enterStatePrepare()">准备开始</button>
-                <button @click="store.enterStatePreCard()">预先发牌</button>
-                <button @click="store.enterStateBanking()">开始抢庄</button>
-                <button @click="store.enterStateRandomBank()">随机选庄</button>
-                <button @click="store.enterStateBankerConfirm()">确认庄家</button>
-                <button @click="store.enterStateBetting()">闲家下注</button>
-                <button @click="store.enterStateDealing()">补充手牌</button>
-                <button @click="store.enterStateShowCard()">摊牌比拼</button>
-                <button @click="store.enterStateSettling()">结算对局</button>
-            </div>
-        </div>
-
         <!-- 顶部栏 -->
         <div class="top-bar">
             <div class="menu-container">
-                <div class="menu-btn" @click.stop="showMenu = !showMenu">
+                <div class="menu-btn" @click.stop="toggleShowMenu()">
                     <van-icon name="wap-nav" size="20" color="white" />
                     <span style="margin-left:4px;font-size:14px;">菜单</span>
                 </div>
                 <!-- 下拉菜单 -->
                 <transition name="fade">
                     <div v-if="showMenu" class="menu-dropdown" @click.stop>
-                        <div class="menu-item" @click="openHistory">
+                        <div class="menu-item" @click="openHistoryDebounced()">
                             <van-icon name="balance-list-o" /> 投注记录
                         </div>
                         <div class="menu-divider"></div>
-                        <div class="menu-item" @click="openSettings">
+                        <div class="menu-item" @click="openSettingsDebounced()">
                             <van-icon name="setting-o" /> 游戏设置
                         </div>
                         <div class="menu-divider"></div>
-                        <div class="menu-item danger" @click="quitGame">
+                        <div class="menu-item danger" @click="quitGameDebounced()">
                             <van-icon name="close" /> 退出游戏
                         </div>
                     </div>
@@ -691,7 +730,7 @@ const quitGame = () => {
                     class="phase-info settlement-info">结算中...</div>
 
                 <!-- 重新开始按钮 -->
-                <div v-if="store.currentPhase === 'GAME_OVER'" class="restart-btn" @click="store.startGame()">
+                <div v-if="store.currentPhase === 'GAME_OVER'" class="restart-btn" @click="startGameDebounced()">
                     继续游戏
                 </div>
             </div>
@@ -734,7 +773,8 @@ const quitGame = () => {
                     <!-- 摊牌按钮 -->
                     <div v-if="store.currentPhase === 'SHOWDOWN' && !myPlayer.isShowHand && store.countdown > 0 && !myPlayer.isObserver"
                         class="btn-group">
-                        <div class="game-btn orange" style="width: 100px" @click="store.playerShowHand(myPlayer.id)">摊牌
+                        <div class="game-btn orange" style="width: 100px" @click="playerShowHandDebounced(myPlayer.id)">
+                            摊牌
                         </div>
                     </div>
 
@@ -753,10 +793,10 @@ const quitGame = () => {
             </div>
 
             <!-- 全局点击关闭菜单 -->
-            <div v-if="showMenu" class="mask-transparent" @click="showMenu = false"></div>
+            <div v-if="showMenu" class="mask-transparent" @click="toggleShowMenu()"></div>
 
             <!-- 评论/表情按钮 -->
-            <div class="chat-toggle-btn" @click="showChatSelector = true">
+            <div class="chat-toggle-btn" @click="toggleShowChatSelector()">
                 <van-icon name="comment" size="24" color="white" />
             </div>
 
@@ -765,7 +805,7 @@ const quitGame = () => {
                 <div class="modal-content">
                     <div class="modal-header">
                         <h3>投注记录</h3>
-                        <div class="close-icon" @click="showHistory = false">×</div>
+                        <div class="close-icon" @click="closeHistoryDebounced()">×</div>
                     </div>
                     <div class="history-list">
                         <div v-if="store.history.length === 0" class="empty-tip">暂无记录</div>
@@ -797,7 +837,7 @@ const quitGame = () => {
                 <div class="modal-content">
                     <div class="modal-header">
                         <h3>游戏设置</h3>
-                        <div class="close-icon" @click="showSettings = false">×</div>
+                        <div class="close-icon" @click="closeSettingsDebounced()">×</div>
                     </div>
                     <div class="settings-list">
                         <div class="setting-item">
@@ -1384,7 +1424,8 @@ const quitGame = () => {
 
 .phase-info.settlement-info {
     /* Added for the independent settlement info */
-    margin-top: 10px;
+    margin-top: 50px;
+    /* Adjusted to move text down slightly */
     /* To maintain some distance from other elements if not in wrapper */
 }
 
@@ -1408,7 +1449,8 @@ const quitGame = () => {
 
 .controls-container {
     margin-bottom: 20px;
-    min-height: 50px;
+    /* min-height: 50px; */
+    /* Removed to fix waiting-text height */
     display: flex;
     justify-content: center;
     width: 100%;

@@ -1,11 +1,12 @@
 <script setup>
 import { useRouter } from 'vue-router';
 import { ref, computed, watch, onMounted, onUnmounted, onActivated, onDeactivated } from 'vue'; // Added onDeactivated
+import { debounce } from '../utils/debounce.js';
 import { useUserStore } from '../stores/user.js';
 import { useGameStore } from '../stores/game.js';
 import { useSettingsStore } from '../stores/settings.js';
 import gameClient from '../socket.js';
-import defaultAvatar from '@/assets/common/icon_avatar.png'; // Import avatar directly
+import defaultAvatar from '@/assets/common/default_avatar.png'; // Import avatar directly
 import lobbyBgSound from '@/assets/sounds/lobby_bg.mp3'; // Import background music
 
 const router = useRouter();
@@ -28,12 +29,16 @@ const userInfo = computed(() => {
 // type 1 (看三张)
 const currentMode = ref(0); // 强制默认不看牌抢庄
 
+const setMode0 = debounce(() => { currentMode.value = 0; }, 500);
+const setMode1 = debounce(() => { currentMode.value = 1; }, 500);
+const setMode2 = debounce(() => { currentMode.value = 2; }, 500);
+
 watch(currentMode, (newVal) => {
     userStore.lastSelectedMode = newVal;
     localStorage.setItem('lastSelectedMode', newVal);
 });
 
-const enterGame = async (level) => {
+const _enterGame = async (level) => {
     // 传递房间等级(level)和玩法模式(mode)
     // 发送匹配协议
     try {
@@ -48,6 +53,8 @@ const enterGame = async (level) => {
         // showToast('加入房间失败，请稍后再试');
     }
 };
+
+const enterGame = debounce(_enterGame, 500);
 
 // Map server room configs to UI
 const rooms = computed(() => {
@@ -161,10 +168,10 @@ onUnmounted(() => {
         <!-- 玩法切换 Tab -->
         <div class="mode-tabs-container">
             <div class="tab-group-pill">
-                <div class="tab-item" :class="{ 'active-purple': currentMode === 0 }" @click="currentMode = 0">不看牌抢庄
+                <div class="tab-item" :class="{ 'active-purple': currentMode === 0 }" @click="setMode0()">不看牌抢庄
                 </div>
-                <div class="tab-item" :class="{ 'active-blue': currentMode === 1 }" @click="currentMode = 1">看三张抢庄</div>
-                <div class="tab-item" :class="{ 'active-cyan': currentMode === 2 }" @click="currentMode = 2">看四张抢庄</div>
+                <div class="tab-item" :class="{ 'active-blue': currentMode === 1 }" @click="setMode1()">看三张抢庄</div>
+                <div class="tab-item" :class="{ 'active-cyan': currentMode === 2 }" @click="setMode2()">看四张抢庄</div>
             </div>
         </div>
 

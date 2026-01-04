@@ -51,22 +51,22 @@ const selectPhrase = (phrase, index) => {
     closeModal();
 };
 
-import emoji1 from '@/assets/emoji/emoji_1.png';
-import emoji2 from '@/assets/emoji/emoji_2.png';
-import emoji3 from '@/assets/emoji/emoji_3.png';
-import emoji4 from '@/assets/emoji/emoji_4.png';
-import emoji5 from '@/assets/emoji/emoji_5.png';
-import emoji6 from '@/assets/emoji/emoji_6.png';
-import emoji7 from '@/assets/emoji/emoji_7.png';
-import emoji8 from '@/assets/emoji/emoji_8.png';
-import emoji9 from '@/assets/emoji/emoji_9.png';
-import emoji10 from '@/assets/emoji/emoji_10.png';
-import emoji11 from '@/assets/emoji/emoji_11.png';
-import emoji12 from '@/assets/emoji/emoji_12.png';
-import emoji13 from '@/assets/emoji/emoji_13.png';
-import emoji14 from '@/assets/emoji/emoji_14.png';
-import emoji15 from '@/assets/emoji/emoji_15.png';
-import emoji16 from '@/assets/emoji/emoji_16.png';
+import emoji1 from '@/assets/emoji/emoji_0.png';
+import emoji2 from '@/assets/emoji/emoji_1.png';
+import emoji3 from '@/assets/emoji/emoji_2.png';
+import emoji4 from '@/assets/emoji/emoji_3.png';
+import emoji5 from '@/assets/emoji/emoji_4.png';
+import emoji6 from '@/assets/emoji/emoji_5.png';
+import emoji7 from '@/assets/emoji/emoji_6.png';
+import emoji8 from '@/assets/emoji/emoji_7.png';
+import emoji9 from '@/assets/emoji/emoji_8.png';
+import emoji10 from '@/assets/emoji/emoji_9.png';
+import emoji11 from '@/assets/emoji/emoji_10.png';
+import emoji12 from '@/assets/emoji/emoji_11.png';
+import emoji13 from '@/assets/emoji/emoji_12.png';
+import emoji14 from '@/assets/emoji/emoji_13.png';
+import emoji15 from '@/assets/emoji/emoji_14.png';
+import emoji16 from '@/assets/emoji/emoji_15.png';
 
 // Emojis
 const emojis = ref([]);
@@ -99,7 +99,7 @@ watch(() => props.visible, (newVal) => {
         // Add a small delay to prevent the initial click event from immediately closing the modal
         setTimeout(() => {
             document.addEventListener('click', handleClickOutside);
-        }, 50); 
+        }, 50);
     } else {
         document.removeEventListener('click', handleClickOutside);
     }
@@ -115,19 +115,23 @@ onUnmounted(() => {
         <div class="chat-selector-modal" ref="modalRef">
             <div class="modal-header">
                 <div class="tabs">
-                    <div :class="{ 'tab-item': true, active: activeTab === 'phrases' }" @click="activeTab = 'phrases'">常用语</div>
-                    <div :class="{ 'tab-item': true, active: activeTab === 'emojis' }" @click="activeTab = 'emojis'">表情</div>
+                    <div :class="{ 'tab-item': true, active: activeTab === 'phrases' }" @click="activeTab = 'phrases'">
+                        常用语</div>
+                    <div :class="{ 'tab-item': true, active: activeTab === 'emojis' }" @click="activeTab = 'emojis'">表情
+                    </div>
                 </div>
                 <div class="close-btn" @click="closeModal">×</div>
             </div>
             <div class="modal-content">
                 <div v-if="activeTab === 'phrases'" class="phrases-list">
-                    <div v-for="(phrase, index) in commonPhrases" :key="index" class="phrase-item" @click="selectPhrase(phrase, index)">
+                    <div v-for="(phrase, index) in commonPhrases" :key="index" class="phrase-item"
+                        @click="selectPhrase(phrase, index)">
                         {{ phrase }}
                     </div>
                 </div>
                 <div v-if="activeTab === 'emojis'" class="emojis-grid">
-                    <img v-for="(emoji, index) in emojis" :key="index" :src="emoji" alt="emoji" class="emoji-item" @click="selectEmoji(emoji)">
+                    <img v-for="(emoji, index) in emojis" :key="index" :src="emoji" alt="emoji" class="emoji-item"
+                        @click="selectEmoji(emoji)">
                 </div>
             </div>
         </div>
@@ -141,24 +145,30 @@ onUnmounted(() => {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0,0,0,0.7); /* Darker overlay */
+    background: rgba(0, 0, 0, 0.7);
+    /* Darker overlay */
     display: flex;
     justify-content: center;
-    align-items: center; /* Center vertically */
+    align-items: center;
+    /* Center vertically */
     backdrop-filter: blur(4px);
-    z-index: 10000; /* Higher than CoinLayer (9999) */
+    z-index: 10000;
+    /* Higher than CoinLayer (9999) */
 }
 
 .chat-selector-modal {
-    background: #1e293b; /* Dark background */
-    border-radius: 16px; /* All corners rounded */
+    background: #1e293b;
+    /* Dark background */
+    border-radius: 16px;
+    /* All corners rounded */
     width: 85%;
     max-width: 400px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     flex-direction: column;
-    height: 58vh; /* Fixed height of 58% of viewport height */
+    height: 58vh;
+    /* Fixed height of 58% of viewport height */
     position: relative;
 }
 
@@ -166,11 +176,15 @@ onUnmounted(() => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px; /* Match history modal padding */
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    background-color: transparent; /* No specific background for header */
-    color: white; /* White text */
-    border-radius: 16px 16px 0 0; /* Keep top corners rounded */
+    padding: 16px;
+    /* Match history modal padding */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: transparent;
+    /* No specific background for header */
+    color: white;
+    /* White text */
+    border-radius: 16px 16px 0 0;
+    /* Keep top corners rounded */
 }
 
 .tabs {
@@ -183,24 +197,28 @@ onUnmounted(() => {
     cursor: pointer;
     border-radius: 5px;
     font-weight: bold;
-    color: #94a3b8; /* Lighter gray text for tabs */
+    color: #94a3b8;
+    /* Lighter gray text for tabs */
 }
 
 .tab-item.active {
-    background-color: #007bff; /* Still use blue for active */
+    background-color: #007bff;
+    /* Still use blue for active */
     color: #fff;
 }
 
 .close-btn {
     font-size: 24px;
     cursor: pointer;
-    color: #94a3b8; /* Match history close icon color */
+    color: #94a3b8;
+    /* Match history close icon color */
 }
 
 .modal-content {
     flex-grow: 1;
     overflow-y: auto;
-    padding: 16px; /* Match history modal padding */
+    padding: 16px;
+    /* Match history modal padding */
 }
 
 .phrases-list {
@@ -211,8 +229,10 @@ onUnmounted(() => {
 
 .phrase-item {
     padding: 10px;
-    background-color: rgba(255,255,255,0.05); /* Lighter background for items */
-    color: #cbd5e1; /* Light gray text */
+    background-color: rgba(255, 255, 255, 0.05);
+    /* Lighter background for items */
+    color: #cbd5e1;
+    /* Light gray text */
     border-radius: 8px;
     cursor: pointer;
     transition: background-color 0.2s;
@@ -220,20 +240,24 @@ onUnmounted(() => {
 }
 
 .phrase-item:hover {
-    background-color: rgba(255,255,255,0.1); /* Slightly lighter on hover */
+    background-color: rgba(255, 255, 255, 0.1);
+    /* Slightly lighter on hover */
 }
 
 .emojis-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 15px; /* Increased gap for both rows and columns */
-    row-gap: 20px; /* Explicitly increase row gap */
+    gap: 15px;
+    /* Increased gap for both rows and columns */
+    row-gap: 20px;
+    /* Explicitly increase row gap */
     justify-items: center;
     align-items: center;
 }
 
 .emoji-item {
-    width: 50px; /* Adjust size as needed */
+    width: 50px;
+    /* Adjust size as needed */
     height: 50px;
     cursor: pointer;
     transition: transform 0.2s;

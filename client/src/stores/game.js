@@ -108,14 +108,27 @@ export const useGameStore = defineStore('game', () => {
         let myServerSeatNum = -1;
         const myPermanentUserId = userStore.userInfo.user_id; // My actual user ID from UserStore
         
-        // Ensure myPlayerId.value is set to my permanent user ID from UserStore
-        // This ref should represent *my* actual ID throughout the game.
-        // It should *not* be overwritten by `currentUserId` from general push data.
-        if (myPermanentUserId && myPlayerId.value !== myPermanentUserId) {
-            myPlayerId.value = myPermanentUserId;
+        // Determine my ID for this update cycle. Prioritize:
+        // 1. myPermanentUserId (from UserStore - most stable)
+        // 2. currentUserId (from push data - e.g., SelfId from PushRouter)
+        // 3. existing myPlayerId.value
+        let effectiveMyId = myPermanentUserId;
+        if (!effectiveMyId) { // If userStore hasn't provided it yet
+            effectiveMyId = currentUserId; // Try to use currentUserId from push data
+        }
+        // If effectiveMyId is still not set or is 'me', and myPlayerId.value holds a valid ID, use it.
+        if (effectiveMyId === 'me' || !effectiveMyId) {
+            if (myPlayerId.value && myPlayerId.value !== 'me') {
+                effectiveMyId = myPlayerId.value;
+            }
         }
 
-        // Find *me* in the serverPlayers list based on myPlayerId.value (which is *my* ID)
+        // Update the global myPlayerId ref if a new effectiveMyId is found and it's not 'me'
+        if (effectiveMyId && effectiveMyId !== 'me' && myPlayerId.value !== effectiveMyId) {
+            myPlayerId.value = effectiveMyId;
+        }
+
+        // Now, use the established myPlayerId.value to find *me* in serverPlayers
         const meInServer = serverPlayers.find(p => p && p.ID === myPlayerId.value);
         if (meInServer) {
             myServerSeatNum = meInServer.SeatNum;

@@ -26,6 +26,7 @@ import { useRouter } from 'vue-router';
 import gameClient from '../socket.js'; // Use singleton
 import { useUserStore } from '../stores/user.js';
 import { useSettingsStore } from '../stores/settings.js';
+import { useGameStore } from '../stores/game.js';
 
 export default {
   name: 'LoadingPage',
@@ -42,6 +43,7 @@ export default {
     const router = useRouter();
     const userStore = useUserStore();
     const settingsStore = useSettingsStore();
+    const gameStore = useGameStore();
 
     const LOCAL_STORAGE_IP_KEY = 'game_server_ip';
 

@@ -23,6 +23,8 @@ import talk8 from '@/assets/sounds/talk_8.mp3';
 import talk9 from '@/assets/sounds/talk_9.mp3';
 import talk10 from '@/assets/sounds/talk_10.mp3';
 import gameBgSound from '@/assets/sounds/game_bg.mp3';
+import iconGameStart from '../assets/common/icon_game_start.png';
+import gameStartSound from '@/assets/sounds/game_start.mp3';
 
 const phraseSounds = [
     talk0, talk1, talk2, talk3, talk4, talk5, talk6, talk7, talk8, talk9, talk10
@@ -47,6 +49,7 @@ const dealingLayer = ref(null);
 const seatRefs = ref({}); // 存储所有座位的引用 key: playerId
 const tableCenterRef = ref(null); // 桌面中心元素引用
 const bgAudio = ref(null);
+const startAnimationClass = ref('');
 
 // Chat/Emoji selector state
 const showChatSelector = ref(false);
@@ -291,6 +294,18 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
     if (newPhase === 'IDLE' || newPhase === 'GAME_OVER') {
         visibleCounts.value = {};
         lastBetStates.value = {};
+    } else if (newPhase === 'GAME_START_ANIMATION') {
+         startAnimationClass.value = 'enter';
+         if (settingsStore.soundEnabled) {
+             const audio = new Audio(gameStartSound);
+             audio.play().catch(() => {});
+         }
+         setTimeout(() => {
+             startAnimationClass.value = 'leave';
+         }, 1500);
+         setTimeout(() => {
+             startAnimationClass.value = '';
+         }, 2500);
     } else if (newPhase === 'PRE_DEAL') {
         visibleCounts.value = {};
         setTimeout(() => {
@@ -471,6 +486,15 @@ onMounted(() => {
     if (settingsStore.musicEnabled) {
         bgAudio.value.play().catch(() => { });
     }
+
+    // Register handler for PlayerLeave response
+    gameClient.on('QZNN.PlayerLeave', (msg) => {
+        if (msg.code === 0) {
+            router.replace('/lobby');
+        } else {
+            vantToast(msg.msg || "退出失败");
+        }
+    });
 });
 
 onUnmounted(() => {
@@ -482,6 +506,7 @@ onUnmounted(() => {
         bgAudio.value.pause();
         bgAudio.value = null;
     }
+    gameClient.off('QZNN.PlayerLeave');
 });
 
 const onRob = (multiplier) => {
@@ -503,18 +528,13 @@ const openSettings = () => {
 };
 
 const quitGame = () => {
-    const allowedPhases = ['IDLE', 'WAITING_FOR_PLAYERS', 'READY_COUNTDOWN', 'GAME_OVER'];
-    if (allowedPhases.includes(store.currentPhase)) {
-        gameClient.send("QZNN.PlayerLeave", { RoomId: store.roomId });
-        router.replace('/lobby');
-    } else {
-        vantToast("游戏已开始，暂时无法退出房间");
-    }
+    gameClient.send("QZNN.PlayerLeave", { RoomId: store.roomId });
 };
 </script>
 
 <template>
     <div class="game-table">
+        <img v-if="startAnimationClass" :src="iconGameStart" class="game-start-icon" :class="startAnimationClass" />
         <DealingLayer ref="dealingLayer" />
         <CoinLayer ref="coinLayer" />
 
@@ -1425,30 +1445,24 @@ const quitGame = () => {
     opacity: 0;
 }
 
-.auto-join-banner {
-    color: #fff;
-    background: linear-gradient(90deg, rgba(245, 158, 11, 0.9), rgba(234, 88, 12, 0.9));
-    /* Orange/Red */
-    padding: 10px 24px;
-    border-radius: 24px;
-    font-size: 15px;
-    font-weight: bold;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    margin-bottom: 12px;
-    animation: slideDown 0.5s ease;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+.game-start-icon {
+    position: fixed;
+    top: 40%;
+    left: -50%;
+    transform: translate(-50%, -50%);
+    transition: left 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    z-index: 5000;
+    pointer-events: none;
+    width: 50vw;
+    height: auto;
 }
 
-@keyframes slideDown {
-    from {
-        transform: translateY(-20px);
-        opacity: 0;
-    }
+.game-start-icon.enter {
+    left: 50%;
+}
 
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
+.game-start-icon.leave {
+    left: 150%;
+    transition: left 0.5s ease-in;
 }
 </style>

@@ -286,6 +286,7 @@ export const useGameStore = defineStore('game', () => {
             let targetPhase = null;
             if (normalizedState === 'StateWaiting') targetPhase = 'WAITING_FOR_PLAYERS';
             else if (normalizedState === 'StatePrepare') targetPhase = 'READY_COUNTDOWN';
+            else if (normalizedState === 'StateStartGame') targetPhase = 'GAME_START_ANIMATION';
             else if (normalizedState === 'StatePreCard') targetPhase = 'PRE_DEAL';
             else if (normalizedState === 'StateBanking') targetPhase = 'ROB_BANKER';
             else if (normalizedState === 'StateRandomBank') targetPhase = 'BANKER_SELECTION_ANIMATION';

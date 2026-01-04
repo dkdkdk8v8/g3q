@@ -1543,7 +1543,7 @@ const quitGame = () => {
     transition: left 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28);
     z-index: 5000;
     pointer-events: none;
-    width: 70vw;
+    width: 50vw;
     height: auto;
 }
 

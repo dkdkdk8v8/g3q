@@ -31,94 +31,104 @@
       </div>
     </div>
 
-    <el-empty v-if="errorMessage" :description="errorMessage" />
+    <div class="room-list">
+      <el-empty v-if="errorMessage" :description="errorMessage" />
 
-    <el-empty v-else-if="Object.keys(list).length === 0" description="暂时没有房间数据" />
+      <el-empty v-else-if="Object.keys(list).length === 0" description="暂时没有房间数据" />
 
-    <el-row v-else :gutter="10">
-      <el-col v-for="item in filteredList" :key="item.ID" :xs="24" :sm="12" :md="12" :lg="8" :xl="6">
-        <el-card shadow="hover" class="room-card">
-          <template #header>
-            <div class="card-header">
-              <div class="header-left">
-                <div class="tags">
-                  <el-tag size="small" type="danger" effect="plain">{{ getRoomInfo(item.ID).level }}
-                  </el-tag>
-                  <el-tag size="small" type="warning" effect="plain">{{ getRoomInfo(item.ID).type }}
-                  </el-tag>
-                </div>
-              </div>
-              <el-tag size="small" effect="dark" :type="stateTypeMap[item.State] as any">
-                {{ stateMap[item.State] || item.State }}
-                <span v-if="item.StateLeftSec > 0" style="margin-left: 2px">{{ item.StateLeftSec }}秒</span>
-              </el-tag>
-            </div>
-          </template>
-
-          <div class="room-content">
-            <div class="players-list">
-              <div v-for="(player, index) in item.Players" :key="index" class="player-item">
-                <div v-if="player" class="player-info">
-                  <!-- <el-avatar :size="24" :src="player.Avatar" :icon="UserFilled" class="avatar"></el-avatar> -->
-                  <div class="details">
-                    <el-tooltip effect="dark" :content="player.NickName" placement="top" :disabled="!player.NickName">
-                      <div class="player-name">
-                        <span v-if="item.BankerID === player.ID" style="color: #f56c6c; font-weight: bold">庄</span>
-                        <span v-else-if="player.IsOb" style="color: #67c23a; font-weight: bold">看</span>
-                        {{ player.ID }}
-                        <span v-if="player.CallMult >= 0 && player.BetMult === -1"
-                          style="color: #f56c6c; font-weight: bold; margin-left: 2px">
-                          {{ player.CallMult }}倍
-                        </span>
-                        <span v-if="player.BetMult >= 0" style="color: #f56c6c; margin-left: 2px">
-                          {{ player.BetMult }}倍
-                        </span>
+      <div v-else>
+        <div v-for="group in groupedList" :key="group.title" class="level-group">
+          <div class="group-header">{{ group.title }} <span class="count">({{ group.rooms.length }})</span></div>
+          <el-row :gutter="10">
+            <el-col v-for="item in group.rooms" :key="item.ID" :xs="24" :sm="12" :md="12" :lg="8" :xl="6">
+              <el-card shadow="hover" class="room-card">
+                <template #header>
+                  <div class="card-header">
+                    <div class="header-left">
+                      <div class="tags">
+                        <el-tag size="small" type="danger" effect="plain">{{ getRoomInfo(item.ID).level }}
+                        </el-tag>
+                        <el-tag size="small" type="warning" effect="plain">{{ getRoomInfo(item.ID).type }}
+                        </el-tag>
                       </div>
-                    </el-tooltip>
-                    <el-tooltip effect="dark" :content="player.ID" placement="top" :disabled="!player.ID">
-                      <div class="player-id">
-                        <template v-if="Array.isArray(player.Cards)">
-                          <span v-for="(card, idx) in player.Cards" :key="idx"
-                            :style="{ color: getCardStyle(card).color, marginRight: '2px', fontWeight: 'bold', display: 'inline-block', width: '24px', textAlign: 'center' }">
-                            {{ getCardStyle(card).text }}
-                          </span>
-                          <span v-if="player.Cards && player.Cards.length === 5"
-                            style="margin-left: 4px; color: #409eff; font-weight: bold">
-                            {{ getCardResult(player.Cards) }} {{ player.IsShow ? '摊牌' : '' }}
-                          </span>
-                        </template>
-                        <span v-else>{{ player.Cards }}</span>
-                      </div>
-                    </el-tooltip>
+                    </div>
+                    <el-tag size="small" effect="dark" :type="stateTypeMap[item.State] as any">
+                      {{ stateMap[item.State] || item.State }}
+                      <span v-if="item.StateLeftSec > 0" style="margin-left: 2px">{{ item.StateLeftSec }}秒</span>
+                    </el-tag>
                   </div>
-                  <div class="balance-wrapper">
-                    <div class="player-balance">
-                      ￥{{ (player.Balance / 100).toFixed(2) }}
+                </template>
+
+                <div class="room-content">
+                  <div class="players-list">
+                    <div v-for="(player, index) in item.Players" :key="index" class="player-item">
+                      <div v-if="player" class="player-info">
+                        <!-- <el-avatar :size="24" :src="player.Avatar" :icon="UserFilled" class="avatar"></el-avatar> -->
+                        <div class="details">
+                          <el-tooltip effect="dark" :content="player.NickName" placement="top"
+                            :disabled="!player.NickName">
+                            <div class="player-name">
+                              <span v-if="item.BankerID === player.ID"
+                                style="color: #f56c6c; font-weight: bold">庄</span>
+                              <span v-else-if="player.IsOb" style="color: #67c23a; font-weight: bold">看</span>
+                              {{ player.ID }}
+                              <span v-if="player.CallMult >= 0 && player.BetMult === -1"
+                                style="color: #f56c6c; font-weight: bold; margin-left: 2px">
+                                {{ player.CallMult }}倍
+                              </span>
+                              <span v-if="player.BetMult >= 0" style="color: #f56c6c; margin-left: 2px">
+                                {{ player.BetMult }}倍
+                              </span>
+                            </div>
+                          </el-tooltip>
+                          <el-tooltip effect="dark" :content="player.ID" placement="top" :disabled="!player.ID">
+                            <div class="player-id">
+                              <template v-if="Array.isArray(player.Cards)">
+                                <span v-for="(card, idx) in player.Cards" :key="idx"
+                                  :style="{ color: getCardStyle(card).color, marginRight: '2px', fontWeight: 'bold', display: 'inline-block', width: '24px', textAlign: 'center' }">
+                                  {{ getCardStyle(card).text }}
+                                </span>
+                                <span v-if="player.Cards && player.Cards.length === 5"
+                                  style="margin-left: 4px; color: #409eff; font-weight: bold">
+                                  {{ getCardResult(player.Cards) }} {{ player.IsShow ? '摊牌' : '' }}
+                                </span>
+                              </template>
+                              <span v-else>{{ player.Cards }}</span>
+                            </div>
+                          </el-tooltip>
+                        </div>
+                        <div class="balance-wrapper">
+                          <div class="player-balance">
+                            ￥{{ (player.Balance / 100).toFixed(2) }}
+                          </div>
+                          <div class="player-balance-change">
+                            <span v-if="player.BalanceChange > 0" class="positive">+{{ (player.BalanceChange /
+                              100).toFixed(2)
+                            }}</span>
+                            <span v-else-if="player.BalanceChange < 0" class="negative">{{ (player.BalanceChange /
+                              100).toFixed(2)
+                            }}</span>
+                            <span v-else class="zero">0</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div v-else class="player-empty">空闲</div>
                     </div>
-                    <div class="player-balance-change">
-                      <span v-if="player.BalanceChange > 0" class="positive">+{{ (player.BalanceChange / 100).toFixed(2)
-                      }}</span>
-                      <span v-else-if="player.BalanceChange < 0" class="negative">{{ (player.BalanceChange /
-                        100).toFixed(2)
-                      }}</span>
-                      <span v-else class="zero">0</span>
-                    </div>
+                  </div>
+
+                  <div class="room-footer">
+                    <span>{{
+                      dayjs(item.CreateAt).format("YYYY-MM-DD HH:mm:ss")
+                    }}</span>
+                    <span>{{ dayjs(item.CreateAt).fromNow() }}</span>
                   </div>
                 </div>
-                <div v-else class="player-empty">空闲</div>
-              </div>
-            </div>
-
-            <div class="room-footer">
-              <span>{{
-                dayjs(item.CreateAt).format("YYYY-MM-DD HH:mm:ss")
-                }}</span>
-              <span>{{ dayjs(item.CreateAt).fromNow() }}</span>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-    </el-row>
+              </el-card>
+            </el-col>
+          </el-row>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -148,6 +158,33 @@ const filteredList = computed<any[]>(() => {
     const matchType = filterType.value ? info.type === filterType.value : true;
     return matchLevel && matchType;
   });
+});
+
+const groupedList = computed(() => {
+  const groups: { title: string; rooms: any[] }[] = [];
+  const temp: Record<string, any[]> = {};
+
+  filteredList.value.forEach((item) => {
+    const { level } = getRoomInfo(item.ID);
+    if (!temp[level]) temp[level] = [];
+    temp[level].push(item);
+  });
+
+  // 按照 levelMap 的 key 顺序 (1, 2, 3, 4) 添加分组
+  Object.keys(levelMap).sort().forEach((key) => {
+    const name = levelMap[key];
+    if (temp[name]) {
+      temp[name].sort((a, b) => new Date(b.CreateAt).getTime() - new Date(a.CreateAt).getTime());
+      groups.push({ title: name, rooms: temp[name] });
+      delete temp[name];
+    }
+  });
+  // 添加剩余未匹配的分组（如未知）
+  Object.keys(temp).forEach((name) => {
+    temp[name].sort((a, b) => new Date(b.CreateAt).getTime() - new Date(a.CreateAt).getTime());
+    groups.push({ title: name, rooms: temp[name] });
+  });
+  return groups;
 });
 
 const stateMap: Record<string, string> = {
@@ -320,6 +357,10 @@ onUnmounted(() => {
 <style lang="scss" scoped>
 .game-room-qznn {
   padding: 10px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
 
   .op-bar {
     margin-bottom: 10px;
@@ -375,6 +416,32 @@ onUnmounted(() => {
       height: 16px;
       background-color: #dcdfe6;
       margin-right: 20px;
+    }
+  }
+
+  .room-list {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .level-group {
+    margin-bottom: 20px;
+
+    .group-header {
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      padding-left: 8px;
+      border-left: 4px solid #409eff;
+      color: #303133;
+
+      .count {
+        font-size: 14px;
+        color: #909399;
+        font-weight: normal;
+        margin-left: 5px;
+      }
     }
   }
 

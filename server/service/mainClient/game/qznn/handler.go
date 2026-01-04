@@ -124,7 +124,7 @@ func HandleShowCards(r *QZNNRoom, userID string) error {
 		return comm.NewMyError("房间不存在")
 	}
 
-	err := r.CheckStatusDo(StateDealing, func() error {
+	err := r.CheckStatusDo(StateShowCard, func() error {
 		p, ok := r.GetPlayerByID(userID)
 		if !ok {
 			return comm.NewMyError("无效用户")

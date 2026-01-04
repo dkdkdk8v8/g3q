@@ -27,14 +27,14 @@ const (
 const (
 	SecStatePrepareSec        = 6
 	SecStatePrepareSecPlayer5 = 3 //结算中，开始倒计时发牌（5人不离开，直接下一场）
-	SecStatePrepareSecPlayer4 = 4 //结算中，开始倒计时发牌（5人不离开，直接下一场）
-	SecStatePrepareSecPlayer3 = 5 //结算中，开始倒计时发牌（5人不离开，直接下一场）
+	SecStatePrepareSecPlayer4 = 4 //结算中，开始倒计时发牌（4人不离开，直接下一场）
+	SecStatePrepareSecPlayer3 = 5 //结算中，开始倒计时发牌（3人不离开，直接下一场）
 	SecStateGameStart         = 2
 	SecStatePrecard           = 2
-	SecStateCallBanking       = 5
+	SecStateCallBanking       = 30
 	SecStateBankingRandom     = 2
-	SecStateConfirmBanking    = 0
-	SecStateBeting            = 5
+	SecStateConfirmBanking    = 2
+	SecStateBeting            = 30
 	SecStateDealing           = 2
 	SecStateShowCard          = 8
 	SecStateSetting           = 4
@@ -67,7 +67,7 @@ type PlayerData struct {
 // Player 代表房间内的一个玩家
 type Player struct {
 	PlayerData
-	Mu       sync.RWMutex     `json:"-"`
+	Mu       sync.RWMutex   `json:"-"`
 	ConnWrap *ws.WsConnWrap `json:"-"` // WebSocket 连接
 }
 

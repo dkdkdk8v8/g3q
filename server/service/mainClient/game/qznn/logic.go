@@ -142,6 +142,18 @@ func (r *QZNNRoom) GetPlayerCap() int {
 	return cap(r.Players)
 }
 
+func (r *QZNNRoom) GetPlayers() []*Player {
+	r.PlayerMu.RLock()
+	defer r.PlayerMu.RUnlock()
+	var ret []*Player
+	for _, p := range r.Players {
+		if p != nil {
+			ret = append(ret, p)
+		}
+	}
+	return ret
+}
+
 func (r *QZNNRoom) GetPlayerCount() int {
 	r.PlayerMu.RLock()
 	defer r.PlayerMu.RUnlock()
@@ -478,6 +490,7 @@ func (r *QZNNRoom) tickWaiting() {
 			PushType: PushPlayLeave,
 			Data:     PushPlayerLeaveStruct{UserIds: leaveIds, Room: r}})
 	}
+	//reset ob data
 
 	countExistPlayerNum := r.GetPlayerCount()
 	//加入已经有2个人在房间，可以进行倒计时开始游戏
@@ -504,8 +517,12 @@ func (r *QZNNRoom) tickPrepare() {
 
 	//make sure players Ok
 	if r.GetStartGamePlayerCount(false) >= 2 {
+		r.StateMu.RLock()
 		if r.StateLeftSec <= 0 {
+			r.StateMu.RUnlock()
 			go r.StartGame()
+		} else {
+			r.StateMu.RUnlock()
 		}
 	} else {
 		//还是有掉线的，再等
@@ -541,9 +558,14 @@ func (r *QZNNRoom) tickBetting() {
 	hasUnconfirmed := false
 	for _, p := range activePlayers {
 		p.Mu.RLock()
+		if p.ID == r.BankerID {
+			//庄家不压
+			p.Mu.RUnlock()
+			continue
+		}
 		if p.BetMult == -1 {
 			hasUnconfirmed = true
-			p.Mu.Unlock()
+			p.Mu.RUnlock()
 			break
 		}
 		p.Mu.RUnlock()
@@ -596,7 +618,7 @@ func (r *QZNNRoom) logicTick() {
 	// 发牌补牌状态
 	case StateShowCard:
 		r.StateMu.RUnlock()
-		r.tickBanking()
+		r.tickShowCard()
 	case StateSettling:
 		r.StateMu.RUnlock()
 		// 结算状态
@@ -609,6 +631,7 @@ func (r *QZNNRoom) StartGame() {
 	if !r.SetStatus([]RoomState{StatePrepare}, StateStartGame, SecStateGameStart) {
 		return
 	}
+
 	//保底的检查，用户能不能玩，至少2个有效用户，不够要再踢回waiting
 	activePlayer := r.GetActivePlayers(nil)
 	if len(activePlayer) < 2 {
@@ -616,6 +639,19 @@ func (r *QZNNRoom) StartGame() {
 		r.SetStatus([]RoomState{StateStartGame}, StateWaiting, 0)
 		//不判断set status 成功与否，强行return，保护数据
 		return
+	}
+	//检查是否有重复id在游戏内
+	allPlayers := r.GetPlayers()
+	playerSet := make(map[string]*Player, 5)
+	for _, p := range allPlayers {
+		if p != nil {
+			if _, ok := playerSet[p.ID]; ok {
+				//有相同id用户
+				logrus.WithField("!", nil).WithField("roomId", r.ID).Error("InvalidPlayerCountForGame")
+				r.SetStatus([]RoomState{StateStartGame}, StateWaiting, 0)
+				return
+			}
+		}
 	}
 
 	//准备牌堆并发牌
@@ -774,7 +810,6 @@ func (r *QZNNRoom) StartGame() {
 
 	//结算状态
 	if !r.SetStatus([]RoomState{StateShowCard}, StateSettling, 0) {
-		logrus.WithField("roomId", r.ID).Error("QZNNRoom-StatusChange-Fail-StateSettling")
 		return
 	}
 

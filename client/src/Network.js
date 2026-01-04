@@ -4,8 +4,9 @@
  * 功能：WebSocket连接、心跳保活、断线重连、消息分发
  */
 
-import { showToast } from 'vant';
+import { showToast, showConfirmDialog } from 'vant';
 import { useLoadingStore } from './stores/loading';
+import router from './router';
 
 const CONFIG = {
     RECONNECT_MAX_ATTEMPTS: 10, // 最大重连次数
@@ -214,6 +215,25 @@ export default class GameClient {
         const loadingStore = useLoadingStore();
 
         console.log("📨[收到服务器回包] Recv:", msg); // Log all non-pong responses
+
+        // Special error handling for code 200010
+        if (msg.code === 200010) {
+            showConfirmDialog({
+                title: '提示',
+                message: msg.msg,
+                confirmButtonText: '继续游戏',
+                cancelButtonText: '关闭提示',
+            })
+                .then(() => {
+                    // Confirm (Continue Game)
+                    router.push('/game');
+                })
+                .catch(() => {
+                    // Cancel (Close Alert) - do nothing
+                });
+            // Stop further processing if it was an error
+            return;
+        }
 
         // 通用错误处理：如果 code != 0，弹出提示
         if (msg.code !== 0) {

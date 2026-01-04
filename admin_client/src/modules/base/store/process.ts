@@ -1,8 +1,8 @@
-import { defineStore } from "pinia";
-import { ref } from "vue";
-import { Process } from "../types";
+import { defineStore } from 'pinia';
+import { ref } from 'vue';
+import { assign } from 'lodash-es';
 
-export const useProcessStore = defineStore("process", function () {
+export const useProcessStore = defineStore('process', function () {
 	const list = ref<Process.List>([]);
 
 	// 添加
@@ -11,8 +11,12 @@ export const useProcessStore = defineStore("process", function () {
 			e.active = false;
 		});
 
+		if (!data.meta) {
+			data.meta = {};
+		}
+
 		if (!data.meta?.isHome && data.meta?.process !== false) {
-			const index = list.value.findIndex((e) => e.path === data.path);
+			const index = list.value.findIndex(e => e.path === data.path);
 
 			if (index < 0) {
 				list.value.push({
@@ -20,8 +24,17 @@ export const useProcessStore = defineStore("process", function () {
 					active: true
 				});
 			} else {
-				Object.assign(list.value[index], data, { active: true });
+				assign(list.value[index], data, { active: true });
 			}
+		}
+	}
+
+	// 关闭当前
+	function close() {
+		const index = list.value.findIndex(e => e.active);
+
+		if (index > -1) {
+			list.value.splice(index, 1);
 		}
 	}
 
@@ -42,7 +55,7 @@ export const useProcessStore = defineStore("process", function () {
 
 	// 设置标题
 	function setTitle(title: string) {
-		const item = list.value.find((e) => e.active);
+		const item = list.value.find(e => e.active);
 
 		if (item) {
 			item.meta.label = title;
@@ -53,6 +66,7 @@ export const useProcessStore = defineStore("process", function () {
 		list,
 		add,
 		remove,
+		close,
 		set,
 		clear,
 		setTitle

@@ -1,7 +1,7 @@
 <template>
 	<div class="scope">
 		<div class="h">
-			<el-tag size="small" effect="dark">children</el-tag>
+			<el-tag size="small" effect="dark" disable-transitions>children</el-tag>
 			<span>多级表头</span>
 		</div>
 
@@ -13,16 +13,13 @@
 			<cl-dialog v-model="visible" title="多级表头" width="80%">
 				<cl-crud ref="Crud">
 					<cl-row>
-						<cl-table size="small" ref="Table" />
+						<cl-table ref="Table" />
 					</cl-row>
 
 					<cl-row>
 						<cl-flex1 />
 						<cl-pagination />
 					</cl-row>
-
-					<!-- 新增、编辑 -->
-					<cl-upsert ref="Upsert" />
 				</cl-crud>
 			</cl-dialog>
 		</div>
@@ -34,18 +31,18 @@
 </template>
 
 <script setup lang="ts">
-import { useCrud, useTable } from "@cool-vue/crud";
-import { ref } from "vue";
-import { useDict } from "/$/dict";
+import { useCrud, useTable } from '@cool-vue/crud';
+import { ref } from 'vue';
+import { useDict } from '/$/dict';
 
 const { dict } = useDict();
 
 // cl-crud 配置
 const Crud = useCrud(
 	{
-		service: "test"
+		service: 'test'
 	},
-	(app) => {
+	app => {
 		app.refresh();
 	}
 );
@@ -53,39 +50,39 @@ const Crud = useCrud(
 // cl-table 配置
 const Table = useTable({
 	autoHeight: false,
-	contextMenu: ["refresh"],
+	contextMenu: ['refresh'],
 
 	columns: [
 		{
-			label: "用户信息",
-			prop: "baseInfo",
+			label: '用户信息',
+			prop: 'baseInfo',
 			minWidth: 250,
 
 			// 配置 children 参数
 			children: [
 				{
-					label: "姓名",
-					prop: "name",
+					label: '姓名',
+					prop: 'name',
 					minWidth: 140
 				},
 				{
-					label: "手机号",
-					prop: "phone",
+					label: '手机号',
+					prop: 'phone',
 					minWidth: 140
 				}
 			]
 		},
 		{
-			label: "工作",
-			prop: "occupation",
-			dict: dict.get("occupation"),
+			label: '工作',
+			prop: 'occupation',
+			dict: dict.get('occupation'),
 			minWidth: 140
 		},
 		{
-			label: "创建时间",
-			prop: "createTime",
+			label: '创建时间',
+			prop: 'createTime',
 			minWidth: 170,
-			sortable: "desc"
+			sortable: 'desc'
 		}
 	]
 });

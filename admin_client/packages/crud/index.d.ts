@@ -28,6 +28,26 @@ declare namespace ElementPlus {
 	}
 }
 
+// mitt
+declare interface Mitt {
+	on(name: string, callback: (data: any) => void): void;
+	off(name: string, callback: (data: any) => void): void;
+	emit(name: string, data?: any): void;
+}
+
+// emitter
+declare interface EmitterItem {
+	name: string;
+	callback(data: any, events: { refresh(params: any): void; crudList: ClCrud.Ref[] }): void;
+}
+
+declare interface Emitter {
+	list: EmitterItem[];
+	init(events: any): void;
+	on(name: string, callback: (data: any) => void): void;
+	emit(name: string, data?: any): void;
+}
+
 // 方法
 declare type fn = () => void;
 
@@ -40,8 +60,8 @@ declare type obj = {
 declare type DeepPartial<T> = T extends Function
 	? T
 	: T extends object
-	  ? { [P in keyof T]?: DeepPartial<T[P]> }
-	  : T;
+		? { [P in keyof T]?: DeepPartial<T[P]> }
+		: T;
 
 // 合并
 declare type Merge<A, B> = Omit<A, keyof B> & B;
@@ -54,6 +74,21 @@ declare type RemoveIndex<T> = {
 // 任用列表
 declare type List<T> = Array<DeepPartial<T> | (() => DeepPartial<T>)>;
 
+// 获取keys
+declare type PropKey<T> = keyof RemoveIndex<T> | (string & {});
+
+// 任意字符串
+declare type AnyString = string & {};
+
+// 类型或者 Ref 泛型
+declare type RefData<T = any> = T | Vue.Ref<T>;
+
+// browser
+declare type Browser = {
+	screen: string;
+	isMini: boolean;
+};
+
 // 字典选项
 declare type DictOptions = {
 	label?: string;
@@ -62,25 +97,6 @@ declare type DictOptions = {
 	type?: string;
 	[key: string]: any;
 }[];
-
-// emitter
-declare interface EmitterItem {
-	name: string;
-	callback(data: any, events: { refresh(params: any): void; crudList: ClCrud.Ref[] }): void;
-}
-
-declare interface Emitter {
-	list: EmitterItem[];
-	init(events: any): void;
-	emit(name: string, data?: any): void;
-	on(name: string, callback: (data: any) => void): void;
-}
-
-// browser
-declare type Browser = {
-	screen: string;
-	isMini: boolean;
-};
 
 // render
 declare namespace Render {
@@ -101,8 +117,8 @@ declare namespace Render {
 
 	interface Component {
 		name?: string;
-		options?: DictOptions | Vue.Ref<DictOptions>;
-		props?: Props | Vue.Ref<Props>;
+		options?: RefData<DictOptions>;
+		props?: RefData<Props>;
 		style?: obj;
 		slots?: {
 			[key: string]: (data?: any) => any;
@@ -112,13 +128,17 @@ declare namespace Render {
 	}
 }
 
-// 获取keys
-type PropKey<T> = keyof RemoveIndex<T> | (string & {});
-
-// 任意字符串
-type AnyString = string & {};
-
+// crud
 declare namespace ClCrud {
+	declare interface Field {
+		comment: string;
+		source: string;
+		propertyName: string;
+		type: string;
+		dict: string | string[];
+		nullable: boolean;
+	}
+
 	interface Label {
 		op: string;
 		add: string;
@@ -149,6 +169,8 @@ declare namespace ClCrud {
 		seeMore: string;
 		hideContent: string;
 		nonEmpty: string;
+		collapse: string;
+		expand: string;
 		[key: string]: string;
 	}
 
@@ -235,7 +257,13 @@ declare namespace ClCrud {
 			update(params?: Params["update"]): Promise<Response["update"]>;
 			info(params?: Params["info"]): Promise<Response["info"]>;
 			delete(params?: Params["delete"]): Promise<Response["delete"]>;
-			[key: string]: (params?: any) => Promise<any>;
+			permission: Permission;
+			search: {
+				fieldEq: Field[];
+				fieldLike: Field[];
+				keyWordLikeFields: Field[];
+			};
+			[key: string]: any;
 		};
 	}
 
@@ -249,10 +277,7 @@ declare namespace ClCrud {
 			event: {
 				done: fn;
 				next: Service["api"]["page"];
-				render: (
-					list: Response["page"]["list"],
-					pagination?: Response["page"]["pagination"]
-				) => void;
+				render: (data: any | any[], pagination?: Response["page"]["pagination"]) => void;
 			}
 		): void;
 		onDelete(
@@ -266,6 +291,8 @@ declare namespace ClCrud {
 	interface Ref {
 		"cl-table": ClTable.Ref;
 		"cl-upsert": ClUpsert.Ref;
+		id: number;
+		mitt: Mitt;
 		name: string;
 		routePath: string;
 		permission: Permission;
@@ -277,6 +304,7 @@ declare namespace ClCrud {
 		set(key: "dict" | "style" | "service" | "permission", value: any): void;
 		done(): void;
 		getParams(): obj;
+		setParams(data: obj): void;
 		getPermission(key?: string): boolean;
 		rowInfo(data: obj): void;
 		rowAdd(): void;
@@ -302,15 +330,16 @@ declare namespace ClTable {
 
 	interface Column<T = any> {
 		type: ColumnType;
-		hidden: boolean | Vue.Ref<boolean>;
+		hidden: RefData<boolean>;
 		component: Render.Component;
 		search: {
 			isInput: boolean;
 			value: any;
-			refreshOnChange: Boolean;
+			icon: () => any;
+			refreshOnChange: boolean;
 			component: Render.Component;
 		};
-		dict: DictOptions | Vue.Ref<DictOptions>;
+		dict: RefData<DictOptions>;
 		dictFormatter: (values: DictOptions) => string;
 		dictColor: boolean;
 		dictSeparator: string;
@@ -318,11 +347,12 @@ declare namespace ClTable {
 		buttons: OpButton | ((options: { scope: T }) => OpButton);
 		align: ElementPlus.Align;
 		label: any;
+		renderLabel: (options: { column: any; $index: number }) => any;
 		className: string;
 		prop: PropKey<T>;
 		orderNum: number;
-		width: number;
-		minWidth: number | string;
+		width: RefData<number | string>;
+		minWidth: RefData<number | string>;
 		renderHeader: (options: { column: any; $index: number }) => any;
 		sortable: boolean | "desc" | "descending" | "ascending" | "asc" | "custom";
 		sortMethod: fn;
@@ -332,6 +362,7 @@ declare namespace ClTable {
 		headerAlign: ElementPlus.Align;
 		showOverflowTooltip: boolean;
 		fixed: boolean | string;
+		render: (row: T, column: any, value: any, index: number) => any;
 		formatter: (row: T, column: any, value: any, index: number) => any;
 		selectable: (row: T, index: number) => boolean;
 		reserveSelection: boolean;
@@ -373,6 +404,12 @@ declare namespace ClTable {
 		sortRefresh: boolean;
 		emptyText: string;
 		rowKey: string;
+		on?: {
+			[key: string]: (...args: any[]) => void;
+		};
+		props?: {
+			[key: string]: any;
+		};
 		plugins?: Plugin[];
 		onRowContextmenu?(row: T, column: any, event: any): void;
 	}
@@ -403,6 +440,7 @@ declare namespace ClTable {
 		scrollTo(position: { top?: number; left?: number }): void;
 		setScrollTop(top: number): void;
 		setScrollLeft(left: number): void;
+		updateKeyChildren(key: string, children: any[]): void;
 	}
 
 	interface Options<T = any> extends DeepPartial<Config<T>> {
@@ -450,25 +488,27 @@ declare namespace ClForm {
 		[key: string]: any;
 	}
 
-	type HookFn = (
-		value: any,
-		options: { form: obj; prop: string; method: "submit" | "bind" }
-	) => any;
-
-	type HookKey =
-		| "number"
-		| "string"
-		| "split"
-		| "join"
-		| "boolean"
-		| "booleanNumber"
-		| "datetimeRange"
-		| "splitJoin"
-		| "json"
-		| "empty"
-		| AnyString;
-
-	type HookPipe = HookKey | HookFn;
+	interface Hook {
+		Fn: (value: any, options: { form: obj; prop: string; method: "submit" | "bind" }) => any;
+		Key:
+			| "number"
+			| "string"
+			| "split"
+			| "join"
+			| "boolean"
+			| "booleanNumber"
+			| "datetimeRange"
+			| "splitJoin"
+			| "json"
+			| "empty"
+			| AnyString;
+		Pipe: Hook["Key"] | Hook["Fn"];
+		Event: {
+			bind?: Hook["Pipe"] | Hook["Pipe"][];
+			submit?: Hook["Pipe"] | Hook["Pipe"][];
+			reset?: (prop: string) => string[];
+		};
+	}
 
 	interface Item<T = any> {
 		type?: "tabs";
@@ -504,12 +544,7 @@ declare namespace ClForm {
 		label?: string;
 		renderLabel?: any;
 		flex?: boolean;
-		hook?:
-			| HookKey
-			| {
-					bind?: HookPipe | HookPipe[];
-					submit?: HookPipe | HookPipe[];
-			  };
+		hook?: Hook["Event"] | Hook["Key"];
 		hidden?: boolean | ((options: { scope: obj }) => boolean);
 		prepend?: Render.Component;
 		component?: Render.Component;
@@ -532,6 +567,7 @@ declare namespace ClForm {
 			open?(data: T): void;
 			close?(action: CloseAction, done: fn): void;
 			submit?(data: T, event: { close: fn; done: fn }): void;
+			change?(data: T, prop: string): void;
 		};
 		op: {
 			hidden?: boolean;
@@ -596,6 +632,12 @@ declare namespace ClForm {
 		changeTab(value: any, valid?: boolean): Promise<any>;
 		setTitle(value: string): void;
 		submit(cb?: (data: obj) => void): void;
+		Tabs: {
+			active: RefData<string>;
+			list: ClFormTabs.labels;
+			change(value: any, valid?: boolean): Promise<any>;
+			[key: string]: any;
+		};
 		[key: string]: any;
 	}
 
@@ -652,14 +694,20 @@ declare namespace ClAdvSearch {
 }
 
 declare namespace ClSearch {
+	type Plugin = (options: { exposed: Ref }) => void;
+
 	interface Config<T = any> {
 		inline?: boolean;
 		items?: ClForm.Item[];
 		data?: T;
 		props?: ElementPlus.FormProps;
 		resetBtn?: boolean;
+		collapse?: boolean;
+		Form?: ClForm.Ref;
+		onChange?(data: T, prop: string): void;
 		onLoad?(data: T): void;
 		onSearch?(data: T, options: { next: ClCrud.Service["api"]["page"] }): void;
+		plugins?: Plugin[];
 	}
 
 	interface Ref<T = any> extends ClForm.Ref<T> {
@@ -749,6 +797,9 @@ declare interface Config {
 				opWidth: number | string;
 			};
 			plugins: ClTable.Plugin[];
+		};
+		search: {
+			plugins: ClSearch.Plugin[];
 		};
 	};
 }

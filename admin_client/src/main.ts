@@ -1,15 +1,14 @@
-import { createApp } from "vue";
-import App from "./App.vue";
-import { bootstrap } from "./cool";
-import '../src/assets/css/element-plus-overrides.scss';
+import { createApp } from 'vue';
+import App from './App.vue';
+import { bootstrap } from './cool';
 
 const app = createApp(App);
 
 // 启动
 bootstrap(app)
 	.then(() => {
-		app.mount("#app");
+		app.mount('#app');
 	})
-	.catch((err) => {
-		console.error("HSXS-ADMIN 启动失败", err);
+	.catch(err => {
+		console.error('G3Q-ADMIN 启动失败', err);
 	});

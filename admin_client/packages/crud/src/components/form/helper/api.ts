@@ -28,7 +28,8 @@ export function useApi({ Form }: { Form: Vue.Ref<any> }) {
 			"validateField",
 			"resetFields",
 			"scrollToField",
-			"clearValidate"
+			"clearValidate",
+			"fields"
 		],
 		Form
 	);

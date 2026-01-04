@@ -9,7 +9,9 @@ export default defineComponent({
 
 	setup(props) {
 		return () => {
-			return <el-alert title={props.title} type="error" />;
+			return <div class="cl-error-message">
+				{props.title}
+			</div>;
 		};
 	}
 });

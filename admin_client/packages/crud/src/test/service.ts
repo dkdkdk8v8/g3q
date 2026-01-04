@@ -1,4 +1,4 @@
-import { orderBy } from "lodash-es";
+import { assign, orderBy } from "lodash-es";
 import { uuid } from "../utils";
 
 const userList = [
@@ -160,7 +160,7 @@ class TestService {
 		const item = userList.find((e) => e.id == params.id);
 
 		if (item) {
-			Object.assign(item, params);
+			assign(item, params);
 		}
 	}
 
@@ -196,6 +196,36 @@ class TestService {
 	async list() {
 		return userList;
 	}
+
+	search = {
+		fieldEq: [
+			{
+				propertyName: "occupation",
+				comment: "工作",
+				source: "a.occupation"
+			}
+		],
+		fieldLike: [
+			{
+				propertyName: "status",
+				comment: "状态",
+				dict: ["关闭", "开启"],
+				source: "a.status"
+			}
+		],
+		keyWordLikeFields: [
+			{
+				propertyName: "name",
+				comment: "姓名",
+				source: "a.name"
+			},
+			{
+				propertyName: "phone",
+				comment: "手机号",
+				source: "a.phone"
+			}
+		]
+	};
 }
 
 export { TestService };

@@ -1,7 +1,7 @@
 import { ElMessageBox, ElMessage } from "element-plus";
 import { Mitt } from "../../utils/mitt";
 import { ref } from "vue";
-import { isArray, isFunction } from "lodash-es";
+import { assign, isArray, isFunction } from "lodash-es";
 import { merge } from "../../utils";
 
 interface Options {
@@ -56,7 +56,7 @@ export function useHelper({ config, crud, mitt }: Options) {
 
 		return new Promise((success, error) => {
 			// 合并请求参数
-			const reqParams = paramsReplace(Object.assign(crud.params, params));
+			const reqParams = paramsReplace(assign(crud.params, params));
 
 			// Loading
 			crud.loading = true;
@@ -70,8 +70,8 @@ export function useHelper({ config, crud, mitt }: Options) {
 			}
 
 			// 渲染
-			function render(list: any[], pagination?: any) {
-				const res = { list, pagination };
+			function render(data: any | any[], pagination?: any) {
+				const res = isArray(data) ? { list: data, pagination } : data;
 				done();
 				success(res);
 				mitt.emit("crud.refresh", res);
@@ -87,12 +87,15 @@ export function useHelper({ config, crud, mitt }: Options) {
 							}
 
 							if (isArray(res)) {
-								render(res);
-							} else {
-								render(res.list, res.pagination);
+								res = {
+									list: res,
+									pagination: {
+										total: res.length
+									}
+								};
 							}
 
-							success(res);
+							render(res);
 							resolve(res);
 						})
 						.catch((err) => {
@@ -217,6 +220,11 @@ export function useHelper({ config, crud, mitt }: Options) {
 		return crud.params;
 	}
 
+	// 替换请求参数
+	function setParams(data: obj) {
+		merge(crud.params, data);
+	}
+
 	// 设置
 	function set(key: string, value: any) {
 		if (!value) {
@@ -273,6 +281,7 @@ export function useHelper({ config, crud, mitt }: Options) {
 		refresh,
 		getPermission,
 		paramsReplace,
-		getParams
+		getParams,
+		setParams
 	};
 }

@@ -1,4 +1,3 @@
-/// <reference types="../index" />
 export declare function useSort({ config, Table, emit }: {
     config: ClTable.Config;
     Table: Vue.Ref<any>;

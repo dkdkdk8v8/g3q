@@ -1,23 +1,25 @@
-export declare interface EpsColumn {
+declare interface EpsColumn {
 	comment: string;
 	length: number;
 	nullable: boolean;
 	propertyName: string;
 	type: string;
 	component: string;
+	defaultValue: any;
+	dict: string[] | string;
 }
 
-export declare interface EpsApi {
+declare interface EpsApi {
 	path: string;
 	summary: string;
 	method?: string;
 	prefix?: string;
 	tag?: string;
-	dts?: {};
+	dts?: any;
 	[key: string]: any;
 }
 
-export declare interface EpsModule {
+declare interface EpsModule {
 	api: EpsApi[];
 	columns: EpsColumn[];
 	prefix: string;
@@ -28,23 +30,6 @@ export declare interface EpsModule {
 	[key: string]: any;
 }
 
-export declare interface EpsData {
+declare interface EpsData {
 	[key: string]: EpsModule[];
-}
-
-export interface CodeItem {
-	label: string;
-	value: string;
-	content: string;
-	[key: string]: any;
-}
-
-export declare interface PropRule {
-	value?: string;
-	test?: any[];
-	group?: string[];
-	table?: DeepPartial<ClTable.Column>;
-	form?: ClForm.Item;
-	handler?: string;
-	[key: string]: any;
 }

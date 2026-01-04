@@ -2,88 +2,29 @@
 	<div class="count-paid">
 		<div class="card">
 			<div class="card__header">
-				<span class="label">付款笔数</span>
-				<span class="value">6560</span>
+				<span class="label">{{ $t('付款笔数') }}</span>
+				<cl-svg name="order" class="icon" />
 			</div>
 
 			<div class="card__container">
-				<v-chart :option="chartOption" autoresize />
+				<cl-number :value="num" class="num" suffix="笔" />
 			</div>
 
 			<div class="card__footer">
-				<span class="label">转化率</span>
-				<span class="value">60%</span>
+				<span class="mr-2">{{ $t('转化率') }}</span>
+				<span>60%</span>
 			</div>
 		</div>
 	</div>
 </template>
 
 <script lang="ts" setup>
-import { reactive } from "vue";
+import { random } from 'lodash-es';
+import { onMounted, ref } from 'vue';
 
-const chartOption = reactive({
-	grid: {
-		left: "10%",
-		top: 0,
-		right: "10%",
-		bottom: 0
-	},
-	xAxis: {
-		type: "category",
-		data: ["00:00", "2:00", "4:00", "6:00", "8:00", "10:00", "12:00", "14:00"],
-		boundaryGap: false
-	},
-	yAxis: {
-		type: "value",
-		splitLine: {
-			show: false
-		},
-		axisTick: {
-			show: false
-		},
-		axisLine: {
-			show: false
-		},
-		axisLabel: {
-			show: false
-		}
-	},
-	series: [
-		{
-			barWidth: 18,
-			name: "付款笔数",
-			type: "bar",
-			data: new Array(8).fill(1).map(() => Math.random() * 50 + 20),
-			itemStyle: {
-				color: "#4165d7"
-			}
-		},
-		{
-			type: "bar",
-			barWidth: 18,
-			xAxisIndex: 0,
-			barGap: "-100%",
-			data: [100, 100, 100, 100, 100, 100, 100, 100],
-			itemStyle: {
-				color: "#f1f1f9"
-			},
-			zlevel: -1
-		}
-	]
+const num = ref(0);
+
+onMounted(() => {
+	num.value = random(10000);
 });
 </script>
-
-<style lang="scss" scoped>
-.count-paid {
-	.card {
-		.echarts {
-			height: 50px;
-			width: 100%;
-		}
-
-		&__container {
-			padding: 0;
-		}
-	}
-}
-</style>

@@ -9,7 +9,30 @@ declare module "virtual:ctx" {
 
 declare module "virtual:eps" {
 	const eps: {
-		list: any[];
+		isUpdate: boolean;
+		list: {
+			prefix: string;
+			api: {
+				method: string;
+				path: string;
+				summary: string;
+				dts: {
+					[key: string]: string;
+				};
+				[key: string]: any;
+			}[];
+			namespace: string;
+			name: string;
+			module: string;
+			columns: {
+				comment: string;
+				nullable: boolean;
+				propertyName: string;
+				type: string;
+				[key: string]: any;
+			}[];
+			[key: string]: any;
+		}[];
 		service: any;
 	};
 

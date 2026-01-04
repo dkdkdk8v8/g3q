@@ -4,44 +4,37 @@
 	</svg>
 </template>
 
-<script lang="ts">
-import { computed, defineComponent, reactive } from "vue";
-import { parsePx } from "/@/cool/utils";
+<script lang="ts" setup>
+defineOptions({
+	name: 'cl-svg'
+});
 
-export default defineComponent({
-	name: "cl-svg",
+import { computed, reactive } from 'vue';
+import { parsePx } from '/@/cool/utils';
 
-	props: {
-		name: String,
-		className: String,
-		color: String,
-		size: [String, Number]
-	},
+const props = defineProps({
+	name: String,
+	className: String,
+	color: String,
+	size: [String, Number]
+});
 
-	setup(props) {
-		const style = reactive({
-			fontSize: parsePx(props.size!)
-		});
+const style = reactive({
+	fontSize: parsePx(props.size!),
+	fill: props.color
+});
 
-		const iconName = computed(() => `#icon-${props.name}`);
-		const svgClass = computed(() => {
-			return ["cl-svg", `cl-svg__${props.name}`, String(props.className || "")];
-		});
-
-		return {
-			style,
-			iconName,
-			svgClass
-		};
-	}
+const iconName = computed(() => `#icon-${props.name}`);
+const svgClass = computed(() => {
+	return ['cl-svg', `cl-svg__${props.name}`, String(props.className || '')];
 });
 </script>
 
 <style lang="scss" scoped>
 .cl-svg {
+	display: inline-block;
 	width: 1em;
 	height: 1em;
-	vertical-align: -0.15em;
 	fill: currentColor;
 	overflow: hidden;
 }

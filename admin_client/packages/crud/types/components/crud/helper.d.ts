@@ -1,5 +1,4 @@
-/// <reference types="../index" />
-import { Mitt } from "../../utils/mitt";
+import { Mitt } from '../../utils/mitt';
 interface Options {
     mitt: Mitt;
     config: ClCrud.Config;
@@ -7,7 +6,7 @@ interface Options {
 }
 export declare function useHelper({ config, crud, mitt }: Options): {
     proxy: (name: string, data?: any[]) => void;
-    set: (key: string, value: any) => false | undefined;
+    set: (key: string, value: any) => boolean;
     on: (name: string, callback: fn) => void;
     rowInfo: (data: any) => void;
     rowAdd: () => void;
@@ -19,5 +18,6 @@ export declare function useHelper({ config, crud, mitt }: Options): {
     getPermission: (key: "page" | "list" | "info" | "update" | "add" | "delete") => boolean;
     paramsReplace: (params: obj) => any;
     getParams: () => obj;
+    setParams: (data: obj) => void;
 };
 export {};

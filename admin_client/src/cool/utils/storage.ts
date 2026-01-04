@@ -1,8 +1,8 @@
-import store from "store";
+import store from 'store';
 
 export default {
 	// 后缀标识
-	suffix: "_deadtime",
+	suffix: '_deadtime',
 
 	/**
 	 * 获取
@@ -16,13 +16,13 @@ export default {
 	 * 获取全部
 	 */
 	info() {
-		const d: any = {};
+		const data: Record<string, any> = {};
 
-		store.each(function (value: any, key: any) {
-			d[key] = value;
+		store.each((value: any, key: any) => {
+			data[key] = value;
 		});
 
-		return d;
+		return data;
 	},
 
 	/**
@@ -31,11 +31,12 @@ export default {
 	 * @param {*} value 值
 	 * @param {number} expires 过期时间
 	 */
-	set(key: string, value: any, expires?: any) {
+	set(key: string, value: any, expires?: number) {
 		store.set(key, value);
 
 		if (expires) {
-			store.set(`${key}${this.suffix}`, Date.parse(String(new Date())) + expires * 1000);
+			const expirationTime = Date.now() + expires * 1000;
+			store.set(`${key}${this.suffix}`, expirationTime);
 		}
 	},
 
@@ -44,7 +45,8 @@ export default {
 	 * @param {string} key 关键字
 	 */
 	isExpired(key: string) {
-		return (this.getExpiration(key) || 0) - Date.parse(String(new Date())) <= 2000;
+		const expiration = this.getExpiration(key) || 0;
+		return expiration - Date.now() <= 2000;
 	},
 
 	/**

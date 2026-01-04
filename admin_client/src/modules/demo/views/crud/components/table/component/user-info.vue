@@ -9,7 +9,11 @@
 </template>
 
 <!-- name 必须填写且唯一 -->
-<script setup lang="ts" name="user-info">
+<script setup lang="ts">
+defineOptions({
+	name: 'user-info'
+});
+
 const props = defineProps({
 	prop: String, // 列配置的 prop
 	scope: null // 列数据

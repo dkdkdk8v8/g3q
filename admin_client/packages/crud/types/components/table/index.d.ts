@@ -1,16 +1,16 @@
-declare const _default: import("vue").DefineComponent<{
+declare const _default: import('vue').DefineComponent<import('vue').ExtractPropTypes<{
     columns: {
         type: ArrayConstructor;
-        default: () => never[];
+        default: () => any[];
     };
     autoHeight: {
         type: BooleanConstructor;
-        default: null;
+        default: any;
     };
-    height: null;
+    height: any;
     contextMenu: {
-        type: (BooleanConstructor | ArrayConstructor)[];
-        default: null;
+        type: (ArrayConstructor | BooleanConstructor)[];
+        default: any;
     };
     defaultSort: ObjectConstructor;
     sortRefresh: {
@@ -22,21 +22,21 @@ declare const _default: import("vue").DefineComponent<{
         type: StringConstructor;
         default: string;
     };
-}, () => false | import("vue").VNode<import("vue").RendererNode, import("vue").RendererElement, {
+}>, () => import('vue').VNode<import('vue').RendererNode, import('vue').RendererElement, {
     [key: string]: any;
-}>, unknown, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, ("selection-change" | "sort-change")[], "selection-change" | "sort-change", import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
+}>, {}, {}, {}, import('vue').ComponentOptionsMixin, import('vue').ComponentOptionsMixin, ("selection-change" | "sort-change")[], "selection-change" | "sort-change", import('vue').PublicProps, Readonly<import('vue').ExtractPropTypes<{
     columns: {
         type: ArrayConstructor;
-        default: () => never[];
+        default: () => any[];
     };
     autoHeight: {
         type: BooleanConstructor;
-        default: null;
+        default: any;
     };
-    height: null;
+    height: any;
     contextMenu: {
-        type: (BooleanConstructor | ArrayConstructor)[];
-        default: null;
+        type: (ArrayConstructor | BooleanConstructor)[];
+        default: any;
     };
     defaultSort: ObjectConstructor;
     sortRefresh: {
@@ -48,14 +48,15 @@ declare const _default: import("vue").DefineComponent<{
         type: StringConstructor;
         default: string;
     };
-}>> & {
-    "onSelection-change"?: ((...args: any[]) => any) | undefined;
-    "onSort-change"?: ((...args: any[]) => any) | undefined;
-}, {
+}>> & Readonly<{
+    "onSelection-change"?: (...args: any[]) => any;
+    "onSort-change"?: (...args: any[]) => any;
+}>, {
     columns: unknown[];
     autoHeight: boolean;
+    height: any;
     contextMenu: boolean | unknown[];
     sortRefresh: boolean;
     rowKey: string;
-}, {}>;
+}, {}, {}, {}, string, import('vue').ComponentProvideOptions, true, {}, any>;
 export default _default;

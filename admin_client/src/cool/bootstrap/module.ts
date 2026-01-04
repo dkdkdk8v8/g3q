@@ -1,22 +1,23 @@
-import { type App, type Directive } from "vue";
-import { assign, isFunction, orderBy } from "lodash-es";
-import { filename } from "../utils";
-import { module } from "../module";
-import { hmr } from "../hooks";
+import { type App, type Directive } from 'vue';
+import { assign, isFunction, orderBy, mergeWith } from 'lodash-es';
+import { filename } from '../utils';
+import { module } from '../module';
+import { hmr } from '../hooks';
+import { config } from '/@/config';
 
 // 扫描文件
-const files = import.meta.glob("/src/{modules,plugins}/*/{config.ts,service/**,directives/**}", {
+const files = import.meta.glob('/src/{modules,plugins}/*/{config.ts,service/**,directives/**}', {
 	eager: true,
-	import: "default"
+	import: 'default'
 });
 
 // 模块列表
-module.list = hmr.getData("modules", []);
+module.list = hmr.getData('modules', []);
 
 // 解析
 for (const i in files) {
 	// 分割
-	const [, , type, name, action] = i.split("/");
+	const [, , type, name, action] = i.split('/');
 
 	// 文件名
 	const n = filename(i);
@@ -37,11 +38,11 @@ for (const i in files) {
 	};
 
 	// 配置
-	if (action == "config.ts") {
+	if (action == 'config.ts') {
 		d.value = v;
 	}
 	// 服务
-	else if (action == "service") {
+	else if (action == 'service') {
 		const s = new (v as any)();
 
 		if (s) {
@@ -52,7 +53,7 @@ for (const i in files) {
 		}
 	}
 	// 指令
-	else if (action == "directives") {
+	else if (action == 'directives') {
 		d.directives?.push({ name: n, value: v as Directive });
 	}
 
@@ -64,7 +65,7 @@ for (const i in files) {
 // 创建
 export function createModule(app: App) {
 	// 排序
-	module.list.forEach((e) => {
+	module.list.forEach(e => {
 		const d = isFunction(e.value) ? e.value(app) : e.value;
 
 		if (d) {
@@ -76,24 +77,33 @@ export function createModule(app: App) {
 		}
 	});
 
-	const list = orderBy(module.list, "order", "desc").map((e) => {
-		// 初始化
-		e.install?.(app, e.options);
+	const list = orderBy(module.list, 'order', 'desc').map(e => {
+		if (e.enable !== false) {
+			// 初始化
+			e.install?.(app, e.options);
 
-		// 注册组件
-		e.components?.forEach(async (c) => {
-			// @ts-ignore
-			const v = await (isFunction(c) ? c() : c);
-			const n = v.default || v;
+			// 注册组件
+			e.components?.forEach(async (c: any) => {
+				const v = await (isFunction(c) ? c() : c);
+				const n = v.default || v;
 
-			if (n.name) {
-				app.component(n.name, n);
-			}
-		});
+				if (n.name) {
+					app.component(n.name, n);
+				}
+			});
 
-		// 注册指令
-		e.directives?.forEach((v) => {
-			app.directive(v.name, v.value);
+			// 注册指令
+			e.directives?.forEach(v => {
+				app.directive(v.name, v.value);
+			});
+
+			// 合并忽略配置
+			config.ignore = mergeWith({}, config.ignore, e.ignore, (a, b) => a?.concat(b));
+		}
+
+		// 附加值
+		e.pages?.forEach(v => {
+			v.isPage = true;
 		});
 
 		return e;

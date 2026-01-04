@@ -11,6 +11,8 @@ export async function virtual(): Promise<Plugin> {
 		"virtual:svg-icons",
 	];
 
+	createEps();
+
 	return {
 		name: "vite-cool-virtual",
 		enforce: "pre",

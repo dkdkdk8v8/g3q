@@ -1,11 +1,14 @@
 <template>
 	<div>
-		<div class="title">CRUD DEMO v7.0.0</div>
+		<div class="title">CRUD DEMO v8</div>
 
 		<cl-crud ref="Crud">
+			<div class="search">
+				<cl-search ref="Search" />
+			</div>
+
 			<cl-row>
 				<cl-add-btn />
-				<cl-adv-btn />
 
 				<cl-flex1 />
 
@@ -22,7 +25,7 @@
 						}
 					]"
 					refreshOnInput
-				></cl-search-key>
+				/>
 			</cl-row>
 
 			<cl-row>
@@ -35,13 +38,13 @@
 			</cl-row>
 
 			<cl-upsert ref="Upsert"></cl-upsert>
-			<cl-adv-search ref="AdvSearch"></cl-adv-search>
+			<cl-form ref="Form"></cl-form>
 		</cl-crud>
 	</div>
 </template>
 
 <script setup lang="tsx">
-import { useTable, useForm, useUpsert, useCrud } from "./hooks";
+import { useTable, useForm, useUpsert, useCrud, useSearch } from "./hooks";
 import { EditPen } from "@element-plus/icons-vue";
 
 interface Data {
@@ -57,27 +60,40 @@ const Upsert = useUpsert<Data>({
 			props: {
 				labels: [
 					{
-						label: "A",
+						label: "基础",
 						value: "A",
 						icon: EditPen
 					},
 					{
-						label: "B",
+						label: "高级",
 						value: "B"
 					}
 				]
 			}
 		},
 		{
-			group: "B",
+			group: "A",
 			prop: "age",
+			label: "年龄",
 			component: {
 				name: "el-input"
 			}
 		},
 		{
+			group: "A",
+			prop: "name",
+			label: "昵称",
+			component: {
+				name: "el-input"
+			},
+			hidden({ scope }) {
+				return scope.age < 18;
+			}
+		},
+		{
 			group: "B",
-			prop: "证书",
+			prop: "phone",
+			label: "手机",
 			component: {
 				name: "el-input"
 			},
@@ -88,69 +104,69 @@ const Upsert = useUpsert<Data>({
 		() => {
 			return {
 				group: "A",
-				hidden: Upsert.value?.mode == "add",
-				hook: {
-					bind(value, { form }) {
-						return "";
-					},
-					submit(value, { form }) {}
-				}
+				hidden: Upsert.value?.mode == "add"
 			};
 		}
 	],
 	onOpened(data) {
+		console.log(data);
 		Upsert.value?.setForm("age", "18");
 	}
 });
 
-const Table = useTable<Data>({
-	contextMenu: [
-		{
-			label: "带图标",
-			prefixIcon: EditPen
-		},
-		{
-			label: "多层级",
-			children: [
-				{
-					label: "A",
-					children: [
-						{
-							label: "A-1"
-						}
-					]
-				},
-				{
-					label: "B"
-				}
-			]
-		}
-	],
+const Table = useTable<Data>(
+	{
+		contextMenu: [
+			{
+				label: "带图标",
+				prefixIcon: EditPen
+			},
+			{
+				label: "多层级",
+				children: [
+					{
+						label: "A",
+						children: [
+							{
+								label: "A-1"
+							}
+						]
+					},
+					{
+						label: "B"
+					}
+				]
+			}
+		],
 
-	columns: [
-		{
-			label: "姓名",
-			prop: "name",
-			search: {
-				component: {
-					name: "el-date-picker"
+		columns: [
+			{
+				label: "姓名",
+				prop: "name",
+				search: {
+					component: {
+						name: "el-date-picker"
+					}
 				}
-			}
-		},
-		{
-			label: "手机号",
-			prop: "phone",
-			search: {
-				component: {
-					name: "el-date-picker"
+			},
+			{
+				label: "手机号",
+				prop: "phone",
+				search: {
+					component: {
+						name: "el-date-picker"
+					}
 				}
+			},
+			{
+				type: "op"
 			}
-		},
-		{
-			type: "op"
-		}
-	]
-});
+		]
+	},
+	(table) => {
+		console.log(table);
+	}
+);
 
 const Crud = useCrud(
 	{
@@ -162,6 +178,25 @@ const Crud = useCrud(
 );
 
 const Form = useForm<Data>();
+
+const Search = useSearch({
+	collapse: true,
+	resetBtn: true,
+	items: [
+		{
+			label: "姓名",
+			prop: "name",
+			component: {
+				name: "el-input"
+			},
+			hook: {
+				reset() {
+					return [];
+				}
+			}
+		}
+	]
+});
 </script>
 
 <style scoped>

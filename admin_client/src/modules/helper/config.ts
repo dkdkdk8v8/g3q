@@ -1,27 +1,30 @@
-import type { ModuleConfig } from "/@/cool";
-import { getRules } from "./utils";
+import { usePlugin } from './hooks';
+import { type ModuleConfig } from '/@/cool';
 
 export default (): ModuleConfig => {
 	return {
 		options: {
-			host: "/api"
+			index: 'https://cool-js.com',
+			api: 'https://service.cool-js.com/api'
 		},
 		toolbar: {
+			h5: false,
 			order: 1,
-			component: import("./components/auto-menu/btn.vue")
+			component: import('./components/ai-code/btn.vue')
 		},
 		pages: [
 			{
-				path: "/helper/ai-code",
+				path: '/helper/ai-code',
 				meta: {
-					label: "Ai 极速编码",
+					label: 'Ai 极速编码',
 					keepAlive: true
 				},
-				component: () => import("./views/ai-code.vue")
+				component: () => import('./views/ai-code.vue')
 			}
 		],
-		async onLoad() {
-			await getRules();
+		onLoad() {
+			const { register } = usePlugin();
+			register();
 		}
 	};
 };

@@ -1,16 +1,16 @@
 import { defineComponent, h, nextTick } from "vue";
-import { cloneDeep, isBoolean } from "lodash-es";
+import { assign, cloneDeep, isBoolean, isFunction, keys } from "lodash-es";
 import { useAction, useForm, usePlugins, useTabs } from "./helper";
 import { useBrowser, useConfig, useElApi, useRefs } from "../../hooks";
 import { getValue, merge } from "../../utils";
 import formHook from "../../utils/form-hook";
 import { renderNode } from "../../utils/vnode";
-import { parseFormHidden } from "../../utils/parse";
 
 export default defineComponent({
 	name: "cl-form",
 
 	props: {
+		name: String,
 		inner: Boolean,
 		inline: Boolean,
 		enablePlugin: {
@@ -39,7 +39,14 @@ export default defineComponent({
 
 		// 方法
 		const ElFormApi = useElApi(
-			["validate", "validateField", "resetFields", "scrollToField", "clearValidate"],
+			[
+				"validate",
+				"validateField",
+				"resetFields",
+				"scrollToField",
+				"clearValidate",
+				"fields"
+			],
 			Form
 		);
 
@@ -205,7 +212,7 @@ export default defineComponent({
 					Tabs.toGroup({
 						refs,
 						config,
-						prop: Object.keys(error)[0]
+						prop: keys(error)[0]
 					});
 				}
 			});
@@ -291,7 +298,7 @@ export default defineComponent({
 						if (e.required) {
 							e.rules = {
 								required: true,
-								message: `${e.label}${dict.label.nonEmpty}`
+								message: dict.label.nonEmpty.replace("{label}", e.label || "")
 							};
 						}
 					}
@@ -347,7 +354,7 @@ export default defineComponent({
 				deep(e);
 			});
 
-			Object.assign(form, data);
+			assign(form, data);
 		}
 
 		// 渲染表单项
@@ -361,7 +368,7 @@ export default defineComponent({
 			}
 
 			// 是否隐藏
-			e._hidden = parseFormHidden(e.hidden, {
+			e._hidden = parseHidden(e.hidden, {
 				scope: form
 			});
 
@@ -499,6 +506,7 @@ export default defineComponent({
 							size={style.size}
 							label-width={style.form.labelWidth}
 							inline={props.inline}
+							require-asterisk-position="right"
 							disabled={saving.value}
 							scroll-to-error
 							model={form}
@@ -535,7 +543,7 @@ export default defineComponent({
 			);
 		}
 
-		// 渲染表单按钮
+		// 渲染表单底部按钮
 		function renderFooter() {
 			const { hidden, buttons, saveButtonText, closeButtonText, justify } = config.op;
 
@@ -575,9 +583,7 @@ export default defineComponent({
 							custom() {
 								return (
 									<el-button
-										text
 										type={e.type}
-										bg
 										{...e.props}
 										onClick={() => {
 											e.onClick({ scope: form });
@@ -601,7 +607,19 @@ export default defineComponent({
 			);
 		}
 
-		expose({
+		// Tools
+		function parseHidden(value: any, { scope }: any) {
+			if (isBoolean(value)) {
+				return value;
+			} else if (isFunction(value)) {
+				return value({ scope });
+			}
+
+			return false;
+		}
+
+		const ctx = {
+			name: props.name,
 			refs,
 			Form,
 			visible,
@@ -624,7 +642,9 @@ export default defineComponent({
 			Tabs,
 			...Action,
 			...ElFormApi
-		});
+		};
+
+		expose(ctx);
 
 		return () => {
 			if (props.inner) {

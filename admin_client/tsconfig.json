@@ -1,48 +1,26 @@
 {
+	"extends": "@vue/tsconfig/tsconfig.dom.json",
 	"compilerOptions": {
-		"target": "esnext",
-		"module": "esnext",
-		"moduleResolution": "node",
-		"noImplicitAny": false,
-		"strict": true,
-		"jsx": "preserve",
-		"sourceMap": true,
-		"resolveJsonModule": true,
+		"target": "ESNext",
+		"module": "ESNext",
 		"experimentalDecorators": true,
-		"esModuleInterop": true,
-		"lib": [
-			"esnext",
-			"dom",
-			"WebWorker"
-		],
+		"verbatimModuleSyntax": false,
+		"noImplicitAny": false,
+
 		"types": [
-			"element-plus/global",
+			"./build/cool/eps",
+			"./env",
+			"@cool-vue/crud/index",
 			"@cool-vue/vite-plugin/client",
-			"./build/cool/eps.d.ts"
+			"element-plus/global"
 		],
 		"paths": {
-			"/@/*": [
-				"./src/*"
-			],
-			"/$/*": [
-				"./src/modules/*"
-			],
-			"/#/*": [
-				"./src/plugins/*"
-			],
-			"/~/*": [
-				"./packages/*"
-			]
+			"/@/*": ["./src/*"],
+			"/$/*": ["./src/modules/*"],
+			"/#/*": ["./src/plugins/*"],
+			"/~/*": ["./packages/*"]
 		}
 	},
-	"include": [
-		"src/**/*.ts",
-		"src/**/*.d.ts",
-		"src/**/*.tsx",
-		"src/**/*.vue"
-	],
-	"exclude": [
-		"node_modules",
-		"dist"
-	]
+	"include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
+	"exclude": ["node_modules", "dist"]
 }

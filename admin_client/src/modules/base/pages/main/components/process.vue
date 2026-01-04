@@ -1,58 +1,73 @@
 <template>
 	<div class="app-process">
 		<ul class="app-process__op">
-			<li class="item" @click="toBack">
-				<i class="cl-iconfont cl-icon-back"></i>
+			<li class="cl-comm__icon" @click="toBack">
+				<cl-svg name="back" />
 			</li>
-			<li class="item" @click="toRefresh">
-				<i class="cl-iconfont cl-icon-refresh"></i>
+			<li class="cl-comm__icon" @click="toRefresh">
+				<cl-svg name="refresh" />
 			</li>
-			<li class="item" @click="toHome">
-				<i class="cl-iconfont cl-icon-home"></i>
+			<li class="cl-comm__icon" @click="toHome">
+				<cl-svg name="home" />
 			</li>
 		</ul>
 
 		<div class="app-process__container">
 			<el-scrollbar :ref="setRefs('scroller')" class="app-process__scroller">
-				<div
-					v-for="(item, index) in process.list"
-					:key="index"
-					:ref="setRefs(`item-${index}`)"
-					class="app-process__item"
-					:class="{ active: item.active }"
-					:data-index="index"
-					@click="onTap(item, Number(index))"
-					@contextmenu.stop.prevent="openCM($event, item)"
-				>
-					<span>{{ item.meta?.label || item.name || item.path }}</span>
-					<el-icon @mousedown.stop="onDel(Number(index))">
-						<close-bold />
-					</el-icon>
+				<div class="app-process__list">
+					<div
+						v-for="(item, index) in process.list"
+						:key="index"
+						:ref="setRefs(`item-${index}`)"
+						class="app-process__item"
+						:class="{ active: item.active }"
+						:data-index="index"
+						@click="onTap(item, Number(index))"
+						@contextmenu.stop.prevent="openCM($event, item)"
+					>
+						<span class="label tracking-wider">
+							{{ item.meta.label || item.name || item.path }}
+						</span>
+
+						<cl-svg class="close" name="close" @mousedown.stop="onDel(Number(index))" />
+					</div>
 				</div>
 			</el-scrollbar>
 		</div>
+
+		<ul class="app-process__op">
+			<li class="cl-comm__icon" @click="toFull">
+				<cl-svg name="screen-normal" v-if="app.isFull" />
+				<cl-svg name="screen-full" v-else />
+			</li>
+		</ul>
 	</div>
 </template>
 
-<script lang="ts" name="app-process" setup>
-import { onMounted, watch } from "vue";
-import { last } from "lodash-es";
-import { useCool } from "/@/cool";
-import { CloseBold } from "@element-plus/icons-vue";
-import { ContextMenu } from "@cool-vue/crud";
-import { useBase, Process } from "/$/base";
+<script lang="ts" setup>
+defineOptions({
+	name: 'app-process'
+});
+
+import { onMounted, watch } from 'vue';
+import { last } from 'lodash-es';
+import { useCool } from '/@/cool';
+import { ContextMenu } from '@cool-vue/crud';
+import { useBase } from '/$/base';
+import { useI18n } from 'vue-i18n';
 
 const { refs, setRefs, route, router, mitt } = useCool();
-const { process } = useBase();
+const { process, app } = useBase();
+const { t } = useI18n();
 
 // 刷新当前路由
 function toRefresh() {
-	mitt.emit("view.refresh");
+	mitt.emit('view.refresh');
 }
 
 // 回首页
 function toHome() {
-	router.push("/");
+	router.push('/');
 }
 
 // 返回上一页
@@ -60,13 +75,18 @@ function toBack() {
 	router.back();
 }
 
+// 设置全屏
+function toFull() {
+	app.setFull(!app.isFull);
+}
+
 // 跳转
 function toPath() {
-	const d = process.list.find((e) => e.active);
+	const d = process.list.find(e => e.active);
 
 	if (!d) {
 		const next = last(process.list);
-		router.push(next ? next.fullPath : "/");
+		router.push(next ? next.fullPath : '/');
 	}
 }
 
@@ -74,7 +94,7 @@ function toPath() {
 function scrollTo(left: number) {
 	refs.scroller.wrapRef.scrollTo({
 		left,
-		behavior: "smooth"
+		behavior: 'smooth'
 	});
 }
 
@@ -102,32 +122,32 @@ function onDel(index: number) {
 // 右键菜单
 function openCM(e: any, item: Process.Item) {
 	ContextMenu.open(e, {
-		hover: {
-			target: "app-process__item"
-		},
 		list: [
 			{
-				label: "关闭当前",
-				hidden: item.fullPath !== route.path,
+				label: t('关闭当前'),
+				hidden: item.path !== route.path,
 				callback(done) {
-					onDel(process.list.findIndex((e) => e.fullPath == item.fullPath));
 					done();
+
+					process.close();
 					toPath();
 				}
 			},
 			{
-				label: "关闭其他",
+				label: t('关闭其他'),
 				callback(done) {
-					process.set(process.list.filter((e) => e.fullPath == item.fullPath));
 					done();
+
+					process.set(process.list.filter(e => e.fullPath == item.fullPath));
 					toPath();
 				}
 			},
 			{
-				label: "关闭所有",
+				label: t('关闭所有'),
 				callback(done) {
+					done();
+
 					process.clear();
-					done();
 					toPath();
 				}
 			}
@@ -138,24 +158,25 @@ function openCM(e: any, item: Process.Item) {
 watch(
 	() => route.path,
 	function (val) {
-		adScroll(process.list.findIndex((e) => e.fullPath === val) || 0);
+		adScroll(process.list.findIndex(e => e.fullPath === val) || 0);
 	}
 );
 
 onMounted(() => {
 	// 添加滚轮事件监听器
-	refs.scroller.wrapRef?.addEventListener("wheel", function (event: WheelEvent) {
-		// 阻止默认滚动行为
-		event.preventDefault();
+	refs.scroller.wrapRef?.addEventListener(
+		'wheel',
+		function (event: WheelEvent) {
+			// 滚动的速度因子，可以根据需要调整
+			const scrollSpeed = 2;
 
-		// 滚动的速度因子，可以根据需要调整
-		const scrollSpeed = 2;
+			// 计算滚动的距离
+			const distance = event.deltaY * scrollSpeed;
 
-		// 计算滚动的距离
-		const distance = event.deltaY * scrollSpeed;
-
-		scrollTo(refs.scroller.wrapRef.scrollLeft + distance);
-	});
+			scrollTo(refs.scroller.wrapRef.scrollLeft + distance);
+		},
+		{ passive: false }
+	);
 });
 </script>
 
@@ -163,50 +184,32 @@ onMounted(() => {
 .app-process {
 	display: flex;
 	align-items: center;
-	height: 30px;
 	position: relative;
-	margin: 0 0 10px 0;
-	padding: 0 10px;
+	padding: 5px 10px;
 	user-select: none;
+	background-color: var(--el-bg-color);
+	margin-bottom: 10px;
+	overflow: hidden;
 
 	&__op {
 		display: flex;
-		background-color: #fff;
-		height: 30px;
-		border-radius: 4px;
-		margin-right: 10px;
+		align-items: center;
 		list-style: none;
 
-		.item {
-			position: relative;
-			padding: 0 10px;
-			line-height: 30px;
-			color: #333;
-			cursor: pointer;
-			font-weight: bold;
+		.cl-comm__icon {
+			margin-right: 5px;
 
-			&:not(:last-child)::after {
-				display: block;
-				content: "";
-				position: absolute;
-				right: 0;
-				top: calc(50% - 5px);
-				height: 10px;
-				width: 1px;
-				background-color: #eee;
-			}
-
-			&:hover {
-				color: var(--el-color-primary);
+			&:last-child {
+				margin-right: 0;
 			}
 		}
 	}
 
 	&__container {
-		height: 30px;
+		height: 100%;
 		flex: 1;
 		position: relative;
-		overflow: hidden;
+		margin: 0 5px;
 	}
 
 	&__scroller {
@@ -221,56 +224,54 @@ onMounted(() => {
 	&__item {
 		display: inline-flex;
 		align-items: center;
-		border-radius: 4px;
-		height: 30px;
-		padding: 0 10px;
-		background-color: #fff;
-		font-size: 12px;
-		margin-right: 10px;
-		color: #909399;
+		justify-content: space-between;
+		height: 26px;
+		padding: 0 8px;
 		cursor: pointer;
+		color: var(--el-text-color-regular);
+		border-radius: var(--el-border-radius-base);
+		margin-right: 5px;
+		border: 1px solid var(--el-fill-color-dark);
 
-		.el-icon {
-			font-size: 13px;
+		.close {
 			width: 0;
 			overflow: hidden;
-			transition: all 0.3s;
-			color: #909399;
+			transition: width 0.2s ease-in-out;
+			font-size: 14px;
+			border-radius: 4px;
 			opacity: 0;
 
 			&:hover {
-				color: #f56c6c !important;
+				background-color: rgba(0, 0, 0, 0.1);
 			}
+		}
+
+		.label {
+			font-size: 12px;
+			line-height: 1;
 		}
 
 		&:last-child {
 			margin-right: 0;
 		}
 
-		&:hover {
-			&:not(.active) {
-				background-color: #eee;
-			}
+		&:hover:not(.active) {
+			background-color: var(--el-fill-color-light);
 		}
 
 		&.active {
-			background-color: var(--color-primary);
-
-			span {
-				color: #fff;
-			}
-
-			.el-icon {
-				color: #fff;
-			}
+			background-color: var(--el-color-primary);
+			border-color: var(--el-color-primary);
+			color: #fff;
 		}
 
 		&:hover,
 		&.active {
-			.el-icon {
+			.close {
+				margin-left: 10px;
+				margin-right: -2px;
+				width: 14px;
 				opacity: 1;
-				width: 13px;
-				margin-left: 5px;
 			}
 		}
 	}

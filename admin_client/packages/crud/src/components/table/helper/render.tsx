@@ -1,8 +1,7 @@
 import { h, useSlots } from "vue";
 import { useCore, useBrowser, useConfig } from "../../../hooks";
-import { cloneDeep, isEmpty, orderBy } from "lodash-es";
-import { getValue } from "../../../utils";
-import { parseTableDict, parseTableOpButtons } from "../../../utils/parse";
+import { assign, cloneDeep, isArray, isEmpty, isObject, isString, orderBy } from "lodash-es";
+import { deepFind, getValue } from "../../../utils";
 import { renderNode } from "../../../utils/vnode";
 import { renderHeader } from "./header";
 
@@ -42,24 +41,24 @@ export function useRender() {
 
 				// 操作按钮
 				if (item.type === "op") {
-					return h(
-						ElTableColumn,
+					const props = assign(
 						{
 							label: crud.dict.label.op,
 							width: style.table.column.opWidth,
-							fixed: browser.isMini ? null : "right",
-							...item
+							fixed: browser.isMini ? null : "right"
 						},
-						{
-							default: (scope: any) => {
-								return (
-									<div class="cl-table__op">
-										{parseTableOpButtons(item.buttons, { scope })}
-									</div>
-								);
-							}
-						}
+						item
 					);
+
+					return h(ElTableColumn, props, {
+						default: (scope: any) => {
+							return (
+								<div class="cl-table__op">
+									{renderOpButtons(item.buttons, { scope })}
+								</div>
+							);
+						}
+					});
 				}
 				// 多选，序号
 				else if (["selection", "index"].includes(item.type)) {
@@ -106,10 +105,23 @@ export function useRender() {
 											value,
 											scope.$index
 										);
+
+										if (isObject(value)) {
+											return value;
+										}
 									}
 
 									// 自定义渲染
-									if (item.component) {
+									if (item.render) {
+										return item.render(
+											scope.row,
+											scope.column,
+											value,
+											scope.$index
+										);
+									}
+									// 自定义渲染2
+									else if (item.component) {
 										return renderNode(item.component, {
 											prop: item.prop,
 											scope: scope.row,
@@ -122,7 +134,7 @@ export function useRender() {
 									}
 									// 字典状态
 									else if (item.dict) {
-										return parseTableDict(value, item);
+										return renderDict(value, item);
 									}
 									// 空数据
 									else if (isEmpty(value)) {
@@ -141,8 +153,156 @@ export function useRender() {
 			.filter(Boolean);
 	}
 
+	// 渲染操作按钮
+	function renderOpButtons(buttons: any, { scope }: any) {
+		const list = getValue(buttons || ["edit", "delete"], { scope }) as ClTable.OpButton;
+
+		return list.map((vnode) => {
+			if (vnode === "info") {
+				return (
+					<el-button
+						plain
+						size={style.size}
+						v-show={crud.getPermission("info")}
+						onClick={(e: MouseEvent) => {
+							crud.rowInfo(scope.row);
+							e.stopPropagation();
+						}}>
+						{crud.dict.label?.info}
+					</el-button>
+				);
+			} else if (vnode === "edit") {
+				return (
+					<el-button
+						text
+						type="primary"
+						size={style.size}
+						v-show={crud.getPermission("update")}
+						onClick={(e: MouseEvent) => {
+							crud.rowEdit(scope.row);
+							e.stopPropagation();
+						}}>
+						{crud.dict.label?.update}
+					</el-button>
+				);
+			} else if (vnode === "delete") {
+				return (
+					<el-button
+						text
+						type="danger"
+						size={style.size}
+						v-show={crud.getPermission("delete")}
+						onClick={(e: MouseEvent) => {
+							crud.rowDelete(scope.row);
+							e.stopPropagation();
+						}}>
+						{crud.dict.label?.delete}
+					</el-button>
+				);
+			} else {
+				if (typeof vnode === "object") {
+					if (vnode.hidden) {
+						return null;
+					}
+				}
+
+				return renderNode(vnode, {
+					scope,
+					slots,
+					custom(vnode) {
+						return (
+							<el-button
+								text
+								type={vnode.type}
+								{...vnode?.props}
+								onClick={(e: MouseEvent) => {
+									vnode.onClick({ scope });
+									e.stopPropagation();
+								}}>
+								{vnode.label}
+							</el-button>
+						);
+					}
+				});
+			}
+		});
+	}
+
+	// 渲染字典
+	function renderDict(value: any, item: ClTable.Column) {
+		// 选项列表
+		const list = cloneDeep(item.dict || []) as DictOptions;
+
+		// 字符串分隔符
+		const separator = item.dictSeparator === undefined ? "," : item.dictSeparator;
+
+		// 设置颜色
+		if (item.dictColor) {
+			list.forEach((e, i) => {
+				if (!e.color) {
+					e.color = style.colors[i];
+				}
+			});
+		}
+
+		// 绑定值
+		let values: any[] = [];
+
+		// 格式化值
+		if (isArray(value)) {
+			values = value;
+		} else if (isString(value)) {
+			if (separator) {
+				values = value.split(separator);
+			} else {
+				values = [value];
+			}
+		} else {
+			values = [value];
+		}
+
+		// 返回值
+		const result = values
+			.filter((e) => e !== undefined && e !== null && e !== "")
+			.map((v) => {
+				const d = deepFind(v, list, { allLevels: item.dictAllLevels }) || {
+					label: v,
+					value: v
+				};
+
+				return {
+					...d,
+					children: []
+				};
+			});
+
+		// 格式化返回
+		if (item.dictFormatter) {
+			return item.dictFormatter(result);
+		} else {
+			// tag 返回
+			return result.map((e) => {
+				return h(
+					<el-tag disable-transitions style="margin: 2px; border: 0" />,
+					{
+						type: e.type,
+						closable: e.closable,
+						hit: e.hit,
+						color: e.color,
+						size: e.size,
+						effect: e.effect || "dark",
+						round: e.round
+					},
+					{
+						default: () => <span>{e.label}</span>
+					}
+				);
+			});
+		}
+	}
+
 	// 插槽 empty
-	function renderEmpty(emptyText: String) {
+	function renderEmpty(emptyText: string) {
 		return (
 			<div class="cl-table__empty">
 				{slots.empty ? (

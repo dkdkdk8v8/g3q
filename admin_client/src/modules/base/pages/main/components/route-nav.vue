@@ -1,25 +1,29 @@
 <template>
 	<div class="route-nav">
-		<p v-if="browser.isMini" class="route-nav__title">
+		<el-text class="font-bold" v-if="browser.isMini">
 			{{ lastName }}
-		</p>
+		</el-text>
 
 		<template v-else>
-			<el-breadcrumb :separator-icon="ArrowRight">
+			<el-breadcrumb :separator-icon="ArrowRightBold">
 				<el-breadcrumb-item v-for="(item, index) in list" :key="index">
-					{{ item.meta?.label || item.name }}
+					<span class="text-[14px]">{{ item.meta?.label || item.name }}</span>
 				</el-breadcrumb-item>
 			</el-breadcrumb>
 		</template>
 	</div>
 </template>
 
-<script lang="ts" name="route-nav" setup>
-import { computed } from "vue";
-import { flattenDeep, last } from "lodash-es";
-import { ArrowRight } from "@element-plus/icons-vue";
-import { useCool } from "/@/cool";
-import { useBase } from "/$/base";
+<script lang="ts" setup>
+defineOptions({
+	name: 'route-nav'
+});
+
+import { computed } from 'vue';
+import { flattenDeep, last } from 'lodash-es';
+import { ArrowRightBold } from '@element-plus/icons-vue';
+import { useCool } from '/@/cool';
+import { useBase } from '/$/base';
 
 const { route, browser } = useCool();
 const { menu } = useBase();
@@ -27,7 +31,7 @@ const { menu } = useBase();
 // 数据列表
 const list = computed(() => {
 	function deep(item: any) {
-		if (route.path === "/") {
+		if (route.path === '/') {
 			return false;
 		}
 
@@ -52,21 +56,32 @@ const list = computed(() => {
 });
 
 // 最后一个节点名称
-const lastName = computed(() => last(list.value)?.name);
+const lastName = computed(() => last(list.value)?.meta?.label);
 </script>
 
 <style lang="scss" scoped>
 .route-nav {
 	white-space: nowrap;
-	font-size: 14px;
+	user-select: none;
+	margin-right: 10px;
 
 	:deep(.el-breadcrumb) {
-		margin: 0 10px;
-	}
+		.el-breadcrumb__separator {
+			font-size: 10px;
+			margin: 0 10px;
+		}
 
-	&__title {
-		font-weight: 500;
-		margin-left: 8px;
+		.el-breadcrumb__inner {
+			color: var(--el-text-color-regular);
+		}
+
+		.el-breadcrumb__item {
+			&:last-child {
+				.el-breadcrumb__inner {
+					color: var(--el-text-color-primary);
+				}
+			}
+		}
 	}
 }
 </style>

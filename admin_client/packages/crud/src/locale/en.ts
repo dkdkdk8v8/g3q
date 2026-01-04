@@ -15,7 +15,6 @@ export default {
 	advSearch: "Advanced Search",
 	searchKey: "Search Keyword",
 	placeholder: "Please enter",
-	placeholderSelect: "Please select",
 	tips: "Tips",
 	saveSuccess: "Save successful",
 	deleteSuccess: "Delete successful",
@@ -28,5 +27,7 @@ export default {
 	deselect: "Deselect",
 	seeMore: "See more",
 	hideContent: "Hide content",
-	nonEmpty: "Cannot be empty"
+	nonEmpty: "{label} cannot be empty",
+	collapse: "Collapse",
+	expand: "Expand"
 };

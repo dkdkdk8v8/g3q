@@ -94,13 +94,15 @@ export default defineComponent({
 				"sort",
 				"scrollTo",
 				"setScrollTop",
-				"setScrollLeft"
+				"setScrollLeft",
+				"updateKeyChildren"
 			],
 			Table
 		);
 
 		const ctx = {
 			Table,
+			config,
 			columns: config.columns,
 			...Selection,
 			...Data,
@@ -123,6 +125,9 @@ export default defineComponent({
 				h(
 					<el-table class="cl-table" ref={Table} v-loading={crud.loading} />,
 					{
+						...config.on,
+						...config.props,
+
 						// config
 						maxHeight: config.autoHeight ? ctx.maxHeight.value : null,
 						height: config.autoHeight ? config.height : null,
@@ -136,11 +141,11 @@ export default defineComponent({
 						onSortChange: ctx.onSortChange,
 
 						// style
-						size: style.size,
+						size: style.size || 'small',
 						border: style.table.border,
 						highlightCurrentRow: style.table.highlightCurrentRow,
 						resizable: style.table.resizable,
-						stripe: style.table.stripe
+						stripe: style.table.stripe,
 					},
 					{
 						default() {

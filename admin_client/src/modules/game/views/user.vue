@@ -18,7 +18,7 @@
 
     <cl-row>
       <!-- 数据表格 -->
-      <cl-table size="small" ref="Table" />
+      <cl-table ref="Table" />
     </cl-row>
 
     <cl-row>

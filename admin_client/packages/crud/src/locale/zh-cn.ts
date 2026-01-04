@@ -15,7 +15,6 @@ export default {
 	advSearch: "高级搜索",
 	searchKey: "搜索关键字",
 	placeholder: "请输入",
-	placeholderSelect: "请选择",
 	tips: "提示",
 	saveSuccess: "保存成功",
 	deleteSuccess: "删除成功",
@@ -27,5 +26,7 @@ export default {
 	deselect: "取消选择",
 	seeMore: "查看更多",
 	hideContent: "隐藏内容",
-	nonEmpty: "不能为空"
+	nonEmpty: "{label}不能为空",
+	collapse: "收起",
+	expand: "展开更多"
 };

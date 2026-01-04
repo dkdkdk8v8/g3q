@@ -1,5 +1,6 @@
-import { Ref, WatchStopHandle, getCurrentInstance, watch } from "vue";
+import { type Ref, type WatchStopHandle, getCurrentInstance, watch } from "vue";
 import { useConfig } from "../../../hooks";
+import { uniqueFns } from "../../../utils";
 
 export function usePlugins(enable: boolean, { visible }: { visible: Ref<boolean> }) {
 	const that: any = getCurrentInstance();
@@ -38,7 +39,7 @@ export function usePlugins(enable: boolean, { visible }: { visible: Ref<boolean>
 		}
 
 		// 执行
-		[...(style.form.plugins || []), ...plugins].forEach((p) => {
+		uniqueFns([...(style.form.plugins || []), ...plugins]).forEach((p) => {
 			const d: any = {
 				exposed: that.exposed
 			};

@@ -1,56 +1,58 @@
 <template>
-	<div class="cl-upload-space__wrap">
-		<slot>
-			<template v-if="showBtn">
-				<div class="cl-upload-space__wrap-list" v-show="urls.length > 0 && showList">
-					<cl-upload v-model="urls" disabled deletable draggable :multiple="multiple" />
-				</div>
-				<el-button @click="open">{{ text }}</el-button>
-			</template>
-		</slot>
+	<slot></slot>
 
-		<!-- 弹框 -->
-		<cl-dialog
-			v-model="visible"
-			:title="spaceConfig.title"
-			height="650px"
-			width="1070px"
-			padding="0"
-			keep-alive
-			:scrollbar="false"
-			:close-on-click-modal="false"
-			:close-on-press-escape="false"
-		>
-			<space-inner :ref="setRefs('inner')" v-bind="spaceConfig" @confirm="confirm" />
+	<!-- 按钮 -->
+	<el-button @click="open" v-if="showBtn">{{ btnText }}</el-button>
 
-			<template #footer>
-				<el-button @click="close">取消</el-button>
-				<el-button :disabled="selection.length == 0" type="success" @click="confirm()">
-					选择 {{ selection.length }}/{{ spaceConfig.limit }}
-				</el-button>
-			</template>
-		</cl-dialog>
+	<!-- 列表 -->
+	<div class="cl-upload-space__list" v-if="urls.length > 0 && showList">
+		<cl-upload v-model="urls" disabled deletable draggable :multiple="multiple" />
 	</div>
+
+	<!-- 弹框 -->
+	<cl-dialog
+		v-model="visible"
+		:title="config.title"
+		height="650px"
+		width="1070px"
+		padding="0"
+		keep-alive
+		:scrollbar="false"
+		:close-on-click-modal="false"
+		:close-on-press-escape="false"
+	>
+		<space-inner :ref="setRefs('inner')" v-bind="config" @confirm="confirm" />
+
+		<template #footer>
+			<el-button @click="close">{{ $t('取消') }}</el-button>
+			<el-button :disabled="selection.length == 0" type="success" @click="confirm()">
+				{{
+					$t('选择 {count}/{limit} 个', { count: selection.length, limit: config.limit })
+				}}
+			</el-button>
+		</template>
+	</cl-dialog>
 </template>
 
-<script lang="ts" setup name="cl-upload-space">
-import { computed, nextTick, onMounted, ref, watch } from "vue";
-import { useCool } from "/@/cool";
-import SpaceInner from "./space-inner.vue";
-import { isString } from "lodash-es";
+<script lang="ts" setup>
+defineOptions({
+	name: 'cl-upload-space'
+});
+
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { useCool } from '/@/cool';
+import SpaceInner from './space-inner.vue';
+import { assign, isString } from 'lodash-es';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
 	modelValue: [String, Array],
 	// 标题
-	title: {
-		type: String,
-		default: "文件空间"
-	},
+	title: String,
 	// 按钮文本
-	text: {
-		type: String,
-		default: "选择文件"
-	},
+	text: String,
 	// 是否多选
 	multiple: {
 		type: Boolean,
@@ -75,7 +77,7 @@ const props = defineProps({
 	}
 });
 
-const emit = defineEmits(["update:modelValue", "change", "confirm"]);
+const emit = defineEmits(['update:modelValue', 'change', 'confirm']);
 
 const { refs, setRefs } = useCool();
 
@@ -83,8 +85,8 @@ const { refs, setRefs } = useCool();
 const visible = ref(false);
 
 // 配置
-const spaceConfig = ref({
-	title: "",
+const config = ref({
+	title: '',
 	limit: 9
 });
 
@@ -94,16 +96,24 @@ const urls = ref<any[]>([]);
 // 选中列表
 const selection = computed<Eps.SpaceInfoEntity[]>(() => refs.inner?.selection || []);
 
+// 按钮文案
+const btnText = computed(() => {
+	return props.text || t('选择文件');
+});
+
 // 打开
 function open(options?: any) {
 	visible.value = true;
 
 	// 合并配置
-	spaceConfig.value = Object.assign({ ...props }, options);
+	config.value = assign(
+		{ ...props, title: props.title || t('文件空间'), text: props.text || t('点击上传') },
+		options
+	);
 
 	// 非多选情况
 	if (!props.multiple) {
-		spaceConfig.value.limit = 1;
+		config.value.limit = 1;
 	}
 
 	nextTick(() => {
@@ -119,14 +129,18 @@ function close() {
 // 确认
 function confirm(arr?: Eps.SpaceInfoEntity[]) {
 	const list = arr || selection.value;
+
 	// 读取文件地址
-	const keys = list.map((e) => e.url);
+	urls.value = list.map(e => e.url);
+
 	// 返回值
-	const key = props.multiple ? keys : keys[0];
+	const v = props.multiple ? urls.value : urls.value[0];
+
 	// 事件
-	emit("update:modelValue", key);
-	emit("change", key);
-	emit("confirm", list);
+	emit('update:modelValue', v);
+	emit('change', v);
+	emit('confirm', list);
+
 	// 关闭
 	close();
 }
@@ -134,7 +148,7 @@ function confirm(arr?: Eps.SpaceInfoEntity[]) {
 onMounted(() => {
 	watch(
 		() => props.modelValue,
-		(val) => {
+		val => {
 			if (val) {
 				urls.value = isString(val) ? [val] : val;
 			}
@@ -152,9 +166,7 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
-.cl-upload-space__wrap {
-	&-list {
-		margin-top: 10px;
-	}
+.cl-upload-space__list {
+	margin-top: 10px;
 }
 </style>

@@ -7,53 +7,42 @@
 	</div>
 </template>
 
-<script lang="ts">
-import { defineComponent, computed } from "vue";
-import { isArray, isString, last } from "lodash-es";
-import { Link } from "@element-plus/icons-vue";
+<script lang="ts" setup>
+defineOptions({
+	name: 'cl-link'
+});
 
-export default defineComponent({
-	name: "cl-link",
+import { computed } from 'vue';
+import { isArray, isString, last } from 'lodash-es';
+import { Link as IconLink } from '@element-plus/icons-vue';
 
-	components: {
-		"icon-link": Link
-	},
-
-	props: {
-		modelValue: [String, Array],
-		href: [String, Array],
-		text: String,
-		target: {
-			type: String,
-			default: "_blank"
-		}
-	},
-
-	setup(props) {
-		const urls = computed(() => {
-			const urls: any = props.modelValue || props.href;
-
-			if (isArray(urls)) {
-				return urls;
-			}
-
-			if (isString(urls)) {
-				return (urls || "").split(",").filter(Boolean);
-			}
-
-			return [];
-		});
-
-		function filename(url: string) {
-			return last(url.split("/"));
-		}
-
-		return {
-			urls,
-			filename
-		};
+const props = defineProps({
+	modelValue: [String, Array],
+	href: [String, Array],
+	text: String,
+	target: {
+		type: String,
+		default: '_blank'
 	}
 });
+
+const urls = computed(() => {
+	const urls: any = props.modelValue || props.href;
+
+	if (isArray(urls)) {
+		return urls;
+	}
+
+	if (isString(urls)) {
+		return (urls || '').split(',').filter(Boolean);
+	}
+
+	return [];
+});
+
+function filename(url: string) {
+	return last(url.split('/'));
+}
 </script>
 
 <style lang="scss" scoped>

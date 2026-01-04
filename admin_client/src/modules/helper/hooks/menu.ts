@@ -1,21 +1,29 @@
-import { ElMessage } from "element-plus";
-import type { EpsModule } from "../types";
-import { service } from "/@/cool";
-import { useCode } from "./code";
+import { ElMessage } from 'element-plus';
+import { service } from '/@/cool';
 
 export function useMenu() {
-	const { createVue } = useCode();
+	// 根据 router 删除菜单
+	async function del(router: string) {
+		const menus = await service.base.sys.menu.list();
+		const item = menus.find(e => e.router == router);
+		if (item) {
+			await service.base.sys.menu.delete({ ids: [item.id] });
+		}
+	}
 
 	// 创建菜单、权限、文件
 	function create(data: EpsModule): Promise<() => void> {
-		return new Promise((resolve, reject) => {
+		return new Promise(async (resolve, reject) => {
 			// 视图文件路径
 			data.viewPath = `modules/${data.module}/views${data.router?.replace(
 				`/${data.module}`,
-				""
+				''
 			)}.vue`;
 
-			// 添加菜单
+			// 删除原菜单
+			await del(data.router);
+
+			// 添加新菜单
 			service.base.sys.menu
 				.add({
 					type: 1,
@@ -23,12 +31,11 @@ export function useMenu() {
 					keepAlive: true,
 					...data,
 					api: undefined,
-					code: undefined,
-					columns: undefined
+					code: undefined
 				})
-				.then((res) => {
+				.then(res => {
 					// 权限列表
-					const perms = data.api?.map((e) => {
+					const perms = data.api?.map(e => {
 						const d = {
 							type: 2,
 							parentId: res.id,
@@ -36,33 +43,34 @@ export function useMenu() {
 							perms: [e.path]
 						};
 
-						if (e.path == "/update") {
-							if (data.api?.find((a) => a.path == "/info")) {
-								d.perms.push("/info");
+						if (e.path == '/update') {
+							if (data.api?.find(a => a.path == '/info')) {
+								d.perms.push('/info');
 							}
 						}
 
 						return {
 							...d,
 							perms: d.perms
-								.map((e) =>
-									(data.prefix?.replace("/admin/", "") + e).replace(/\//g, ":")
+								.map(e =>
+									(data.prefix?.replace('/admin/', '') + e).replace(/\//g, ':')
 								)
-								.join(",")
+								.join(',')
 						};
 					});
 
 					// 批量插入权限
 					service.base.sys.menu.add(perms).then(() => {
 						resolve(() => {
+							// 创建文件
 							service
 								.request({
-									url: "/__cool_createMenu",
-									method: "POST",
+									url: '/__cool_createFile',
+									method: 'POST',
 									proxy: false,
 									data: {
-										code: createVue(data),
-										...data
+										code: data.code,
+										path: data.viewPath
 									}
 								})
 								.then(() => {
@@ -71,7 +79,7 @@ export function useMenu() {
 						});
 					});
 				})
-				.catch((err) => {
+				.catch(err => {
 					ElMessage.error(err.message);
 					reject();
 				});
@@ -79,7 +87,7 @@ export function useMenu() {
 	}
 
 	return {
-		create,
-		createVue
+		del,
+		create
 	};
 }

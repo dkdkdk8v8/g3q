@@ -1,4 +1,3 @@
-/// <reference types="../index" />
 export declare function useRow({ Table, config, Sort }: {
     Table: Vue.Ref<any>;
     config: ClTable.Config;

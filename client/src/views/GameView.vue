@@ -699,14 +699,13 @@ const quitGame = () => {
             <!-- 自己区域 -->
 
             <div class="my-area" v-if="myPlayer">
-                <!-- Auto Join Banner -->
-                <transition name="fade">
-                    <div v-if="showAutoJoinMessage" class="auto-join-banner">
-                        上一局游戏未结束，自动进入此房间
-                    </div>
-                </transition>
-
                 <div class="controls-container">
+                    <!-- Auto Join Banner -->
+                    <transition name="fade">
+                        <div v-if="showAutoJoinMessage" class="auto-join-banner">
+                            上一局游戏未结束，自动进入此房间
+                        </div>
+                    </transition>
 
 
                     <div v-if="store.currentPhase === 'ROB_BANKER' && !myPlayer.isObserver" class="btn-group">
@@ -865,6 +864,48 @@ const quitGame = () => {
     backdrop-filter: blur(4px);
     margin-bottom: 10px;
 }
+
+/* Auto Join Banner Style */
+.auto-join-banner {
+    position: absolute;
+    top: 62%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, #fcd34d 0%, #d97706 100%);
+    /* Golden gradient */
+    color: #4a0404;
+    /* Dark red text for contrast */
+    font-size: 14px;
+    font-weight: bold;
+    padding: 15px 30px;
+    border-radius: 12px;
+    border: 3px solid #fefcbf;
+    /* Light yellow border */
+    box-shadow: 0 0 20px rgba(202, 169, 62, 0.8), 0 0 30px rgba(211, 177, 65, 0.5);
+    /* Glowing effect */
+    z-index: 5000;
+    text-align: center;
+    white-space: nowrap;
+    animation: bounce-in 0.8s ease-out;
+}
+
+@keyframes bounce-in {
+    0% {
+        transform: translate(-50%, -150%) scale(0.5);
+        opacity: 0;
+    }
+
+    70% {
+        transform: translate(-50%, -50%) scale(1.1);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+
 
 .loading-dots::after {
     content: '...';
@@ -1502,7 +1543,7 @@ const quitGame = () => {
     transition: left 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28);
     z-index: 5000;
     pointer-events: none;
-    width: 50vw;
+    width: 70vw;
     height: auto;
 }
 
@@ -1520,7 +1561,7 @@ const quitGame = () => {
     top: 40%;
     left: 50%;
     transform: translate(-50%, -50%) scale(0);
-    width: 60vw;
+    width: 70vw;
     height: auto;
     z-index: 6000;
     pointer-events: none;

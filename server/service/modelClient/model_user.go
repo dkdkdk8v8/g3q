@@ -16,9 +16,9 @@ type ModelUser struct {
 	LastPlayed time.Time `orm:"column(last_played);type(datetime);null" json:"-"`   // 最后游戏时间
 	IsRobot    bool      `orm:"column(is_robot);default(0)" json:"-"`               // 是否机器人
 	Enable     bool      `orm:"column(enable);default(0)" json:"-"`                 // 是否启用
-	Effect     bool      `orm:"column(effect);default(1)"`                          // 是否开启音效
-	Music      bool      `orm:"column(music);default(1)"`                           // 是否开启音乐
-	Talk       bool      `orm:"column(talk);default(1)"`                            // 是否开启聊天
+	Effect     bool      `orm:"column(effect);default(true)"`                       // 是否开启音效
+	Music      bool      `orm:"column(music);default(true)"`                        // 是否开启音乐
+	Talk       bool      `orm:"column(talk);default(true)"`                         // 是否开启聊天
 	CreateAt   time.Time `orm:"column(create_at);type(datetime);auto_now_add"`      // 创建时间
 	UpdateAt   time.Time `orm:"column(update_at);type(datetime);auto_now" json:"-"` // 更新时间
 }

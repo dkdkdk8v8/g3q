@@ -206,8 +206,6 @@ export default class GameClient {
                 } catch (err) {
                     console.error(`[Network] Error in push handler for ${msg.pushType}:`, err);
                 }
-            } else {
-                console.log(`[Network] No handler for pushType: ${msg.pushType}`);
             }
             return;
         }

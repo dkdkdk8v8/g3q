@@ -8,6 +8,8 @@ import DealingLayer from '../components/DealingLayer.vue';
 import ChatBubbleSelector from '../components/ChatBubbleSelector.vue';
 import { useRouter, useRoute } from 'vue-router';
 import { formatCoins } from '../utils/format.js';
+import gameClient from '../socket.js';
+import { showToast as vantToast } from 'vant';
 
 import talk0 from '@/assets/sounds/talk_0.mp3';
 import talk1 from '@/assets/sounds/talk_1.mp3';
@@ -21,6 +23,12 @@ import talk8 from '@/assets/sounds/talk_8.mp3';
 import talk9 from '@/assets/sounds/talk_9.mp3';
 import talk10 from '@/assets/sounds/talk_10.mp3';
 import gameBgSound from '@/assets/sounds/game_bg.mp3';
+import iconGameStart from '../assets/common/icon_game_start.png';
+import gameStartSound from '@/assets/sounds/game_start.mp3';
+import gameWinImg from '../assets/common/game_win.png';
+import gameLoseImg from '../assets/common/game_lose.png';
+import gameWinSound from '@/assets/sounds/game_win.mp3';
+import gameLoseSound from '@/assets/sounds/game_lose.mp3';
 
 const phraseSounds = [
     talk0, talk1, talk2, talk3, talk4, talk5, talk6, talk7, talk8, talk9, talk10
@@ -45,6 +53,12 @@ const dealingLayer = ref(null);
 const seatRefs = ref({}); // 存储所有座位的引用 key: playerId
 const tableCenterRef = ref(null); // 桌面中心元素引用
 const bgAudio = ref(null);
+const startAnimationClass = ref('');
+const showStartAnim = ref(false);
+const resultImage = ref('');
+const resultAnimClass = ref('');
+const showResultAnim = ref(false);
+const resultTypeClass = ref('');
 
 // Chat/Emoji selector state
 const showChatSelector = ref(false);
@@ -103,6 +117,7 @@ const lastRobotSpeechTime = ref(new Map());
 const ROBOT_SPEECH_PROBABILITY = 0.2;
 const ROBOT_SPEECH_CHECK_INTERVAL_SECONDS = 5;
 const ROBOT_SPEECH_COOLDOWN_SECONDS = 15;
+const showAutoJoinMessage = ref(false);
 
 const commonPhrases = [
     "猜猜我是牛几呀",
@@ -214,7 +229,7 @@ const myPlayer = computed(() => store.players.find(p => p.id === store.myPlayerI
 watch(() => settingsStore.musicEnabled, (val) => {
     if (bgAudio.value) {
         if (val) {
-            bgAudio.value.play().catch(() => {});
+            bgAudio.value.play().catch(() => { });
         } else {
             bgAudio.value.pause();
         }
@@ -288,6 +303,27 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
     if (newPhase === 'IDLE' || newPhase === 'GAME_OVER') {
         visibleCounts.value = {};
         lastBetStates.value = {};
+    } else if (newPhase === 'GAME_START_ANIMATION') {
+        startAnimationClass.value = '';
+        showStartAnim.value = true;
+
+        if (settingsStore.soundEnabled) {
+            const audio = new Audio(gameStartSound);
+            audio.play().catch(() => { });
+        }
+
+        setTimeout(() => {
+            startAnimationClass.value = 'enter';
+        }, 50);
+
+        setTimeout(() => {
+            startAnimationClass.value = 'leave';
+        }, 1550);
+
+        setTimeout(() => {
+            showStartAnim.value = false;
+            startAnimationClass.value = '';
+        }, 2550);
     } else if (newPhase === 'PRE_DEAL') {
         visibleCounts.value = {};
         setTimeout(() => {
@@ -335,6 +371,36 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
 
 
     if (newPhase === 'SETTLEMENT' && tableCenterRef.value && coinLayer.value) {
+        // Trigger Win/Loss Animation
+        const me = store.players.find(p => p.id === store.myPlayerId);
+        if (me) {
+            // Determine result (0 is also win/draw, but typically > 0 is win. Logic says >= 0 is win in display)
+            const isWin = me.roundScore >= 0;
+            resultImage.value = isWin ? gameWinImg : gameLoseImg;
+
+            if (settingsStore.soundEnabled) {
+                const audio = new Audio(isWin ? gameWinSound : gameLoseSound);
+                audio.play().catch(() => { });
+            }
+
+            showResultAnim.value = true;
+            resultAnimClass.value = ''; // Reset class
+
+            setTimeout(() => {
+                resultAnimClass.value = 'pop';
+            }, 50);
+
+            setTimeout(() => {
+                resultAnimClass.value = 'bounce';
+            }, 600);
+
+            // Cleanup
+            setTimeout(() => {
+                showResultAnim.value = false;
+                resultAnimClass.value = '';
+            }, 4000);
+        }
+
         const banker = store.players.find(p => p.isBanker);
         let bankerRect = null;
         if (banker) {
@@ -448,14 +514,12 @@ onMounted(() => {
     store.initGame(gameMode);
 
     if (route.query.autoJoin) {
-        // Display speech bubble for re-joining
-        setTimeout(() => {
-            playerSpeech.value.set(store.myPlayerId, { type: 'text', content: '上一局游戏未结束，自动进入房间' });
-        }, 500); // Small delay to ensure UI is ready
+        // Show prominent message for re-joining
+        showAutoJoinMessage.value = true;
 
         setTimeout(() => {
-            playerSpeech.value.delete(store.myPlayerId);
-        }, 3500);
+            showAutoJoinMessage.value = false;
+        }, 5000); // 5 seconds duration
 
         // Remove query param
         router.replace({ query: { ...route.query, autoJoin: undefined } });
@@ -466,10 +530,19 @@ onMounted(() => {
     bgAudio.value = new Audio(gameBgSound);
     bgAudio.value.loop = true;
     bgAudio.value.volume = 0.5;
-    
+
     if (settingsStore.musicEnabled) {
         bgAudio.value.play().catch(() => { });
     }
+
+    // Register handler for PlayerLeave response
+    gameClient.on('QZNN.PlayerLeave', (msg) => {
+        if (msg.code === 0) {
+            router.replace('/lobby');
+        } else {
+            vantToast(msg.msg || "退出失败");
+        }
+    });
 });
 
 onUnmounted(() => {
@@ -481,6 +554,7 @@ onUnmounted(() => {
         bgAudio.value.pause();
         bgAudio.value = null;
     }
+    gameClient.off('QZNN.PlayerLeave');
 });
 
 const onRob = (multiplier) => {
@@ -502,12 +576,14 @@ const openSettings = () => {
 };
 
 const quitGame = () => {
-    router.replace('/lobby');
+    gameClient.send("QZNN.PlayerLeave", { RoomId: store.roomId });
 };
 </script>
 
 <template>
     <div class="game-table">
+        <img v-if="showStartAnim" :src="iconGameStart" class="game-start-icon" :class="startAnimationClass" />
+        <img v-if="showResultAnim" :src="resultImage" class="result-icon" :class="resultAnimClass" />
         <DealingLayer ref="dealingLayer" />
         <CoinLayer ref="coinLayer" />
 
@@ -623,6 +699,13 @@ const quitGame = () => {
             <!-- 自己区域 -->
 
             <div class="my-area" v-if="myPlayer">
+                <!-- Auto Join Banner -->
+                <transition name="fade">
+                    <div v-if="showAutoJoinMessage" class="auto-join-banner">
+                        上一局游戏未结束，自动进入此房间
+                    </div>
+                </transition>
+
                 <div class="controls-container">
 
 
@@ -720,15 +803,18 @@ const quitGame = () => {
                     <div class="settings-list">
                         <div class="setting-item">
                             <span>背景音乐</span>
-                            <van-switch v-model="settingsStore.musicEnabled" size="24px" active-color="#13ce66" inactive-color="#ff4949" />
+                            <van-switch v-model="settingsStore.musicEnabled" size="24px" active-color="#13ce66"
+                                inactive-color="#ff4949" />
                         </div>
                         <div class="setting-item">
                             <span>游戏音效</span>
-                            <van-switch v-model="settingsStore.soundEnabled" size="24px" active-color="#13ce66" inactive-color="#ff4949" />
+                            <van-switch v-model="settingsStore.soundEnabled" size="24px" active-color="#13ce66"
+                                inactive-color="#ff4949" />
                         </div>
                         <div class="setting-item">
                             <span>屏蔽他人发言</span>
-                            <van-switch v-model="settingsStore.muteUsers" size="24px" active-color="#13ce66" inactive-color="#ff4949" />
+                            <van-switch v-model="settingsStore.muteUsers" size="24px" active-color="#13ce66"
+                                inactive-color="#ff4949" />
                         </div>
                     </div>
                 </div>
@@ -763,13 +849,15 @@ const quitGame = () => {
 
 /* Observer Banner Style */
 .observer-waiting-banner {
-    color: #fef3c7; /* Light gold/cream */
+    color: #fef3c7;
+    /* Light gold/cream */
     font-size: 16px;
     font-weight: bold;
     background: linear-gradient(to right, rgba(0, 0, 0, 0.7), rgba(17, 24, 39, 0.9), rgba(0, 0, 0, 0.7));
     padding: 10px 30px;
     border-radius: 24px;
-    border: 1px solid rgba(251, 191, 36, 0.4); /* Gold border */
+    border: 1px solid rgba(251, 191, 36, 0.4);
+    /* Gold border */
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     display: flex;
     align-items: center;
@@ -789,7 +877,7 @@ const quitGame = () => {
 
 @keyframes dots-loading {
     to {
-        width: 1.25em; 
+        width: 1.25em;
     }
 }
 
@@ -1404,5 +1492,46 @@ const quitGame = () => {
 .toast-fade-enter-from,
 .toast-fade-leave-to {
     opacity: 0;
+}
+
+.game-start-icon {
+    position: fixed;
+    top: 40%;
+    left: -50%;
+    transform: translate(-50%, -50%);
+    transition: left 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    z-index: 5000;
+    pointer-events: none;
+    width: 50vw;
+    height: auto;
+}
+
+.game-start-icon.enter {
+    left: 50%;
+}
+
+.game-start-icon.leave {
+    left: 150%;
+    transition: left 0.5s ease-in;
+}
+
+.result-icon {
+    position: fixed;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    width: 60vw;
+    height: auto;
+    z-index: 6000;
+    pointer-events: none;
+    transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.result-icon.pop {
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.result-icon.bounce {
+    transform: translate(-50%, -50%) scale(0.666);
 }
 </style>

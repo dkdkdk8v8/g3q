@@ -747,18 +747,19 @@ const toggleShowMenu = debounce(() => {
                     </transition>
 
 
-                    <div v-if="store.currentPhase === 'ROB_BANKER' && !myPlayer.isObserver" class="btn-group">
+                    <div v-if="store.currentPhase === 'ROB_BANKER' && !myPlayer.isObserver && myPlayer.robMultiplier === -1" class="btn-group">
                         <div class="game-btn blue" @click="onRob(0)">不抢</div>
-                        <div class="game-btn orange" @click="onRob(1)">1倍</div>
-                        <div class="game-btn orange" @click="onRob(2)">2倍</div>
-                        <div class="game-btn orange" @click="onRob(3)">3倍</div>
+                        <div v-for="mult in store.bankerMult.filter(m => m > 0)" :key="mult" class="game-btn orange"
+                            @click="onRob(mult)">
+                            {{ mult }}倍
+                        </div>
                     </div>
 
                     <div v-if="store.currentPhase === 'BETTING' && !myPlayer.isBanker && myPlayer.betMultiplier === 0 && !myPlayer.isObserver"
                         class="btn-group">
-                        <div class="game-btn orange" @click="onBet(1)">1倍</div>
-                        <div class="game-btn orange" @click="onBet(2)">2倍</div>
-                        <div class="game-btn orange" @click="onBet(5)">5倍</div>
+                        <div v-for="mult in store.betMult" :key="mult" class="game-btn orange" @click="onBet(mult)">
+                            {{ mult }}倍
+                        </div>
                     </div>
 
                     <div v-if="store.currentPhase === 'BETTING' && myPlayer.isBanker" class="waiting-text">

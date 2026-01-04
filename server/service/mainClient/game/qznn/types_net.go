@@ -56,3 +56,9 @@ type PushPlayerShowCardStruct struct {
 type PushRoomStruct struct {
 	Room *QZNNRoom
 }
+
+type PushTalkStruct struct {
+	UserId string
+	Type   int
+	Index  int
+}

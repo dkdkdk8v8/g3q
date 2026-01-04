@@ -286,6 +286,8 @@ func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, userId st
 		errRsp = handlePlayerShowCard(userId, msg.Data)
 	case qznn.CmdLobbyConfig: // 大厅配置请求
 		rsp.Data = handleLobbyConfig()
+	case qznn.CmdTalk:
+		errRsp = handlerPlayerTalk(userId, msg.Data)
 	case game.CmdSaveSetting: // 保存用户设置
 		errRsp = handleSaveSetting(userId, msg.Data)
 	default:
@@ -437,6 +439,30 @@ func handleSaveSetting(userId string, data []byte) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func handlerPlayerTalk(userId string, data []byte) error {
+	var req struct {
+		RoomId string
+		Type   int
+		Index  int
+	}
+	if err := json.Unmarshal(data, &req); err != nil {
+		return comm.ErrClientParam
+	}
+
+	room := game.GetMgr().GetRoomByRoomId(req.RoomId)
+	if room != nil {
+		room.Broadcast(comm.PushData{
+			Cmd:      comm.ServerPush,
+			PushType: qznn.PushTalk,
+			Data: qznn.PushTalkStruct{
+				UserId: userId,
+				Type:   req.Type,
+				Index:  req.Index}})
+	}
+
 	return nil
 }
 

@@ -560,6 +560,7 @@ func (r *QZNNRoom) tickBetting() {
 		p.Mu.RLock()
 		if p.ID == r.BankerID {
 			//庄家不压
+			p.Mu.RUnlock()
 			continue
 		}
 		if p.BetMult == -1 {

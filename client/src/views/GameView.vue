@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, computed, onUnmounted, ref, watch } from 'vue';
 import { useGameStore } from '../stores/game.js';
+import { useSettingsStore } from '../stores/settings.js';
 import PlayerSeat from '../components/PlayerSeat.vue';
 import CoinLayer from '../components/CoinLayer.vue';
 import DealingLayer from '../components/DealingLayer.vue';
@@ -26,6 +27,9 @@ const phraseSounds = [
 ];
 
 const playPhraseSound = (index) => {
+    // Check global sound setting
+    if (!settingsStore.soundEnabled) return;
+
     if (index >= 0 && index < phraseSounds.length) {
         const audio = new Audio(phraseSounds[index]);
         audio.play().catch(() => { });
@@ -33,6 +37,7 @@ const playPhraseSound = (index) => {
 };
 
 const store = useGameStore();
+const settingsStore = useSettingsStore();
 const router = useRouter();
 const route = useRoute();
 const coinLayer = ref(null);
@@ -43,6 +48,7 @@ const bgAudio = ref(null);
 
 // Chat/Emoji selector state
 const showChatSelector = ref(false);
+const showSettings = ref(false);
 const playerSpeech = ref(new Map());
 
 // Cooldown mechanism
@@ -147,6 +153,9 @@ const triggerRobotSpeech = (robotId, type, content) => {
 
 const startRobotSpeech = () => {
     robotSpeechInterval.value = setInterval(() => {
+        // If mute users is enabled, robots should be silent (visual and audio)
+        if (settingsStore.muteUsers) return;
+
         const currentPlayers = store.players;
         if (!currentPlayers || currentPlayers.length <= 1) {
             return;
@@ -200,6 +209,17 @@ const setSeatRef = (el, playerId) => {
 };
 
 const myPlayer = computed(() => store.players.find(p => p.id === store.myPlayerId));
+
+// Watch Music Setting
+watch(() => settingsStore.musicEnabled, (val) => {
+    if (bgAudio.value) {
+        if (val) {
+            bgAudio.value.play().catch(() => {});
+        } else {
+            bgAudio.value.pause();
+        }
+    }
+});
 
 const opponentSeats = computed(() => {
     const seats = [null, null, null, null]; // Represents client seats 1, 2, 3, 4
@@ -268,14 +288,21 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
     if (newPhase === 'IDLE' || newPhase === 'GAME_OVER') {
         visibleCounts.value = {};
         lastBetStates.value = {};
-    } else if (newPhase === 'ROB_BANKER') {
+    } else if (newPhase === 'PRE_DEAL') {
         visibleCounts.value = {};
+        setTimeout(() => {
+            startDealingAnimation();
+        }, 100);
+    } else if (newPhase === 'ROB_BANKER') {
+        if (oldPhase !== 'PRE_DEAL') {
+            visibleCounts.value = {};
+        }
         lastBetStates.value = {};
 
         // 只有看牌抢庄(mode != 0)才需要在抢庄阶段发牌
         if (store.gameMode !== 0) {
             setTimeout(() => {
-                startDealingAnimation();
+                startDealingAnimation(true);
             }, 100);
         }
     } else if (newPhase === 'DEALING') { // Changed from SHOWDOWN to DEALING for animation
@@ -350,7 +377,9 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
 }, { immediate: true });
 
 const startDealingAnimation = (isSupplemental = false) => {
-    visibleCounts.value = {}; // Reset visible counts to ensure full re-deal animation
+    if (!isSupplemental) {
+        visibleCounts.value = {}; // Reset visible counts ONLY if not supplemental
+    }
     if (!dealingLayer.value) return;
 
     const targets = [];
@@ -423,7 +452,10 @@ onMounted(() => {
     bgAudio.value = new Audio(gameBgSound);
     bgAudio.value.loop = true;
     bgAudio.value.volume = 0.5;
-    bgAudio.value.play().catch(() => { });
+    
+    if (settingsStore.musicEnabled) {
+        bgAudio.value.play().catch(() => { });
+    }
 });
 
 onUnmounted(() => {
@@ -448,6 +480,11 @@ const onBet = (multiplier) => {
 const openHistory = () => {
     showMenu.value = false;
     showHistory.value = true;
+};
+
+const openSettings = () => {
+    showMenu.value = false;
+    showSettings.value = true;
 };
 
 const quitGame = () => {
@@ -492,6 +529,10 @@ const quitGame = () => {
                     <div v-if="showMenu" class="menu-dropdown" @click.stop>
                         <div class="menu-item" @click="openHistory">
                             <van-icon name="balance-list-o" /> 投注记录
+                        </div>
+                        <div class="menu-divider"></div>
+                        <div class="menu-item" @click="openSettings">
+                            <van-icon name="setting-o" /> 游戏设置
                         </div>
                         <div class="menu-divider"></div>
                         <div class="menu-item danger" @click="quitGame">
@@ -650,6 +691,30 @@ const quitGame = () => {
                             <div class="h-row bottom">
                                 <span>余额: {{ formatCoins(item.balance) }}</span>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Modal -->
+            <div v-if="showSettings" class="modal-overlay">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>游戏设置</h3>
+                        <div class="close-icon" @click="showSettings = false">×</div>
+                    </div>
+                    <div class="settings-list">
+                        <div class="setting-item">
+                            <span>背景音乐</span>
+                            <van-switch v-model="settingsStore.musicEnabled" size="24px" active-color="#13ce66" inactive-color="#ff4949" />
+                        </div>
+                        <div class="setting-item">
+                            <span>游戏音效</span>
+                            <van-switch v-model="settingsStore.soundEnabled" size="24px" active-color="#13ce66" inactive-color="#ff4949" />
+                        </div>
+                        <div class="setting-item">
+                            <span>屏蔽他人发言</span>
+                            <van-switch v-model="settingsStore.muteUsers" size="24px" active-color="#13ce66" inactive-color="#ff4949" />
                         </div>
                     </div>
                 </div>
@@ -879,6 +944,25 @@ const quitGame = () => {
     margin-bottom: 10px;
     color: #cbd5e1;
     font-size: 12px;
+}
+
+.settings-list {
+    flex: 1;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: white;
+    font-size: 16px;
 }
 
 .h-row {

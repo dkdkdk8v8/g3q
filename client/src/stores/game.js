@@ -145,7 +145,7 @@ export const useGameStore = defineStore('game', () => {
             if (hand.length > 0) {
                 const res = calculateHandType(hand);
                 // Respect server if it sends result? Assuming local calc for now.
-                handResult = { type: res.type, typeName: res.typeName, multiplier: res.multiplier };
+                handResult = { type: res.type, typeName: res.typeName, multiplier: res.multiplier, bullIndices: res.bullIndices };
             }
 
             newPlayersData.push({
@@ -580,7 +580,7 @@ export const useGameStore = defineStore('game', () => {
         // 计算每个人的牌型 (数据先算好，展示由 isShowHand 控制)
         players.value.forEach(p => {
             const result = calculateHandType(p.hand);
-            p.handResult = { type: result.type, typeName: result.typeName, multiplier: result.multiplier };
+            p.handResult = { type: result.type, typeName: result.typeName, multiplier: result.multiplier, bullIndices: result.bullIndices };
             // p.hand = result.sortedCards; // 暂时不排序，以免打乱补牌动画顺序，或者在最后统一排序
         });
     };

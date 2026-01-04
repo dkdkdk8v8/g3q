@@ -136,12 +136,12 @@ export function calculateHandType(cards) {
           else if (bullValue === 7) { type = 'BULL_7'; typeName = '牛七'; multiplier = 2; }
           else { type = `BULL_${bullValue}`; typeName = `牛${bullValue}`; multiplier = 1; }
 
-          return { type, typeName, multiplier, sortedCards: sorted };
+          return { type, typeName, multiplier, sortedCards: sorted, bullIndices: [i, j, k] };
         }
       }
     }
   }
 
   // 没牛
-  return { type: 'NO_BULL', typeName: '没牛', multiplier: 1, sortedCards: cards };
+  return { type: 'NO_BULL', typeName: '没牛', multiplier: 1, sortedCards: cards, bullIndices: [] };
 }

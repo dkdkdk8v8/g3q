@@ -382,7 +382,9 @@ func (r *QZNNRoom) prepareDeck() {
 
 		// 尝试从剩余牌堆中寻找符合目标分数的牌
 		foundCards := GetCardsByNiu(r.Deck, targetScore)
-
+		rand.Shuffle(len(foundCards), func(i, j int) {
+			foundCards[i], foundCards[j] = foundCards[j], foundCards[i]
+		})
 		if foundCards != nil {
 			p.Cards = foundCards
 			// 从牌堆中移除这些牌

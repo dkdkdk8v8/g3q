@@ -59,9 +59,6 @@ func (rm *RoomManager) GetRoomByRoomId(roomId string) *qznn.QZNNRoom {
 }
 
 func (rm *RoomManager) JoinOrCreateNNRoom(player *qznn.Player, level int, bankerType int) (*qznn.QZNNRoom, error) {
-	rm.mu.Lock()
-	defer rm.mu.Unlock()
-
 	// 如果处于排空模式，拒绝新的匹配请求
 	if rm.isDraining {
 		return nil, comm.NewMyError(500002, "服务器正在准备更新,请稍后再试")
@@ -93,8 +90,9 @@ func (rm *RoomManager) JoinOrCreateNNRoom(player *qznn.Player, level int, banker
 	newRoom := qznn.NewRoom(roomID, bankerType, level)
 	newRoom.AddPlayer(player)
 	newRoom.OnBotAction = nil //RobotForQZNNRoom
+	rm.mu.Lock()
 	rm.QZNNRooms[roomID] = newRoom
-
+	rm.mu.Unlock()
 	return newRoom, nil
 }
 

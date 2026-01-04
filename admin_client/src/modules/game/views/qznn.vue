@@ -139,7 +139,7 @@ const errorMessage = ref("");
 const filterLevel = ref("");
 const filterType = ref("");
 
-const filteredList = computed(() => {
+const filteredList = computed<any[]>(() => {
   const all = Object.values(list.value);
   if (!filterLevel.value && !filterType.value) return all;
 
@@ -154,13 +154,14 @@ const filteredList = computed(() => {
 const stateMap: Record<string, string> = {
   StateWaiting: "等待中",
   StatePrepare: "准备中",
+  StateStartGame: "开始游戏",
   StatePreCard: "预发牌",
-  StateBanking: "抢庄中",
+  StateBanking: "玩家抢庄",
   StateRandomBank: "随机抢庄",
   StateBankerConfirm: "确认庄家",
-  StateBetting: "下注中",
+  StateBetting: "玩家下注",
   StateDealing: "发牌中",
-  StateShowCard: "亮牌中",
+  StateShowCard: "玩家摊牌",
   StateSettling: "结算中",
   StateSettlingDirectPreCard: "即将下一局",
 };
@@ -168,15 +169,16 @@ const stateMap: Record<string, string> = {
 const stateTypeMap: Record<string, string> = {
   StateWaiting: "info",
   StatePrepare: "info",
-  StatePreCard: "info",
-  StateBanking: "warning",
-  StateRandomBank: "warning",
-  StateBankerConfirm: "warning",
-  StateBetting: "primary",
-  StateDealing: "primary",
-  StateShowCard: "primary",
-  StateSettling: "success",
-  StateSettlingDirectPreCard: "success",
+  StateStartGame: "success",
+  StatePreCard: "success",
+  StateBanking: "success",
+  StateRandomBank: "success",
+  StateBankerConfirm: "success",
+  StateBetting: "success",
+  StateDealing: "success",
+  StateShowCard: "success",
+  StateSettling: "danger",
+  StateSettlingDirectPreCard: "info",
 };
 
 const levelMap: Record<string, string> = {

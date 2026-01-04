@@ -105,9 +105,9 @@ export const useGameStore = defineStore('game', () => {
         let myServerSeatNum = -1;
         const storeUserId = userStore.userInfo.user_id;
 
-        // Strategy: prefer storeUserId, then currentUserId (from push), then existing myPlayerId
-        let myId = storeUserId;
-        if (!myId && currentUserId) myId = currentUserId;
+        // Strategy: prefer currentUserId (from push/SelfId), then storeUserId, then existing myPlayerId
+        let myId = currentUserId;
+        if (!myId) myId = storeUserId;
         if (!myId || myId === 'me') {
             if (myPlayerId.value && myPlayerId.value !== 'me') {
                 myId = myPlayerId.value;
@@ -265,7 +265,7 @@ export const useGameStore = defineStore('game', () => {
 
             // 2. Update Players
             if (room.Players) {
-                updatePlayersList(room.Players, room.BankerID, data.UserId);
+                updatePlayersList(room.Players, room.BankerID, data.SelfId || data.UserId);
             }
         }
 
@@ -286,6 +286,7 @@ export const useGameStore = defineStore('game', () => {
             let targetPhase = null;
             if (normalizedState === 'StateWaiting') targetPhase = 'WAITING_FOR_PLAYERS';
             else if (normalizedState === 'StatePrepare') targetPhase = 'READY_COUNTDOWN';
+            else if (normalizedState === 'StateStartGame') targetPhase = 'GAME_START_ANIMATION';
             else if (normalizedState === 'StatePreCard') targetPhase = 'PRE_DEAL';
             else if (normalizedState === 'StateBanking') targetPhase = 'ROB_BANKER';
             else if (normalizedState === 'StateRandomBank') targetPhase = 'BANKER_SELECTION_ANIMATION';
@@ -327,7 +328,6 @@ export const useGameStore = defineStore('game', () => {
 
                 // Check if different
                 if (currentPhase.value !== targetPhase) {
-                    console.log(`[GameStore] State Switch: ${currentPhase.value} -> ${targetPhase}`);
 
                     stopAllTimers(); // Stop previous timers
                     currentPhase.value = targetPhase;
@@ -562,7 +562,7 @@ export const useGameStore = defineStore('game', () => {
 
             const targetCount = 5;
             const currentCount = p.hand ? p.hand.length : 0;
-            
+
             if (!p.hand) p.hand = [];
 
             if (currentCount < targetCount) {

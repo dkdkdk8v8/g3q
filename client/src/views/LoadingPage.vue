@@ -21,15 +21,20 @@
 </template>
 
 <script>
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import gameClient from '../socket.js'; // Use singleton
 import { useUserStore } from '../stores/user.js';
 import { useSettingsStore } from '../stores/settings.js';
+import { useGameStore } from '../stores/game.js';
 
 export default {
   name: 'LoadingPage',
   setup() {
+    onUnmounted(() => {
+      gameClient.offServerPush('PushRouter');
+    });
+
     const ipAddress = ref('');
     const appId = ref('');
     const userId = ref('');
@@ -38,6 +43,7 @@ export default {
     const router = useRouter();
     const userStore = useUserStore();
     const settingsStore = useSettingsStore();
+    const gameStore = useGameStore();
 
     const LOCAL_STORAGE_IP_KEY = 'game_server_ip';
 
@@ -110,11 +116,12 @@ export default {
 
       let hasUserInfo = false;
       let hasLobbyConfig = false;
+      let targetRoute = '';
 
       const checkReady = () => {
-        if (hasUserInfo && hasLobbyConfig) {
+        if (hasUserInfo && hasLobbyConfig && targetRoute) {
           isLoading.value = false; // Stop loading
-          router.push('/lobby');
+          router.push(targetRoute);
         }
       };
 
@@ -145,7 +152,6 @@ export default {
       // Register handler for UserInfo
       gameClient.on('UserInfo', (msg) => {
         if (msg.code === 0 && msg.data) {
-          console.log("[LoadingPage] Received user info:", msg.data);
           userStore.updateUserInfo({
             user_id: msg.data.UserId,
             balance: msg.data.Balance,
@@ -164,7 +170,6 @@ export default {
       // Register handler for QZNN.LobbyConfig
       gameClient.on('QZNN.LobbyConfig', (msg) => {
         if (msg.code === 0 && msg.data && msg.data.LobbyConfigs) {
-          console.log("[LoadingPage] Received lobby config:", msg.data);
           // Map lobby_configs from server to store
           const mappedConfigs = msg.data.LobbyConfigs.map(cfg => ({
             level: cfg.Level,
@@ -178,6 +183,19 @@ export default {
         } else {
           isLoading.value = false; // Stop loading on lobby config fetch error
           errorMessage.value = `获取大厅配置失败: ${msg.msg}`;
+        }
+      });
+
+      // Register PushRouter handler
+      gameClient.onServerPush('PushRouter', (data) => {
+        console.log("[LoadingPage] Received PushRouter:", data);
+        if (data && data.Router) {
+            if (data.Router === 'lobby') {
+                targetRoute = '/lobby';
+            } else if (data.Router === 'game') {
+                targetRoute = '/game?autoJoin=true';
+            }
+            checkReady();
         }
       });
 

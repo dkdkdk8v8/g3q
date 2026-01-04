@@ -5,12 +5,7 @@
 			<cl-add-btn />
 			<cl-multi-delete-btn />
 			<cl-flex1 />
-			<cl-select
-				:options="options.dataType"
-				prop="dataType"
-				:width="120"
-				:placeholder="$t('数据类型')"
-			/>
+			<cl-select :options="options.dataType" prop="dataType" :width="120" :placeholder="$t('数据类型')" />
 			<cl-search-key :placeholder="$t('搜索名称、keyName')" />
 		</cl-row>
 
@@ -71,17 +66,17 @@ const Table = useTable({
 	columns: [
 		{
 			type: 'selection',
-			width: 60
+			width: 50
 		},
 		{
 			label: t('名称'),
 			prop: 'name',
-			minWidth: 150
+			minWidth: 100
 		},
 		{
 			label: 'keyName',
 			prop: 'keyName',
-			minWidth: 150
+			minWidth: 100
 		},
 		{
 			label: '数据',
@@ -97,7 +92,7 @@ const Table = useTable({
 		{
 			label: t('数据类型'),
 			prop: 'dataType',
-			minWidth: 120,
+			minWidth: 100,
 			dict: options.dataType
 		},
 		{
@@ -107,7 +102,22 @@ const Table = useTable({
 			showOverflowTooltip: true
 		},
 		{
-			type: 'op'
+			type: 'op',
+			buttons: [
+				{
+					label: "复制",
+					type: "success",
+					onClick({ scope }) {
+						Crud.value?.rowAppend({
+							name: scope.row.name,
+							keyName: scope.row.keyName,
+							dataType: scope.row.dataType,
+							data: scope.row.data,
+							remark: scope.row.remark,
+						});
+					}
+				}, 'edit'
+			]
 		}
 	]
 });

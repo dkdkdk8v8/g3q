@@ -60,8 +60,8 @@ declare type obj = {
 declare type DeepPartial<T> = T extends Function
 	? T
 	: T extends object
-		? { [P in keyof T]?: DeepPartial<T[P]> }
-		: T;
+	? { [P in keyof T]?: DeepPartial<T[P]> }
+	: T;
 
 // 合并
 declare type Merge<A, B> = Omit<A, keyof B> & B;
@@ -103,12 +103,12 @@ declare namespace Render {
 	type OpButton =
 		| `slot-${string}`
 		| {
-				label: string;
-				type?: string;
-				hidden?: boolean;
-				onClick(options: { scope: obj }): void;
-				[key: string]: any;
-		  };
+			label: string;
+			type?: string;
+			hidden?: boolean;
+			onClick(options: { scope: obj }): void;
+			[key: string]: any;
+		};
 
 	interface Props {
 		onChange?(value: any): void;
@@ -464,21 +464,21 @@ declare namespace ClForm {
 
 	interface Rule {
 		type?:
-			| "string"
-			| "number"
-			| "boolean"
-			| "method"
-			| "regexp"
-			| "integer"
-			| "float"
-			| "array"
-			| "object"
-			| "enum"
-			| "date"
-			| "url"
-			| "hex"
-			| "email"
-			| "any";
+		| "string"
+		| "number"
+		| "boolean"
+		| "method"
+		| "regexp"
+		| "integer"
+		| "float"
+		| "array"
+		| "object"
+		| "enum"
+		| "date"
+		| "url"
+		| "hex"
+		| "email"
+		| "any";
 		required?: boolean;
 		message?: string;
 		min?: number;
@@ -491,17 +491,17 @@ declare namespace ClForm {
 	interface Hook {
 		Fn: (value: any, options: { form: obj; prop: string; method: "submit" | "bind" }) => any;
 		Key:
-			| "number"
-			| "string"
-			| "split"
-			| "join"
-			| "boolean"
-			| "booleanNumber"
-			| "datetimeRange"
-			| "splitJoin"
-			| "json"
-			| "empty"
-			| AnyString;
+		| "number"
+		| "string"
+		| "split"
+		| "join"
+		| "boolean"
+		| "booleanNumber"
+		| "datetimeRange"
+		| "splitJoin"
+		| "json"
+		| "empty"
+		| AnyString;
 		Pipe: Hook["Key"] | Hook["Fn"];
 		Event: {
 			bind?: Hook["Pipe"] | Hook["Pipe"][];
@@ -686,7 +686,7 @@ declare namespace ClAdvSearch {
 		onSearch?(data: T, options: { next: ClCrud.Service["api"]["page"]; close(): void }): void;
 	}
 
-	interface Ref<T = any> extends ClForm.Ref<T> {}
+	interface Ref<T = any> extends ClForm.Ref<T> { }
 
 	interface Options<T = any> extends DeepPartial<Config<T>> {
 		items?: ClForm.Items<T>;
@@ -743,11 +743,11 @@ declare namespace ClContextMenu {
 	interface Options {
 		class?: string;
 		hover?:
-			| boolean
-			| {
-					target?: string;
-					className?: string;
-			  };
+		| boolean
+		| {
+			target?: string;
+			className?: string;
+		};
 		list?: Item[];
 	}
 

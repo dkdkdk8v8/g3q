@@ -181,10 +181,15 @@ func (r *QZNNRoom) kickOffByWsDisconnect() ([]string, bool) {
 		if p.IsRobot {
 			continue
 		}
-		if p.ConnWrap.WsConn == nil {
+		// 安全地检查连接状态
+		p.Mu.RLock()
+		conn := p.ConnWrap
+		p.Mu.RUnlock()
+		if conn == nil || !conn.IsConnected() {
 			delIndex = append(delIndex, i)
 		}
 	}
+
 	r.PlayerMu.RUnlock()
 
 	if len(delIndex) <= 0 {
@@ -287,15 +292,24 @@ func (r *QZNNRoom) Broadcast(msg interface{}) {
 	r.PlayerMu.RLock()
 	defer r.PlayerMu.RUnlock()
 	for _, p := range r.Players {
-		if p != nil && p.ConnWrap != nil && p.ConnWrap.WsConn != nil {
-			_ = p.ConnWrap.WsConn.WriteJSON(msg)
+		if p != nil {
+			r.PushPlayer(p, msg)
 		}
 	}
 }
 
 func (r *QZNNRoom) PushPlayer(p *Player, msg interface{}) {
-	if p != nil && p.ConnWrap != nil && p.ConnWrap.WsConn != nil {
-		_ = p.ConnWrap.WsConn.WriteJSON(msg)
+	if p == nil {
+		return
+	}
+	// 安全地读取 ConnWrap 指针
+	p.Mu.RLock()
+	conn := p.ConnWrap
+	p.Mu.RUnlock()
+
+	// 使用线程安全的 WriteJSON 方法
+	if conn != nil && conn.IsConnected() {
+		_ = conn.WriteJSON(msg)
 	}
 }
 
@@ -303,9 +317,16 @@ func (r *QZNNRoom) BroadcastWithPlayer(getMsg func(*Player) interface{}) {
 	r.PlayerMu.RLock()
 	defer r.PlayerMu.RUnlock()
 	for _, p := range r.Players {
-		if p != nil && p.ConnWrap != nil && p.ConnWrap.WsConn != nil {
-			msg := getMsg(p)
-			_ = p.ConnWrap.WsConn.WriteJSON(msg)
+		if p == nil {
+			continue
+		}
+		p.Mu.RLock()
+		conn := p.ConnWrap
+		msg := getMsg(p) // 在 player 锁保护下调用 getMsg
+		p.Mu.RUnlock()
+
+		if conn != nil && conn.IsConnected() {
+			_ = conn.WriteJSON(msg)
 		}
 	}
 }
@@ -314,11 +335,8 @@ func (r *QZNNRoom) BroadcastExclude(msg interface{}, excludeId string) {
 	r.PlayerMu.RLock()
 	defer r.PlayerMu.RUnlock()
 	for _, p := range r.Players {
-		if p == nil || p.ID == excludeId {
-			continue
-		}
-		if p.ConnWrap != nil && p.ConnWrap.WsConn != nil {
-			_ = p.ConnWrap.WsConn.WriteJSON(msg)
+		if p != nil && p.ID != excludeId {
+			r.PushPlayer(p, msg)
 		}
 	}
 }

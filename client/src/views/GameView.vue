@@ -230,6 +230,10 @@ const setSeatRef = (el, playerId) => {
 
 const myPlayer = computed(() => store.players.find(p => p.id === store.myPlayerId));
 
+watch(() => myPlayer.value?.betMultiplier, (newVal) => {
+    console.log(`[GameView Debug] myPlayer.betMultiplier changed to: ${newVal}`);
+}, { immediate: true });
+
 // Watch Music Setting
 watch(() => settingsStore.musicEnabled, (val) => {
     if (bgAudio.value) {

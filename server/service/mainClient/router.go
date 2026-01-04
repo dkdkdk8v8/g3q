@@ -20,7 +20,14 @@ func InitWebHandler(engine *gin.Engine) error {
 	ipLimiterGroup := baseGroup
 	ipLimiterGroup.GET("/api/health", comm.Health)
 	ipLimiterGroup.GET("/api-speed", comm.ApiSpeed)
-	ipLimiterGroup.GET("/rpc/qznn-data", RpcQZNNData)
 
+	return nil
+}
+
+func InitAdminWebHandler(engine *gin.Engine) error {
+	// 基础中间件：仅保留限流和跨域，这对 WebSocket 握手是友好的
+	baseGroup := engine.Use(comm.MidOptionCors)
+	baseGroup.GET("/rpc/ws", WSEntry)
+	baseGroup.GET("/rpc/qznn-data", RpcQZNNData)
 	return nil
 }

@@ -1,6 +1,7 @@
 package qznn
 
 import (
+	"fmt"
 	"math/rand"
 	"service/comm"
 	"time"
@@ -35,6 +36,16 @@ func (r *QZNNRoom) CheckStatus(state RoomState) bool {
 	r.StateMu.RLock()
 	defer r.StateMu.RUnlock()
 	return r.State == state
+}
+
+func (r *QZNNRoom) CheckStatusDo(state RoomState, fn func()) error {
+	r.StateMu.RLock()
+	defer r.StateMu.RUnlock()
+	if r.State != state {
+		return fmt.Errorf("room state is %s, expect %s", r.State, state)
+	}
+	fn()
+	return nil
 }
 
 func (r *QZNNRoom) SetStatus(state RoomState, stateLeftSec int) bool {
@@ -184,26 +195,20 @@ func (r *QZNNRoom) GetPlayerByID(userID string) (*Player, bool) {
 }
 
 func (r *QZNNRoom) AddPlayer(p *Player) (int, error) {
-
-	if r.CheckPlayerIsOb() {
-		p.Mu.Lock()
-		p.IsOb = true
-		p.Mu.Unlock()
-	}
-
-	r.PlayerMu.Lock()
-
+	r.PlayerMu.RLock()
 	// 检查玩家是否已在房间
 	for seatNum, existingPlayer := range r.Players {
 		if existingPlayer != nil && existingPlayer.ID == p.ID {
-			r.PlayerMu.Unlock()
+			r.PlayerMu.RUnlock()
 			return seatNum, nil
 		}
 	}
+	r.PlayerMu.RUnlock()
+	bIsObState := r.CheckPlayerIsOb()
 
-	// 寻找空位
 	emptySeat := -1
 	countExistPlayerNum := 0
+	r.PlayerMu.RLock()
 	for i, pl := range r.Players {
 		if pl != nil {
 			countExistPlayerNum++
@@ -211,14 +216,19 @@ func (r *QZNNRoom) AddPlayer(p *Player) (int, error) {
 			emptySeat = i
 		}
 	}
-
 	if countExistPlayerNum >= cap(r.Players) || emptySeat == -1 {
-		r.PlayerMu.Unlock()
+		r.PlayerMu.RUnlock()
 		return 0, comm.NewMyError(500001, "房间已满")
 	}
+	r.PlayerMu.RUnlock()
+
+	p.Mu.Lock()
 	p.SeatNum = emptySeat
+	p.IsOb = bIsObState
+	p.Mu.Unlock()
+
+	r.PlayerMu.Lock()
 	r.Players[emptySeat] = p
-	countExistPlayerNum++
 	r.PlayerMu.Unlock()
 
 	r.Broadcast(comm.PushData{
@@ -480,20 +490,38 @@ func (r *QZNNRoom) tickPrepare() {
 
 func (r *QZNNRoom) tickBanking() {
 	//查看是否都已经抢庄或者明确不抢，player.CallMult -1 是没有任何操作
-	unconfirmed := r.GetActivePlayers(func(p *Player) bool {
-		return p.CallMult == -1
-	})
-	if len(unconfirmed) == 0 {
+	// Fix: 避免直接在 GetActivePlayers 回调中读取 p.CallMult 导致的数据竞争
+	// 客户端消息协程可能正在修改 p.CallMult，需要加 p.Mu 锁
+	activePlayers := r.GetActivePlayers(nil)
+	hasUnconfirmed := false
+	for _, p := range activePlayers {
+		p.Mu.Lock()
+		val := p.CallMult
+		p.Mu.Unlock()
+		if val == -1 {
+			hasUnconfirmed = true
+			break
+		}
+	}
+	if !hasUnconfirmed {
 		//r.interuptStateLeftTicker(true)
 	}
 }
 
 func (r *QZNNRoom) tickBetting() {
 	//查看是否都已经下注
-	unconfirmed := r.GetActivePlayers(func(p *Player) bool {
-		return p.BetMult == -1
-	})
-	if len(unconfirmed) == 0 {
+	activePlayers := r.GetActivePlayers(nil)
+	hasUnconfirmed := false
+	for _, p := range activePlayers {
+		p.Mu.Lock()
+		val := p.BetMult
+		p.Mu.Unlock()
+		if val == -1 {
+			hasUnconfirmed = true
+			break
+		}
+	}
+	if !hasUnconfirmed {
 		//r.interuptStateLeftTicker(true)
 	}
 }

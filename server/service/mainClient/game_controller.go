@@ -1,6 +1,7 @@
 package mainClient
 
 import (
+	"compoment/ormutil"
 	"compoment/ws"
 	"context"
 	"encoding/json"
@@ -32,7 +33,7 @@ func init() {
 		for range ticker.C {
 			c := atomic.SwapInt64(&pingCount, 0)
 			if c > 0 {
-				logrus.WithField("avg5s", int(pingCount/12)).Info("WS-Ping-Statistics")
+				logrus.WithField("avg5s", int(float32(pingCount)/12.0)).Info("WS-Ping-Statistics")
 			}
 			//clean wsConnectMap if ws is nil
 			var delConnect []string
@@ -227,7 +228,9 @@ func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, msg *comm
 
 	switch msg.Cmd {
 	case game.CmdPingPong: // 心跳处理
-		//auto replay by defer
+	//auto replay by defer
+	case qznn.CmdUserInfo: // 用户信息请求
+		rsp.Data, errRsp = handleUserInfo(appId, appUserId)
 	case qznn.CmdPlayerJoin: // 抢庄牛牛进入
 		errRsp = handlePlayerJoin(connWrap, appId, appUserId, msg.Data)
 	case qznn.CmdPlayerLeave:
@@ -238,10 +241,10 @@ func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, msg *comm
 		handlePlayerPlaceBet(userId, msg.Data)
 	case qznn.CmdPlayerShowCard: // 亮牌请求
 		handlePlayerShowCard(userId, msg.Data)
-	case qznn.CmdUserInfo: // 用户信息请求
-		rsp.Data, errRsp = handleUserInfo(appId, appUserId)
 	case qznn.CmdLobbyConfig: // 大厅配置请求
 		rsp.Data = handleLobbyConfig()
+	case qznn.CmdSaveSetting:
+		handleSaveSetting(userId, msg.Data)
 	default:
 		errRsp = errors.New("Unknown Command")
 	}
@@ -370,8 +373,8 @@ func handlePlayerShowCard(userId string, data []byte) {
 	}
 }
 
-func handleUserInfo(AppId string, appUserId string) (*UserInfoRsp, error) {
-	user, err := modelClient.GetOrCreateUser(AppId, appUserId)
+func handleUserInfo(appId string, appUserId string) (*UserInfoRsp, error) {
+	user, err := modelClient.GetOrCreateUser(appId, appUserId)
 	if err != nil {
 		return nil, errors.New("获取用户信息失败")
 	}
@@ -386,6 +389,19 @@ func handleUserInfo(AppId string, appUserId string) (*UserInfoRsp, error) {
 		NickName: nickName,
 		Avatar:   user.Avatar,
 	}, nil
+}
+
+func handleSaveSetting(userId string, data []byte) {
+	var req struct {
+		Music  bool
+		Effect bool
+		Talk   bool
+	}
+	if err := json.Unmarshal(data, &req); err == nil {
+		modelClient.UpdateUserParam(userId,
+			ormutil.WithChangerMap(map[string]interface{}{"music": req.Music, "effect": req.Effect,
+				"talk": req.Talk}))
+	}
 }
 
 func handleLobbyConfig() *LobbyConfigRsp {

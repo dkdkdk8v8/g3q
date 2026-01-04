@@ -25,6 +25,7 @@ import { ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import gameClient from '../socket.js'; // Use singleton
 import { useUserStore } from '../stores/user.js';
+import { useSettingsStore } from '../stores/settings.js';
 
 export default {
   name: 'LoadingPage',
@@ -36,6 +37,7 @@ export default {
     const isLoading = ref(false); // New loading state
     const router = useRouter();
     const userStore = useUserStore();
+    const settingsStore = useSettingsStore();
 
     const LOCAL_STORAGE_IP_KEY = 'game_server_ip';
 
@@ -122,7 +124,7 @@ export default {
         // message.value = `连接成功！正在获取大厅数据...`; // Remove dynamic message
 
         // Send requests separately
-        gameClient.send("QZNN.UserInfo");
+        gameClient.send("UserInfo");
         gameClient.send("QZNN.LobbyConfig");
       };
 
@@ -140,8 +142,8 @@ export default {
         errorMessage.value = `连接错误，请检查 IP 地址或服务器状态。`;
       };
 
-      // Register handler for QZNN.UserInfo
-      gameClient.on('QZNN.UserInfo', (msg) => {
+      // Register handler for UserInfo
+      gameClient.on('UserInfo', (msg) => {
         if (msg.code === 0 && msg.data) {
           console.log("[LoadingPage] Received user info:", msg.data);
           userStore.updateUserInfo({
@@ -150,6 +152,7 @@ export default {
             nick_name: msg.data.NickName,
             avatar: msg.data.Avatar
           });
+          settingsStore.updateFromServer(msg.data);
           hasUserInfo = true;
           checkReady();
         } else {

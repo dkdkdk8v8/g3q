@@ -66,12 +66,11 @@
                         <span v-if="item.BankerID === player.ID" style="color: #f56c6c; font-weight: bold">庄</span>
                         <span v-else-if="player.IsOb" style="color: #67c23a; font-weight: bold">看</span>
                         {{ player.ID }}
-                        <span v-if="player.CallMult !== null && player.CallMult >= 0"
+                        <span v-if="player.CallMult >= 0 && player.BetMult === -1"
                           style="color: #f56c6c; font-weight: bold; margin-left: 2px">
                           {{ player.CallMult }}倍
                         </span>
-                        <span v-if="player.BetMult !== null && player.BetMult >= 0"
-                          style="color: #f56c6c; font-weight: bold; margin-left: 2px">
+                        <span v-if="player.BetMult >= 0" style="color: #f56c6c; margin-left: 2px">
                           {{ player.BetMult }}倍
                         </span>
                       </div>
@@ -85,7 +84,7 @@
                           </span>
                           <span v-if="player.Cards && player.Cards.length === 5"
                             style="margin-left: 4px; color: #409eff; font-weight: bold">
-                            {{ getCardResult(player.Cards) }}
+                            {{ getCardResult(player.Cards) }} {{ player.IsShow ? '摊牌' : '' }}
                           </span>
                         </template>
                         <span v-else>{{ player.Cards }}</span>

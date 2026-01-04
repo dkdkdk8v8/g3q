@@ -34,6 +34,7 @@ require (
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/gomodule/redigo v2.0.0+incompatible // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
+	github.com/gorilla/websocket v1.5.3
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/jmcvetta/randutil v0.0.0-20150817122601-2bb1b664bcff // indirect

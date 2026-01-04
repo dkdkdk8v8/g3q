@@ -31,10 +31,10 @@ const (
 	SecStatePrepareSecPlayer3 = 5 //结算中，开始倒计时发牌（3人不离开，直接下一场）
 	SecStateGameStart         = 2
 	SecStatePrecard           = 2
-	SecStateCallBanking       = 30
+	SecStateCallBanking       = 8
 	SecStateBankingRandom     = 2
 	SecStateConfirmBanking    = 2
-	SecStateBeting            = 30
+	SecStateBeting            = 8
 	SecStateDealing           = 2
 	SecStateShowCard          = 8
 	SecStateSetting           = 4

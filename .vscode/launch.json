@@ -45,6 +45,21 @@
             }
         },
         {
+            "name": "go:server:robot",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/server/server/main_robot", // 调试整个工作区（入口是 main 包）
+            "output": "${workspaceFolder}/server/server/main_robot/local_main_robot",
+            "args": [
+                "--ter",
+                "--debug"
+            ], // 传递给程序的命令行参数
+            "env": {
+               
+            }
+        },
+        {
             "name": "go:file",
             "type": "go",
             "request": "launch",

@@ -18,23 +18,29 @@ func (e *MyError) Msg(m string) *MyError {
 	return e
 }
 
-func NewMyError(code int, message string) *MyError {
+func NewMyErrorWithCode(code int, message string) *MyError {
 	return &MyError{code, message}
 }
 
+func NewMyError(message string) *MyError {
+	return &MyError{-1, message}
+}
+
 var (
-	ErrCommSys        = NewMyError(100000, "发现异常错误，联系客服！")
-	ErrTokenInvalid   = NewMyError(100001, "Token有误，请重新登录！")
-	ErrTokenExpire    = NewMyError(100002, "Token过期，请重新登录！")
-	ErrTokenError     = NewMyError(100003, "Token错误，请重新登录！")
-	ErrTokenRedisSave = NewMyError(100004, "Token存储错误，请重新登录！")
-	ErrTokenMultiDid  = NewMyError(100005, "账号在其他设备登录,请重新登录")
+	ErrCommSys        = NewMyErrorWithCode(100000, "发现异常错误,联系客服!")
+	ErrTokenInvalid   = NewMyErrorWithCode(100001, "Token有误,请重新登录!")
+	ErrTokenExpire    = NewMyErrorWithCode(100002, "Token过期,请重新登录!")
+	ErrTokenError     = NewMyErrorWithCode(100003, "Token错误,请重新登录!")
+	ErrTokenRedisSave = NewMyErrorWithCode(100004, "Token存储错误,请重新登录!")
+	ErrTokenMultiDid  = NewMyErrorWithCode(100005, "账号在其他设备登录,请重新登录")
 
-	ErrTokenReserve = NewMyError(100020, "预留错误")
+	ErrTokenReserve = NewMyErrorWithCode(100020, "预留错误")
 
-	ErrRedisInvalid      = NewMyError(110001, "系统错误1，正在维护请稍后再试!")
-	ErrAesError          = NewMyError(100010, "未知协议类型，请确保安装版本！")
-	ErrServerMaintenance = NewMyError(100011, "服务器维护中")
+	ErrRedisInvalid      = NewMyErrorWithCode(110001, "系统错误1,正在维护请稍后再试!")
+	ErrAesError          = NewMyErrorWithCode(100010, "未知协议类型,请确保安装版本!")
+	ErrServerMaintenance = NewMyErrorWithCode(100011, "服务器维护中")
+	ErrClientParam       = NewMyErrorWithCode(200000, "客户端请求参数有点问题，请稍后再试或联系客服")
+	ErrPlayerInRoom      = NewMyErrorWithCode(200010, "您已经在其他房间了")
 )
 
 //func DoSomething() error {

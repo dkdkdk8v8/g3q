@@ -57,7 +57,7 @@ func (rm *RoomManager) GetRoomByRoomId(roomId string) *qznn.QZNNRoom {
 func (rm *RoomManager) JoinOrCreateNNRoom(player *qznn.Player, level int, bankerType int) (*qznn.QZNNRoom, error) {
 	// 如果处于排空模式，拒绝新的匹配请求
 	if rm.isDraining {
-		return nil, comm.NewMyError(500002, "服务器正在准备更新,请稍后再试")
+		return nil, comm.ErrServerMaintenance
 	}
 
 	// 使用写锁，确保“检查玩家是否在房间”和“加入房间”的操作是原子的
@@ -68,11 +68,15 @@ func (rm *RoomManager) JoinOrCreateNNRoom(player *qznn.Player, level int, banker
 	for _, room := range rm.QZNNRooms {
 		// 1. 核心检查：确认玩家是否已经在该房间中
 		// GetPlayerByID 内部使用了读锁，配合外层的 rm.mu 写锁是安全的
-		if _, ok := room.GetPlayerByID(player.ID); ok {
+		if alreadyPlayer, ok := room.GetPlayerByID(player.ID); ok {
 			rm.mu.Unlock()
-			return nil, comm.NewMyError(-1, "您已经在其他房间了")
+			//客户端弹框，确认要不要重新进入
+			room.PushPlayer(alreadyPlayer, comm.PushData{
+				Cmd:      comm.ServerPush,
+				PushType: qznn.PushRoom,
+				Data:     qznn.PushRoomStruct{Room: room}})
+			return nil, comm.ErrPlayerInRoom
 		}
-
 		// 2. 在遍历的同时，寻找一个合适的房间 (如果尚未找到)
 		// 这样可以避免多次遍历
 		if targetRoom == nil {
@@ -92,14 +96,9 @@ func (rm *RoomManager) JoinOrCreateNNRoom(player *qznn.Player, level int, banker
 			return nil, err
 		}
 		return targetRoom, nil
-	} else {
-		return nil, comm.NewMyError(-1, "房间进入失败,请重试进入")
 	}
 
-	// 如果没有找到合适的房间，返回 nil (通常由上层逻辑决定是否创建新房间)
-	return nil, nil
-
-	roomID := fmt.Sprintf("R_%d_%d_%d", time.Now().Unix(), bankerType, level)
+	roomID := fmt.Sprintf("R_%d_%d_%d", time.Now().UnixMilli(), bankerType, level)
 	newRoom := qznn.NewRoom(roomID, bankerType, level)
 	newRoom.AddPlayer(player)
 	newRoom.OnBotAction = nil //RobotForQZNNRoom

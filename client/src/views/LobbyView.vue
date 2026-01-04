@@ -39,7 +39,7 @@ const enterGame = async (level) => {
     try {
         await gameStore.joinRoom(level, currentMode.value); // Await the promise
         router.push({
-            path: `/game/${level}`,
+            path: '/game',
             query: { mode: currentMode.value }
         });
     } catch (error) {

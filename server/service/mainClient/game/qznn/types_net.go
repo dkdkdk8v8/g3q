@@ -4,8 +4,6 @@ import "service/comm"
 
 const QZNN_Prefix = "QZNN."
 const (
-	CmdUserInfo         comm.CmdType = "UserInfo"
-	CmdSaveSetting      comm.CmdType = "SaveSetting"
 	CmdLobbyConfig      comm.CmdType = QZNN_Prefix + "LobbyConfig"
 	CmdPlayerJoin       comm.CmdType = QZNN_Prefix + "PlayerJoin"
 	CmdPlayerLeave      comm.CmdType = QZNN_Prefix + "PlayerLeave"
@@ -15,14 +13,14 @@ const (
 )
 
 const (
-	PushChangeState         comm.PushType = "PushChangeState"
-	PushPlayJoin            comm.PushType = "PushPlayJoin"
-	PushPlayLeave           comm.PushType = "PushPlayLeave"
-	PushPlayerCallBanker    comm.PushType = "PushCallBanker"
-	PushPlayerPlaceBet      comm.PushType = "PushPlaceBet"
-	PushPlayerShowCard      comm.PushType = "PushShowCard"
-	PushBalanceChange       comm.PushType = "PushBalanceChange"
-	PushNewConnectEnterRoom comm.CmdType  = "PushNewConnectEnterRoom"
+	PushChangeState      comm.PushType = "PushChangeState"
+	PushPlayJoin         comm.PushType = "PushPlayJoin"
+	PushPlayLeave        comm.PushType = "PushPlayLeave"
+	PushPlayerCallBanker comm.PushType = "PushCallBanker"
+	PushPlayerPlaceBet   comm.PushType = "PushPlaceBet"
+	PushPlayerShowCard   comm.PushType = "PushShowCard"
+	PushBalanceChange    comm.PushType = "PushBalanceChange"
+	PushRoom             comm.PushType = "PushRoom"
 )
 
 type PushChangeStateStruct struct {
@@ -53,6 +51,6 @@ type PushPlayerShowCardStruct struct {
 	UserId string
 }
 
-type PushNewConnectEnterRoomStruct struct {
+type PushRoomStruct struct {
 	Room *QZNNRoom
 }

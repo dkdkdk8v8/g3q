@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"service/comm"
+	"slices"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -38,14 +39,23 @@ func (r *QZNNRoom) CheckStatus(state RoomState) bool {
 	return r.State == state
 }
 
-func (r *QZNNRoom) CheckStatusDo(state RoomState, fn func()) error {
+func (r *QZNNRoom) CheckStatusDo(state RoomState, fn func() error) error {
 	r.StateMu.RLock()
 	defer r.StateMu.RUnlock()
 	if r.State != state {
 		return fmt.Errorf("room state is %s, expect %s", r.State, state)
 	}
-	fn()
-	return nil
+	return fn()
+}
+
+func (r *QZNNRoom) CheckInMultiStatusDo(state []RoomState, fn func() error) error {
+	r.StateMu.RLock()
+	defer r.StateMu.RUnlock()
+	if slices.Contains(state, r.State) {
+		return fn()
+	} else {
+		return fmt.Errorf("room state is %s, expect %v", r.State, state)
+	}
 }
 
 func (r *QZNNRoom) SetStatus(state RoomState, stateLeftSec int) bool {
@@ -218,7 +228,7 @@ func (r *QZNNRoom) AddPlayer(p *Player) (int, error) {
 	}
 	if countExistPlayerNum >= cap(r.Players) || emptySeat == -1 {
 		r.PlayerMu.RUnlock()
-		return 0, comm.NewMyError(500001, "房间已满")
+		return 0, comm.NewMyError("房间已满")
 	}
 	r.PlayerMu.RUnlock()
 
@@ -248,6 +258,12 @@ func (r *QZNNRoom) Broadcast(msg interface{}) {
 		if p != nil && p.ConnWrap != nil && p.ConnWrap.WsConn != nil {
 			_ = p.ConnWrap.WsConn.WriteJSON(msg)
 		}
+	}
+}
+
+func (r *QZNNRoom) PushPlayer(p *Player, msg interface{}) {
+	if p != nil && p.ConnWrap != nil && p.ConnWrap.WsConn != nil {
+		_ = p.ConnWrap.WsConn.WriteJSON(msg)
 	}
 }
 
@@ -359,18 +375,6 @@ func (r *QZNNRoom) GetBroadCasePlayers(filter func(*Player) bool) []*Player {
 		players = append(players, p)
 	}
 	return players
-}
-
-func (r *QZNNRoom) ReconnectEnterRoom(userId string) {
-	p, ok := r.GetPlayerByID(userId)
-	if ok {
-		if p != nil && p.ConnWrap != nil && p.ConnWrap.WsConn != nil {
-			_ = p.ConnWrap.WsConn.WriteJSON(comm.PushData{
-				Cmd: PushNewConnectEnterRoom,
-				Data: PushNewConnectEnterRoomStruct{
-					Room: r.GetClientRoom(p.ID)}})
-		}
-	}
 }
 
 func (r *QZNNRoom) prepareDeck() {

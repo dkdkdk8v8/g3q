@@ -25,3 +25,67 @@ body {
     background-color: #ffffff;
   }
 }
+
+/* Custom Game Theme Dialog Styles */
+.game-theme-dialog {
+  background-color: #1e293b !important; /* Dark slate background */
+  border-radius: 16px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5) !important;
+  color: #fff !important;
+  width: 85% !important;
+  max-width: 320px !important;
+  overflow: hidden !important;
+}
+
+.game-theme-dialog .van-dialog__header {
+  color: #fff !important;
+  padding-top: 20px !important;
+  font-weight: bold !important;
+  font-size: 18px !important;
+}
+
+.game-theme-dialog .van-dialog__content {
+  color: #cbd5e1 !important; /* Lighter text for content */
+  padding: 15px 24px 20px !important;
+  font-size: 15px !important;
+  line-height: 1.5 !important;
+}
+
+.game-theme-dialog .van-dialog__footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+  overflow: hidden !important; /* Ensure buttons stay within rounded corners */
+}
+
+/* Buttons */
+.game-theme-dialog .van-button {
+  background-color: transparent !important;
+  border: none !important;
+  height: 48px !important;
+  font-size: 16px !important;
+}
+
+/* Cancel Button (Left) */
+.game-theme-dialog .van-dialog__cancel {
+  color: #94a3b8 !important; /* Grayish text */
+}
+
+.game-theme-dialog .van-dialog__cancel:active {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Confirm Button (Right) */
+.game-theme-dialog .van-dialog__confirm {
+  color: #facc15 !important; /* Gold/Yellow text to match game accents */
+  font-weight: bold !important;
+}
+
+.game-theme-dialog .van-dialog__confirm:active {
+  background-color: rgba(250, 204, 21, 0.1) !important;
+}
+
+/* Hairline border separation handled by Vant, but we can enforce color if needed */
+.game-theme-dialog .van-hairline--top::after,
+.game-theme-dialog .van-hairline--left::after {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}

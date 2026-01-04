@@ -13,17 +13,21 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-func HandlerPlayerLeave(r *QZNNRoom, userID string) {
+func HandlerPlayerLeave(r *QZNNRoom, userID string) error {
 	if r == nil {
-		return
+		return comm.NewMyError("房间不存在")
 	}
-
-	if r.CheckGameStart() {
-		//can not leave room
-		return
+	err := r.CheckInMultiStatusDo([]RoomState{StateWaiting, StatePrepare}, func() error {
+		if r.Leave(userID) {
+			return nil
+		} else {
+			return comm.NewMyError("离开房间失败")
+		}
+	})
+	if err != nil {
+		return err
 	}
-
-	if r.Leave(userID) {
+	if err == nil {
 		r.Broadcast(comm.PushData{
 			Cmd:      comm.ServerPush,
 			PushType: PushPlayLeave,
@@ -32,6 +36,7 @@ func HandlerPlayerLeave(r *QZNNRoom, userID string) {
 				UserIds: []string{userID}}})
 	}
 	r.logicTick()
+	return nil
 }
 
 // func HandlePlayerReady(r *QZNNRoom, userID string) {
@@ -54,28 +59,27 @@ func HandlerPlayerLeave(r *QZNNRoom, userID string) {
 // 	r.logicTick()
 // }
 
-func HandleCallBanker(r *QZNNRoom, userID string, mult int64) {
+func HandleCallBanker(r *QZNNRoom, userID string, mult int64) error {
 	if r == nil {
-		return
+		return comm.NewMyError("房间不存在")
 	}
 
-	var success bool
-	err := r.CheckStatusDo(StateBanking, func() {
+	err := r.CheckStatusDo(StateBanking, func() error {
 		p, ok := r.GetPlayerByID(userID)
 		if !ok {
-			return
+			return comm.NewMyError("无效用户")
 		}
 		p.Mu.Lock()
 		defer p.Mu.Unlock()
 		if p.CallMult != -1 {
-			return
+			return comm.NewMyError("已抢庄")
 		}
 		p.CallMult = mult
-		success = true
+		return nil
 	})
 
-	if err != nil || !success {
-		return
+	if err != nil {
+		return err
 	}
 
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
@@ -88,40 +92,37 @@ func HandleCallBanker(r *QZNNRoom, userID string, mult int64) {
 				Mult:   mult}}
 	})
 	r.logicTick()
+	return nil
 }
 
-func HandlePlaceBet(r *QZNNRoom, userID string, mult int64) {
+func HandlePlaceBet(r *QZNNRoom, userID string, mult int64) error {
 	if r == nil {
-		return
+		return comm.NewMyError("房间不存在")
+
 	}
 
-	var success bool
-	err := r.CheckStatusDo(StateBetting, func() {
+	err := r.CheckStatusDo(StateBetting, func() error {
 		if r.CheckIsBanker(userID) {
 			logrus.WithField("roomId", r.ID).WithField("userId", userID).Error("HandlePlaceBet_BanerCannotBet")
-			return
+			return comm.NewMyError("庄家无法投注")
 		}
 		p, ok := r.GetPlayerByID(userID)
 		// 修正：这里应该是检查是否未下注(BetMult == -1)，原代码 != 0 在初始为-1时会直接返回
 		if !ok || p == nil {
-			return
+			return comm.NewMyError("无效用户")
 		}
 		p.Mu.Lock()
 		defer p.Mu.Unlock()
 		if p.BetMult != -1 {
-			return
+			return comm.NewMyError("已下注")
 		}
 		p.BetMult = mult
-		success = true
+		return nil
 	})
 
 	if err != nil {
 		logrus.WithField("roomId", r.ID).WithField("userId", userID).Error("HandlePlaceBet_InvalidState")
-		return
-	}
-
-	if !success {
-		return
+		return err
 	}
 
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
@@ -135,30 +136,30 @@ func HandlePlaceBet(r *QZNNRoom, userID string, mult int64) {
 		}
 	})
 	r.logicTick()
+	return nil
 }
 
-func HandleShowCards(r *QZNNRoom, userID string) {
+func HandleShowCards(r *QZNNRoom, userID string) error {
 	if r == nil {
-		return
+		return comm.NewMyError("房间不存在")
 	}
 
-	var success bool
-	err := r.CheckStatusDo(StateDealing, func() {
+	err := r.CheckStatusDo(StateDealing, func() error {
 		p, ok := r.GetPlayerByID(userID)
 		if !ok {
-			return
+			return comm.NewMyError("无效用户")
 		}
 		p.Mu.Lock()
 		defer p.Mu.Unlock()
 		if p.IsShow {
-			return
+			return comm.NewMyError("已展示牌")
 		}
 		p.IsShow = true
-		success = true
+		return nil
 	})
 
-	if err != nil || !success {
-		return
+	if err != nil {
+		return err
 	}
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
 		return comm.PushData{
@@ -169,5 +170,5 @@ func HandleShowCards(r *QZNNRoom, userID string) {
 				UserId: userID}}
 	})
 	r.logicTick()
-
+	return nil
 }

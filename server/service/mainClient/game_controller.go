@@ -131,7 +131,20 @@ func handleConnection(connWrap *ws.WsConnWrap, appId, appUserId string) {
 			//check 是否在游戏内
 			room := game.GetMgr().GetPlayerRoom(userId)
 			if room != nil {
-				room.ReconnectEnterRoom(userId)
+				//在游戏内,默认客户端进入游戏
+				connWrap.WsConn.WriteJSON(comm.PushData{
+					Cmd:      comm.ServerPush,
+					PushType: game.PushRouter,
+					Data: game.PushRouterStruct{
+						Router: game.Game,
+						Room:   room}})
+			} else {
+				//不在游戏内,默认客户端进入lobby
+				connWrap.WsConn.WriteJSON(comm.PushData{
+					Cmd:      comm.ServerPush,
+					PushType: game.PushRouter,
+					Data: game.PushRouterStruct{
+						Router: game.Lobby}})
 			}
 		})
 
@@ -211,50 +224,52 @@ func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, msg *comm
 	var errRsp error
 	defer func() {
 		if errRsp != nil {
-			rsp.Code = -1
-			rsp.Msg = errRsp.Error()
+			var myErr = &comm.MyError{}
+			if !errors.As(errRsp, &myErr) {
+				rsp.Msg = "服务器错误"
+				rsp.Code = -1
+			} else {
+				rsp.Msg = myErr.Message
+				rsp.Code = myErr.Code
+			}
+			logrus.WithField(
+				"uid", userId).WithField(
+				"msg", errRsp.Error()).WithField(
+				"cmd", rsp.Cmd).Error("Ws-Send-Msg")
 		}
 		if initMain.DefCtx.IsDebug {
 			if rsp.Cmd != game.CmdPingPong {
 				logrus.WithField(
 					"uid", userId).WithField(
-					"msg", rsp.Cmd).WithField(
-					"code", rsp.Cmd).Info("Ws-Send-Msg")
+					"msg", rsp.Msg).WithField(
+					"cmd", rsp.Cmd).Info("Ws-Send-Msg")
 			}
 		}
 		connWrap.WriteJSON(rsp)
-
 	}()
 
 	switch msg.Cmd {
 	case game.CmdPingPong: // 心跳处理
 	//auto replay by defer
-	case qznn.CmdUserInfo: // 用户信息请求
+	case game.CmdUserInfo: // 用户信息请求
 		rsp.Data, errRsp = handleUserInfo(appId, appUserId)
 	case qznn.CmdPlayerJoin: // 抢庄牛牛进入
 		errRsp = handlePlayerJoin(connWrap, appId, appUserId, msg.Data)
 	case qznn.CmdPlayerLeave:
-		handlePlayerLeave(userId, msg.Data)
+		errRsp = handlePlayerLeave(userId, msg.Data)
 	case qznn.CmdPlayerCallBanker: // 抢庄请求
-		handlePlayerCallBank(userId, msg.Data)
+		errRsp = handlePlayerCallBank(userId, msg.Data)
 	case qznn.CmdPlayerPlaceBet: // 下注请求
-		handlePlayerPlaceBet(userId, msg.Data)
+		errRsp = handlePlayerPlaceBet(userId, msg.Data)
 	case qznn.CmdPlayerShowCard: // 亮牌请求
-		handlePlayerShowCard(userId, msg.Data)
+		errRsp = handlePlayerShowCard(userId, msg.Data)
 	case qznn.CmdLobbyConfig: // 大厅配置请求
 		rsp.Data = handleLobbyConfig()
-	case qznn.CmdSaveSetting:
-		handleSaveSetting(userId, msg.Data)
+	case game.CmdSaveSetting: // 保存用户设置
+		errRsp = handleSaveSetting(userId, msg.Data)
 	default:
-		errRsp = errors.New("Unknown Command")
+		errRsp = errors.New("UnknownCmd")
 	}
-}
-
-type UserInfoRsp struct {
-	UserId   string `json:"UserId"`
-	Balance  int64  `json:"Balance"`
-	NickName string `json:"NickName"`
-	Avatar   string `json:"Avatar"`
 }
 
 type LobbyConfigRsp struct {
@@ -271,7 +286,7 @@ func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []b
 	req.BankerType = -1 // 默认值，用于检测客户端是否传递
 
 	if err := json.Unmarshal(data, &req); err != nil {
-		return errors.New("客户端参数有误")
+		return comm.ErrClientParam
 	}
 	if req.Level <= 0 {
 		req.Level = 1
@@ -279,23 +294,23 @@ func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []b
 
 	cfg := qznn.GetConfig(req.Level)
 	if cfg == nil {
-		return errors.New("无效的房间类型")
+		return comm.NewMyError("无效的房间类型")
 	}
 
 	// 校验 BankerType 是否合法
 	if req.BankerType != qznn.BankerTypeNoLook &&
 		req.BankerType != qznn.BankerTypeLook3 &&
 		req.BankerType != qznn.BankerTypeLook4 {
-		return errors.New("无效的抢庄类型")
+		return comm.NewMyError("无效的抢庄类型")
 	}
 
 	// 检查余额
 	user, err := modelClient.GetOrCreateUser(appId, appUserId)
 	if err != nil {
-		return errors.New("获取用户信息失败")
+		return comm.NewMyError("获取用户信息失败")
 	}
 	if user.Balance < cfg.MinBalance {
-		return errors.New("余额不足！")
+		return comm.NewMyError("余额不足!")
 	}
 
 	userId := appId + appUserId
@@ -327,53 +342,53 @@ func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []b
 	return err
 }
 
-func handlePlayerLeave(userId string, data []byte) {
+func handlePlayerLeave(userId string, data []byte) error {
 	var req struct {
 		RoomId string
 	}
-	if err := json.Unmarshal(data, &req); err == nil {
-		if room := game.GetMgr().GetRoomByRoomId(req.RoomId); room != nil {
-			qznn.HandlerPlayerLeave(room, userId)
-		}
+	if err := json.Unmarshal(data, &req); err != nil {
+		return comm.ErrClientParam
 	}
+	room := game.GetMgr().GetRoomByRoomId(req.RoomId)
+	return qznn.HandlerPlayerLeave(room, userId)
 }
 
-func handlePlayerCallBank(userId string, data []byte) {
-	var req struct {
-		RoomId string
-		Mult   int64
-	}
-	if err := json.Unmarshal(data, &req); err == nil {
-		if room := game.GetMgr().GetRoomByRoomId(req.RoomId); room != nil {
-			qznn.HandleCallBanker(room, userId, req.Mult)
-		}
-	}
-}
-
-func handlePlayerPlaceBet(userId string, data []byte) {
+func handlePlayerCallBank(userId string, data []byte) error {
 	var req struct {
 		RoomId string
 		Mult   int64
 	}
-	if err := json.Unmarshal(data, &req); err == nil {
-		if room := game.GetMgr().GetRoomByRoomId(req.RoomId); room != nil {
-			qznn.HandlePlaceBet(room, userId, req.Mult)
-		}
+	if err := json.Unmarshal(data, &req); err != nil {
+		return comm.ErrClientParam
 	}
+	room := game.GetMgr().GetRoomByRoomId(req.RoomId)
+	return qznn.HandleCallBanker(room, userId, req.Mult)
 }
 
-func handlePlayerShowCard(userId string, data []byte) {
+func handlePlayerPlaceBet(userId string, data []byte) error {
+	var req struct {
+		RoomId string
+		Mult   int64
+	}
+	if err := json.Unmarshal(data, &req); err != nil {
+		return comm.ErrClientParam
+	}
+	room := game.GetMgr().GetRoomByRoomId(req.RoomId)
+	return qznn.HandlePlaceBet(room, userId, req.Mult)
+}
+
+func handlePlayerShowCard(userId string, data []byte) error {
 	var req struct {
 		RoomId string
 	}
-	if err := json.Unmarshal(data, &req); err == nil {
-		if room := game.GetMgr().GetRoomByRoomId(req.RoomId); room != nil {
-			qznn.HandleShowCards(room, userId)
-		}
+	if err := json.Unmarshal(data, &req); err != nil {
+		return comm.ErrClientParam
 	}
+	room := game.GetMgr().GetRoomByRoomId(req.RoomId)
+	return qznn.HandleShowCards(room, userId)
 }
 
-func handleUserInfo(appId string, appUserId string) (*UserInfoRsp, error) {
+func handleUserInfo(appId string, appUserId string) (*modelClient.ModelUser, error) {
 	user, err := modelClient.GetOrCreateUser(appId, appUserId)
 	if err != nil {
 		return nil, errors.New("获取用户信息失败")
@@ -383,25 +398,25 @@ func handleUserInfo(appId string, appUserId string) (*UserInfoRsp, error) {
 		nickName = user.UserId
 	}
 
-	return &UserInfoRsp{
-		UserId:   user.UserId,
-		Balance:  user.Balance,
-		NickName: nickName,
-		Avatar:   user.Avatar,
-	}, nil
+	return user, nil
 }
 
-func handleSaveSetting(userId string, data []byte) {
+func handleSaveSetting(userId string, data []byte) error {
 	var req struct {
 		Music  bool
 		Effect bool
 		Talk   bool
 	}
-	if err := json.Unmarshal(data, &req); err == nil {
-		modelClient.UpdateUserParam(userId,
-			ormutil.WithChangerMap(map[string]interface{}{"music": req.Music, "effect": req.Effect,
-				"talk": req.Talk}))
+	if err := json.Unmarshal(data, &req); err != nil {
+		return comm.ErrClientParam
 	}
+	_, err := modelClient.UpdateUserParam(userId,
+		ormutil.WithChangerMap(map[string]interface{}{"music": req.Music, "effect": req.Effect,
+			"talk": req.Talk}))
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func handleLobbyConfig() *LobbyConfigRsp {

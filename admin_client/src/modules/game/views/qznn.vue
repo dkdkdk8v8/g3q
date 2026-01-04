@@ -14,13 +14,20 @@
 
     <div class="stats-bar">
       <div class="group">
-        <span v-for="(count, name) in statsData.levels" :key="name" class="item">{{ name }} <span class="num">{{ count
-        }}</span></span>
+        <span class="label">等级:</span>
+        <el-button size="small" round :type="filterLevel === '' ? 'primary' : ''"
+          @click="filterLevel = ''">全部</el-button>
+        <el-button v-for="(count, name) in statsData.levels" :key="name" size="small" round
+          :type="filterLevel === name ? 'primary' : ''" @click="filterLevel = String(name)">{{ name }} {{ count
+          }}</el-button>
       </div>
       <div class="divider"></div>
       <div class="group">
-        <span v-for="(count, name) in statsData.types" :key="name" class="item">{{ name }} <span class="num">{{ count
-        }}</span></span>
+        <span class="label">类型:</span>
+        <el-button size="small" round :type="filterType === '' ? 'primary' : ''" @click="filterType = ''">全部</el-button>
+        <el-button v-for="(count, name) in statsData.types" :key="name" size="small" round
+          :type="filterType === name ? 'primary' : ''" @click="filterType = String(name)">{{ name }} {{ count
+          }}</el-button>
       </div>
     </div>
 
@@ -29,7 +36,7 @@
     <el-empty v-else-if="Object.keys(list).length === 0" description="暂时没有房间数据" />
 
     <el-row v-else :gutter="10">
-      <el-col v-for="(item, key) in list" :key="key" :xs="24" :sm="12" :md="8" :lg="6" :xl="4">
+      <el-col v-for="item in filteredList" :key="item.ID" :xs="24" :sm="12" :md="12" :lg="8" :xl="6">
         <el-card shadow="hover" class="room-card">
           <template #header>
             <div class="card-header">
@@ -41,9 +48,9 @@
                   </el-tag>
                 </div>
               </div>
-              <el-tag size="small" effect="dark" :type="stateTypeMap[item.State] as any">{{ stateMap[item.State] ||
-                item.State }}
-                <span v-if="item.StateLeftSec > 0" style="margin-left: 2px">({{ item.StateLeftSec }}s)</span>
+              <el-tag size="small" effect="dark" :type="stateTypeMap[item.State] as any">
+                {{ stateMap[item.State] || item.State }}
+                <span v-if="item.StateLeftSec > 0" style="margin-left: 2px">{{ item.StateLeftSec }}秒</span>
               </el-tag>
             </div>
           </template>
@@ -52,21 +59,51 @@
             <div class="players-list">
               <div v-for="(player, index) in item.Players" :key="index" class="player-item">
                 <div v-if="player" class="player-info">
-                  <el-avatar :size="24" :src="player.Avatar" :icon="UserFilled" class="avatar"
-                    :class="{ 'is-banker': item.BankerID === player.ID }"></el-avatar>
+                  <!-- <el-avatar :size="24" :src="player.Avatar" :icon="UserFilled" class="avatar"></el-avatar> -->
                   <div class="details">
                     <el-tooltip effect="dark" :content="player.NickName" placement="top" :disabled="!player.NickName">
                       <div class="player-name">
-                        <span v-if="player.IsOb" style="color: #67c23a">观众</span>
-                        {{ player.NickName || "-" }}
+                        <span v-if="item.BankerID === player.ID" style="color: #f56c6c; font-weight: bold">庄</span>
+                        <span v-else-if="player.IsOb" style="color: #67c23a; font-weight: bold">看</span>
+                        {{ player.ID }}
+                        <span v-if="player.CallMult !== null && player.CallMult >= 0"
+                          style="color: #f56c6c; font-weight: bold; margin-left: 2px">
+                          {{ player.CallMult }}倍
+                        </span>
+                        <span v-if="player.BetMult !== null && player.BetMult >= 0"
+                          style="color: #f56c6c; font-weight: bold; margin-left: 2px">
+                          {{ player.BetMult }}倍
+                        </span>
                       </div>
                     </el-tooltip>
                     <el-tooltip effect="dark" :content="player.ID" placement="top" :disabled="!player.ID">
-                      <div class="player-id">{{ player.ID }} {{ player.Cards }}</div>
+                      <div class="player-id">
+                        <template v-if="Array.isArray(player.Cards)">
+                          <span v-for="(card, idx) in player.Cards" :key="idx"
+                            :style="{ color: getCardStyle(card).color, marginRight: '2px', fontWeight: 'bold', display: 'inline-block', width: '24px', textAlign: 'center' }">
+                            {{ getCardStyle(card).text }}
+                          </span>
+                          <span v-if="player.Cards && player.Cards.length === 5"
+                            style="margin-left: 4px; color: #409eff; font-weight: bold">
+                            {{ getCardResult(player.Cards) }}
+                          </span>
+                        </template>
+                        <span v-else>{{ player.Cards }}</span>
+                      </div>
                     </el-tooltip>
                   </div>
-                  <div class="player-balance">
-                    ￥{{ (player.Balance / 100).toFixed(2) }}
+                  <div class="balance-wrapper">
+                    <div class="player-balance">
+                      ￥{{ (player.Balance / 100).toFixed(2) }}
+                    </div>
+                    <div class="player-balance-change">
+                      <span v-if="player.BalanceChange > 0" class="positive">+{{ (player.BalanceChange / 100).toFixed(2)
+                      }}</span>
+                      <span v-else-if="player.BalanceChange < 0" class="negative">{{ (player.BalanceChange /
+                        100).toFixed(2)
+                      }}</span>
+                      <span v-else class="zero">0</span>
+                    </div>
                   </div>
                 </div>
                 <div v-else class="player-empty">空闲</div>
@@ -76,7 +113,7 @@
             <div class="room-footer">
               <span>{{
                 dayjs(item.CreateAt).format("YYYY-MM-DD HH:mm:ss")
-              }}</span>
+                }}</span>
               <span>{{ dayjs(item.CreateAt).fromNow() }}</span>
             </div>
           </div>
@@ -90,7 +127,7 @@
 import { useCool } from "/@/cool";
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import dayjs from "dayjs";
-import { UserFilled, Refresh } from "@element-plus/icons-vue";
+import { Refresh } from "@element-plus/icons-vue";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/zh-cn";
 
@@ -99,6 +136,20 @@ dayjs.locale("zh-cn");
 const { service } = useCool();
 const list = ref<any>({});
 const errorMessage = ref("");
+const filterLevel = ref("");
+const filterType = ref("");
+
+const filteredList = computed(() => {
+  const all = Object.values(list.value);
+  if (!filterLevel.value && !filterType.value) return all;
+
+  return all.filter((item: any) => {
+    const info = getRoomInfo(item.ID);
+    const matchLevel = filterLevel.value ? info.level === filterLevel.value : true;
+    const matchType = filterType.value ? info.type === filterType.value : true;
+    return matchLevel && matchType;
+  });
+});
 
 const stateMap: Record<string, string> = {
   StateWaiting: "等待中",
@@ -140,6 +191,57 @@ const typeMap: Record<string, string> = {
   "1": "看三张",
   "2": "看四张",
 };
+
+function getCardResult(cards: number[]) {
+  if (!Array.isArray(cards) || cards.length !== 5) return "";
+  const ranks = cards.map((c) => Math.floor(c / 4));
+  const values = ranks.map((r) => (r >= 10 ? 10 : r + 1));
+
+  // 五小牛: 所有牌值<5 (rank < 4) 且 和 <= 10
+  if (ranks.every((r) => r < 4) && values.reduce((a, b) => a + b, 0) <= 10) {
+    return "五小牛";
+  }
+  // 炸弹: 4张牌点数相同
+  const counts: Record<number, number> = {};
+  ranks.forEach((r) => (counts[r] = (counts[r] || 0) + 1));
+  if (Object.values(counts).some((c) => c === 4)) {
+    return "炸弹";
+  }
+  // 五花牛: 全是花牌 (J,Q,K -> rank >= 10)
+  if (ranks.every((r) => r >= 10)) return "五花牛";
+  // 四花牛: 4张花牌 + 1张10 (rank 9)
+  const flowers = ranks.filter((r) => r >= 10).length;
+  const tens = ranks.filter((r) => r === 9).length;
+  if (flowers === 4 && tens === 1) return "四花牛";
+
+  const sum = values.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < 3; i++) {
+    for (let j = i + 1; j < 4; j++) {
+      for (let k = j + 1; k < 5; k++) {
+        if ((values[i] + values[j] + values[k]) % 10 === 0) {
+          const left = sum - (values[i] + values[j] + values[k]);
+          const niu = left % 10 === 0 ? 10 : left % 10;
+          return niu === 10 ? "牛牛" : "牛" + ["", "一", "二", "三", "四", "五", "六", "七", "八", "九"][niu];
+        }
+      }
+    }
+  }
+  return "无牛";
+}
+
+const rankMap = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+const suitMap = ["♠", "♥", "♣", "♦"];
+const colorMap = ["black", "#f56c6c", "black", "#f56c6c"];
+
+function getCardStyle(val: number) {
+  if (val === undefined || val === null || val < 0 || val > 51) return { text: "", color: "" };
+  const rank = Math.floor(val / 4);
+  const suit = val % 4;
+  return {
+    text: suitMap[suit] + rankMap[rank],
+    color: colorMap[suit],
+  };
+}
 
 function getRoomInfo(id: string) {
   if (!id) return { level: "", type: "" };
@@ -258,21 +360,12 @@ onUnmounted(() => {
       display: flex;
       align-items: center;
       margin-right: 20px;
+      gap: 5px;
 
       .label {
         font-weight: bold;
         margin-right: 10px;
         color: #303133;
-      }
-
-      .item {
-        margin-right: 15px;
-
-        .num {
-          color: #409eff;
-          font-weight: bold;
-          margin-left: 4px;
-        }
       }
     }
 
@@ -350,11 +443,6 @@ onUnmounted(() => {
 
             .avatar {
               flex-shrink: 0;
-
-              &.is-banker {
-                border: 2px solid #f56c6c;
-                box-sizing: border-box;
-              }
             }
 
             .details {
@@ -370,6 +458,7 @@ onUnmounted(() => {
               .player-name {
                 font-size: 13px;
                 font-weight: 500;
+                margin-left: 2px;
                 margin-bottom: 2px;
                 white-space: nowrap;
                 overflow: hidden;
@@ -382,15 +471,39 @@ onUnmounted(() => {
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
+                height: 18px;
+                line-height: 18px;
               }
             }
 
-            .player-balance {
-              white-space: nowrap;
-              text-align: right;
-              color: #e6a23c;
-              font-size: 12px;
-              font-weight: bold;
+            .balance-wrapper {
+              display: flex;
+              flex-direction: column;
+              align-items: flex-end;
+
+              .player-balance {
+                white-space: nowrap;
+                color: #e6a23c;
+                font-size: 12px;
+                font-weight: bold;
+              }
+
+              .player-balance-change {
+                font-size: 12px;
+                font-weight: bold;
+
+                .positive {
+                  color: #67c23a;
+                }
+
+                .negative {
+                  color: #f56c6c;
+                }
+
+                .zero {
+                  color: #909399;
+                }
+              }
             }
           }
 

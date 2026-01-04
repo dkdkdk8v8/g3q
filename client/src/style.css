@@ -39,7 +39,8 @@ body {
 }
 
 .game-theme-dialog .van-dialog__header {
-  color: #fff !important;
+  color: #ffffff !important; /* Ensure title is white */
+  opacity: 1 !important;
   padding-top: 20px !important;
   font-weight: bold !important;
   font-size: 18px !important;

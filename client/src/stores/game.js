@@ -164,6 +164,7 @@ export const useGameStore = defineStore('game', () => {
                 clientSeatNum: clientSeatNum,
                 isReady: p.IsReady,
                 balanceChange: p.BalanceChange, // Map BalanceChange from server
+                roundScore: (p.BalanceChange !== undefined) ? Number(p.BalanceChange) : 0, // Initialize roundScore
                 isObserver: p.IsOb || false // Map IsOb from server
             });
         });

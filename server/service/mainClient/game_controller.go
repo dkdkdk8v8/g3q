@@ -373,7 +373,7 @@ func handlePlayerShowCard(userId string, data []byte) {
 	}
 }
 
-func handleUserInfo(appId string, appUserId string) (*UserInfoRsp, error) {
+func handleUserInfo(appId string, appUserId string) (*modelClient.ModelUser, error) {
 	user, err := modelClient.GetOrCreateUser(appId, appUserId)
 	if err != nil {
 		return nil, errors.New("获取用户信息失败")
@@ -383,12 +383,7 @@ func handleUserInfo(appId string, appUserId string) (*UserInfoRsp, error) {
 		nickName = user.UserId
 	}
 
-	return &UserInfoRsp{
-		UserId:   user.UserId,
-		Balance:  user.Balance,
-		NickName: nickName,
-		Avatar:   user.Avatar,
-	}, nil
+	return user, nil
 }
 
 func handleSaveSetting(userId string, data []byte) {

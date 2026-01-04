@@ -268,14 +268,21 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
     if (newPhase === 'IDLE' || newPhase === 'GAME_OVER') {
         visibleCounts.value = {};
         lastBetStates.value = {};
-    } else if (newPhase === 'ROB_BANKER') {
+    } else if (newPhase === 'PRE_DEAL') {
         visibleCounts.value = {};
+        setTimeout(() => {
+            startDealingAnimation();
+        }, 100);
+    } else if (newPhase === 'ROB_BANKER') {
+        if (oldPhase !== 'PRE_DEAL') {
+            visibleCounts.value = {};
+        }
         lastBetStates.value = {};
 
         // 只有看牌抢庄(mode != 0)才需要在抢庄阶段发牌
         if (store.gameMode !== 0) {
             setTimeout(() => {
-                startDealingAnimation();
+                startDealingAnimation(true);
             }, 100);
         }
     } else if (newPhase === 'DEALING') { // Changed from SHOWDOWN to DEALING for animation

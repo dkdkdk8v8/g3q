@@ -47,10 +47,15 @@ body {
 }
 
 .game-theme-dialog .van-dialog__content {
-  color: #cbd5e1 !important; /* Lighter text for content */
+  color: #ffffff !important; /* Pure white text for content */
   padding: 15px 24px 20px !important;
   font-size: 15px !important;
   line-height: 1.5 !important;
+}
+
+/* Explicitly target the message element to override Vant variables */
+.game-theme-dialog .van-dialog__message {
+  color: #ffffff !important;
 }
 
 .game-theme-dialog .van-dialog__footer {

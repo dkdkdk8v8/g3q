@@ -8,6 +8,8 @@ import DealingLayer from '../components/DealingLayer.vue';
 import ChatBubbleSelector from '../components/ChatBubbleSelector.vue';
 import { useRouter, useRoute } from 'vue-router';
 import { formatCoins } from '../utils/format.js';
+import gameClient from '../socket.js';
+import { showToast as vantToast } from 'vant';
 
 import talk0 from '@/assets/sounds/talk_0.mp3';
 import talk1 from '@/assets/sounds/talk_1.mp3';
@@ -501,7 +503,13 @@ const openSettings = () => {
 };
 
 const quitGame = () => {
-    router.replace('/lobby');
+    const allowedPhases = ['IDLE', 'WAITING_FOR_PLAYERS', 'READY_COUNTDOWN', 'GAME_OVER'];
+    if (allowedPhases.includes(store.currentPhase)) {
+        gameClient.send("QZNN.PlayerLeave", { RoomId: store.roomId });
+        router.replace('/lobby');
+    } else {
+        vantToast("游戏已开始，暂时无法退出房间");
+    }
 };
 </script>
 

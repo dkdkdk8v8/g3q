@@ -4,7 +4,8 @@ import "service/comm"
 
 const QZNN_Prefix = "QZNN."
 const (
-	CmdUserInfo         comm.CmdType = QZNN_Prefix + "UserInfo"
+	CmdUserInfo         comm.CmdType = "UserInfo"
+	CmdSaveSetting      comm.CmdType = "SaveSetting"
 	CmdLobbyConfig      comm.CmdType = QZNN_Prefix + "LobbyConfig"
 	CmdPlayerJoin       comm.CmdType = QZNN_Prefix + "PlayerJoin"
 	CmdPlayerLeave      comm.CmdType = QZNN_Prefix + "PlayerLeave"

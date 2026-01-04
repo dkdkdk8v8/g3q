@@ -1,6 +1,7 @@
 package modelClient
 
 import (
+	"compoment/ormutil"
 	"compoment/uid"
 	"compoment/util"
 	"math/rand"
@@ -86,6 +87,18 @@ func GetRandomRobots(limit int) ([]*ModelUser, error) {
 func UpdateUser(user *ModelUser) (int64, error) {
 	return WrapUpdate(user)
 }
+
+// UpdateUser 更新用户信息
+func UpdateUserParam(userId string, param *ormutil.ModelChanger) (int64, error) {
+	return ormutil.UpdateParam[ModelUser](GetDb(), param, ormutil.WithKV("user_id", userId))
+}
+
+// func UpdateUserFields(model *ModelUser, fields ...string) (int64, error) {
+// 	if model.UserId == "" {
+// 		return 0, ormutil.ErrInvalidModelKeyIndex
+// 	}
+// 	 ormutil.UpdateFields[ModelUser](GetDb(), model, fields)
+// }
 
 // 初始化机器人池
 func InitRobots() {

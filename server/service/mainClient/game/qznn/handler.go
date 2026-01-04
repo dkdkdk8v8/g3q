@@ -58,20 +58,26 @@ func HandleCallBanker(r *QZNNRoom, userID string, mult int64) {
 	if r == nil {
 		return
 	}
-	if !r.CheckStatus(StateBanking) {
+
+	var success bool
+	err := r.CheckStatusDo(StateBanking, func() {
+		p, ok := r.GetPlayerByID(userID)
+		if !ok {
+			return
+		}
+		p.Mu.Lock()
+		defer p.Mu.Unlock()
+		if p.CallMult != -1 {
+			return
+		}
+		p.CallMult = mult
+		success = true
+	})
+
+	if err != nil || !success {
 		return
 	}
-	p, ok := r.GetPlayerByID(userID)
-	if !ok || p.CallMult != -1 {
-		return
-	}
-	p.Mu.Lock()
-	if p.CallMult != -1 {
-		p.Mu.Unlock()
-		return
-	}
-	p.CallMult = mult
-	p.Mu.Unlock()
+
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
 		return comm.PushData{
 			Cmd:      comm.ServerPush,
@@ -88,25 +94,36 @@ func HandlePlaceBet(r *QZNNRoom, userID string, mult int64) {
 	if r == nil {
 		return
 	}
-	if !r.CheckStatus(StateBetting) {
+
+	var success bool
+	err := r.CheckStatusDo(StateBetting, func() {
+		if r.CheckIsBanker(userID) {
+			logrus.WithField("roomId", r.ID).WithField("userId", userID).Error("HandlePlaceBet_BanerCannotBet")
+			return
+		}
+		p, ok := r.GetPlayerByID(userID)
+		// 修正：这里应该是检查是否未下注(BetMult == -1)，原代码 != 0 在初始为-1时会直接返回
+		if !ok || p == nil {
+			return
+		}
+		p.Mu.Lock()
+		defer p.Mu.Unlock()
+		if p.BetMult != -1 {
+			return
+		}
+		p.BetMult = mult
+		success = true
+	})
+
+	if err != nil {
 		logrus.WithField("roomId", r.ID).WithField("userId", userID).Error("HandlePlaceBet_InvalidState")
 		return
 	}
-	if r.CheckIsBanker(userID) {
-		logrus.WithField("roomId", r.ID).WithField("userId", userID).Error("HandlePlaceBet_BanerCannotBet")
+
+	if !success {
 		return
 	}
-	p, ok := r.GetPlayerByID(userID)
-	if !ok || p == nil || p.BetMult != 0 {
-		return
-	}
-	p.Mu.Lock()
-	if p.BetMult != -1 {
-		p.Mu.Unlock()
-		return
-	}
-	p.BetMult = mult
-	p.Mu.Unlock()
+
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
 		return comm.PushData{
 			Cmd:      comm.ServerPush,
@@ -124,20 +141,25 @@ func HandleShowCards(r *QZNNRoom, userID string) {
 	if r == nil {
 		return
 	}
-	if !r.CheckStatus(StateDealing) {
+
+	var success bool
+	err := r.CheckStatusDo(StateDealing, func() {
+		p, ok := r.GetPlayerByID(userID)
+		if !ok {
+			return
+		}
+		p.Mu.Lock()
+		defer p.Mu.Unlock()
+		if p.IsShow {
+			return
+		}
+		p.IsShow = true
+		success = true
+	})
+
+	if err != nil || !success {
 		return
 	}
-	p, ok := r.GetPlayerByID(userID)
-	if !ok || p.IsShow {
-		return
-	}
-	p.Mu.Lock()
-	if p.IsShow == true {
-		p.Mu.Unlock()
-		return
-	}
-	p.IsShow = true
-	p.Mu.Unlock()
 	r.BroadcastWithPlayer(func(p *Player) interface{} {
 		return comm.PushData{
 			Cmd:      comm.ServerPush,

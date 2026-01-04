@@ -111,22 +111,17 @@ const isBullPart = (index) => {
     if (!shouldShowCardFace.value) return false;
     if (!props.player.handResult) return false;
     
-    // 必须等待动画延迟结束
+    // Must wait for animation delay to end
     if (!enableHighlight.value) return false;
 
-    // FIX: 发牌阶段(DEALING)不要执行凸起逻辑，避免动画冲突
-    if (store.currentPhase === 'DEALING') return false;
-    
-    // NEW FIX: 发牌动画缓冲期也不要凸起，除非已经手动摊牌
-    if (!props.player.isShowHand && isDealingProcessing.value) return false;
-
-    // 如果是自己，必须点了摊牌(isShowHand)才显示高亮，除非已经是结算阶段
-    // if (props.isMe && store.currentPhase === 'SHOWDOWN' && !props.player.isShowHand) return false;
+    // Do not apply overlay during DEALING phase or during the dealing buffer period
+    if (store.currentPhase === 'DEALING' || (!props.player.isShowHand && isDealingProcessing.value)) return false;
 
     const type = props.player.handResult.type;
-    // 只有有牛的牌型才凸起前三张 (BULL_1 ~ BULL_BULL)
+    // Only bull types (BULL_1 ~ BULL_BULL) have cards to highlight as bull parts
     if (type.startsWith('BULL_') && type !== 'NO_BULL') {
         const indices = props.player.handResult.bullIndices;
+        // If the card's index IS in bullIndices, it's a bull card to receive the overlay
         if (indices && indices.includes(index)) {
             return true;
         }
@@ -242,11 +237,10 @@ const shouldShowBetMult = computed(() => {
           :key="idx" 
           :card="(shouldShowCardFace && (visibleCardCount === -1 || idx < visibleCardCount)) ? card : null" 
           :is-small="!isMe"
-          class="hand-card"
+          :class="{ 'hand-card': true, 'bull-card-overlay': isBullPart(idx) }"
           :style="{ 
               marginLeft: idx === 0 ? '0' : '-20px',
               opacity: (visibleCardCount === -1 || idx < visibleCardCount) ? 1 : 0,
-              transform: isBullPart(idx) ? 'translateY(-10px)' : 'none'
           }"
         />
       </div>
@@ -639,6 +633,12 @@ const shouldShowBetMult = computed(() => {
 
 .score-float.win { color: #facc15; }
 .score-float.lose { color: #ef4444; }
+
+.hand-card.bull-card-overlay {
+    filter: brightness(60%) grayscale(50%); /* Apply a grey filter */
+    opacity: 0.8; /* Slightly reduce opacity */
+    transition: filter 0.3s ease, opacity 0.3s ease;
+}
 
 @keyframes floatUp {
     0% { transform: translateY(0) scale(0.5); opacity: 0; }

@@ -74,7 +74,7 @@ func (rm *RoomManager) JoinOrCreateNNRoom(player *qznn.Player, level int, banker
 			room.PushPlayer(alreadyPlayer, comm.PushData{
 				Cmd:      comm.ServerPush,
 				PushType: qznn.PushRoom,
-				Data:     qznn.PushRoomStruct{Room: room}})
+				Data:     qznn.PushRoomStruct{Room: room, SelfId: player.ID}})
 			return nil, comm.ErrPlayerInRoom
 		}
 		// 2. 在遍历的同时，寻找一个合适的房间 (如果尚未找到)

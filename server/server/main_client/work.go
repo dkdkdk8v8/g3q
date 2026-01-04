@@ -48,6 +48,8 @@ type workCfg struct {
 	WorkId       int
 	HttpHost     string
 	HttpPort     string
+	AdminHost    string
+	AdminPort    string
 	ShutDownWait int
 	LogLevel     string
 	MysqlHost    string
@@ -123,6 +125,10 @@ func (w *mainClientWork) Start(baseCtx *initMain.BaseCtx) error {
 	w.defaultEngine.Use(gin.Logger(), gin.CustomRecovery(midPanicHttp))
 	mainClient.InitWebHandler(w.defaultEngine)
 
+	w.adminEngine = gin.New()
+	w.adminEngine.Use(gin.Logger(), gin.CustomRecovery(midPanicHttp))
+	mainClient.InitAdminWebHandler(w.adminEngine)
+
 	//if w.cfg.RedisTunnel.Target != "" {
 	//	logrus.Info("redisTunnel")
 	//	redisTunnel := util.SSHTunnel{
@@ -184,6 +190,9 @@ func (w *mainClientWork) Start(baseCtx *initMain.BaseCtx) error {
 
 	go func() {
 		startHttpListen(w.cfg.HttpHost+":"+w.cfg.HttpPort, w.defaultEngine)
+	}()
+	go func() {
+		startHttpListen(w.cfg.AdminHost+":"+w.cfg.AdminPort, w.adminEngine)
 	}()
 
 	fmt.Println("startOk")

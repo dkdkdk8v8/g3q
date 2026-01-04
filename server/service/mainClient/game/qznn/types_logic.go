@@ -160,7 +160,7 @@ type QZNNRoom struct {
 }
 
 func (r *QZNNRoom) ResetGameData() {
-	r.State = StateWaiting
+	r.State = "" //不能给wait，不然set wait，导致不能广播
 	r.StateLeftSec = 0
 	r.StateLeftSecDuration = 0
 	r.BankerID = ""

@@ -132,7 +132,7 @@ func handleConnection(connWrap *ws.WsConnWrap, appId, appUserId string) {
 			room := game.GetMgr().GetPlayerRoom(userId)
 			if room != nil {
 				//在游戏内,默认客户端进入游戏
-				connWrap.WsConn.WriteJSON(comm.PushData{
+				connWrap.WriteJSON(comm.PushData{
 					Cmd:      comm.ServerPush,
 					PushType: game.PushRouter,
 					Data: game.PushRouterStruct{
@@ -140,7 +140,7 @@ func handleConnection(connWrap *ws.WsConnWrap, appId, appUserId string) {
 						Room:   room}})
 			} else {
 				//不在游戏内,默认客户端进入lobby
-				connWrap.WsConn.WriteJSON(comm.PushData{
+				connWrap.WriteJSON(comm.PushData{
 					Cmd:      comm.ServerPush,
 					PushType: game.PushRouter,
 					Data: game.PushRouterStruct{
@@ -153,7 +153,9 @@ func handleConnection(connWrap *ws.WsConnWrap, appId, appUserId string) {
 		// 读取客户端发来的 JSON 消息
 		if initMain.DefCtx.IsDebug {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+			connWrap.Mu.RLock()
 			_, buffer, err1 := connWrap.WsConn.Conn.Read(ctx)
+			connWrap.Mu.RUnlock()
 			cancel() // 显式调用 cancel，避免在 for 循环中 defer 导致资源泄露
 			if err1 != nil {
 				connWrap.Mu.Lock()
@@ -171,7 +173,7 @@ func handleConnection(connWrap *ws.WsConnWrap, appId, appUserId string) {
 				break
 			}
 		} else {
-			err = connWrap.WsConn.ReadJSON(&msg)
+			err = connWrap.ReadJSON(&msg)
 			if err != nil {
 				logWSCloseErr(userId, err)
 				connWrap.Mu.Lock()

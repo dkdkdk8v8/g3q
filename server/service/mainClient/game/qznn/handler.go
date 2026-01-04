@@ -27,14 +27,12 @@ func HandlerPlayerLeave(r *QZNNRoom, userID string) error {
 	if err != nil {
 		return err
 	}
-	if err == nil {
-		r.Broadcast(comm.PushData{
-			Cmd:      comm.ServerPush,
-			PushType: PushPlayLeave,
-			Data: PushPlayerLeaveStruct{
-				Room:    r,
-				UserIds: []string{userID}}})
-	}
+	r.Broadcast(comm.PushData{
+		Cmd:      comm.ServerPush,
+		PushType: PushPlayLeave,
+		Data: PushPlayerLeaveStruct{
+			Room:    r,
+			UserIds: []string{userID}}})
 	r.logicTick()
 	return nil
 }

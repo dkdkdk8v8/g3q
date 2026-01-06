@@ -1,7 +1,11 @@
 .DS_Store
 node_modules/
-/dist/
+dist/
 dist-ssr/
+build/
+.vscode/
+.idea/
+.cursor/
 
 # Log files
 npm-debug.log*

@@ -962,6 +962,11 @@ declare namespace Eps {
 
 	interface GameUser {
 		/**
+		 * 获取用户资金记录
+		 */
+		pageUserRecords(data?: any): Promise<any>;
+
+		/**
 		 * 批量禁用
 		 */
 		batchDisable(data?: any): Promise<any>;
@@ -979,12 +984,22 @@ declare namespace Eps {
 		/**
 		 * 权限标识
 		 */
-		permission: { batchDisable: string; batchEnable: string; page: string };
+		permission: {
+			pageUserRecords: string;
+			batchDisable: string;
+			batchEnable: string;
+			page: string;
+		};
 
 		/**
 		 * 权限状态
 		 */
-		_permission: { batchDisable: boolean; batchEnable: boolean; page: boolean };
+		_permission: {
+			pageUserRecords: boolean;
+			batchDisable: boolean;
+			batchEnable: boolean;
+			page: boolean;
+		};
 
 		request: Request;
 	}

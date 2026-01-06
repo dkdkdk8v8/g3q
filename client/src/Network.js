@@ -218,7 +218,7 @@ export default class GameClient {
                     title: '提示',
                     message: msg.data?.message || '您已在其他设备登录，请选择操作。',
                     confirmButtonText: '继续游戏',
-                    cancelButtonText: '取消',
+                    showCancelButton: false, // Hide cancel button
                     className: 'game-theme-dialog',
                 })
                     .then(() => {
@@ -228,7 +228,8 @@ export default class GameClient {
                         this.retryConnection();
                     })
                     .catch(() => {
-                        // User chose "取消" (Cancel)
+                        // User chose "取消" (Cancel) - Should not be reachable if cancel button is hidden, 
+                        // but kept for safety/fallback behavior
                         console.log("[Network] User cancelled after PushOtherConnect. Connection remains closed.");
                         // The connection is already closed by this.close()
                     });

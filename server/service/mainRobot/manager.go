@@ -1,6 +1,7 @@
 package mainRobot
 
 import (
+	"context"
 	"encoding/json"
 	"math/rand"
 	"net/url"
@@ -17,11 +18,11 @@ import (
 )
 
 // WebSocket 服务器地址
-const SERVER_URL = "ws://127.0.0.1:8084/rpc/ws"        // 正式服地址
-const SERVER_URL_DEV = "ws://172.20.10.3:18084/rpc/ws" // 测试服地址
+const SERVER_URL = "ws://127.0.0.1:8084/rpc/ws"         // 正式服地址
+const SERVER_URL_DEV = "ws://172.20.10.11:18084/rpc/ws" // 测试服地址
 
 const MINUTE_WAIT_MAX = 10       // 进入房间前等待的最长分钟数
-const MIN_GAMES = 3              // 机器人至少玩几局
+const MIN_GAMES = 10             // 机器人至少玩几局
 const PROB_LEAVE_5_PLAYERS = 0.8 // 5人时退出概率
 const PROB_LEAVE_4_PLAYERS = 0.6 // 4人时退出概率
 const PROB_LEAVE_3_PLAYERS = 0.4 // 3人时退出概率
@@ -39,7 +40,7 @@ func Start() {
 }
 
 var (
-	activeRobots   = make(map[string]struct{})
+	activeRobots   = make(map[string]context.CancelFunc)
 	activeRobotsMu sync.Mutex
 )
 
@@ -53,10 +54,23 @@ func manageRobots() {
 			logrus.Errorf("获取所有机器人失败: %v", err)
 		} else {
 			activeRobotsMu.Lock()
+			// 找出需要删除的机器人
+			existUsers := make(map[string]bool)
+			for _, u := range users {
+				existUsers[u.UserId] = true
+			}
+			for uid, cancel := range activeRobots {
+				if !existUsers[uid] {
+					cancel()
+				}
+			}
+
+			// 找出需要添加的机器人
 			for _, u := range users {
 				if _, ok := activeRobots[u.UserId]; !ok {
-					activeRobots[u.UserId] = struct{}{}
-					go runRobot(u)
+					ctx, cancel := context.WithCancel(context.Background())
+					activeRobots[u.UserId] = cancel
+					go runRobot(u, ctx)
 				}
 			}
 			activeRobotsMu.Unlock()
@@ -65,7 +79,7 @@ func manageRobots() {
 	}
 }
 
-func runRobot(user *modelClient.ModelUser) {
+func runRobot(user *modelClient.ModelUser, ctx context.Context) {
 	defer func() {
 		activeRobotsMu.Lock()
 		delete(activeRobots, user.UserId)
@@ -73,10 +87,26 @@ func runRobot(user *modelClient.ModelUser) {
 	}()
 
 	minutes := rand.Intn(MINUTE_WAIT_MAX)
-	time.Sleep(time.Minute * time.Duration(minutes))
+	select {
+	case <-ctx.Done():
+		return
+	case <-time.After(time.Minute * time.Duration(minutes)):
+	}
 
-	robot := &Robot{Uid: user.UserId, AppId: user.AppId, AppUserId: user.AppUserId}
+	robot := &Robot{Uid: user.UserId, AppId: user.AppId, AppUserId: user.AppUserId, Balance: user.Balance}
+
+	// 监听取消信号
+	done := make(chan struct{})
+	go func() {
+		select {
+		case <-ctx.Done():
+			robot.Close()
+		case <-done:
+		}
+	}()
+
 	robot.Run()
+	close(done)
 }
 
 type Robot struct {
@@ -89,6 +119,7 @@ type Robot struct {
 	mu          sync.Mutex
 	gamesPlayed int
 	isClosing   bool
+	Balance     int64
 }
 
 func (r *Robot) Run() {
@@ -107,7 +138,15 @@ func (r *Robot) Run() {
 		logrus.Errorf("机器人 %s 连接服务器失败: %v", r.Uid, err)
 		return
 	}
+
+	r.mu.Lock()
+	if r.isClosing {
+		r.mu.Unlock()
+		conn.Close()
+		return
+	}
 	r.Conn = conn
+	r.mu.Unlock()
 	defer r.Conn.Close()
 
 	// 心跳协程
@@ -161,8 +200,11 @@ func (r *Robot) Send(cmd comm.CmdType, data interface{}) error {
 func (r *Robot) Close() {
 	r.mu.Lock()
 	r.isClosing = true
+	conn := r.Conn
 	r.mu.Unlock()
-	r.Conn.Close()
+	if conn != nil {
+		conn.Close()
+	}
 }
 
 func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
@@ -181,8 +223,14 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 			logrus.Infof("机器人 %s 进入大厅...", r.Uid)
 			// 根据配置随机选择房间等级
 			if len(qznn.Configs) > 0 {
-				randomConfig := qznn.Configs[rand.Intn(len(qznn.Configs))]
-				r.Send(qznn.CmdPlayerJoin, map[string]interface{}{"Level": randomConfig.Level, "BankerType": qznn.BankerTypeNoLook})
+				var candidates []qznn.LobbyConfig
+				for _, cfg := range qznn.Configs {
+					candidates = append(candidates, cfg)
+				}
+				if len(candidates) > 0 {
+					randomConfig := candidates[rand.Intn(len(candidates))]
+					r.Send(qznn.CmdPlayerJoin, map[string]interface{}{"Level": randomConfig.Level, "BankerType": qznn.BankerTypeNoLook})
+				}
 			}
 		case game.Game:
 			logrus.Infof("机器人 %s 进入房间...", r.Uid)
@@ -247,6 +295,12 @@ func (r *Robot) updateRoomInfo(room *qznn.QZNNRoom) {
 	if room != nil {
 		r.RoomData = room
 		r.RoomId = room.ID
+		for _, p := range room.Players {
+			if p != nil && p.ID == r.Uid {
+				r.Balance = p.Balance
+				break
+			}
+		}
 	}
 }
 
@@ -257,8 +311,8 @@ func (r *Robot) handleStateChange(state qznn.RoomState) {
 	r.mu.Unlock()
 
 	go func() {
-		// 模拟用户随机等待 1-5 秒
-		time.Sleep(time.Duration(rand.Intn(5)+1) * time.Second)
+		// 模拟用户随机等待 1-3 秒
+		time.Sleep(time.Duration(rand.Intn(3)+1) * time.Second)
 
 		switch state {
 		case qznn.StateBanking:
@@ -299,8 +353,8 @@ func (r *Robot) handleStateChange(state qznn.RoomState) {
 
 func (r *Robot) checkLeave() {
 	go func() {
-		// 随机等待 1-5 秒
-		time.Sleep(time.Duration(rand.Intn(5)+1) * time.Second)
+		// 随机等待 1-3 秒
+		time.Sleep(time.Duration(rand.Intn(3)+1) * time.Second)
 
 		r.mu.Lock()
 		roomData := r.RoomData

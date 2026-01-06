@@ -32,11 +32,23 @@ export class GameUserEntity {
   @Column({ comment: '余额', default: 0 })
   balance: number;
 
+  @Column({ comment: '冻结余额', default: 0 })
+  balance_lock: number;
+
   @Column({ comment: '最后游戏时间', nullable: true })
   last_played: Date;
 
   @Column({ comment: '是否启用', default: true })
   enable: boolean;
+
+  @Column({ comment: '启用音效', default: true })
+  effect: boolean;
+
+  @Column({ comment: '启用音乐', default: true })
+  music: boolean;
+
+  @Column({ comment: '接受语音', default: true })
+  talk: boolean;
 
   @Column({ comment: '创建时间', default: true })
   create_at: Date;

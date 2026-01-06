@@ -75,12 +75,11 @@ func runRobot(user *modelClient.ModelUser) {
 	minutes := rand.Intn(MINUTE_WAIT_MAX)
 	time.Sleep(time.Minute * time.Duration(minutes))
 
-	robot := &Robot{Idx: 0, Uid: user.UserId, AppId: user.AppId, AppUserId: user.AppUserId}
+	robot := &Robot{Uid: user.UserId, AppId: user.AppId, AppUserId: user.AppUserId}
 	robot.Run()
 }
 
 type Robot struct {
-	Idx         int
 	Uid         string
 	AppId       string
 	AppUserId   string
@@ -95,7 +94,7 @@ type Robot struct {
 func (r *Robot) Run() {
 	u, err := url.Parse(targetServerURL)
 	if err != nil {
-		logrus.Errorf("机器人 %d 解析URL失败: %v", r.Idx, err)
+		logrus.Errorf("机器人 %s 解析URL失败: %v", r.Uid, err)
 		return
 	}
 	q := u.Query()
@@ -105,7 +104,7 @@ func (r *Robot) Run() {
 
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
-		logrus.Errorf("机器人 %d 连接服务器失败: %v", r.Idx, err)
+		logrus.Errorf("机器人 %s 连接服务器失败: %v", r.Uid, err)
 		return
 	}
 	r.Conn = conn
@@ -138,7 +137,7 @@ func (r *Robot) Run() {
 			if closing {
 				return
 			}
-			logrus.Errorf("机器人 %d 读取消息错误: %v", r.Idx, err)
+			logrus.Errorf("机器人 %s 读取消息错误: %v", r.Uid, err)
 			return
 		}
 
@@ -179,14 +178,14 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 		json.Unmarshal(data, &d)
 		switch d.Router {
 		case game.Lobby:
-			logrus.Infof("机器人 %d 进入大厅...", r.Idx)
+			logrus.Infof("机器人 %s 进入大厅...", r.Uid)
 			// 根据配置随机选择房间等级
 			if len(qznn.Configs) > 0 {
 				randomConfig := qznn.Configs[rand.Intn(len(qznn.Configs))]
 				r.Send(qznn.CmdPlayerJoin, map[string]interface{}{"Level": randomConfig.Level, "BankerType": qznn.BankerTypeNoLook})
 			}
 		case game.Game:
-			logrus.Infof("机器人 %d 进入房间...", r.Idx)
+			logrus.Infof("机器人 %s 进入房间...", r.Uid)
 			var room qznn.QZNNRoom
 			if err := json.Unmarshal(d.Room, &room); err == nil {
 				r.updateRoomInfo(&room)
@@ -196,7 +195,7 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 	case qznn.PushChangeState:
 		var d qznn.PushChangeStateStruct
 		if err := json.Unmarshal(data, &d); err != nil {
-			logrus.Errorf("机器人 %d 解析 PushChangeState 失败: %v", r.Idx, err)
+			logrus.Errorf("机器人 %s 解析 PushChangeState 失败: %v", r.Uid, err)
 			return
 		}
 		r.updateRoomInfo(d.Room)
@@ -205,7 +204,7 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 	case qznn.PushPlayJoin:
 		var d qznn.PushPlayerJoinStruct
 		if err := json.Unmarshal(data, &d); err != nil {
-			logrus.Errorf("机器人 %d 解析 PushPlayJoin 失败: %v", r.Idx, err)
+			logrus.Errorf("机器人 %s 解析 PushPlayJoin 失败: %v", r.Uid, err)
 			return
 		}
 		r.updateRoomInfo(d.Room)
@@ -214,7 +213,7 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 	case qznn.PushPlayLeave:
 		var d qznn.PushPlayerLeaveStruct
 		if err := json.Unmarshal(data, &d); err != nil {
-			logrus.Errorf("机器人 %d 解析 PushPlayLeave 失败: %v", r.Idx, err)
+			logrus.Errorf("机器人 %s 解析 PushPlayLeave 失败: %v", r.Uid, err)
 			return
 		}
 		r.updateRoomInfo(d.Room)
@@ -292,7 +291,7 @@ func (r *Robot) handleStateChange(state qznn.RoomState) {
 			r.gamesPlayed++
 			played := r.gamesPlayed
 			r.mu.Unlock()
-			logrus.Infof("机器人 %d 本局结束，已玩局数: %d", r.Idx, played)
+			logrus.Infof("机器人 %s 本局结束，已玩局数: %d", r.Uid, played)
 			r.checkLeave()
 		}
 	}()
@@ -313,7 +312,7 @@ func (r *Robot) checkLeave() {
 			return
 		}
 		if gamesPlayed < MIN_GAMES {
-			logrus.Infof("机器人 %d 局数不足(当前%d/目标%d)，继续游戏", r.Idx, gamesPlayed, MIN_GAMES)
+			logrus.Infof("机器人 %s 局数不足(当前%d/目标%d)，继续游戏", r.Uid, gamesPlayed, MIN_GAMES)
 			return
 		}
 		count := 0
@@ -337,11 +336,11 @@ func (r *Robot) checkLeave() {
 		}
 
 		if prob > 0 && rand.Float64() < prob {
-			logrus.Infof("机器人 %d 决定退出房间，当前房间人数: %d, 概率: %.2f", r.Idx, count, prob)
+			logrus.Infof("机器人 %s 决定退出房间，当前房间人数: %d, 概率: %.2f", r.Uid, count, prob)
 			r.Send(qznn.CmdPlayerLeave, map[string]interface{}{"RoomId": roomId})
 			r.Close()
 		} else {
-			logrus.Infof("机器人 %d 决定继续留在房间，当前房间人数: %d", r.Idx, count)
+			logrus.Infof("机器人 %s 决定继续留在房间，当前房间人数: %d", r.Uid, count)
 		}
 	}()
 }

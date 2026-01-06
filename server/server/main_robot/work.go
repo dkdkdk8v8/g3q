@@ -124,6 +124,12 @@ func (w *mainClientWork) Start(baseCtx *initMain.BaseCtx) error {
 		w.cfg.MysqlUser, w.cfg.MysqlPwd,
 		w.cfg.MysqlConn, w.cfg.MysqlIdle)
 
+	logrus.Info("initModel")
+	if err := ormutil.InitModel(); err != nil {
+		logrus.WithError(err).Error("initModel-Fail")
+		return err
+	}
+
 	go func() {
 		mainRobot.Start()
 	}()

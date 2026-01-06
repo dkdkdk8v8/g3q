@@ -1,7 +1,7 @@
 <template>
 	<div class="card">
 		<div class="card__header">
-			<span class="label">{{ $t('热门商品排行') }}</span>
+			<span class="label">{{ $t('热门游戏排行') }}</span>
 
 			<cl-select-button v-model="type" :options="options.type" small />
 		</div>
@@ -53,75 +53,19 @@ const Crud = useCrud(
 				return Promise.resolve({
 					list: [
 						{
-							keyWord: '无线耳机',
+							keyWord: '抢庄牛牛',
 							count: 983,
 							ud: 5,
 							launchDate: '2023-01-01',
 							price: 299
 						},
 						{
-							keyWord: '运动耳机',
+							keyWord: '百人牛牛',
 							count: 763,
 							ud: -3,
 							launchDate: '2023-02-15',
 							price: 199
 						},
-						{
-							keyWord: '蓝牙音箱',
-							count: 328,
-							ud: 7,
-							launchDate: '2023-03-10',
-							price: 399
-						},
-						{
-							keyWord: '4k显示屏',
-							count: 144,
-							ud: 4,
-							launchDate: '2023-04-05',
-							price: 999
-						},
-						{
-							keyWord: '罗技 G530',
-							count: 121,
-							ud: -1,
-							launchDate: '2023-05-20',
-							price: 499
-						},
-						{
-							keyWord: '智能手表',
-							count: 450,
-							ud: 2,
-							launchDate: '2023-06-15',
-							price: 599
-						},
-						{
-							keyWord: '游戏鼠标',
-							count: 300,
-							ud: 6,
-							launchDate: '2023-07-01',
-							price: 150
-						},
-						{
-							keyWord: '机械键盘',
-							count: 200,
-							ud: -2,
-							launchDate: '2023-08-10',
-							price: 350
-						},
-						{
-							keyWord: 'VR眼镜',
-							count: 150,
-							ud: 8,
-							launchDate: '2023-09-05',
-							price: 799
-						},
-						{
-							keyWord: '智能音箱',
-							count: 100,
-							ud: 3,
-							launchDate: '2023-10-01',
-							price: 250
-						}
 					]
 				});
 			}
@@ -142,17 +86,17 @@ const Table = useTable({
 			width: 60
 		},
 		{
-			label: t('商品名称'),
+			label: t('游戏名称'),
 			prop: 'keyWord',
 			minWidth: 120
 		},
 		{
-			label: t('商品金额'),
+			label: t('平台盈利'),
 			prop: 'price',
 			minWidth: 100
 		},
 		{
-			label: t('下单次数'),
+			label: t('下注次数'),
 			prop: 'count',
 			minWidth: 100,
 			sortable: true

@@ -66,14 +66,16 @@
                         <!-- <el-avatar :size="24" :src="player.Avatar" :icon="UserFilled" class="avatar"></el-avatar> -->
                         <div class="details">
                           <div class="player-name">
-                            <span v-if="item.BankerID === player.ID" style="color: #f56c6c; font-weight: bold">庄</span>
-                            <span v-else-if="player.IsOb" style="color: #67c23a; font-weight: bold">看</span>
+                            <span v-if="item.BankerID === player.ID"
+                              style="color: var(--el-color-danger); font-weight: bold">庄</span>
+                            <span v-else-if="player.IsOb"
+                              style="color: var(--el-color-success); font-weight: bold">看</span>
                             {{ player.ID }}
                             <span v-if="player.CallMult >= 0 && player.BetMult === -1"
-                              style="color: #f56c6c; font-weight: bold; margin-left: 2px">
+                              style="color: var(--el-color-danger); font-weight: bold; margin-left: 2px">
                               {{ player.CallMult }}倍
                             </span>
-                            <span v-if="player.BetMult >= 0" style="color: #f56c6c; margin-left: 2px">
+                            <span v-if="player.BetMult >= 0" style="color: var(--el-color-danger); margin-left: 2px">
                               {{ player.BetMult }}倍
                             </span>
                           </div>
@@ -84,7 +86,7 @@
                                 {{ getCardStyle(card).text }}
                               </span>
                               <span v-if="player.Cards && player.Cards.length === 5"
-                                style="margin-left: 4px; color: #409eff; font-weight: bold">
+                                style="margin-left: 4px; color: var(--el-color-primary); font-weight: bold">
                                 {{ getCardResult(player.Cards) }} {{ player.IsShow ? '摊牌' : '' }}
                               </span>
                             </template>
@@ -263,7 +265,7 @@ function getCardResult(cards: number[]) {
 
 const rankMap = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
 const suitMap = ["♠", "♥", "♣", "♦"];
-const colorMap = ["black", "#f56c6c", "black", "#f56c6c"];
+const colorMap = ["var(--el-text-color-regular)", "var(--el-color-danger)", "var(--el-text-color-regular)", "var(--el-color-danger)"];
 
 function getCardStyle(val: number) {
   if (val === undefined || val === null || val < 0 || val > 51) return { text: "", color: "" };
@@ -278,10 +280,10 @@ function getCardStyle(val: number) {
 function getRoomInfo(id: string) {
   if (!id) return { level: "", type: "" };
   const parts = id.split("_");
-  if (parts.length >= 4) {
+  if (parts.length >= 3) {
     return {
-      level: levelMap[parts[3]] || "未知",
-      type: typeMap[parts[2]] || "未知",
+      level: levelMap[parts[2]] || "未知",
+      type: typeMap[parts[1]] || "未知",
     };
   }
   return { level: "未知", type: "未知" };
@@ -364,19 +366,19 @@ onUnmounted(() => {
     .stats {
       margin-left: 15px;
       font-size: 14px;
-      color: #606266;
+      color: var(--el-text-color-regular);
       display: flex;
       align-items: center;
 
       .value {
         font-weight: bold;
-        color: #303133;
+        color: var(--el-text-color-primary);
         margin-left: 4px;
       }
 
       .divider {
         margin: 0 12px;
-        color: #dcdfe6;
+        color: var(--el-border-color);
       }
     }
   }
@@ -389,7 +391,7 @@ onUnmounted(() => {
     align-items: center;
     flex-wrap: wrap;
     font-size: 13px;
-    color: #606266;
+    color: var(--el-text-color-regular);
 
     .group {
       display: flex;
@@ -407,7 +409,7 @@ onUnmounted(() => {
     .divider {
       width: 1px;
       height: 16px;
-      background-color: #dcdfe6;
+      background-color: var(--el-border-color);
       margin-right: 20px;
     }
   }
@@ -426,12 +428,12 @@ onUnmounted(() => {
       font-weight: bold;
       margin-bottom: 10px;
       padding-left: 8px;
-      border-left: 4px solid #409eff;
-      color: #303133;
+      border-left: 4px solid var(--el-color-primary);
+      color: var(--el-text-color-primary);
 
       .count {
         font-size: 14px;
-        color: #909399;
+        color: var(--el-text-color-secondary);
         font-weight: normal;
         margin-left: 5px;
       }
@@ -453,7 +455,7 @@ onUnmounted(() => {
 
     &:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      box-shadow: var(--el-box-shadow-light);
     }
 
     .card-header {
@@ -478,7 +480,7 @@ onUnmounted(() => {
       font-size: 13px;
 
       .players-list {
-        background-color: #f5f7fa;
+        background-color: var(--el-fill-color-light);
         border-radius: 4px;
         padding: 4px;
         display: grid;
@@ -492,7 +494,7 @@ onUnmounted(() => {
           height: 44px;
           box-sizing: border-box;
           padding: 0 4px;
-          background-color: #fff;
+          background-color: var(--el-bg-color);
           border-radius: 4px;
           overflow: hidden;
 
@@ -528,7 +530,7 @@ onUnmounted(() => {
 
               .player-id {
                 font-size: 12px;
-                color: #909399;
+                color: var(--el-text-color-secondary);
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
@@ -544,7 +546,7 @@ onUnmounted(() => {
 
               .player-balance {
                 white-space: nowrap;
-                color: #e6a23c;
+                color: var(--el-color-warning);
                 font-size: 12px;
                 font-weight: bold;
               }
@@ -554,22 +556,22 @@ onUnmounted(() => {
                 font-weight: bold;
 
                 .positive {
-                  color: #67c23a;
+                  color: var(--el-color-success);
                 }
 
                 .negative {
-                  color: #f56c6c;
+                  color: var(--el-color-danger);
                 }
 
                 .zero {
-                  color: #909399;
+                  color: var(--el-text-color-secondary);
                 }
               }
             }
           }
 
           .player-empty {
-            color: #c0c4cc;
+            color: var(--el-text-color-placeholder);
             flex: 1;
             text-align: center;
             display: flex;
@@ -584,10 +586,10 @@ onUnmounted(() => {
         margin-top: 6px;
         display: flex;
         justify-content: space-between;
-        color: #909399;
+        color: var(--el-text-color-secondary);
         font-size: 12px;
         padding: 0 4px;
-        border-top: 1px solid #f0f2f5;
+        border-top: 1px solid var(--el-border-color-lighter);
         padding-top: 6px;
       }
     }

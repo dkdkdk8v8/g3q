@@ -3,22 +3,40 @@
     <cl-row>
       <!-- 刷新按钮 -->
       <cl-refresh-btn />
-      <cl-filter label="状态">
-        <cl-select :options="DictEnable" prop="enable" :width="160" />
-      </cl-filter>
-
-      <cl-filter label="机器人">
-        <cl-select :options="DictIsRobot" prop="is_robot" :width="160" />
-      </cl-filter>
-
+      <cl-multi-delete-btn />
+      <el-button type="success" :disabled="!Table?.selection?.length" @click="batchEnable">
+        批量启用
+      </el-button>
+      <el-button type="danger" :disabled="!Table?.selection?.length" @click="batchDisable">
+        批量禁用
+      </el-button>
       <cl-flex1 />
-      <!-- 关键字搜索 -->
-      <cl-search-key placeholder="搜索关键字" />
+      <cl-filter label="">
+        <el-radio-group v-model="enable" @change="refresh({ enable })">
+          <el-radio-button v-for="(item, index) in DictEnable" :key="index" :label="item.value">
+            {{ item.label }}
+          </el-radio-button>
+        </el-radio-group>
+      </cl-filter>
+      <cl-flex1 />
+      <cl-search-key field="user_id" :field-list="[
+        {
+          label: '用户ID',
+          value: 'user_id'
+        },
+      ]" />
     </cl-row>
-
     <cl-row>
       <!-- 数据表格 -->
-      <cl-table ref="Table" />
+      <cl-table ref="Table">
+        <template #column-settings="{ scope }">
+          <el-space :size="5">
+            <el-tag size="small" :type="scope.row.music ? 'success' : 'info'">音乐</el-tag>
+            <el-tag size="small" :type="scope.row.effect ? 'success' : 'info'">音效</el-tag>
+            <el-tag size="small" :type="scope.row.talk ? 'success' : 'info'">对话</el-tag>
+          </el-space>
+        </template>
+      </cl-table>
     </cl-row>
 
     <cl-row>
@@ -35,6 +53,8 @@
 <script lang="ts" name="game-user" setup>
 import { useCrud, useTable, useUpsert } from "@cool-vue/crud";
 import { useCool } from "/@/cool";
+import { ElMessage, ElMessageBox } from "element-plus";
+import { ref } from "vue";
 
 const { service } = useCool();
 
@@ -51,74 +71,15 @@ const DictEnable = [
   },
 ];
 
-const DictIsRobot = [
-  {
-    label: "是",
-    value: 1,
-    type: "success",
-  },
-  {
-    label: "否",
-    value: 0,
-    type: "danger",
-  },
-];
-
-// cl-upsert
-const Upsert = useUpsert({
-  items: [
-    {
-      label: "用户ID",
-      prop: "user_id",
-      component: {
-        name: "el-input",
-        props: {
-          disabled: true,
-        },
-      }
-    },
-    {
-      label: "昵称",
-      prop: "nick_name",
-      component: {
-        name: "el-input",
-        props: {
-          disabled: true,
-        },
-      }
-    },
-    {
-      label: "备注",
-      prop: "remark",
-      component: {
-        name: "el-input",
-        props: {
-          rows: 3,
-          type: "textarea"
-        }
-      }
-    },
-    {
-      label: "是否启用",
-      prop: "enable",
-      component: {
-        name: "cl-switch",
-        props: {
-          activeValue: 1,
-          inactiveValue: 0,
-        }
-      }
-    }
-  ],
-});
+// 状态
+const enable = ref(1);
 
 // cl-table
 const Table = useTable({
   columns: [
     { type: "selection" },
-    { label: "APP", prop: "app_id" },
+    { label: "APP", prop: "app_id", dict: [], dictColor: true },
     { label: "用户ID", prop: "user_id", minWidth: 120 },
-    { label: "昵称", prop: "nick_name", minWidth: 120 },
     {
       label: "头像",
       prop: "avatar",
@@ -130,14 +91,25 @@ const Table = useTable({
         },
       },
     },
-    { label: "备注", prop: "remark", minWidth: 180, showOverflowTooltip: true },
+    { label: "昵称", prop: "nick_name", minWidth: 120 },
     {
       label: "余额",
       prop: "balance",
+      minWidth: 100,
       formatter(row) {
         return (row.balance / 100).toFixed(2);
       },
     },
+    {
+      label: "锁定余额",
+      prop: "balance_lock",
+      minWidth: 100,
+      formatter(row) {
+        return (row.balance_lock / 100).toFixed(2);
+      },
+    },
+    { label: "设置", prop: "settings", minWidth: 180 },
+    { label: "备注", prop: "remark", minWidth: 180, showOverflowTooltip: true },
     {
       label: "最近游戏",
       prop: "last_played",
@@ -163,9 +135,51 @@ const Crud = useCrud(
     service: service.game.user,
   },
   (app) => {
-    app.refresh();
+    app.refresh({ enable: enable.value });
   },
 );
+
+// 批量禁用
+async function batchDisable() {
+  const selection = Table.value?.selection;
+
+  if (!selection || selection.length === 0) {
+    ElMessage.warning("请选择要禁用的用户");
+    return;
+  }
+
+  await ElMessageBox.confirm("确定要禁用选中的用户吗？", "提示", {
+    type: "warning",
+  });
+
+  await service.game.user.batchDisable({
+    ids: selection.map((e: any) => e.id),
+  });
+
+  ElMessage.success("禁用成功");
+  refresh();
+}
+
+// 批量启用
+async function batchEnable() {
+  const selection = Table.value?.selection;
+
+  if (!selection || selection.length === 0) {
+    ElMessage.warning("请选择要启用的用户");
+    return;
+  }
+
+  await ElMessageBox.confirm("确定要启用选中的用户吗？", "提示", {
+    type: "warning",
+  });
+
+  await service.game.user.batchEnable({
+    ids: selection.map((e: any) => e.id),
+  });
+
+  ElMessage.success("启用成功");
+  refresh();
+}
 
 // 刷新
 function refresh(params?: any) {

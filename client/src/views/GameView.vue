@@ -1398,7 +1398,7 @@ watch(() => store.currentPhase, (newPhase) => {
     top: 38%;
     /* Adjusted for fixed top alignment */
     right: 10px;
-    transform: scale(0.85);
+    /* transform: scale(0.85); Removed redundant scale */
 }
 
 .seat-right-top {
@@ -1415,7 +1415,7 @@ watch(() => store.currentPhase, (newPhase) => {
     top: 38%;
     /* Adjusted for fixed top alignment */
     left: 10px;
-    transform: scale(0.85);
+    /* transform: scale(0.85); Removed redundant scale */
 }
 
 .empty-seat {

@@ -941,6 +941,23 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                     @selectEmoji="onEmojiSelected" />
             </div>
 
+            <!-- Global Message Alert -->
+            <div v-if="store.globalMessage" class="modal-overlay" style="z-index: 9999;">
+                <div class="modal-content" style="max-width: 320px; text-align: center;">
+                    <div class="modal-header" style="justify-content: center;">
+                        <h3>系统提示</h3>
+                    </div>
+                    <div style="padding: 20px; color: #cbd5e1; font-size: 16px; line-height: 1.5;">
+                        {{ store.globalMessage }}
+                    </div>
+                    <div style="padding: 0 20px 20px; display: flex; justify-content: center;">
+                        <div class="game-btn orange" style="width: 100px;" @click="store.globalMessage = ''">
+                            我知道了
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Cooldown Toast -->
             <transition name="toast-fade">
                 <div v-if="showToast" class="cooldown-toast">

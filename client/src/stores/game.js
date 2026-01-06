@@ -60,6 +60,7 @@ export const useGameStore = defineStore('game', () => {
     const betMult = ref([]); // Store betting multiplier options
     const playerSpeechQueue = ref([]); // Queue for incoming speech/emoji events
     const roomJoinedPromise = ref(null); // Added for async join completion
+    const globalMessage = ref(''); // Global alert message
     let roomJoinedResolve = null;
     let roomJoinedReject = null;
 
@@ -263,6 +264,11 @@ export const useGameStore = defineStore('game', () => {
         // console.log(`[GameStore] Universal Push: ${pushType}`, data);
 
         if (!data) return;
+
+        // Handle Global Message Alert
+        if (data.Message && typeof data.Message === 'string' && data.Message.trim() !== '') {
+            globalMessage.value = data.Message;
+        }
 
         // Handle PushTalk specifically
         if (pushType === 'PushTalk') {
@@ -638,6 +644,7 @@ export const useGameStore = defineStore('game', () => {
         roomJoinedPromise, // Export roomJoinedPromise
         resetState, // Export resetState
         sendPlayerTalk, // Export the new action
+        globalMessage, // Export globalMessage
         // Manual Controls
         enterStateWaiting,
         enterStatePrepare,

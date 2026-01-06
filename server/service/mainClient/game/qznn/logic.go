@@ -1,11 +1,15 @@
 package qznn
 
 import (
+	"compoment/util"
 	"compoment/ws"
+	"encoding/json"
 	"fmt"
 	"math"
 	"math/rand"
 	"service/comm"
+	"service/mainClient/game/znet"
+	"service/modelClient"
 	"slices"
 	"time"
 
@@ -514,17 +518,38 @@ func (r *QZNNRoom) driverLogicTick() {
 }
 
 func (r *QZNNRoom) tickWaiting() {
-	if leaveIds, isLeave := r.kickOffByWsDisconnect(); isLeave {
+	leaveIds, _ := r.kickOffByWsDisconnect()
+	//reset ob data
+	r.ResetOb()
+	//check balance >= min balance
+	players := r.GetPlayers()
+	for _, p := range players {
+		if p == nil {
+			continue
+		}
+		if p.Balance < r.Config.MinBalance {
+			if r.Leave(p.ID) {
+				leaveIds = append(leaveIds, p.ID)
+				r.PushPlayer(p, comm.PushData{
+					Cmd:      comm.ServerPush,
+					PushType: znet.PushRouter,
+					Data: znet.PushRouterStruct{
+						Router:  znet.Lobby,
+						Message: "余额不足,离开房间"}})
+			}
+		}
+	}
+	if len(leaveIds) > 0 {
+		leaveIds = util.RemoveDuplicatesString(leaveIds)
 		r.Broadcast(comm.PushData{
 			Cmd:      comm.ServerPush,
 			PushType: PushPlayLeave,
 			Data:     PushPlayerLeaveStruct{UserIds: leaveIds, Room: r}})
-	}
-	//reset ob data
 
-	countExistPlayerNum := r.GetPlayerCount()
+	}
+
 	//加入已经有2个人在房间，可以进行倒计时开始游戏
-	if countExistPlayerNum >= 2 {
+	if len(players) >= 2 {
 		r.SetStatus([]RoomState{StateWaiting}, StatePrepare, SecStatePrepareSec)
 	}
 }
@@ -665,12 +690,7 @@ func (r *QZNNRoom) StartGame() {
 
 	//保底的检查，用户能不能玩，至少2个有效用户，不够要再踢回waiting
 	activePlayer := r.GetActivePlayers(nil)
-	if len(activePlayer) < 2 {
-		logrus.WithField("!", nil).WithField("roomId", r.ID).Error("InvalidPlayerCountForGame")
-		r.SetStatus([]RoomState{StateStartGame}, StateWaiting, 0)
-		//不判断set status 成功与否，强行return，保护数据
-		return
-	}
+
 	//检查是否有重复id在游戏内
 	allPlayers := r.GetPlayers()
 	playerSet := make(map[string]*Player, 5)
@@ -683,6 +703,24 @@ func (r *QZNNRoom) StartGame() {
 				return
 			}
 		}
+	}
+
+	//锁用户的balance
+	for _, p := range activePlayer {
+		err := modelClient.GameLockUserBalance(p.ID, r.GameID, r.Config.MinBalance)
+		if err != nil {
+			//有用户的金额不够锁住,尝试踢出用户
+			logrus.WithField("!", nil).WithField("userId", p.ID).WithField("roomId", r.ID).Error("InvalidPlayerLockBanlance")
+			r.SetStatus([]RoomState{StateStartGame}, StateWaiting, 0)
+			return
+		}
+	}
+
+	if len(activePlayer) < 2 {
+		logrus.WithField("!", nil).WithField("roomId", r.ID).Error("InvalidPlayerCountForGame")
+		r.SetStatus([]RoomState{StateStartGame}, StateWaiting, 0)
+		//不判断set status 成功与否，强行return，保护数据
+		return
 	}
 
 	//准备牌堆并发牌
@@ -878,15 +916,52 @@ func (r *QZNNRoom) StartGame() {
 		}
 	}
 
-	for _, p := range activePlayer {
-		p.Mu.Lock()
-		p.Balance += p.BalanceChange
-		p.Mu.Unlock()
-	}
-
 	//结算状态
 	if !r.SetStatus([]RoomState{StateShowCard}, StateSettling, 0) {
+		//todo:: log detail for recovery data
 		return
+	}
+
+	type qznnGameData struct {
+		Room *QZNNRoom
+	}
+	roomBytes, _ := json.Marshal(qznnGameData{Room: r})
+	//产生对局记录
+	nGameRecordId, err := modelClient.InsertGameRecord(&modelClient.ModelGameRecord{
+		GameId:   r.GameID,
+		GameData: string(roomBytes),
+	})
+	if err != nil {
+		//todo:: just log do no break logic
+	}
+
+	settle := modelClient.GameSettletruct{RoomId: r.ID, GameRecordId: nGameRecordId}
+	for _, p := range activePlayer {
+		settle.Players = append(settle.Players, modelClient.UserSettingStruct{
+			UserId:        p.ID,
+			ChangeBalance: p.BalanceChange,
+		})
+	}
+	//
+	modelUsers, err := modelClient.UpdateUserSetting(&settle)
+	if err != nil {
+		//todo:: log very detail for recovery user data
+		return
+	}
+
+	for _, modelU := range modelUsers {
+		for _, player := range activePlayer {
+			//用最新数据更新balance
+			if player.ID == modelU.UserId {
+				//检查内存player 的balance和最终数据库的差异
+				if player.Balance+player.Balance != modelU.BalanceLock {
+					//todo:: log
+				}
+				//最终以数据库的数据为准
+				player.Balance = modelU.BalanceLock
+				break
+			}
+		}
 	}
 
 	//客户端播放结算动画
@@ -910,5 +985,20 @@ func (r *QZNNRoom) StartGame() {
 		nextState = StatePrepare
 	default:
 	}
+
+	//查看是否有余额是0的用户，是0即可让用户去lobby了
+	for _, p := range activePlayer {
+		if p.Balance < r.Config.MinBalance {
+			if r.Leave(p.ID) {
+				r.PushPlayer(p, comm.PushData{
+					Cmd:      comm.ServerPush,
+					PushType: znet.PushRouter,
+					Data: znet.PushRouterStruct{
+						Router:  znet.Lobby,
+						Message: "余额不足,离开房间"}})
+			}
+		}
+	}
+
 	r.SetStatus([]RoomState{StateSettling, RoomState("")}, nextState, prepareSec)
 }

@@ -1,8 +1,9 @@
 package game
 
 import (
+	"compoment/jsondiytag"
 	"compoment/uid"
-	"encoding/json"
+	"compoment/util"
 	"fmt"
 	"service/comm"
 	"service/mainClient/game/qznn"
@@ -115,7 +116,7 @@ func (rm *RoomManager) JoinOrCreateNNRoom(player *qznn.Player, level int, banker
 		return targetRoom, nil
 	}
 
-	roomID := fmt.Sprintf("%d_%d_%d", uid.Generate(), bankerType, level)
+	roomID := fmt.Sprintf("%s_%d_%d", util.EncodeToBase36(uid.Generate()), bankerType, level)
 	newRoom := qznn.NewRoom(roomID, bankerType, level)
 	newRoom.AddPlayer(player)
 	newRoom.OnBotAction = nil //RobotForQZNNRoom
@@ -156,6 +157,6 @@ func (rm *RoomManager) GetRoomCount() int {
 func (rm *RoomManager) GetAllRooms() string {
 	rm.mu.RLock()
 	defer rm.mu.RUnlock()
-	allRooms, _ := json.Marshal(rm.QZNNRooms)
+	allRooms, _ := jsondiytag.MarshalWithCustomTag(rm.QZNNRooms)
 	return string(allRooms)
 }

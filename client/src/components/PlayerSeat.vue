@@ -167,7 +167,7 @@ const shouldShowRobMult = computed(() => {
     return false;
 });
 
-const shouldShowBetMult = computed(() => {
+  const shouldShowBetMult = computed(() => {
     // Hide in IDLE or READY phases
     if (['IDLE', 'READY_COUNTDOWN', 'ROB_BANKER', 'BANKER_SELECTION_ANIMATION', 'BANKER_CONFIRMED'].includes(store.currentPhase)) return false;
     
@@ -177,8 +177,17 @@ const shouldShowBetMult = computed(() => {
     // Show if bet is placed
     return props.player.betMultiplier > 0;
 });
-</script>
 
+const displayName = computed(() => {
+    const name = props.player.name || '';
+    if (props.isMe) return name;
+    if (name.length <= 1) return name;
+    // For names with length >= 2, show first and last char, separated by 6 asterisks
+    const first = name.charAt(0);
+    const last = name.charAt(name.length - 1);
+    return `${first}******${last}`;
+});
+</script>
 <template>
   <div class="player-seat" :class="`seat-${position}`">
     <!-- ... (keep avatar area) -->
@@ -221,7 +230,7 @@ const shouldShowBetMult = computed(() => {
       </div>
 
       <div class="info-box">
-        <div class="name van-ellipsis">{{ player.name }}</div>
+        <div class="name van-ellipsis">{{ displayName }}</div>
         <div class="coins-pill">
             <span class="coin-symbol">🟡</span>
             {{ formatCoins(player.coins) }}

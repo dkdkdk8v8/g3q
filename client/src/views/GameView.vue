@@ -648,7 +648,7 @@ const calculationData = computed(() => {
     const cards = [];
     let sum = 0;
     const labels = [];
-    
+
     // Use the order of selection
     selectedCardIndices.value.forEach(idx => {
         if (!myPlayer.value || !myPlayer.value.hand) return;
@@ -781,7 +781,8 @@ watch(() => store.currentPhase, (newPhase) => {
                     </transition>
 
 
-                    <div v-if="store.currentPhase === 'ROB_BANKER' && !myPlayer.isObserver && myPlayer.robMultiplier === -1" class="btn-group">
+                    <div v-if="store.currentPhase === 'ROB_BANKER' && !myPlayer.isObserver && myPlayer.robMultiplier === -1"
+                        class="btn-group">
                         <div class="game-btn blue" @click="onRob(0)">不抢</div>
                         <div v-for="mult in store.bankerMult.filter(m => m > 0)" :key="mult" class="game-btn orange"
                             @click="onRob(mult)">
@@ -808,20 +809,20 @@ watch(() => store.currentPhase, (newPhase) => {
                     <!-- 摊牌按钮 -->
                     <div v-if="store.currentPhase === 'SHOWDOWN' && !myPlayer.isShowHand && store.countdown > 0 && !myPlayer.isObserver"
                         class="showdown-wrapper">
-                        
+
                         <div class="game-btn orange showdown-btn" @click="playerShowHandDebounced(myPlayer.id)">
                             摊牌
                         </div>
 
                         <!-- Calculation Formula -->
                         <div class="calc-container">
-                            <div class="calc-box">{{ calculationData.labels[0] || '?' }}</div>
+                            <div class="calc-box">{{ calculationData.labels[0] || '' }}</div>
                             <div class="calc-symbol">+</div>
-                            <div class="calc-box">{{ calculationData.labels[1] || '?' }}</div>
+                            <div class="calc-box">{{ calculationData.labels[1] || '' }}</div>
                             <div class="calc-symbol">+</div>
-                            <div class="calc-box">{{ calculationData.labels[2] || '?' }}</div>
+                            <div class="calc-box">{{ calculationData.labels[2] || '' }}</div>
                             <div class="calc-symbol">=</div>
-                            <div class="calc-box result">{{ calculationData.isFull ? calculationData.sum : '?' }}</div>
+                            <div class="calc-box result">{{ calculationData.isFull ? calculationData.sum : '' }}</div>
                         </div>
                     </div>
 
@@ -836,10 +837,8 @@ watch(() => store.currentPhase, (newPhase) => {
                     :visible-card-count="(myPlayer && visibleCounts[myPlayer.id] !== undefined) ? visibleCounts[myPlayer.id] : 0"
                     :is-ready="myPlayer && myPlayer.isReady"
                     :is-animating-highlight="myPlayer && myPlayer.id === currentlyHighlightedPlayerId"
-                    :speech="myPlayer ? playerSpeech.get(myPlayer.id) : null" 
-                    :selected-card-indices="selectedCardIndices"
-                    @card-click="handleCardClick"
-                    />
+                    :speech="myPlayer ? playerSpeech.get(myPlayer.id) : null"
+                    :selected-card-indices="selectedCardIndices" @card-click="handleCardClick" />
             </div>
 
             <!-- 全局点击关闭菜单 -->
@@ -1672,26 +1671,28 @@ watch(() => store.currentPhase, (newPhase) => {
     position: relative;
     width: 100%;
     display: flex;
-    flex-direction: column; /* Stack vertically */
+    flex-direction: column;
+    /* Stack vertically */
     justify-content: center;
     align-items: center;
-    gap: 15px; /* Space between button and calculation */
+    gap: 15px;
+    /* Space between button and calculation */
     margin-bottom: 10px;
 }
 
 .calc-container {
     display: flex;
     align-items: center;
-    gap: 8px; 
-    background: rgba(0, 0, 0, 0.5); 
-    padding: 8px 16px; 
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 8px 16px;
     border-radius: 12px;
     /* Removed transform: translateY */
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .calc-box {
-    width: 40px; 
+    width: 40px;
     height: 40px;
     background: rgba(255, 255, 255, 0.1);
     border: 2px solid rgba(255, 255, 255, 0.4);
@@ -1701,7 +1702,7 @@ watch(() => store.currentPhase, (newPhase) => {
     align-items: center;
     color: white;
     font-weight: bold;
-    font-size: 20px; 
+    font-size: 20px;
 }
 
 .calc-box.result {
@@ -1713,7 +1714,7 @@ watch(() => store.currentPhase, (newPhase) => {
 .calc-symbol {
     color: white;
     font-weight: bold;
-    font-size: 24px; 
+    font-size: 24px;
 }
 
 .showdown-btn {

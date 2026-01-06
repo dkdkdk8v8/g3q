@@ -2,14 +2,15 @@ package modelClient
 
 import (
 	"compoment/ormutil"
+
+	"github.com/sirupsen/logrus"
 )
 
 func GetOrCreateUser(appId string, appUserId string) (*ModelUser, error) {
 	//todo redis locking，防止并发创建同一用户
 	var user ModelUser
 	err := GetDb().QueryTable(new(ModelUser)).Filter(
-		"user_id", appId+appUserId).Filter(
-		"is_robot", false).One(&user)
+		"user_id", appId+appUserId).One(&user)
 	if err == nil {
 		return &user, nil
 	}
@@ -26,6 +27,13 @@ func GetOrCreateUser(appId string, appUserId string) (*ModelUser, error) {
 	}
 
 	_, err = WrapInsert(&user)
+	if err != nil {
+		if ormutil.IsDuplicate(err) {
+			logrus.WithField("userId", newUserId).Error("invalidUser")
+			return nil, err
+		}
+		return nil, err
+	}
 	return &user, err
 }
 

@@ -65,37 +65,31 @@
                       <div v-if="player" class="player-info">
                         <!-- <el-avatar :size="24" :src="player.Avatar" :icon="UserFilled" class="avatar"></el-avatar> -->
                         <div class="details">
-                          <el-tooltip effect="dark" :content="player.NickName" placement="top"
-                            :disabled="!player.NickName">
-                            <div class="player-name">
-                              <span v-if="item.BankerID === player.ID"
-                                style="color: #f56c6c; font-weight: bold">庄</span>
-                              <span v-else-if="player.IsOb" style="color: #67c23a; font-weight: bold">看</span>
-                              {{ player.ID }}
-                              <span v-if="player.CallMult >= 0 && player.BetMult === -1"
-                                style="color: #f56c6c; font-weight: bold; margin-left: 2px">
-                                {{ player.CallMult }}倍
+                          <div class="player-name">
+                            <span v-if="item.BankerID === player.ID" style="color: #f56c6c; font-weight: bold">庄</span>
+                            <span v-else-if="player.IsOb" style="color: #67c23a; font-weight: bold">看</span>
+                            {{ player.ID }}
+                            <span v-if="player.CallMult >= 0 && player.BetMult === -1"
+                              style="color: #f56c6c; font-weight: bold; margin-left: 2px">
+                              {{ player.CallMult }}倍
+                            </span>
+                            <span v-if="player.BetMult >= 0" style="color: #f56c6c; margin-left: 2px">
+                              {{ player.BetMult }}倍
+                            </span>
+                          </div>
+                          <div class="player-id">
+                            <template v-if="Array.isArray(player.Cards)">
+                              <span v-for="(card, idx) in player.Cards" :key="idx"
+                                :style="{ color: getCardStyle(card).color, marginRight: '2px', fontWeight: 'bold', display: 'inline-block', width: '24px', textAlign: 'center' }">
+                                {{ getCardStyle(card).text }}
                               </span>
-                              <span v-if="player.BetMult >= 0" style="color: #f56c6c; margin-left: 2px">
-                                {{ player.BetMult }}倍
+                              <span v-if="player.Cards && player.Cards.length === 5"
+                                style="margin-left: 4px; color: #409eff; font-weight: bold">
+                                {{ getCardResult(player.Cards) }} {{ player.IsShow ? '摊牌' : '' }}
                               </span>
-                            </div>
-                          </el-tooltip>
-                          <el-tooltip effect="dark" :content="player.ID" placement="top" :disabled="!player.ID">
-                            <div class="player-id">
-                              <template v-if="Array.isArray(player.Cards)">
-                                <span v-for="(card, idx) in player.Cards" :key="idx"
-                                  :style="{ color: getCardStyle(card).color, marginRight: '2px', fontWeight: 'bold', display: 'inline-block', width: '24px', textAlign: 'center' }">
-                                  {{ getCardStyle(card).text }}
-                                </span>
-                                <span v-if="player.Cards && player.Cards.length === 5"
-                                  style="margin-left: 4px; color: #409eff; font-weight: bold">
-                                  {{ getCardResult(player.Cards) }} {{ player.IsShow ? '摊牌' : '' }}
-                                </span>
-                              </template>
-                              <span v-else>{{ player.Cards }}</span>
-                            </div>
-                          </el-tooltip>
+                            </template>
+                            <span v-else>{{ player.Cards }}</span>
+                          </div>
                         </div>
                         <div class="balance-wrapper">
                           <div class="player-balance">
@@ -104,10 +98,10 @@
                           <div class="player-balance-change">
                             <span v-if="player.BalanceChange > 0" class="positive">+{{ (player.BalanceChange /
                               100).toFixed(2)
-                            }}</span>
+                              }}</span>
                             <span v-else-if="player.BalanceChange < 0" class="negative">{{ (player.BalanceChange /
                               100).toFixed(2)
-                            }}</span>
+                              }}</span>
                             <span v-else class="zero">0</span>
                           </div>
                         </div>
@@ -119,7 +113,7 @@
                   <div class="room-footer">
                     <span>{{
                       dayjs(item.CreateAt).format("YYYY-MM-DD HH:mm:ss")
-                    }}</span>
+                      }}</span>
                     <span>{{ dayjs(item.CreateAt).fromNow() }}</span>
                   </div>
                 </div>
@@ -389,7 +383,6 @@ onUnmounted(() => {
 
   .stats-bar {
     margin-bottom: 15px;
-    background-color: #f5f7fa;
     padding: 10px 15px;
     border-radius: 4px;
     display: flex;
@@ -402,12 +395,12 @@ onUnmounted(() => {
       display: flex;
       align-items: center;
       margin-right: 20px;
+      margin-bottom: 5px;
       gap: 5px;
 
       .label {
         font-weight: bold;
         margin-right: 10px;
-        color: #303133;
       }
     }
 

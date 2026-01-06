@@ -10,7 +10,7 @@ export default {
             default: {
                 type: 'mysql',
                 host: '127.0.0.1',
-                port: 3306,
+                port: 13306,
                 username: 'admin',
                 password: 'S40bdYFgTy8uzz6A',
                 database: 'g3q_admin',
@@ -28,7 +28,7 @@ export default {
             game: {
                 type: 'mysql',
                 host: '127.0.0.1',
-                port: 3306,
+                port: 13306,
                 username: 'admin',
                 password: 'S40bdYFgTy8uzz6A',
                 database: 'g3q_server',

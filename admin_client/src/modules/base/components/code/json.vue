@@ -1,11 +1,6 @@
 <template v-if="text">
 	<div class="cl-code-json__wrap" v-if="popover">
-		<el-popover
-			width="auto"
-			placement="right"
-			popper-class="cl-code-json__popper"
-			effect="dark"
-		>
+		<el-popover width="auto" placement="right" popper-class="cl-code-json__popper" effect="dark">
 			<template #reference>
 				<span class="cl-code-json__text">{{ text }}</span>
 			</template>
@@ -121,7 +116,7 @@ const viewer = defineComponent({
 		font-size: 12px;
 		color: var(--el-text-color-regular);
 
-		& + .cl-code-json__content {
+		&+.cl-code-json__content {
 			padding-top: 0;
 		}
 	}

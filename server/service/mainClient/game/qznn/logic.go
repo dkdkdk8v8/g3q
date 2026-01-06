@@ -1,6 +1,7 @@
 package qznn
 
 import (
+	"compoment/ws"
 	"fmt"
 	"math/rand"
 	"service/comm"
@@ -286,6 +287,16 @@ func (r *QZNNRoom) AddPlayer(p *Player) (int, error) {
 			UserId: p.ID}})
 	r.logicTick()
 	return emptySeat, nil
+}
+
+func (r *QZNNRoom) SetWsWrap(userId string, wrap *ws.WsConnWrap) {
+	p, ok := r.GetPlayerByID(userId)
+	if !ok {
+		return
+	}
+	p.Mu.Lock()
+	p.ConnWrap = wrap
+	p.Mu.Unlock()
 }
 
 func (r *QZNNRoom) Broadcast(msg interface{}) {

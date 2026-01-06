@@ -108,14 +108,11 @@ func WSEntry(c *gin.Context) {
 				_ = existWsWrap.WsConn.WriteJSON(comm.PushData{Cmd: comm.ServerPush, PushType: game.PushOtherConnect})
 				existWsWrap.WsConn.CloseNormal("handler exit")
 			}
-			existWsWrap.WsConn = conn
 			existWsWrap.Mu.Unlock()
-			connWrap = existWsWrap
 			logrus.WithField("appId", appId).WithField("appUserId", appUserId).Info("WS-Client-KickOffConnect")
 		}
-	} else {
-		wsConnectMap[userId] = connWrap
 	}
+	wsConnectMap[userId] = connWrap
 	wsConnectMapMutex.Unlock()
 
 	// 2. 进入消息处理循环
@@ -133,6 +130,8 @@ func handleConnection(connWrap *ws.WsConnWrap, appId, appUserId string) {
 			//check 是否在游戏内
 			room := game.GetMgr().GetPlayerRoom(userId)
 			if room != nil {
+				//更新房间他的wsWrap对象
+				room.SetWsWrap(userId, connWrap)
 				//在游戏内,默认客户端进入游戏
 				connWrap.WriteJSON(comm.PushData{
 					Cmd:      comm.ServerPush,

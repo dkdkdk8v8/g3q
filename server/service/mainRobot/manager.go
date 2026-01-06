@@ -2,12 +2,13 @@ package mainRobot
 
 import (
 	"encoding/json"
-	"fmt"
 	"math/rand"
 	"net/url"
 	"service/comm"
+	"service/initMain"
 	"service/mainClient/game"
 	"service/mainClient/game/qznn"
+	"service/modelClient"
 	"sync"
 	"time"
 
@@ -15,64 +16,91 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const ROBOT_COUNT = 50                              // 机器人数量
-const SERVER_URL = "ws://172.20.10.11:18084/rpc/ws" // WebSocket 服务器地址
-const MIN_GAMES = 3                                 // 机器人至少玩几局
-const PROB_LEAVE_5_PLAYERS = 0.8                    // 5人时退出概率
-const PROB_LEAVE_4_PLAYERS = 0.6                    // 4人时退出概率
-const PROB_LEAVE_3_PLAYERS = 0.4                    // 3人时退出概率
-const PROB_LEAVE_2_PLAYERS = 0.0                    // 2人时退出概率
+// WebSocket 服务器地址
+const SERVER_URL = "ws://127.0.0.1:8084/rpc/ws"        // 正式服地址
+const SERVER_URL_DEV = "ws://172.20.10.3:18084/rpc/ws" // 测试服地址
+
+const MINUTE_WAIT_MAX = 10       // 进入房间前等待的最长分钟数
+const MIN_GAMES = 3              // 机器人至少玩几局
+const PROB_LEAVE_5_PLAYERS = 0.8 // 5人时退出概率
+const PROB_LEAVE_4_PLAYERS = 0.6 // 4人时退出概率
+const PROB_LEAVE_3_PLAYERS = 0.4 // 3人时退出概率
+const PROB_LEAVE_2_PLAYERS = 0.0 // 2人时退出概率
+
+var targetServerURL = SERVER_URL
 
 func Start() {
-	var wg sync.WaitGroup
-	for i := 0; i < ROBOT_COUNT; i++ {
-		wg.Add(1)
-		go func(idx int) {
-			defer wg.Done()
-			maintainRobot(idx)
-		}(i)
+
+	if initMain.DefCtx.IsTerm {
+		targetServerURL = SERVER_URL_DEV
 	}
-	wg.Wait()
+
+	manageRobots()
 }
 
-func maintainRobot(idx int) {
+var (
+	activeRobots   = make(map[string]struct{})
+	activeRobotsMu sync.Mutex
+)
+
+func manageRobots() {
+	ticker := time.NewTicker(time.Second * 10)
+	defer ticker.Stop()
+
 	for {
-		robot := NewRobot(idx)
-		logrus.Infof("机器人 %d 准备启动", idx)
-		robot.Run()
-		// 退出后随机等待一段时间再重连，模拟新用户进入
-		minutes := 1 + rand.Intn(30)
-		logrus.Infof("机器人 %d 已断开，等待 %d 分钟后重连...", idx, minutes)
-		time.Sleep(time.Minute * time.Duration(minutes))
+		users, err := modelClient.GetAllRobots()
+		if err != nil {
+			logrus.Errorf("获取所有机器人失败: %v", err)
+		} else {
+			activeRobotsMu.Lock()
+			for _, u := range users {
+				if _, ok := activeRobots[u.UserId]; !ok {
+					activeRobots[u.UserId] = struct{}{}
+					go runRobot(u)
+				}
+			}
+			activeRobotsMu.Unlock()
+		}
+		<-ticker.C
 	}
+}
+
+func runRobot(user *modelClient.ModelUser) {
+	defer func() {
+		activeRobotsMu.Lock()
+		delete(activeRobots, user.UserId)
+		activeRobotsMu.Unlock()
+	}()
+
+	minutes := rand.Intn(MINUTE_WAIT_MAX)
+	time.Sleep(time.Minute * time.Duration(minutes))
+
+	robot := &Robot{Idx: 0, Uid: user.UserId, AppId: user.AppId, AppUserId: user.AppUserId}
+	robot.Run()
 }
 
 type Robot struct {
 	Idx         int
 	Uid         string
+	AppId       string
+	AppUserId   string
 	Conn        *websocket.Conn
 	RoomId      string
 	RoomData    *qznn.QZNNRoom
 	mu          sync.Mutex
 	gamesPlayed int
-}
-
-func NewRobot(idx int) *Robot {
-	return &Robot{
-		Idx: idx,
-		Uid: fmt.Sprintf("%d", idx+1),
-	}
+	isClosing   bool
 }
 
 func (r *Robot) Run() {
-	u, err := url.Parse(SERVER_URL)
+	u, err := url.Parse(targetServerURL)
 	if err != nil {
 		logrus.Errorf("机器人 %d 解析URL失败: %v", r.Idx, err)
 		return
 	}
 	q := u.Query()
-	q.Set("uid", r.Uid)
-	q.Set("app", "robot")
+	q.Set("uid", r.AppUserId)
+	q.Set("app", r.AppId)
 	u.RawQuery = q.Encode()
 
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
@@ -104,6 +132,12 @@ func (r *Robot) Run() {
 		var msg GenericMsg
 		err := r.Conn.ReadJSON(&msg)
 		if err != nil {
+			r.mu.Lock()
+			closing := r.isClosing
+			r.mu.Unlock()
+			if closing {
+				return
+			}
 			logrus.Errorf("机器人 %d 读取消息错误: %v", r.Idx, err)
 			return
 		}
@@ -125,6 +159,13 @@ func (r *Robot) Send(cmd comm.CmdType, data interface{}) error {
 	return r.Conn.WriteJSON(req)
 }
 
+func (r *Robot) Close() {
+	r.mu.Lock()
+	r.isClosing = true
+	r.mu.Unlock()
+	r.Conn.Close()
+}
+
 func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 	// 模拟用户思考时间
 	time.Sleep(time.Millisecond * time.Duration(rand.Intn(500)+500))
@@ -139,8 +180,6 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 		switch d.Router {
 		case game.Lobby:
 			logrus.Infof("机器人 %d 进入大厅...", r.Idx)
-			// 进入大厅后随机等待0-100秒再进入房间
-			time.Sleep(time.Duration(rand.Intn(100)) * time.Second)
 			// 根据配置随机选择房间等级
 			if len(qznn.Configs) > 0 {
 				randomConfig := qznn.Configs[rand.Intn(len(qznn.Configs))]
@@ -219,8 +258,8 @@ func (r *Robot) handleStateChange(state qznn.RoomState) {
 	r.mu.Unlock()
 
 	go func() {
-		// 模拟用户随机等待 1-10 秒
-		time.Sleep(time.Duration(rand.Intn(10)+1) * time.Second)
+		// 模拟用户随机等待 1-5 秒
+		time.Sleep(time.Duration(rand.Intn(5)+1) * time.Second)
 
 		switch state {
 		case qznn.StateBanking:
@@ -294,13 +333,13 @@ func (r *Robot) checkLeave() {
 		case 3:
 			prob = PROB_LEAVE_3_PLAYERS
 		default:
-			prob = PROB_LEAVE_2_PLAYERS // 2人及以下不退出
+			prob = PROB_LEAVE_2_PLAYERS
 		}
 
 		if prob > 0 && rand.Float64() < prob {
 			logrus.Infof("机器人 %d 决定退出房间，当前房间人数: %d, 概率: %.2f", r.Idx, count, prob)
 			r.Send(qznn.CmdPlayerLeave, map[string]interface{}{"RoomId": roomId})
-			r.Conn.Close() // 关闭连接，触发 maintainRobot 重连
+			r.Close()
 		} else {
 			logrus.Infof("机器人 %d 决定继续留在房间，当前房间人数: %d", r.Idx, count)
 		}

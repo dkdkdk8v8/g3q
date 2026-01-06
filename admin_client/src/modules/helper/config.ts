@@ -7,11 +7,11 @@ export default (): ModuleConfig => {
 			index: 'https://cool-js.com',
 			api: 'https://service.cool-js.com/api'
 		},
-		toolbar: {
-			h5: false,
-			order: 1,
-			component: import('./components/ai-code/btn.vue')
-		},
+		// toolbar: {
+		// 	h5: false,
+		// 	order: 1,
+		// 	component: import('./components/ai-code/btn.vue')
+		// },
 		pages: [
 			{
 				path: '/helper/ai-code',

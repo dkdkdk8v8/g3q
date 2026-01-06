@@ -3,15 +3,8 @@
 
 	<cl-form ref="Form">
 		<template #slot-entity="{ scope }">
-			<el-cascader
-				v-model="scope.entity"
-				filterable
-				clearable
-				separator="."
-				:options="tree"
-				:placeholder="$t('请选择数据结构')"
-				@change="onEntityChange"
-			/>
+			<el-cascader v-model="scope.entity" filterable clearable separator="." :options="tree"
+				:placeholder="$t('请选择数据结构')" @change="onEntityChange" />
 		</template>
 	</cl-form>
 

@@ -1,7 +1,9 @@
 package qznn
 
 import (
+	"compoment/ws"
 	"fmt"
+	"math"
 	"math/rand"
 	"service/comm"
 	"slices"
@@ -181,10 +183,15 @@ func (r *QZNNRoom) kickOffByWsDisconnect() ([]string, bool) {
 		if p.IsRobot {
 			continue
 		}
-		if p.ConnWrap.WsConn == nil {
+		// 安全地检查连接状态
+		p.Mu.RLock()
+		conn := p.ConnWrap
+		p.Mu.RUnlock()
+		if conn == nil || !conn.IsConnected() {
 			delIndex = append(delIndex, i)
 		}
 	}
+
 	r.PlayerMu.RUnlock()
 
 	if len(delIndex) <= 0 {
@@ -283,19 +290,38 @@ func (r *QZNNRoom) AddPlayer(p *Player) (int, error) {
 	return emptySeat, nil
 }
 
+func (r *QZNNRoom) SetWsWrap(userId string, wrap *ws.WsConnWrap) {
+	p, ok := r.GetPlayerByID(userId)
+	if !ok {
+		return
+	}
+	p.Mu.Lock()
+	p.ConnWrap = wrap
+	p.Mu.Unlock()
+}
+
 func (r *QZNNRoom) Broadcast(msg interface{}) {
 	r.PlayerMu.RLock()
 	defer r.PlayerMu.RUnlock()
 	for _, p := range r.Players {
-		if p != nil && p.ConnWrap != nil && p.ConnWrap.WsConn != nil {
-			_ = p.ConnWrap.WsConn.WriteJSON(msg)
+		if p != nil {
+			r.PushPlayer(p, msg)
 		}
 	}
 }
 
 func (r *QZNNRoom) PushPlayer(p *Player, msg interface{}) {
-	if p != nil && p.ConnWrap != nil && p.ConnWrap.WsConn != nil {
-		_ = p.ConnWrap.WsConn.WriteJSON(msg)
+	if p == nil {
+		return
+	}
+	// 安全地读取 ConnWrap 指针
+	p.Mu.RLock()
+	conn := p.ConnWrap
+	p.Mu.RUnlock()
+
+	// 使用线程安全的 WriteJSON 方法
+	if conn != nil && conn.IsConnected() {
+		_ = conn.WriteJSON(msg)
 	}
 }
 
@@ -303,9 +329,16 @@ func (r *QZNNRoom) BroadcastWithPlayer(getMsg func(*Player) interface{}) {
 	r.PlayerMu.RLock()
 	defer r.PlayerMu.RUnlock()
 	for _, p := range r.Players {
-		if p != nil && p.ConnWrap != nil && p.ConnWrap.WsConn != nil {
-			msg := getMsg(p)
-			_ = p.ConnWrap.WsConn.WriteJSON(msg)
+		if p == nil {
+			continue
+		}
+		p.Mu.RLock()
+		conn := p.ConnWrap
+		msg := getMsg(p) // 在 player 锁保护下调用 getMsg
+		p.Mu.RUnlock()
+
+		if conn != nil && conn.IsConnected() {
+			_ = conn.WriteJSON(msg)
 		}
 	}
 }
@@ -314,11 +347,8 @@ func (r *QZNNRoom) BroadcastExclude(msg interface{}, excludeId string) {
 	r.PlayerMu.RLock()
 	defer r.PlayerMu.RUnlock()
 	for _, p := range r.Players {
-		if p == nil || p.ID == excludeId {
-			continue
-		}
-		if p.ConnWrap != nil && p.ConnWrap.WsConn != nil {
-			_ = p.ConnWrap.WsConn.WriteJSON(msg)
+		if p != nil && p.ID != excludeId {
+			r.PushPlayer(p, msg)
 		}
 	}
 }
@@ -631,6 +661,7 @@ func (r *QZNNRoom) StartGame() {
 	if !r.SetStatus([]RoomState{StatePrepare}, StateStartGame, SecStateGameStart) {
 		return
 	}
+	r.GameID = fmt.Sprintf("%d_%s", time.Now().Unix(), r.ID)
 
 	//保底的检查，用户能不能玩，至少2个有效用户，不够要再踢回waiting
 	activePlayer := r.GetActivePlayers(nil)
@@ -757,48 +788,93 @@ func (r *QZNNRoom) StartGame() {
 	}
 	r.WaitStateLeftTicker()
 
-	bankerPlayer, ok := r.GetPlayerByID(r.BankerID)
 	//计算牛牛，分配balance
+	//查找banker
+	var bankerPlayer *Player
 	for _, p := range activePlayer {
 		p.CardResult = CalcNiu(p.Cards)
+		if p.ID == r.BankerID {
+			bankerPlayer = p
+		}
 	}
-
-	// 修复：防止庄家中途异常消失导致 Panic
-	bankerMult := int64(1)
-	if banker, ok := r.GetPlayerByID(r.BankerID); ok {
-		bankerMult = int64(banker.CallMult)
+	if bankerPlayer == nil {
+		logrus.WithField("gameId", r.GameID).WithField("bankerId", r.BankerID).Error("QZNNRoom-BankerInvalid")
+		return
 	}
-
+	bankerMult := int64(bankerPlayer.CallMult)
 	if bankerMult <= 0 {
 		bankerMult = 1
 	}
 
-	if !ok {
-		logrus.WithField("roomId", r.ID).WithField("bankerId", r.BankerID).Error("QZNNRoom-BankerInvalid")
-		return
-	}
-
-	//todo 判断够不够balance
 	const TaxRate = 0.05 // 5% 税率
+
+	// 1. 计算闲家输赢（暂不扣税，先算账）
+	type WinRecord struct {
+		PlayerID string
+		Amount   int64
+	}
+	var playerWins []WinRecord
+	var totalBankerPay int64 = 0  // 庄家需要赔付的总额
+	var totalBankerGain int64 = 0 // 庄家从输家那里赢来的总额
+
+	baseBet := r.Config.BaseBet
+
 	for _, p := range activePlayer {
 		if p.ID == r.BankerID {
 			continue
 		}
 		isPlayerWin := CompareCards(p.CardResult, bankerPlayer.CardResult)
-		baseBet := r.Config.BaseBet
-		var balance int64
+
 		if isPlayerWin {
-			balance = baseBet * bankerMult * p.BetMult * p.CardResult.Mult
-			// 闲家赢，扣税
-			realScore := int64(float64(balance) * (1 - TaxRate))
-			p.BalanceChange += realScore
-			bankerPlayer.BalanceChange -= balance
+			// 闲家赢：底注 * 庄倍 * 闲倍 * 闲家牌型倍数
+			winAmount := baseBet * bankerMult * p.BetMult * p.CardResult.Mult
+			playerWins = append(playerWins, WinRecord{PlayerID: p.ID, Amount: winAmount})
+			totalBankerPay += winAmount
 		} else {
-			balance = baseBet * bankerMult * p.BetMult * p.CardResult.Mult
-			p.BalanceChange -= balance
-			// 庄家赢，扣税
-			realScore := int64(float64(balance) * (1 - TaxRate))
-			bankerPlayer.BalanceChange += realScore
+			// 庄家赢：底注 * 庄倍 * 闲倍 * 庄家牌型倍数
+			loseAmount := baseBet * bankerMult * p.BetMult * bankerPlayer.CardResult.Mult
+			// 输家输的钱不能超过自己的余额
+			if loseAmount > p.Balance {
+				loseAmount = p.Balance
+			}
+			p.BalanceChange -= loseAmount
+			totalBankerGain += loseAmount
+		}
+	}
+
+	// 2. 计算庄家赔付能力
+	// 庄家现有资金 + 本局赢来的钱
+	bankerCapacity := bankerPlayer.Balance + totalBankerGain
+
+	// 3. 结算闲家赢钱（考虑庄家破产）
+	if totalBankerPay > bankerCapacity {
+		// 庄家不够赔，按比例赔付
+		ratio := float64(bankerCapacity) / float64(totalBankerPay)
+		for _, rec := range playerWins {
+			p, ok := r.GetPlayerByID(rec.PlayerID)
+			if ok {
+				realWin := int64(math.Round(float64(rec.Amount) * ratio))
+				p.BalanceChange += realWin
+			}
+		}
+		// 庄家输光所有（余额+赢来的）
+		bankerPlayer.BalanceChange = totalBankerGain - bankerCapacity
+	} else {
+		// 庄家够赔
+		for _, rec := range playerWins {
+			p, ok := r.GetPlayerByID(rec.PlayerID)
+			if ok {
+				p.BalanceChange += rec.Amount
+			}
+		}
+		bankerPlayer.BalanceChange = totalBankerGain - totalBankerPay
+	}
+
+	// 4. 扣税 (只扣赢家的)
+	for _, p := range activePlayer {
+		if p.BalanceChange > 0 {
+			tax := int64(math.Round(float64(p.BalanceChange) * TaxRate))
+			p.BalanceChange -= tax
 		}
 	}
 

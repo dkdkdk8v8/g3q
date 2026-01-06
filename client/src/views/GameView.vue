@@ -701,6 +701,12 @@ const calculationData = computed(() => {
 watch(() => store.currentPhase, (newPhase) => {
     selectedCardIndices.value = [];
 });
+
+watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
+    if (val) {
+        selectedCardIndices.value = [];
+    }
+});
 </script>
 
 <template>

@@ -36,6 +36,7 @@ export default class GameClient {
         this.onConnect = null;
         this.onClose = null;
         this.onError = null;
+        this.onLatencyChange = null; // Latency callback
 
         this.globalPushHandler = null; // 全局 ServerPush 监听
     }
@@ -134,6 +135,7 @@ export default class GameClient {
         this._stopHeartbeat();
         this.heartbeatTimer = setInterval(() => {
             if (this.isConnected) {
+                this.lastPingTime = Date.now();
                 this.send("PingPong", {});
             }
         }, CONFIG.HEARTBEAT_INTERVAL);
@@ -169,7 +171,7 @@ export default class GameClient {
 
         if (cmd !== "PingPong") {
 
-            console.log("✉️[发送消息] Send:", packet);
+            console.log(`✉️[发送消息] cmd:${cmd}\n`, packet, '\n\n');
         }
 
         this.ws.send(JSON.stringify(packet));
@@ -180,6 +182,12 @@ export default class GameClient {
 
         // 拦截心跳回包，不向上层分发
         if (msg.cmd === "PingPong") {
+            if (this.lastPingTime) {
+                const latency = Date.now() - this.lastPingTime;
+                if (this.onLatencyChange) {
+                    this.onLatencyChange(latency);
+                }
+            }
             // No loading for ping/pong
             return;
         }
@@ -188,7 +196,7 @@ export default class GameClient {
         if (msg.cmd === "onServerPush") {
             // Try to extract State from msg.data (top-level) or msg.data.Room (nested)
             const roomState = msg.data?.State || msg.data?.Room?.State || "N/A";
-            console.log(`📣 [收到广播] Server Push Type: ${msg.pushType} Room State: 🔥${roomState}🔥`, msg);
+            console.log(`📣 [收到广播] 广播类型: ${msg.pushType} | RoomState: ${roomState}    \n`, msg, `\n\n`);
 
             // 优先执行全局监听
             if (this.globalPushHandler) {
@@ -213,17 +221,17 @@ export default class GameClient {
                     cancelButtonText: '取消',
                     className: 'game-theme-dialog',
                 })
-                .then(() => {
-                    // User chose "继续游戏" (Continue Game)
-                    console.log("[Network] User chose to retry connection after PushOtherConnect.");
-                    // Re-initiate connection, which will also reset reconnection attempts
-                    this.retryConnection();
-                })
-                .catch(() => {
-                    // User chose "取消" (Cancel)
-                    console.log("[Network] User cancelled after PushOtherConnect. Connection remains closed.");
-                    // The connection is already closed by this.close()
-                });
+                    .then(() => {
+                        // User chose "继续游戏" (Continue Game)
+                        console.log("[Network] User chose to retry connection after PushOtherConnect.");
+                        // Re-initiate connection, which will also reset reconnection attempts
+                        this.retryConnection();
+                    })
+                    .catch(() => {
+                        // User chose "取消" (Cancel)
+                        console.log("[Network] User cancelled after PushOtherConnect. Connection remains closed.");
+                        // The connection is already closed by this.close()
+                    });
                 return; // Stop further processing for this specific push type
             }
 
@@ -249,7 +257,7 @@ export default class GameClient {
 
         const loadingStore = useLoadingStore();
 
-        console.log("📨[收到服务器回包] Recv:", msg); // Log all non-pong responses
+        console.log(`🟢[收到服务器回包] cmd:${msg.cmd}\n`, msg, '\n\n'); // Log all non-pong responses
 
         // Special error handling for code 200010
         if (msg.code === 200010) {
@@ -326,6 +334,10 @@ export default class GameClient {
      */
     onGlobalServerPush(callback) {
         this.globalPushHandler = callback;
+    }
+
+    setLatencyCallback(callback) {
+        this.onLatencyChange = callback;
     }
 
     close() {

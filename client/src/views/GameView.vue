@@ -118,6 +118,7 @@ const onEmojiSelected = (emojiUrl, index) => { // Added index parameter
 
 // Banker selection animation state
 const currentlyHighlightedPlayerId = ref(null);
+const showBankerConfirmAnim = ref(false); // New state for confirmation animation
 let animationIntervalId = null;
 let candidateIndex = 0;
 
@@ -183,9 +184,7 @@ const setSeatRef = (el, playerId) => {
 
 const myPlayer = computed(() => store.players.find(p => p.id === store.myPlayerId));
 
-watch(() => myPlayer.value?.betMultiplier, (newVal) => {
-    console.log(`[GameView Debug] myPlayer.betMultiplier changed to: ${newVal}`);
-});
+
 
 watch(() => [...store.playerSpeechQueue], (newQueue) => { // Watch a copy to trigger on push
     if (newQueue.length > 0) {
@@ -349,7 +348,7 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
                 startDealingAnimation(true);
             }, 100);
         }
-    } else if (newPhase === 'DEALING') { // Changed from SHOWDOWN to DEALING for animation
+    } else if (['DEALING', 'SHOWDOWN', 'SETTLEMENT'].includes(newPhase)) { // Changed from SHOWDOWN to DEALING for animation
         setTimeout(() => {
             startDealingAnimation(true);
         }, 100);
@@ -379,6 +378,13 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
             animationIntervalId = null;
         }
         currentlyHighlightedPlayerId.value = null;
+    }
+
+    if (newPhase === 'BANKER_CONFIRMED') {
+        showBankerConfirmAnim.value = true;
+        setTimeout(() => {
+            showBankerConfirmAnim.value = false;
+        }, 1500); // Animation lasts ~1.2s, keep state bit longer to be safe or shorter? CSS is 1.2s. 1.5s is fine.
     }
 
 
@@ -471,7 +477,17 @@ const startDealingAnimation = (isSupplemental = false) => {
     if (!isSupplemental) {
         visibleCounts.value = {}; // Reset visible counts ONLY if not supplemental
     }
-    if (!dealingLayer.value) return;
+    
+    // Fallback: If dealingLayer is not ready (e.g. immediate watcher on mount), 
+    // directly set visible counts to ensure cards are shown without animation.
+    if (!dealingLayer.value) {
+        store.players.forEach(p => {
+            if (p.hand && p.hand.length > 0) {
+                visibleCounts.value[p.id] = p.hand.length;
+            }
+        });
+        return;
+    }
 
     const targets = [];
     store.players.forEach(p => {
@@ -568,6 +584,11 @@ onMounted(() => {
             vantToast(msg.msg || "退出失败");
         }
     });
+
+    // Register latency callback
+    gameClient.setLatencyCallback((ms) => {
+        networkLatency.value = ms;
+    });
 });
 
 onUnmounted(() => {
@@ -578,6 +599,7 @@ onUnmounted(() => {
         bgAudio.value = null;
     }
     gameClient.off('QZNN.PlayerLeave');
+    gameClient.setLatencyCallback(null);
 });
 
 const onRob = debounce((multiplier) => {
@@ -625,6 +647,60 @@ const closeSettingsDebounced = debounce(() => {
 const toggleShowMenu = debounce(() => {
     showMenu.value = !showMenu.value;
 }, 500);
+
+// Network Latency
+const networkLatency = ref(0);
+const networkStatusClass = computed(() => {
+    if (networkLatency.value < 100) return 'good';
+    if (networkLatency.value < 300) return 'fair';
+    return 'poor';
+});
+
+// Card Calculation Logic
+const selectedCardIndices = ref([]);
+
+const handleCardClick = ({ card, index }) => {
+    if (store.currentPhase !== 'SHOWDOWN' || (myPlayer.value && myPlayer.value.isShowHand)) return;
+
+    const idxInSelected = selectedCardIndices.value.indexOf(index);
+    if (idxInSelected !== -1) {
+        // Deselect
+        selectedCardIndices.value.splice(idxInSelected, 1);
+    } else {
+        // Select if less than 3
+        if (selectedCardIndices.value.length < 3) {
+            selectedCardIndices.value.push(index);
+        }
+    }
+};
+
+const calculationData = computed(() => {
+    const cards = [];
+    let sum = 0;
+    const labels = [];
+
+    // Use the order of selection
+    selectedCardIndices.value.forEach(idx => {
+        if (!myPlayer.value || !myPlayer.value.hand) return;
+        const card = myPlayer.value.hand[idx];
+        if (card) {
+            cards.push(card);
+            sum += card.value;
+            labels.push(card.label);
+        }
+    });
+
+    return {
+        cards,
+        sum,
+        labels,
+        isFull: cards.length === 3
+    };
+});
+
+watch(() => store.currentPhase, (newPhase) => {
+    selectedCardIndices.value = [];
+});
 </script>
 
 <template>
@@ -641,6 +717,12 @@ const toggleShowMenu = debounce(() => {
                     <van-icon name="wap-nav" size="20" color="white" />
                     <span style="margin-left:4px;font-size:14px;">菜单</span>
                 </div>
+
+                <div class="network-badge" :class="networkStatusClass">
+                    <div class="wifi-dot"></div>
+                    <span>{{ networkLatency }}ms</span>
+                </div>
+
                 <!-- 下拉菜单 -->
                 <transition name="fade">
                     <div v-if="showMenu" class="menu-dropdown" @click.stop>
@@ -674,7 +756,8 @@ const toggleShowMenu = debounce(() => {
                     :position="getLayoutType(index + 1)"
                     :visible-card-count="visibleCounts[p.id] !== undefined ? visibleCounts[p.id] : 0"
                     :is-ready="p.isReady" :is-animating-highlight="p.id === currentlyHighlightedPlayerId"
-                    :speech="playerSpeech.get(p.id)" />
+                    :speech="playerSpeech.get(p.id)" 
+                    :trigger-banker-animation="showBankerConfirmAnim && p.isBanker" />
                 <div v-else class="empty-seat">
                     <div class="empty-seat-avatar">
                         <van-icon name="plus" color="rgba(255,255,255,0.3)" size="20" />
@@ -685,37 +768,20 @@ const toggleShowMenu = debounce(() => {
         </div>
 
         <div class="table-center" ref="tableCenterRef">
-            <!-- 闹钟和阶段提示信息的容器 -->
-            <div v-if="store.countdown > 0 && ['READY_COUNTDOWN', 'ROB_BANKER', 'BETTING', 'SHOWDOWN'].includes(store.currentPhase)"
+            <!-- 阶段提示信息容器 -->
+            <div v-if="['READY_COUNTDOWN', 'ROB_BANKER', 'BETTING', 'SHOWDOWN', 'BANKER_SELECTION_ANIMATION', 'BANKER_CONFIRMED', 'SETTLEMENT'].includes(store.currentPhase)"
                 class="clock-and-info-wrapper">
-                <!-- 倒计时闹钟 -->
-                <div class="alarm-clock">
-                    <div class="alarm-body">
-                        <div class="alarm-time">{{ store.countdown < 10 ? '0' + store.countdown : store.countdown
-                                }}</div>
-                        </div>
-                        <div class="alarm-ears left"></div>
-                        <div class="alarm-ears right"></div>
-                    </div>
-
-                    <!-- 阶段提示信息，统一显示在倒计时下方并样式类似“结算中...” -->
                     <div class="phase-info">
                         <span v-if="store.currentPhase === 'WAITING_FOR_PLAYERS'">匹配玩家中...</span>
-                        <span v-else-if="store.currentPhase === 'READY_COUNTDOWN'">游戏即将开始</span>
-                        <span v-else-if="store.currentPhase === 'ROB_BANKER'">看牌抢庄</span>
-                        <span v-else-if="store.currentPhase === 'BETTING'">闲家下注</span>
-                        <span v-else-if="store.currentPhase === 'SHOWDOWN'">摊牌比拼</span>
+                        <span v-else-if="store.currentPhase === 'READY_COUNTDOWN'">游戏即将开始  {{ store.countdown }}</span>
+                        <span v-else-if="store.currentPhase === 'ROB_BANKER'">看牌抢庄  {{ store.countdown }}</span>
+                        <span v-else-if="store.currentPhase === 'BETTING'">闲家下注  {{ store.countdown }}</span>
+                        <span v-else-if="store.currentPhase === 'SHOWDOWN'">摊牌比拼  {{ store.countdown }}</span>
+                        <span v-else-if="store.currentPhase === 'BANKER_SELECTION_ANIMATION'">正在选庄...</span>
+                        <span v-else-if="store.currentPhase === 'BANKER_CONFIRMED'">庄家已定</span>
+                        <span v-else-if="store.currentPhase === 'SETTLEMENT'">结算中...</span>
                     </div>
-                </div>
-
-                <!-- 选庄动画提示 -->
-                <div v-if="store.currentPhase === 'BANKER_SELECTION_ANIMATION'" class="phase-info settlement-info">
-                    正在选庄...</div>
-                <div v-if="store.currentPhase === 'BANKER_CONFIRMED'" class="phase-info settlement-info">庄家已定</div>
-
-                <!-- 仅当闹钟不显示时，显示结算中 -->
-                <div v-if="store.currentPhase === 'SETTLEMENT' && store.countdown === 0"
-                    class="phase-info settlement-info">结算中...</div>
+            </div>
 
                 <!-- 重新开始按钮 -->
                 <div v-if="store.currentPhase === 'GAME_OVER'" class="restart-btn" @click="startGameDebounced()">
@@ -735,7 +801,8 @@ const toggleShowMenu = debounce(() => {
                     </transition>
 
 
-                    <div v-if="store.currentPhase === 'ROB_BANKER' && !myPlayer.isObserver && myPlayer.robMultiplier === -1" class="btn-group">
+                    <div v-if="store.currentPhase === 'ROB_BANKER' && !myPlayer.isObserver && myPlayer.robMultiplier === -1"
+                        class="btn-group">
                         <div class="game-btn blue" @click="onRob(0)">不抢</div>
                         <div v-for="mult in store.bankerMult.filter(m => m > 0)" :key="mult" class="game-btn orange"
                             @click="onRob(mult)">
@@ -761,9 +828,21 @@ const toggleShowMenu = debounce(() => {
 
                     <!-- 摊牌按钮 -->
                     <div v-if="store.currentPhase === 'SHOWDOWN' && !myPlayer.isShowHand && store.countdown > 0 && !myPlayer.isObserver"
-                        class="btn-group">
-                        <div class="game-btn orange" style="width: 100px" @click="playerShowHandDebounced(myPlayer.id)">
+                        class="showdown-wrapper">
+
+                        <div class="game-btn orange showdown-btn" @click="playerShowHandDebounced(myPlayer.id)">
                             摊牌
+                        </div>
+
+                        <!-- Calculation Formula -->
+                        <div class="calc-container">
+                            <div class="calc-box">{{ calculationData.labels[0] || '' }}</div>
+                            <div class="calc-symbol">+</div>
+                            <div class="calc-box">{{ calculationData.labels[1] || '' }}</div>
+                            <div class="calc-symbol">+</div>
+                            <div class="calc-box">{{ calculationData.labels[2] || '' }}</div>
+                            <div class="calc-symbol">=</div>
+                            <div class="calc-box result">{{ calculationData.isFull ? calculationData.sum : '' }}</div>
                         </div>
                     </div>
 
@@ -778,7 +857,9 @@ const toggleShowMenu = debounce(() => {
                     :visible-card-count="(myPlayer && visibleCounts[myPlayer.id] !== undefined) ? visibleCounts[myPlayer.id] : 0"
                     :is-ready="myPlayer && myPlayer.isReady"
                     :is-animating-highlight="myPlayer && myPlayer.id === currentlyHighlightedPlayerId"
-                    :speech="myPlayer ? playerSpeech.get(myPlayer.id) : null" />
+                    :speech="myPlayer ? playerSpeech.get(myPlayer.id) : null"
+                    :selected-card-indices="selectedCardIndices" @card-click="handleCardClick" 
+                    :trigger-banker-animation="showBankerConfirmAnim && myPlayer && myPlayer.isBanker" />
             </div>
 
             <!-- 全局点击关闭菜单 -->
@@ -1000,7 +1081,49 @@ const toggleShowMenu = debounce(() => {
 /* 菜单样式 */
 .menu-container {
     position: relative;
-    z-index: 200;
+    z-index: 300;
+    display: flex;
+    /* Add flex layout */
+    align-items: center;
+    /* Vertically center */
+    gap: 10px;
+    /* Space between menu button and network badge */
+}
+
+.network-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.wifi-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #22c55e;
+    /* Default green */
+    box-shadow: 0 0 4px currentColor;
+}
+
+.network-badge.good .wifi-dot {
+    background-color: #22c55e;
+    color: #22c55e;
+}
+
+.network-badge.fair .wifi-dot {
+    background-color: #facc15;
+    color: #facc15;
+}
+
+.network-badge.poor .wifi-dot {
+    background-color: #ef4444;
+    color: #ef4444;
 }
 
 .menu-dropdown {
@@ -1264,7 +1387,7 @@ const toggleShowMenu = debounce(() => {
     top: 38%;
     /* Adjusted for fixed top alignment */
     right: 10px;
-    transform: scale(0.85);
+    /* transform: scale(0.85); Removed redundant scale */
 }
 
 .seat-right-top {
@@ -1281,7 +1404,7 @@ const toggleShowMenu = debounce(() => {
     top: 38%;
     /* Adjusted for fixed top alignment */
     left: 10px;
-    transform: scale(0.85);
+    /* transform: scale(0.85); Removed redundant scale */
 }
 
 .empty-seat {
@@ -1346,76 +1469,22 @@ const toggleShowMenu = debounce(() => {
     /* Allow interaction with children if needed */
 }
 
-.alarm-clock {
-    position: relative;
-    width: 60px;
-    height: 60px;
-    /* pointer-events: auto; moved to wrapper */
-    z-index: 1002;
-    /* 必须高于发牌层(999) */
-}
-
-.alarm-body {
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(circle at 30% 30%, #fff 0%, #e5e5e5 100%);
-    border-radius: 50%;
-    border: 4px solid #f97316;
+.phase-info {
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.7));
+    color: #fbbf24; /* Golden text */
+    padding: 8px 24px; /* Slightly larger padding */
+    border-radius: 24px;
+    font-size: 16px;
+    font-weight: bold;
+    margin-top: 10px;
+    border: 1px solid rgba(251, 191, 36, 0.4);
+    border-bottom: 3px solid rgba(180, 83, 9, 0.8); /* Distinct bottom frame/border */
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.6), 0 0 15px rgba(251, 191, 36, 0.2); /* Deep shadow + Glow */
+    text-shadow: 0 2px 4px rgba(0,0,0,0.9);
+    min-width: 140px;
     display: flex;
     justify-content: center;
     align-items: center;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    z-index: 2;
-    position: relative;
-}
-
-.alarm-time {
-    font-size: 24px;
-    font-weight: bold;
-    color: #333;
-    font-family: monospace;
-}
-
-.alarm-ears {
-    position: absolute;
-    /* top: -6px; Removed to allow individual positioning */
-    width: 16px;
-    height: 16px;
-    background: #f97316;
-    border-radius: 50%;
-    z-index: 1;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.alarm-ears.left {
-    top: -6px;
-    left: 2px;
-    transform: rotate(-15deg);
-}
-
-/* Keep original top for left ear */
-.alarm-ears.right {
-    top: -5px;
-    right: -5px;
-    transform: rotate(15deg);
-}
-
-/* Move right 5px, up 2px */
-
-.phase-info {
-    background: rgba(0, 0, 0, 0.6);
-    color: white;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 14px;
-    margin-top: 10px;
-}
-
-.phase-info.settlement-info {
-    /* Added for the independent settlement info */
-    margin-top: 50px;
-    /* Adjusted to move text down slightly */
-    /* To maintain some distance from other elements if not in wrapper */
 }
 
 .phase-tip {
@@ -1605,5 +1674,60 @@ const toggleShowMenu = debounce(() => {
 
 .result-icon.bounce {
     transform: translate(-50%, -50%) scale(0.666);
+}
+
+.showdown-wrapper {
+    position: relative;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    /* Stack vertically */
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    /* Space between button and calculation */
+    margin-bottom: 10px;
+}
+
+.calc-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 8px 16px;
+    border-radius: 12px;
+    /* Removed transform: translateY */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.calc-box {
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-radius: 6px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-weight: bold;
+    font-size: 20px;
+}
+
+.calc-box.result {
+    background: rgba(251, 191, 36, 0.2);
+    border-color: #fbbf24;
+    color: #fbbf24;
+}
+
+.calc-symbol {
+    color: white;
+    font-weight: bold;
+    font-size: 24px;
+}
+
+.showdown-btn {
+    /* Removed absolute positioning */
+    width: 100px;
 }
 </style>

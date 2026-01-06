@@ -18,10 +18,16 @@ const props = defineProps({
       },
       isReady: Boolean, // Add isReady prop
       isAnimatingHighlight: Boolean, // New prop for sequential highlight animation
-      speech: Object // New prop: { type: 'text' | 'emoji', content: string }
+      speech: Object, // New prop: { type: 'text' | 'emoji', content: string }
+      selectedCardIndices: {
+          type: Array,
+          default: () => []
+      },
+      triggerBankerAnimation: Boolean // New prop for one-time banker confirmation animation
   });
   
   const store = useGameStore();
+  const emit = defineEmits(['card-click']);
   
   // Computed property to control speech bubble visibility
   const showSpeechBubble = computed(() => {
@@ -110,6 +116,13 @@ watch(shouldShowCardFace, (val) => {
 const isBullPart = (index) => {
     if (!shouldShowCardFace.value) return false;
     if (!props.player.handResult) return false;
+
+    // Strict check for "Me": Only show overlay if I clicked show hand OR it's settlement
+    if (props.isMe) {
+        if (!props.player.isShowHand && store.currentPhase !== 'SETTLEMENT') {
+            return false;
+        }
+    }
     
     // Must wait for animation delay to end
     if (!enableHighlight.value) return false;
@@ -162,7 +175,7 @@ const shouldShowRobMult = computed(() => {
     return false;
 });
 
-const shouldShowBetMult = computed(() => {
+  const shouldShowBetMult = computed(() => {
     // Hide in IDLE or READY phases
     if (['IDLE', 'READY_COUNTDOWN', 'ROB_BANKER', 'BANKER_SELECTION_ANIMATION', 'BANKER_CONFIRMED'].includes(store.currentPhase)) return false;
     
@@ -172,14 +185,27 @@ const shouldShowBetMult = computed(() => {
     // Show if bet is placed
     return props.player.betMultiplier > 0;
 });
-</script>
 
+const slideTransitionName = computed(() => {
+    return props.position === 'right' ? 'slide-from-right' : 'slide-from-left';
+});
+
+const displayName = computed(() => {
+    const name = props.player.name || '';
+    if (props.isMe) return name;
+    if (name.length <= 1) return name;
+    // For names with length >= 2, show first and last char, separated by 6 asterisks
+    const first = name.charAt(0);
+    const last = name.charAt(name.length - 1);
+    return `${first}******${last}`;
+});
+</script>
 <template>
   <div class="player-seat" :class="`seat-${position}`">
     <!-- ... (keep avatar area) -->
     <div class="avatar-area">
       <div class="avatar-wrapper">
-          <div class="avatar-frame" :class="{ 'banker-candidate-highlight': isAnimatingHighlight }">
+          <div class="avatar-frame" :class="{ 'banker-candidate-highlight': isAnimatingHighlight, 'banker-confirm-anim': triggerBankerAnimation, 'is-banker': player.isBanker }">
               <van-image
                 round
                 :src="player.avatar"
@@ -196,14 +222,18 @@ const shouldShowBetMult = computed(() => {
           
           <!-- 状态浮层，移到 avatar-area 以便相对于头像定位 -->
           <div class="status-float" v-if="!['IDLE', 'READY_COUNTDOWN'].includes(store.currentPhase)">
-              <template v-if="shouldShowRobMult">
-                  <div v-if="player.robMultiplier > 0" class="art-text orange">抢x{{ player.robMultiplier }}</div>
-                  <div v-else class="art-text gray">不抢</div>
-              </template>
+              <Transition :name="slideTransitionName">
+                  <div v-if="shouldShowRobMult" class="status-content">
+                      <div v-if="player.robMultiplier > 0" class="art-text orange">抢x{{ player.robMultiplier }}</div>
+                      <div v-else class="art-text gray">不抢</div>
+                  </div>
+              </Transition>
               
-              <template v-if="shouldShowBetMult">
-                  <div class="art-text green">下x{{ player.betMultiplier }}</div>
-              </template>
+              <Transition :name="slideTransitionName">
+                  <div v-if="shouldShowBetMult" class="status-content">
+                      <div class="art-text green">下x{{ player.betMultiplier }}</div>
+                  </div>
+              </Transition>
           </div>
 
           <!-- 庄家徽章，现在移动到 avatar-area 内部 -->
@@ -216,7 +246,7 @@ const shouldShowBetMult = computed(() => {
       </div>
 
       <div class="info-box">
-        <div class="name van-ellipsis">{{ player.name }}</div>
+        <div class="name van-ellipsis">{{ displayName }}</div>
         <div class="coins-pill">
             <span class="coin-symbol">🟡</span>
             {{ formatCoins(player.coins) }}
@@ -237,11 +267,12 @@ const shouldShowBetMult = computed(() => {
           :key="idx" 
           :card="(shouldShowCardFace && (visibleCardCount === -1 || idx < visibleCardCount)) ? card : null" 
           :is-small="!isMe"
-          :class="{ 'hand-card': true, 'bull-card-overlay': isBullPart(idx) }"
+          :class="{ 'hand-card': true, 'bull-card-overlay': isBullPart(idx), 'selected': selectedCardIndices.includes(idx) }"
           :style="{ 
               marginLeft: idx === 0 ? '0' : '-20px',
               opacity: (visibleCardCount === -1 || idx < visibleCardCount) ? 1 : 0,
           }"
+          @click="props.isMe ? emit('card-click', { card, index: idx }) : null"
         />
       </div>
       <!-- ... (keep hand result) -->
@@ -258,6 +289,10 @@ const shouldShowBetMult = computed(() => {
   align-items: center;
   position: relative;
   width: 100px;
+}
+
+.hand-card.selected {
+    transform: translateY(-20px);
 }
 
 /* 布局方向定义 */
@@ -322,18 +357,38 @@ const shouldShowBetMult = computed(() => {
     height: 100%;
     background: rgba(0,0,0,0.3);
     border-radius: 50%;
-    border: 1px solid rgba(255,255,255,0.2);
-    overflow: hidden; /* Crucial for clipping content to the circular frame */
-    display: flex; /* Use flexbox to center the image reliably */
+    border: 4px solid transparent; /* Increased width, transparent default */
+    box-sizing: border-box; /* Ensure border doesn't expand size */
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.2);
+    overflow: hidden;
+    display: flex;
     justify-content: center;
     align-items: center;
-    transition: box-shadow 0.2s ease-in-out; /* Smooth transition for highlight */
+    transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
 }
 
 .avatar-frame.banker-candidate-highlight {
-    box-shadow: 0 0 15px 5px #facc15, 0 0 8px 2px #d97706; /* Golden glow */
+    box-shadow: 0 0 15px 5px #facc15, 0 0 8px 2px #d97706;
     border-color: #facc15;
     animation: pulse-border-glow 1s infinite alternate;
+}
+
+.avatar-frame.is-banker {
+    border-color: #fbbf24;
+    box-shadow: 0 0 6px #fbbf24;
+}
+
+.avatar-frame.banker-confirm-anim {
+    position: relative;
+    z-index: 50;
+    animation: bankerConfirmPop 1.2s ease-out forwards;
+}
+
+@keyframes bankerConfirmPop {
+    0% { border-color: transparent; box-shadow: 0 0 0 1px rgba(255,255,255,0.2); }
+    40% { border-color: #fbbf24; box-shadow: 0 0 25px 8px rgba(251, 191, 36, 0.9); }
+    60% { border-color: #fbbf24; box-shadow: 0 0 25px 8px rgba(251, 191, 36, 0.9); }
+    100% { border-color: #fbbf24; box-shadow: 0 0 6px #fbbf24; } /* Smoothly land on steady state */
 }
 
 @keyframes pulse-border-glow {
@@ -498,7 +553,7 @@ const shouldShowBetMult = computed(() => {
   font-size: 14px;
   border-radius: 50%;
   font-weight: bold;
-  z-index: 10;
+  z-index: 100;
   border: 1px solid #fff;
   box-shadow: 0 0 10px #fbbf24;
   animation: shine 2s infinite;
@@ -633,6 +688,21 @@ const shouldShowBetMult = computed(() => {
 
 .score-float.win { color: #facc15; }
 .score-float.lose { color: #ef4444; }
+
+.slide-from-left-enter-active,
+.slide-from-right-enter-active {
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.slide-from-left-enter-from {
+    opacity: 0;
+    transform: translateX(-30px);
+}
+
+.slide-from-right-enter-from {
+    opacity: 0;
+    transform: translateX(30px);
+}
 
 .hand-card.bull-card-overlay {
     filter: brightness(60%) grayscale(50%); /* Apply a grey filter */

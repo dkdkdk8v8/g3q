@@ -234,6 +234,11 @@ declare namespace Eps {
 		list: DictTypeEntity[];
 	}
 
+	interface GameRobotPageResponse {
+		pagination: PagePagination;
+		list: GameUserEntity[];
+	}
+
 	interface GameUserPageResponse {
 		pagination: PagePagination;
 		list: GameUserEntity[];
@@ -907,6 +912,35 @@ declare namespace Eps {
 		request: Request;
 	}
 
+	interface GameRobot {
+		/**
+		 * 批量创建机器人
+		 */
+		createRobotBatch(data?: any): Promise<any>;
+
+		/**
+		 * 删除
+		 */
+		delete(data?: any): Promise<any>;
+
+		/**
+		 * 分页查询
+		 */
+		page(data?: any): Promise<GameRobotPageResponse>;
+
+		/**
+		 * 权限标识
+		 */
+		permission: { createRobotBatch: string; delete: string; page: string };
+
+		/**
+		 * 权限状态
+		 */
+		_permission: { createRobotBatch: boolean; delete: boolean; page: boolean };
+
+		request: Request;
+	}
+
 	interface GameRoom {
 		/**
 		 * 获取抢庄牛牛房间数据
@@ -928,19 +962,14 @@ declare namespace Eps {
 
 	interface GameUser {
 		/**
-		 * 修改
+		 * 批量禁用
 		 */
-		update(data?: any): Promise<any>;
+		batchDisable(data?: any): Promise<any>;
 
 		/**
-		 * 删除
+		 * 批量启用
 		 */
-		delete(data?: any): Promise<any>;
-
-		/**
-		 * 单个信息
-		 */
-		info(data?: any): Promise<GameUserEntity>;
+		batchEnable(data?: any): Promise<any>;
 
 		/**
 		 * 分页查询
@@ -948,25 +977,14 @@ declare namespace Eps {
 		page(data?: any): Promise<GameUserPageResponse>;
 
 		/**
-		 * 新增
-		 */
-		add(data?: any): Promise<any>;
-
-		/**
 		 * 权限标识
 		 */
-		permission: { update: string; delete: string; info: string; page: string; add: string };
+		permission: { batchDisable: string; batchEnable: string; page: string };
 
 		/**
 		 * 权限状态
 		 */
-		_permission: {
-			update: boolean;
-			delete: boolean;
-			info: boolean;
-			page: boolean;
-			add: boolean;
-		};
+		_permission: { batchDisable: boolean; batchEnable: boolean; page: boolean };
 
 		request: Request;
 	}
@@ -1289,7 +1307,7 @@ declare namespace Eps {
 		};
 		demo: { goods: DemoGoods };
 		dict: { info: DictInfo; type: DictType };
-		game: { room: GameRoom; user: GameUser };
+		game: { robot: GameRobot; room: GameRoom; user: GameUser };
 		plugin: { info: PluginInfo };
 		recycle: { data: RecycleData };
 		space: { info: SpaceInfo; type: SpaceType };

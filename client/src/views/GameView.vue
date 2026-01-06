@@ -761,23 +761,13 @@ watch(() => store.currentPhase, (newPhase) => {
             <!-- 闹钟和阶段提示信息的容器 -->
             <div v-if="store.countdown > 0 && ['READY_COUNTDOWN', 'ROB_BANKER', 'BETTING', 'SHOWDOWN'].includes(store.currentPhase)"
                 class="clock-and-info-wrapper">
-                <!-- 倒计时闹钟 -->
-                <div class="alarm-clock">
-                    <div class="alarm-body">
-                        <div class="alarm-time">{{ store.countdown < 10 ? '0' + store.countdown : store.countdown
-                                }}</div>
-                        </div>
-                        <div class="alarm-ears left"></div>
-                        <div class="alarm-ears right"></div>
-                    </div>
-
                     <!-- 阶段提示信息，统一显示在倒计时下方并样式类似“结算中...” -->
                     <div class="phase-info">
                         <span v-if="store.currentPhase === 'WAITING_FOR_PLAYERS'">匹配玩家中...</span>
-                        <span v-else-if="store.currentPhase === 'READY_COUNTDOWN'">游戏即将开始</span>
-                        <span v-else-if="store.currentPhase === 'ROB_BANKER'">看牌抢庄</span>
-                        <span v-else-if="store.currentPhase === 'BETTING'">闲家下注</span>
-                        <span v-else-if="store.currentPhase === 'SHOWDOWN'">摊牌比拼</span>
+                        <span v-else-if="store.currentPhase === 'READY_COUNTDOWN'">游戏即将开始  {{ store.countdown }}</span>
+                        <span v-else-if="store.currentPhase === 'ROB_BANKER'">看牌抢庄  {{ store.countdown }}</span>
+                        <span v-else-if="store.currentPhase === 'BETTING'">闲家下注  {{ store.countdown }}</span>
+                        <span v-else-if="store.currentPhase === 'SHOWDOWN'">摊牌比拼  {{ store.countdown }}</span>
                     </div>
                 </div>
 
@@ -1475,62 +1465,6 @@ watch(() => store.currentPhase, (newPhase) => {
     pointer-events: auto;
     /* Allow interaction with children if needed */
 }
-
-.alarm-clock {
-    position: relative;
-    width: 60px;
-    height: 60px;
-    /* pointer-events: auto; moved to wrapper */
-    z-index: 1002;
-    /* 必须高于发牌层(999) */
-}
-
-.alarm-body {
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(circle at 30% 30%, #fff 0%, #e5e5e5 100%);
-    border-radius: 50%;
-    border: 4px solid #f97316;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    z-index: 2;
-    position: relative;
-}
-
-.alarm-time {
-    font-size: 24px;
-    font-weight: bold;
-    color: #333;
-    font-family: monospace;
-}
-
-.alarm-ears {
-    position: absolute;
-    /* top: -6px; Removed to allow individual positioning */
-    width: 16px;
-    height: 16px;
-    background: #f97316;
-    border-radius: 50%;
-    z-index: 1;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.alarm-ears.left {
-    top: -6px;
-    left: 2px;
-    transform: rotate(-15deg);
-}
-
-/* Keep original top for left ear */
-.alarm-ears.right {
-    top: -5px;
-    right: -5px;
-    transform: rotate(15deg);
-}
-
-/* Move right 5px, up 2px */
 
 .phase-info {
     background: rgba(0, 0, 0, 0.6);

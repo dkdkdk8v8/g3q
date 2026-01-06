@@ -3,12 +3,9 @@
 		<i class="iconfont icon-zuo"></i>
 	</div>
 
-	<div
-		class="loader"
-		:class="{
-			'is-show': loader.visible
-		}"
-	>
+	<div class="loader" :class="{
+		'is-show': loader.visible
+	}">
 		<div class="preload__loading"></div>
 		<p class="loader__text">{{ loader.text }}</p>
 	</div>
@@ -53,7 +50,7 @@ function back() {
 		.then(() => {
 			router.replace('/');
 		})
-		.catch(() => {});
+		.catch(() => { });
 }
 
 // 监听消息

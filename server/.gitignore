@@ -1,5 +1,7 @@
 server/main_client/local_main_client
 server/main_client/local_main_client.work.pid
+server/main_robot/local_main_robot
+server/main_robot/local_main_robot.work.pid
 server/main_schedule/local_main_schedule
 server/main_schedule/local_main_schedule.work.pid
 server/main_client/cfg/IP2LOCATION-LITE-DB3.IPV6.BIN.zip
@@ -7,6 +9,7 @@ server/main_client/cfg/IP2LOCATION-LITE-DB3.IPV6.BIN
 server/main_tunnel/main_tunnel
 # 忽略所有模块下的 server.yaml 配置文件
 **/cfg/server.yaml
+**/cfg/server_debug.yaml
 **/*.md5
 **/*.swp
 **/*.apk

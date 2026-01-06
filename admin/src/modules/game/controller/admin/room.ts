@@ -16,7 +16,7 @@ export class GameQZNNController extends BaseController {
             const data = await this.rpcService.getQZNNData();
             return this.ok(data);
         } catch (e) {
-            return this.fail(e);
+            return this.fail(e.message);
         }
     }
 }

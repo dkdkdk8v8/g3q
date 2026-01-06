@@ -64,6 +64,7 @@ function toCode() {
 	0% {
 		background-position: 0;
 	}
+
 	100% {
 		background-position: 90px;
 	}

@@ -348,7 +348,7 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
                 startDealingAnimation(true);
             }, 100);
         }
-    } else if (['DEALING', 'SHOWDOWN'].includes(newPhase)) { // Changed from SHOWDOWN to DEALING for animation
+    } else if (['DEALING', 'SHOWDOWN', 'SETTLEMENT'].includes(newPhase)) { // Changed from SHOWDOWN to DEALING for animation
         setTimeout(() => {
             startDealingAnimation(true);
         }, 100);

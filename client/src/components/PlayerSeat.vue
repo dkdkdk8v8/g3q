@@ -194,7 +194,7 @@ const displayName = computed(() => {
     <!-- ... (keep avatar area) -->
     <div class="avatar-area">
       <div class="avatar-wrapper">
-          <div class="avatar-frame" :class="{ 'banker-candidate-highlight': isAnimatingHighlight, 'banker-confirm-anim': triggerBankerAnimation }">
+          <div class="avatar-frame" :class="{ 'banker-candidate-highlight': isAnimatingHighlight, 'banker-confirm-anim': triggerBankerAnimation, 'is-banker': player.isBanker }">
               <van-image
                 round
                 :src="player.avatar"
@@ -356,6 +356,11 @@ const displayName = computed(() => {
     animation: pulse-border-glow 1s infinite alternate;
 }
 
+.avatar-frame.is-banker {
+    border: 3px solid #fbbf24;
+    box-shadow: 0 0 4px #fbbf24;
+}
+
 .avatar-frame.banker-confirm-anim {
     position: relative;
     z-index: 50; /* Ensure it pops over other things */
@@ -363,10 +368,10 @@ const displayName = computed(() => {
 }
 
 @keyframes bankerConfirmPop {
-    0% { transform: scale(1); box-shadow: 0 0 0 rgba(251, 191, 36, 0); border-color: rgba(255,255,255,0.2); }
-    40% { transform: scale(1); box-shadow: 0 0 40px 10px rgba(251, 191, 36, 1); border-color: #fbbf24; }
-    60% { transform: scale(1); box-shadow: 0 0 40px 10px rgba(251, 191, 36, 1); border-color: #fbbf24; }
-    100% { transform: scale(1); box-shadow: 0 0 15px 2px rgba(251, 191, 36, 0.6); border-color: #fbbf24; }
+    0% { transform: scale(1); box-shadow: 0 0 0 rgba(251, 191, 36, 0); border-color: rgba(255,255,255,0.2); border-width: 1px; }
+    40% { transform: scale(1); box-shadow: 0 0 40px 10px rgba(251, 191, 36, 1); border-color: #fbbf24; border-width: 3px; }
+    60% { transform: scale(1); box-shadow: 0 0 40px 10px rgba(251, 191, 36, 1); border-color: #fbbf24; border-width: 3px; }
+    100% { transform: scale(1); box-shadow: 0 0 4px #fbbf24; border-color: #fbbf24; border-width: 3px; }
 }
 
 @keyframes pulse-border-glow {

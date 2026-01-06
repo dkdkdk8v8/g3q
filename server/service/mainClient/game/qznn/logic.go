@@ -3,6 +3,7 @@ package qznn
 import (
 	"compoment/ws"
 	"fmt"
+	"math"
 	"math/rand"
 	"service/comm"
 	"slices"
@@ -787,48 +788,93 @@ func (r *QZNNRoom) StartGame() {
 	}
 	r.WaitStateLeftTicker()
 
-	bankerPlayer, ok := r.GetPlayerByID(r.BankerID)
 	//计算牛牛，分配balance
+	//查找banker
+	var bankerPlayer *Player
 	for _, p := range activePlayer {
 		p.CardResult = CalcNiu(p.Cards)
+		if p.ID == r.BankerID {
+			bankerPlayer = p
+		}
 	}
-
-	// 修复：防止庄家中途异常消失导致 Panic
-	bankerMult := int64(1)
-	if banker, ok := r.GetPlayerByID(r.BankerID); ok {
-		bankerMult = int64(banker.CallMult)
+	if bankerPlayer == nil {
+		logrus.WithField("gameId", r.GameID).WithField("bankerId", r.BankerID).Error("QZNNRoom-BankerInvalid")
+		return
 	}
-
+	bankerMult := int64(bankerPlayer.CallMult)
 	if bankerMult <= 0 {
 		bankerMult = 1
 	}
 
-	if !ok {
-		logrus.WithField("roomId", r.ID).WithField("bankerId", r.BankerID).Error("QZNNRoom-BankerInvalid")
-		return
-	}
-
-	//todo 判断够不够balance
 	const TaxRate = 0.05 // 5% 税率
+
+	// 1. 计算闲家输赢（暂不扣税，先算账）
+	type WinRecord struct {
+		PlayerID string
+		Amount   int64
+	}
+	var playerWins []WinRecord
+	var totalBankerPay int64 = 0  // 庄家需要赔付的总额
+	var totalBankerGain int64 = 0 // 庄家从输家那里赢来的总额
+
+	baseBet := r.Config.BaseBet
+
 	for _, p := range activePlayer {
 		if p.ID == r.BankerID {
 			continue
 		}
 		isPlayerWin := CompareCards(p.CardResult, bankerPlayer.CardResult)
-		baseBet := r.Config.BaseBet
-		var balance int64
+
 		if isPlayerWin {
-			balance = baseBet * bankerMult * p.BetMult * p.CardResult.Mult
-			// 闲家赢，扣税
-			realScore := int64(float64(balance) * (1 - TaxRate))
-			p.BalanceChange += realScore
-			bankerPlayer.BalanceChange -= balance
+			// 闲家赢：底注 * 庄倍 * 闲倍 * 闲家牌型倍数
+			winAmount := baseBet * bankerMult * p.BetMult * p.CardResult.Mult
+			playerWins = append(playerWins, WinRecord{PlayerID: p.ID, Amount: winAmount})
+			totalBankerPay += winAmount
 		} else {
-			balance = baseBet * bankerMult * p.BetMult * p.CardResult.Mult
-			p.BalanceChange -= balance
-			// 庄家赢，扣税
-			realScore := int64(float64(balance) * (1 - TaxRate))
-			bankerPlayer.BalanceChange += realScore
+			// 庄家赢：底注 * 庄倍 * 闲倍 * 庄家牌型倍数
+			loseAmount := baseBet * bankerMult * p.BetMult * bankerPlayer.CardResult.Mult
+			// 输家输的钱不能超过自己的余额
+			if loseAmount > p.Balance {
+				loseAmount = p.Balance
+			}
+			p.BalanceChange -= loseAmount
+			totalBankerGain += loseAmount
+		}
+	}
+
+	// 2. 计算庄家赔付能力
+	// 庄家现有资金 + 本局赢来的钱
+	bankerCapacity := bankerPlayer.Balance + totalBankerGain
+
+	// 3. 结算闲家赢钱（考虑庄家破产）
+	if totalBankerPay > bankerCapacity {
+		// 庄家不够赔，按比例赔付
+		ratio := float64(bankerCapacity) / float64(totalBankerPay)
+		for _, rec := range playerWins {
+			p, ok := r.GetPlayerByID(rec.PlayerID)
+			if ok {
+				realWin := int64(math.Round(float64(rec.Amount) * ratio))
+				p.BalanceChange += realWin
+			}
+		}
+		// 庄家输光所有（余额+赢来的）
+		bankerPlayer.BalanceChange = totalBankerGain - bankerCapacity
+	} else {
+		// 庄家够赔
+		for _, rec := range playerWins {
+			p, ok := r.GetPlayerByID(rec.PlayerID)
+			if ok {
+				p.BalanceChange += rec.Amount
+			}
+		}
+		bankerPlayer.BalanceChange = totalBankerGain - totalBankerPay
+	}
+
+	// 4. 扣税 (只扣赢家的)
+	for _, p := range activePlayer {
+		if p.BalanceChange > 0 {
+			tax := int64(math.Round(float64(p.BalanceChange) * TaxRate))
+			p.BalanceChange -= tax
 		}
 	}
 

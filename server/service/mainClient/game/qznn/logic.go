@@ -1,6 +1,7 @@
 package qznn
 
 import (
+	"compoment/util"
 	"compoment/ws"
 	"encoding/json"
 	"fmt"
@@ -517,19 +518,38 @@ func (r *QZNNRoom) driverLogicTick() {
 }
 
 func (r *QZNNRoom) tickWaiting() {
-	if leaveIds, isLeave := r.kickOffByWsDisconnect(); isLeave {
+	leaveIds, _ := r.kickOffByWsDisconnect()
+	//reset ob data
+	r.ResetOb()
+	//check balance >= min balance
+	players := r.GetPlayers()
+	for _, p := range players {
+		if p == nil {
+			continue
+		}
+		if p.Balance < r.Config.MinBalance {
+			if r.Leave(p.ID) {
+				leaveIds = append(leaveIds, p.ID)
+				r.PushPlayer(p, comm.PushData{
+					Cmd:      comm.ServerPush,
+					PushType: znet.PushRouter,
+					Data: znet.PushRouterStruct{
+						Router:  znet.Lobby,
+						Message: "余额不足,离开房间"}})
+			}
+		}
+	}
+	if len(leaveIds) > 0 {
+		leaveIds = util.RemoveDuplicatesString(leaveIds)
 		r.Broadcast(comm.PushData{
 			Cmd:      comm.ServerPush,
 			PushType: PushPlayLeave,
 			Data:     PushPlayerLeaveStruct{UserIds: leaveIds, Room: r}})
-	}
-	//reset ob data
-	r.ResetOb()
-	//todo::check balance >= min balance
 
-	countExistPlayerNum := r.GetPlayerCount()
+	}
+
 	//加入已经有2个人在房间，可以进行倒计时开始游戏
-	if countExistPlayerNum >= 2 {
+	if len(players) >= 2 {
 		r.SetStatus([]RoomState{StateWaiting}, StatePrepare, SecStatePrepareSec)
 	}
 }
@@ -670,12 +690,7 @@ func (r *QZNNRoom) StartGame() {
 
 	//保底的检查，用户能不能玩，至少2个有效用户，不够要再踢回waiting
 	activePlayer := r.GetActivePlayers(nil)
-	if len(activePlayer) < 2 {
-		logrus.WithField("!", nil).WithField("roomId", r.ID).Error("InvalidPlayerCountForGame")
-		r.SetStatus([]RoomState{StateStartGame}, StateWaiting, 0)
-		//不判断set status 成功与否，强行return，保护数据
-		return
-	}
+
 	//检查是否有重复id在游戏内
 	allPlayers := r.GetPlayers()
 	playerSet := make(map[string]*Player, 5)
@@ -688,6 +703,24 @@ func (r *QZNNRoom) StartGame() {
 				return
 			}
 		}
+	}
+
+	//锁用户的balance
+	for _, p := range activePlayer {
+		err := modelClient.GameLockUserBalance(p.ID, r.GameID, r.Config.MinBalance)
+		if err != nil {
+			//有用户的金额不够锁住,尝试踢出用户
+			logrus.WithField("!", nil).WithField("userId", p.ID).WithField("roomId", r.ID).Error("InvalidPlayerLockBanlance")
+			r.SetStatus([]RoomState{StateStartGame}, StateWaiting, 0)
+			return
+		}
+	}
+
+	if len(activePlayer) < 2 {
+		logrus.WithField("!", nil).WithField("roomId", r.ID).Error("InvalidPlayerCountForGame")
+		r.SetStatus([]RoomState{StateStartGame}, StateWaiting, 0)
+		//不判断set status 成功与否，强行return，保护数据
+		return
 	}
 
 	//准备牌堆并发牌

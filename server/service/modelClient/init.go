@@ -12,6 +12,6 @@ func RegModels() {
 	orm.RegisterModel(
 		&ModelUser{},
 		&ModelUserRecord{},
-		&ModelGame{},
+		&ModelGameRecord{},
 	)
 }

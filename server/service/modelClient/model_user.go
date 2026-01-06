@@ -58,12 +58,12 @@ func (a *ModelUserRecord) TableName() string {
 
 func (a *ModelUserRecord) TableUnique() [][]string {
 	return [][]string{
-		{"user_id", "game_id"},
+		{"user_id", "game_record_id"},
 	}
 }
 
 func (a *ModelUserRecord) TableIndex() [][]string {
 	return [][]string{
-		{"user_id"}, {"game_id"},
+		{"user_id"}, {"game_record_id"},
 	}
 }

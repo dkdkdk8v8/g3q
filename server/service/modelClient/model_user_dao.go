@@ -89,11 +89,10 @@ func GetRandomRobots(limit int) ([]*ModelUser, error) {
 }
 
 // UserEnterRoom 用户进入房间，锁定余额
-func UserGameRoom(userId string, gameId string, minBalance int64) (*ModelUser, error) {
+func GameLockUserBalance(userId string, gameId string, minBalance int64) error {
 	ormDb := GetDb()
-	var user ModelUser
 	err := ormDb.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
-
+		var user ModelUser
 		var err error
 		// 使用 ForUpdate 锁行，防止并发问题
 		err = txOrm.QueryTable(new(ModelUser)).Filter("user_id", userId).ForUpdate().One(&user)
@@ -119,10 +118,10 @@ func UserGameRoom(userId string, gameId string, minBalance int64) (*ModelUser, e
 		return nil
 	})
 	if err != nil {
-		return &user, err
+		return err
 	}
 
-	return &user, nil
+	return nil
 }
 
 type GameSettletruct struct {

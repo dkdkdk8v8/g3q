@@ -45,10 +45,10 @@ const chartOption = reactive({
 				color: textColor
 			},
 			data: [
-				{ value: 387, name: '电子产品' },
-				{ value: 314, name: '服装' },
-				{ value: 253, name: '家居用品' },
-				{ value: 198, name: '书籍' },
+				{ value: 387, name: '抢庄牛牛' },
+				{ value: 314, name: '斗地主' },
+				{ value: 253, name: '百人牛牛' },
+				{ value: 198, name: '百家乐' },
 				{ value: 123, name: '其他' }
 			]
 		}

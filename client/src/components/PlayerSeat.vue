@@ -342,12 +342,13 @@ const displayName = computed(() => {
     height: 100%;
     background: rgba(0,0,0,0.3);
     border-radius: 50%;
-    border: 1px solid rgba(255,255,255,0.2);
+    border: 3px solid transparent; /* Reserve space for banker border */
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.2); /* Mimic original 1px border */
     overflow: hidden; /* Crucial for clipping content to the circular frame */
     display: flex; /* Use flexbox to center the image reliably */
     justify-content: center;
     align-items: center;
-    transition: box-shadow 0.2s ease-in-out; /* Smooth transition for highlight */
+    transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out; /* Smooth transition for highlight */
 }
 
 .avatar-frame.banker-candidate-highlight {
@@ -357,7 +358,7 @@ const displayName = computed(() => {
 }
 
 .avatar-frame.is-banker {
-    border: 3px solid #fbbf24;
+    border-color: #fbbf24;
     box-shadow: 0 0 4px #fbbf24;
 }
 
@@ -368,10 +369,10 @@ const displayName = computed(() => {
 }
 
 @keyframes bankerConfirmPop {
-    0% { transform: scale(1); box-shadow: 0 0 0 rgba(251, 191, 36, 0); border-color: rgba(255,255,255,0.2); border-width: 1px; }
-    40% { transform: scale(1); box-shadow: 0 0 40px 10px rgba(251, 191, 36, 1); border-color: #fbbf24; border-width: 3px; }
-    60% { transform: scale(1); box-shadow: 0 0 40px 10px rgba(251, 191, 36, 1); border-color: #fbbf24; border-width: 3px; }
-    100% { transform: scale(1); box-shadow: 0 0 4px #fbbf24; border-color: #fbbf24; border-width: 3px; }
+    0% { transform: scale(1); box-shadow: 0 0 0 1px rgba(255,255,255,0.2); border-color: transparent; }
+    40% { transform: scale(1); box-shadow: 0 0 40px 10px rgba(251, 191, 36, 1); border-color: #fbbf24; }
+    60% { transform: scale(1); box-shadow: 0 0 40px 10px rgba(251, 191, 36, 1); border-color: #fbbf24; }
+    100% { transform: scale(1); box-shadow: 0 0 4px #fbbf24; border-color: #fbbf24; }
 }
 
 @keyframes pulse-border-glow {

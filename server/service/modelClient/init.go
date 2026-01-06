@@ -11,5 +11,7 @@ const ServerDB = "g3q_server"
 func RegModels() {
 	orm.RegisterModel(
 		&ModelUser{},
+		&ModelUserRecord{},
+		&ModelGame{},
 	)
 }

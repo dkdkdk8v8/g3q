@@ -9,6 +9,7 @@ import (
 	"service/initMain"
 	"service/mainClient/game"
 	"service/mainClient/game/qznn"
+	"service/mainClient/game/znet"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -133,18 +134,18 @@ func handleConnection(connWrap *ws.WsConnWrap, appId, appUserId string) {
 				//在游戏内,默认客户端进入游戏
 				connWrap.WriteJSON(comm.PushData{
 					Cmd:      comm.ServerPush,
-					PushType: game.PushRouter,
-					Data: game.PushRouterStruct{
-						Router: game.Game,
+					PushType: znet.PushRouter,
+					Data: znet.PushRouterStruct{
+						Router: znet.Game,
 						Room:   room,
 						SelfId: userId}})
 			} else {
 				//不在游戏内,默认客户端进入lobby
 				connWrap.WriteJSON(comm.PushData{
 					Cmd:      comm.ServerPush,
-					PushType: game.PushRouter,
-					Data: game.PushRouterStruct{
-						Router: game.Lobby}})
+					PushType: znet.PushRouter,
+					Data: znet.PushRouterStruct{
+						Router: znet.Lobby}})
 			}
 		})
 
@@ -269,7 +270,7 @@ func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, userId st
 	switch msg.Cmd {
 	case game.CmdPingPong: // 心跳处理
 	//auto replay by defer
-	case game.CmdUserInfo: // 用户信息请求
+	case znet.CmdUserInfo: // 用户信息请求
 		rsp.Data, errRsp = handleUserInfo(appId, appUserId)
 	case qznn.CmdPlayerJoin: // 抢庄牛牛进入
 		errRsp = handlePlayerJoin(connWrap, appId, appUserId, msg.Data)
@@ -285,7 +286,7 @@ func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, userId st
 		rsp.Data = handleLobbyConfig()
 	case qznn.CmdTalk:
 		errRsp = handlerPlayerTalk(userId, msg.Data)
-	case game.CmdSaveSetting: // 保存用户设置
+	case znet.CmdSaveSetting: // 保存用户设置
 		errRsp = handleSaveSetting(userId, msg.Data)
 	default:
 		errRsp = errors.New("UnknownCmd")

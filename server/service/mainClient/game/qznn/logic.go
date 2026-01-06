@@ -2,10 +2,13 @@ package qznn
 
 import (
 	"compoment/ws"
+	"encoding/json"
 	"fmt"
 	"math"
 	"math/rand"
 	"service/comm"
+	"service/mainClient/game/znet"
+	"service/modelClient"
 	"slices"
 	"time"
 
@@ -521,6 +524,8 @@ func (r *QZNNRoom) tickWaiting() {
 			Data:     PushPlayerLeaveStruct{UserIds: leaveIds, Room: r}})
 	}
 	//reset ob data
+	r.ResetOb()
+	//todo::check balance >= min balance
 
 	countExistPlayerNum := r.GetPlayerCount()
 	//加入已经有2个人在房间，可以进行倒计时开始游戏
@@ -878,15 +883,43 @@ func (r *QZNNRoom) StartGame() {
 		}
 	}
 
-	for _, p := range activePlayer {
-		p.Mu.Lock()
-		p.Balance += p.BalanceChange
-		p.Mu.Unlock()
-	}
-
 	//结算状态
 	if !r.SetStatus([]RoomState{StateShowCard}, StateSettling, 0) {
+		//todo:: log detail for recovery data
 		return
+	}
+
+	settle := modelClient.GameSettletruct{RoomId: r.ID, GameId: r.GameID}
+	for _, p := range activePlayer {
+		settle.Players = append(settle.Players, modelClient.UserSettingStruct{
+			UserId:        p.ID,
+			ChangeBalance: p.BalanceChange,
+		})
+	}
+	//
+	modelUsers, err := modelClient.UpdateUserSetting(&settle)
+	if err != nil {
+		//todo:: log very detail for recovery user data
+		return
+	}
+	type qznnGameData struct {
+		Room *QZNNRoom
+	}
+	roomBytes, _ := json.Marshal(qznnGameData{Room: r})
+	//产生对局记录
+	_, err = modelClient.InsertGame(&modelClient.ModelGame{
+		GameId:   r.GameID,
+		GameData: string(roomBytes),
+	})
+	if err != nil {
+		//todo:: just log do no break logic
+	}
+
+	for _, modelU := range modelUsers {
+		for _, player := range activePlayer {
+			//用数据的最新数据更新balance
+			player.Balance = modelU.BalanceLock
+		}
 	}
 
 	//客户端播放结算动画
@@ -910,5 +943,19 @@ func (r *QZNNRoom) StartGame() {
 		nextState = StatePrepare
 	default:
 	}
+
+	//查看是否有余额是0的用户，是0即可让用户去lobby了
+	for _, p := range activePlayer {
+		if p.Balance < r.Config.MinBalance {
+			if r.Leave(p.ID) {
+				r.PushPlayer(p, comm.PushData{
+					Cmd:      comm.ServerPush,
+					PushType: znet.PushRouter,
+					Data: znet.PushRouterStruct{
+						Router: znet.Lobby}})
+			}
+		}
+	}
+
 	r.SetStatus([]RoomState{StateSettling, RoomState("")}, nextState, prepareSec)
 }

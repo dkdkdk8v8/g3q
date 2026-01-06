@@ -99,7 +99,7 @@ func (w *mainClientWork) Init(baseCtx *initMain.BaseCtx) error {
 	if err := w.WorkRunner.Init(baseCtx); err != nil {
 		return err
 	}
-	uid.Init(w.cfg.WorkId, 1729791888000)
+	uid.Init(w.cfg.WorkId, 1767703689000)
 	if !baseCtx.IsTerm {
 		gin.SetMode(gin.ReleaseMode)
 	}

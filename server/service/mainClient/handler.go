@@ -50,16 +50,19 @@ func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []b
 	if err != nil {
 		return comm.NewMyError("获取用户信息失败")
 	}
+	if user.GameId != "" {
+		return comm.NewMyError("还有游戏未结算,请稍等进入新游戏")
+	}
 	if user.Balance < cfg.MinBalance {
-		return comm.NewMyError("余额不足!")
+		return comm.NewMyError("余额不满足最少入场金额")
 	}
 
 	userId := appId + appUserId
 	// 处理抢庄牛牛匹配逻辑
 	p := qznn.NewPlayer()
 	p.ID = userId
-	p.ConnWrap = connWrap
 	p.Balance = user.Balance
+	p.ConnWrap = connWrap
 	p.NickName = func() string {
 		if user.NickName == "" {
 			return user.UserId
@@ -71,6 +74,7 @@ func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []b
 	if err != nil {
 		return err
 	}
+
 	room.Broadcast(comm.PushData{
 		Cmd:      comm.ServerPush,
 		PushType: qznn.PushPlayJoin,
@@ -91,7 +95,7 @@ func handlePlayerLeave(userId string, data []byte) error {
 		return comm.ErrClientParam
 	}
 	room := game.GetMgr().GetRoomByRoomId(req.RoomId)
-	return qznn.HandlerPlayerLeave(room, userId)
+	return qznn.HandlerPlayerLeave(room, userId, true)
 }
 
 func handlePlayerCallBank(userId string, data []byte) error {

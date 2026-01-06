@@ -12,7 +12,8 @@ type ModelUser struct {
 	NickName    string    `orm:"column(nick_name);size(64)"`                         // 昵称
 	Avatar      string    `orm:"column(avatar);size(256)"`                           // 头像URL
 	Balance     int64     `orm:"column(balance);default(0)"`                         // 余额（分）
-	BalanceLock int64     `orm:"column(balance_lock);default(0)"`                    // 锁定余额（分）
+	BalanceLock int64     `orm:"column(balance_lock);default(0)" json:"balanceLock"` // 锁定余额（分）
+	GameId      string    `orm:"column(game_id);size(64)" json:"gameId"`             // 游戏ID
 	Remark      string    `orm:"column(remark);size(256)" json:"-"`                  // 备注
 	LastPlayed  time.Time `orm:"column(last_played);type(datetime);null" json:"-"`   // 最后游戏时间
 	IsRobot     bool      `orm:"column(is_robot);default(0)" json:"-"`               // 是否机器人
@@ -37,5 +38,31 @@ func (a *ModelUser) TableUnique() [][]string {
 func (a *ModelUser) TableIndex() [][]string {
 	return [][]string{
 		{"user_id"}, {"enable"}, {"app_id"}, {"app_user_id"}, {"is_robot"},
+	}
+}
+
+type ModelUserRecord struct {
+	Id            uint64    `orm:"column(id);auto" json:"-"`                           // 标识
+	UserId        string    `orm:"column(user_id);size(64)"`                           // 用户标识(带APPID前缀)
+	BalanceBefore int64     `orm:"column(balance_before);default(0)"`                  // 余额（分）
+	BalanceAfter  int64     `orm:"column(balance_after);default(0)"`                   // 余额（分）
+	GameId        string    `orm:"column(game_id);size(64)"`                           // 游戏ID // join MOdelGame的Id 主键
+	CreateAt      time.Time `orm:"column(create_at);type(datetime);auto_now_add"`      // 创建时间
+	UpdateAt      time.Time `orm:"column(update_at);type(datetime);auto_now" json:"-"` // 更新时间
+}
+
+func (a *ModelUserRecord) TableName() string {
+	return "g3q_user_record"
+}
+
+func (a *ModelUserRecord) TableUnique() [][]string {
+	return [][]string{
+		{"user_id", "game_id"},
+	}
+}
+
+func (a *ModelUserRecord) TableIndex() [][]string {
+	return [][]string{
+		{"user_id"}, {"game_id"},
 	}
 }

@@ -49,25 +49,24 @@ type CardResult struct {
 
 // PlayerData 包含玩家的游戏数据，分离出来以方便拷贝且避免拷贝锁
 type PlayerData struct {
-	ID       string
-	NickName string
-	Balance  int64 // 玩家余额,单位分
-	Cards    []int // 手牌 (0-51)
-	CallMult int64 // 抢庄倍数
-	BetMult  int64 // 下注倍数
-	IsShow   bool  // 是否已亮牌
-	SeatNum  int   // 座位号
-	//IsReady       bool       // 是否已准备
+	ID            string
+	NickName      string
+	Balance       int64      // 玩家余额,单位分
+	Cards         []int      // 手牌 (0-51)
+	CallMult      int64      // 抢庄倍数
+	BetMult       int64      // 下注倍数
+	IsShow        bool       // 是否已亮牌
+	SeatNum       int        // 座位号
 	CardResult    CardResult `json:"-"`
 	IsOb          bool       // 是否观众
 	BalanceChange int64      // 本局输赢
-	IsRobot       bool       `json:"-"`
+	IsRobot       bool       `json:"-" DiyJson:"IsRobot"`
 }
 
 // Player 代表房间内的一个玩家
 type Player struct {
 	PlayerData
-	Mu       sync.RWMutex   `json:"-"`
+	Mu       sync.RWMutex   `json:"-"` // 保护 PlayerData
 	ConnWrap *ws.WsConnWrap `json:"-"` // WebSocket 连接
 }
 
@@ -181,6 +180,16 @@ func (r *QZNNRoom) ResetGameData() {
 	for _, p := range r.Players {
 		if p != nil {
 			p.ResetGameData()
+		}
+	}
+}
+
+func (r *QZNNRoom) ResetOb() {
+	for _, p := range r.Players {
+		if p != nil {
+			p.Mu.Lock()
+			p.IsOb = false
+			p.Mu.Unlock()
 		}
 	}
 }

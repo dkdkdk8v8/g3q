@@ -116,6 +116,13 @@ watch(shouldShowCardFace, (val) => {
 const isBullPart = (index) => {
     if (!shouldShowCardFace.value) return false;
     if (!props.player.handResult) return false;
+
+    // Strict check for "Me": Only show overlay if I clicked show hand OR it's settlement
+    if (props.isMe) {
+        if (!props.player.isShowHand && store.currentPhase !== 'SETTLEMENT') {
+            return false;
+        }
+    }
     
     // Must wait for animation delay to end
     if (!enableHighlight.value) return false;

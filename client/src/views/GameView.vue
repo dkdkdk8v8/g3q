@@ -568,6 +568,11 @@ onMounted(() => {
             vantToast(msg.msg || "退出失败");
         }
     });
+
+    // Register latency callback
+    gameClient.setLatencyCallback((ms) => {
+        networkLatency.value = ms;
+    });
 });
 
 onUnmounted(() => {
@@ -578,6 +583,7 @@ onUnmounted(() => {
         bgAudio.value = null;
     }
     gameClient.off('QZNN.PlayerLeave');
+    gameClient.setLatencyCallback(null);
 });
 
 const onRob = debounce((multiplier) => {
@@ -625,6 +631,14 @@ const closeSettingsDebounced = debounce(() => {
 const toggleShowMenu = debounce(() => {
     showMenu.value = !showMenu.value;
 }, 500);
+
+// Network Latency
+const networkLatency = ref(0);
+const networkStatusClass = computed(() => {
+    if (networkLatency.value < 100) return 'good';
+    if (networkLatency.value < 300) return 'fair';
+    return 'poor';
+});
 
 // Card Calculation Logic
 const selectedCardIndices = ref([]);
@@ -687,6 +701,12 @@ watch(() => store.currentPhase, (newPhase) => {
                     <van-icon name="wap-nav" size="20" color="white" />
                     <span style="margin-left:4px;font-size:14px;">菜单</span>
                 </div>
+                
+                <div class="network-badge" :class="networkStatusClass">
+                    <div class="wifi-dot"></div>
+                    <span>{{ networkLatency }}ms</span>
+                </div>
+
                 <!-- 下拉菜单 -->
                 <transition name="fade">
                     <div v-if="showMenu" class="menu-dropdown" @click.stop>
@@ -1060,8 +1080,35 @@ watch(() => store.currentPhase, (newPhase) => {
 /* 菜单样式 */
 .menu-container {
     position: relative;
-    z-index: 200;
+    z-index: 300;
+    display: flex; /* Add flex layout */
+    align-items: center; /* Vertically center */
+    gap: 10px; /* Space between menu button and network badge */
 }
+
+.network-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: white;
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+.wifi-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #22c55e; /* Default green */
+    box-shadow: 0 0 4px currentColor;
+}
+
+.network-badge.good .wifi-dot { background-color: #22c55e; color: #22c55e; }
+.network-badge.fair .wifi-dot { background-color: #facc15; color: #facc15; }
+.network-badge.poor .wifi-dot { background-color: #ef4444; color: #ef4444; }
 
 .menu-dropdown {
     position: absolute;

@@ -36,6 +36,7 @@ export default class GameClient {
         this.onConnect = null;
         this.onClose = null;
         this.onError = null;
+        this.onLatencyChange = null; // Latency callback
 
         this.globalPushHandler = null; // 全局 ServerPush 监听
     }
@@ -134,6 +135,7 @@ export default class GameClient {
         this._stopHeartbeat();
         this.heartbeatTimer = setInterval(() => {
             if (this.isConnected) {
+                this.lastPingTime = Date.now();
                 this.send("PingPong", {});
             }
         }, CONFIG.HEARTBEAT_INTERVAL);
@@ -180,6 +182,12 @@ export default class GameClient {
 
         // 拦截心跳回包，不向上层分发
         if (msg.cmd === "PingPong") {
+            if (this.lastPingTime) {
+                const latency = Date.now() - this.lastPingTime;
+                if (this.onLatencyChange) {
+                    this.onLatencyChange(latency);
+                }
+            }
             // No loading for ping/pong
             return;
         }
@@ -326,6 +334,10 @@ export default class GameClient {
      */
     onGlobalServerPush(callback) {
         this.globalPushHandler = callback;
+    }
+
+    setLatencyCallback(callback) {
+        this.onLatencyChange = callback;
     }
 
     close() {

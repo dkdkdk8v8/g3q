@@ -184,9 +184,7 @@ const setSeatRef = (el, playerId) => {
 
 const myPlayer = computed(() => store.players.find(p => p.id === store.myPlayerId));
 
-watch(() => myPlayer.value?.betMultiplier, (newVal) => {
-    console.log(`[GameView Debug] myPlayer.betMultiplier changed to: ${newVal}`);
-});
+
 
 watch(() => [...store.playerSpeechQueue], (newQueue) => { // Watch a copy to trigger on push
     if (newQueue.length > 0) {

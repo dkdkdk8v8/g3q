@@ -625,6 +625,52 @@ const closeSettingsDebounced = debounce(() => {
 const toggleShowMenu = debounce(() => {
     showMenu.value = !showMenu.value;
 }, 500);
+
+// Card Calculation Logic
+const selectedCardIndices = ref([]);
+
+const handleCardClick = ({ card, index }) => {
+    if (store.currentPhase !== 'SHOWDOWN' || (myPlayer.value && myPlayer.value.isShowHand)) return;
+
+    const idxInSelected = selectedCardIndices.value.indexOf(index);
+    if (idxInSelected !== -1) {
+        // Deselect
+        selectedCardIndices.value.splice(idxInSelected, 1);
+    } else {
+        // Select if less than 3
+        if (selectedCardIndices.value.length < 3) {
+            selectedCardIndices.value.push(index);
+        }
+    }
+};
+
+const calculationData = computed(() => {
+    const cards = [];
+    let sum = 0;
+    const labels = [];
+    
+    // Use the order of selection
+    selectedCardIndices.value.forEach(idx => {
+        if (!myPlayer.value || !myPlayer.value.hand) return;
+        const card = myPlayer.value.hand[idx];
+        if (card) {
+            cards.push(card);
+            sum += card.value;
+            labels.push(card.label);
+        }
+    });
+
+    return {
+        cards,
+        sum,
+        labels,
+        isFull: cards.length === 3
+    };
+});
+
+watch(() => store.currentPhase, (newPhase) => {
+    selectedCardIndices.value = [];
+});
 </script>
 
 <template>
@@ -762,6 +808,18 @@ const toggleShowMenu = debounce(() => {
                     <!-- 摊牌按钮 -->
                     <div v-if="store.currentPhase === 'SHOWDOWN' && !myPlayer.isShowHand && store.countdown > 0 && !myPlayer.isObserver"
                         class="btn-group">
+                        
+                        <!-- Calculation Formula -->
+                        <div class="calc-container">
+                            <div class="calc-box">{{ calculationData.labels[0] || '?' }}</div>
+                            <div class="calc-symbol">+</div>
+                            <div class="calc-box">{{ calculationData.labels[1] || '?' }}</div>
+                            <div class="calc-symbol">+</div>
+                            <div class="calc-box">{{ calculationData.labels[2] || '?' }}</div>
+                            <div class="calc-symbol">=</div>
+                            <div class="calc-box result">{{ calculationData.isFull ? calculationData.sum : '?' }}</div>
+                        </div>
+
                         <div class="game-btn orange" style="width: 100px" @click="playerShowHandDebounced(myPlayer.id)">
                             摊牌
                         </div>
@@ -778,7 +836,10 @@ const toggleShowMenu = debounce(() => {
                     :visible-card-count="(myPlayer && visibleCounts[myPlayer.id] !== undefined) ? visibleCounts[myPlayer.id] : 0"
                     :is-ready="myPlayer && myPlayer.isReady"
                     :is-animating-highlight="myPlayer && myPlayer.id === currentlyHighlightedPlayerId"
-                    :speech="myPlayer ? playerSpeech.get(myPlayer.id) : null" />
+                    :speech="myPlayer ? playerSpeech.get(myPlayer.id) : null" 
+                    :selected-card-indices="selectedCardIndices"
+                    @card-click="handleCardClick"
+                    />
             </div>
 
             <!-- 全局点击关闭菜单 -->
@@ -1605,5 +1666,41 @@ const toggleShowMenu = debounce(() => {
 
 .result-icon.bounce {
     transform: translate(-50%, -50%) scale(0.666);
+}
+
+.calc-container {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 4px 8px;
+    border-radius: 8px;
+    margin-right: 12px;
+}
+
+.calc-box {
+    width: 24px;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 4px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.calc-box.result {
+    background: rgba(251, 191, 36, 0.2);
+    border-color: #fbbf24;
+    color: #fbbf24;
+}
+
+.calc-symbol {
+    color: white;
+    font-weight: bold;
+    font-size: 16px;
 }
 </style>

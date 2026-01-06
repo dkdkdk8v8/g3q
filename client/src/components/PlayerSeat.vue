@@ -18,10 +18,15 @@ const props = defineProps({
       },
       isReady: Boolean, // Add isReady prop
       isAnimatingHighlight: Boolean, // New prop for sequential highlight animation
-      speech: Object // New prop: { type: 'text' | 'emoji', content: string }
+      speech: Object, // New prop: { type: 'text' | 'emoji', content: string }
+      selectedCardIndices: {
+          type: Array,
+          default: () => []
+      }
   });
   
   const store = useGameStore();
+  const emit = defineEmits(['card-click']);
   
   // Computed property to control speech bubble visibility
   const showSpeechBubble = computed(() => {
@@ -237,11 +242,12 @@ const shouldShowBetMult = computed(() => {
           :key="idx" 
           :card="(shouldShowCardFace && (visibleCardCount === -1 || idx < visibleCardCount)) ? card : null" 
           :is-small="!isMe"
-          :class="{ 'hand-card': true, 'bull-card-overlay': isBullPart(idx) }"
+          :class="{ 'hand-card': true, 'bull-card-overlay': isBullPart(idx), 'selected': selectedCardIndices.includes(idx) }"
           :style="{ 
               marginLeft: idx === 0 ? '0' : '-20px',
               opacity: (visibleCardCount === -1 || idx < visibleCardCount) ? 1 : 0,
           }"
+          @click="props.isMe ? emit('card-click', { card, index: idx }) : null"
         />
       </div>
       <!-- ... (keep hand result) -->
@@ -258,6 +264,10 @@ const shouldShowBetMult = computed(() => {
   align-items: center;
   position: relative;
   width: 100px;
+}
+
+.hand-card.selected {
+    transform: translateY(-20px);
 }
 
 /* 布局方向定义 */

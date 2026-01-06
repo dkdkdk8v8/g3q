@@ -18,7 +18,7 @@ const bgAudio = ref(null); // Background audio ref
 // 模拟用户信息 - map from store
 const userInfo = computed(() => {
     return {
-        name: userStore.userInfo.nick_name || '未知用户',
+        name: userStore.userInfo.nick_name || userStore.userInfo.user_id,
         id: userStore.userInfo.user_id || '---',
         coins: userStore.userInfo.balance || 0,
         avatar: userStore.userInfo.avatar || defaultAvatar // Use imported avatar

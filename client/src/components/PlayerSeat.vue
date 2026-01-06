@@ -179,6 +179,10 @@ const shouldShowRobMult = computed(() => {
     return props.player.betMultiplier > 0;
 });
 
+const slideTransitionName = computed(() => {
+    return props.position === 'right' ? 'slide-from-right' : 'slide-from-left';
+});
+
 const displayName = computed(() => {
     const name = props.player.name || '';
     if (props.isMe) return name;
@@ -211,14 +215,18 @@ const displayName = computed(() => {
           
           <!-- 状态浮层，移到 avatar-area 以便相对于头像定位 -->
           <div class="status-float" v-if="!['IDLE', 'READY_COUNTDOWN'].includes(store.currentPhase)">
-              <template v-if="shouldShowRobMult">
-                  <div v-if="player.robMultiplier > 0" class="art-text orange">抢x{{ player.robMultiplier }}</div>
-                  <div v-else class="art-text gray">不抢</div>
-              </template>
+              <Transition :name="slideTransitionName">
+                  <div v-if="shouldShowRobMult" class="status-content">
+                      <div v-if="player.robMultiplier > 0" class="art-text orange">抢x{{ player.robMultiplier }}</div>
+                      <div v-else class="art-text gray">不抢</div>
+                  </div>
+              </Transition>
               
-              <template v-if="shouldShowBetMult">
-                  <div class="art-text green">下x{{ player.betMultiplier }}</div>
-              </template>
+              <Transition :name="slideTransitionName">
+                  <div v-if="shouldShowBetMult" class="status-content">
+                      <div class="art-text green">下x{{ player.betMultiplier }}</div>
+                  </div>
+              </Transition>
           </div>
 
           <!-- 庄家徽章，现在移动到 avatar-area 内部 -->
@@ -672,6 +680,21 @@ const displayName = computed(() => {
 
 .score-float.win { color: #facc15; }
 .score-float.lose { color: #ef4444; }
+
+.slide-from-left-enter-active,
+.slide-from-right-enter-active {
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.slide-from-left-enter-from {
+    opacity: 0;
+    transform: translateX(-30px);
+}
+
+.slide-from-right-enter-from {
+    opacity: 0;
+    transform: translateX(30px);
+}
 
 .hand-card.bull-card-overlay {
     filter: brightness(60%) grayscale(50%); /* Apply a grey filter */

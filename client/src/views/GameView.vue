@@ -348,7 +348,7 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
                 startDealingAnimation(true);
             }, 100);
         }
-    } else if (newPhase === 'DEALING') { // Changed from SHOWDOWN to DEALING for animation
+    } else if (['DEALING', 'SHOWDOWN', 'SETTLEMENT'].includes(newPhase)) { // Changed from SHOWDOWN to DEALING for animation
         setTimeout(() => {
             startDealingAnimation(true);
         }, 100);
@@ -477,7 +477,17 @@ const startDealingAnimation = (isSupplemental = false) => {
     if (!isSupplemental) {
         visibleCounts.value = {}; // Reset visible counts ONLY if not supplemental
     }
-    if (!dealingLayer.value) return;
+    
+    // Fallback: If dealingLayer is not ready (e.g. immediate watcher on mount), 
+    // directly set visible counts to ensure cards are shown without animation.
+    if (!dealingLayer.value) {
+        store.players.forEach(p => {
+            if (p.hand && p.hand.length > 0) {
+                visibleCounts.value[p.id] = p.hand.length;
+            }
+        });
+        return;
+    }
 
     const targets = [];
     store.players.forEach(p => {
@@ -690,6 +700,12 @@ const calculationData = computed(() => {
 
 watch(() => store.currentPhase, (newPhase) => {
     selectedCardIndices.value = [];
+});
+
+watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
+    if (val) {
+        selectedCardIndices.value = [];
+    }
 });
 </script>
 
@@ -1460,17 +1476,21 @@ watch(() => store.currentPhase, (newPhase) => {
 }
 
 .phase-info {
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.6));
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.7));
     color: #fbbf24; /* Golden text */
-    padding: 6px 20px;
-    border-radius: 20px;
+    padding: 8px 24px; /* Slightly larger padding */
+    border-radius: 24px;
     font-size: 16px;
     font-weight: bold;
     margin-top: 10px;
-    border: 1px solid rgba(251, 191, 36, 0.3); /* Subtle gold border */
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3), 0 0 10px rgba(251, 191, 36, 0.2); /* Shadow + Glow */
-    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
-    min-width: 120px; /* Ensure consistent width */
+    border: 1px solid rgba(251, 191, 36, 0.4);
+    border-bottom: 3px solid rgba(180, 83, 9, 0.8); /* Distinct bottom frame/border */
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.6), 0 0 15px rgba(251, 191, 36, 0.2); /* Deep shadow + Glow */
+    text-shadow: 0 2px 4px rgba(0,0,0,0.9);
+    min-width: 140px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .phase-tip {

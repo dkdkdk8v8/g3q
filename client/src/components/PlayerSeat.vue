@@ -245,7 +245,7 @@ const displayName = computed(() => {
           <div v-if="player.isObserver" class="observer-badge">等待下一局</div>
       </div>
 
-      <div class="info-box">
+      <div class="info-box" :class="{ 'is-observer': player.isObserver }">
         <div class="name van-ellipsis">{{ displayName }}</div>
         <div class="coins-pill">
             <span class="coin-symbol">🟡</span>
@@ -292,7 +292,9 @@ const displayName = computed(() => {
 }
 
 .hand-card.selected {
-    transform: translateY(-20px);
+    /* transform: translateY(-20px); Removed per user request */
+    filter: brightness(60%) grayscale(50%);
+    opacity: 0.8;
 }
 
 /* 布局方向定义 */
@@ -357,37 +359,38 @@ const displayName = computed(() => {
     height: 100%;
     background: rgba(0,0,0,0.3);
     border-radius: 50%;
-    border: 3px solid transparent; /* Reserve space for banker border */
-    box-shadow: 0 0 0 1px rgba(255,255,255,0.2); /* Mimic original 1px border */
-    overflow: hidden; /* Crucial for clipping content to the circular frame */
-    display: flex; /* Use flexbox to center the image reliably */
+    border: 4px solid transparent; /* Increased width, transparent default */
+    box-sizing: border-box; /* Ensure border doesn't expand size */
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.2);
+    overflow: hidden;
+    display: flex;
     justify-content: center;
     align-items: center;
-    transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out; /* Smooth transition for highlight */
+    transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
 }
 
 .avatar-frame.banker-candidate-highlight {
-    box-shadow: 0 0 15px 5px #facc15, 0 0 8px 2px #d97706; /* Golden glow */
+    box-shadow: 0 0 15px 5px #facc15, 0 0 8px 2px #d97706;
     border-color: #facc15;
     animation: pulse-border-glow 1s infinite alternate;
 }
 
 .avatar-frame.is-banker {
     border-color: #fbbf24;
-    box-shadow: 0 0 4px #fbbf24;
+    box-shadow: 0 0 6px #fbbf24;
 }
 
 .avatar-frame.banker-confirm-anim {
     position: relative;
-    z-index: 50; /* Ensure it pops over other things */
+    z-index: 50;
     animation: bankerConfirmPop 1.2s ease-out forwards;
 }
 
 @keyframes bankerConfirmPop {
-    0% { transform: scale(1); box-shadow: 0 0 0 1px rgba(255,255,255,0.2); border-color: transparent; }
-    40% { transform: scale(1); box-shadow: 0 0 40px 10px rgba(251, 191, 36, 1); border-color: #fbbf24; }
-    60% { transform: scale(1); box-shadow: 0 0 40px 10px rgba(251, 191, 36, 1); border-color: #fbbf24; }
-    100% { transform: scale(1); box-shadow: 0 0 4px #fbbf24; border-color: #fbbf24; }
+    0% { border-color: transparent; box-shadow: 0 0 0 1px rgba(255,255,255,0.2); }
+    40% { border-color: #fbbf24; box-shadow: 0 0 25px 8px rgba(251, 191, 36, 0.9); }
+    60% { border-color: #fbbf24; box-shadow: 0 0 25px 8px rgba(251, 191, 36, 0.9); }
+    100% { border-color: #fbbf24; box-shadow: 0 0 6px #fbbf24; } /* Smoothly land on steady state */
 }
 
 @keyframes pulse-border-glow {
@@ -552,7 +555,7 @@ const displayName = computed(() => {
   font-size: 14px;
   border-radius: 50%;
   font-weight: bold;
-  z-index: 60;
+  z-index: 100;
   border: 1px solid #fff;
   box-shadow: 0 0 10px #fbbf24;
   animation: shine 2s infinite;
@@ -573,6 +576,11 @@ const displayName = computed(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+.info-box.is-observer {
+    filter: grayscale(100%);
+    opacity: 0.6;
 }
 
 .name {

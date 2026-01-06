@@ -1,15 +1,21 @@
 package modelClient
 
 import (
+	"beego/v2/client/orm"
 	"compoment/ormutil"
+	"context"
+	"service/comm"
+
+	"github.com/sirupsen/logrus"
 )
+
+var ErrorBalanceNotEnough = comm.NewMyError("用户余额不足")
 
 func GetOrCreateUser(appId string, appUserId string) (*ModelUser, error) {
 	//todo redis locking，防止并发创建同一用户
 	var user ModelUser
 	err := GetDb().QueryTable(new(ModelUser)).Filter(
-		"user_id", appId+appUserId).Filter(
-		"is_robot", false).One(&user)
+		"user_id", appId+appUserId).One(&user)
 	if err == nil {
 		return &user, nil
 	}
@@ -26,6 +32,13 @@ func GetOrCreateUser(appId string, appUserId string) (*ModelUser, error) {
 	}
 
 	_, err = WrapInsert(&user)
+	if err != nil {
+		if ormutil.IsDuplicate(err) {
+			logrus.WithField("userId", newUserId).Error("invalidUser")
+			return nil, err
+		}
+		return nil, err
+	}
 	return &user, err
 }
 
@@ -56,6 +69,11 @@ func UpdateUserParam(userId string, param *ormutil.ModelChanger) (int64, error) 
 	return ormutil.UpdateParam[ModelUser](GetDb(), param, ormutil.WithKV("user_id", userId))
 }
 
+// InsertUserRecord
+func InsertUserRecord(user *ModelUserRecord) (int64, error) {
+	return WrapInsert(user)
+}
+
 // func UpdateUserFields(model *ModelUser, fields ...string) (int64, error) {
 // 	if model.UserId == "" {
 // 		return 0, ormutil.ErrInvalidModelKeyIndex
@@ -68,4 +86,90 @@ func GetRandomRobots(limit int) ([]*ModelUser, error) {
 	// OrderBy("?") 是 MySQL 的随机排序
 	_, err := GetDb().Raw("SELECT * FROM g3q_user WHERE is_robot = 1 AND enable = 1 ORDER BY RAND() LIMIT ?", limit).QueryRows(&robots)
 	return robots, err
+}
+
+// UserEnterRoom 用户进入房间，锁定余额
+func GameLockUserBalance(userId string, gameId string, minBalance int64) error {
+	ormDb := GetDb()
+	err := ormDb.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
+		var user ModelUser
+		var err error
+		// 使用 ForUpdate 锁行，防止并发问题
+		err = txOrm.QueryTable(new(ModelUser)).Filter("user_id", userId).ForUpdate().One(&user)
+		if err != nil {
+			return err
+		}
+		userTotalBalance := int64(0)
+		if user.GameId == gameId {
+			userTotalBalance = user.Balance + user.BalanceLock
+		} else {
+			userTotalBalance = user.Balance
+		}
+		if userTotalBalance < minBalance {
+			return ErrorBalanceNotEnough
+		}
+		user.BalanceLock += user.Balance
+		user.Balance = 0
+		user.GameId = gameId
+		_, err = txOrm.Update(&user, "balance", "balance_lock", "game_id")
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type GameSettletruct struct {
+	RoomId       string
+	GameRecordId int64
+	Players      []UserSettingStruct
+}
+type UserSettingStruct struct {
+	UserId        string
+	ChangeBalance int64
+}
+
+func UpdateUserSetting(setting *GameSettletruct) ([]*ModelUser, error) {
+	ormDb := GetDb()
+	//用事物保持多个player的金额,在一个事务内修改
+	var ret []*ModelUser
+	err := ormDb.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
+		for _, player := range setting.Players {
+			var user ModelUser
+			err := txOrm.QueryTable(new(ModelUser)).Filter("user_id", player.UserId).ForUpdate().One(&user)
+			if err != nil {
+				return err
+			}
+
+			user.Balance += user.BalanceLock + player.ChangeBalance
+			user.BalanceLock = 0
+			user.GameId = ""
+			_, err = txOrm.Update(&user, "BalanceLock")
+			if err != nil {
+				return err
+			}
+			ret = append(ret, &user)
+			//插入用户的userRecord
+			userRecord := ModelUserRecord{
+				UserId:        user.UserId,
+				BalanceBefore: user.BalanceLock,
+				BalanceAfter:  user.BalanceLock + player.ChangeBalance,
+				GameRecordId:  setting.GameRecordId,
+			}
+			_, err = txOrm.Insert(&userRecord)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return ret, nil
 }

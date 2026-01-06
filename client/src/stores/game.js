@@ -4,6 +4,7 @@ import { createDeck, shuffle, calculateHandType, transformServerCard } from '../
 import gameClient from '../socket.js'
 import defaultAvatar from '@/assets/common/default_avatar.png'; // Use import for asset
 import { useUserStore } from './user.js';
+import router from '../router/index.js';
 
 const QZNN_Prefix = "QZNN."; // 定义QZNN游戏协议前缀
 const DEFAULT_AVATAR = defaultAvatar;
@@ -60,6 +61,7 @@ export const useGameStore = defineStore('game', () => {
     const betMult = ref([]); // Store betting multiplier options
     const playerSpeechQueue = ref([]); // Queue for incoming speech/emoji events
     const roomJoinedPromise = ref(null); // Added for async join completion
+    const globalMessage = ref(''); // Global alert message
     let roomJoinedResolve = null;
     let roomJoinedReject = null;
 
@@ -263,6 +265,24 @@ export const useGameStore = defineStore('game', () => {
         // console.log(`[GameStore] Universal Push: ${pushType}`, data);
 
         if (!data) return;
+
+        // Handle Global Message Alert
+        if (data.Message && typeof data.Message === 'string' && data.Message.trim() !== '') {
+            globalMessage.value = data.Message;
+        }
+
+        // Handle PushRouter
+        if (pushType === 'PushRouter') {
+            if (data.Router) {
+                if (data.Router === 'lobby') {
+                    // Use replace to avoid back-history issues
+                    router.replace('/lobby');
+                } else if (data.Router === 'game') {
+                    router.replace('/game?autoJoin=true');
+                }
+            }
+            return;
+        }
 
         // Handle PushTalk specifically
         if (pushType === 'PushTalk') {
@@ -638,6 +658,7 @@ export const useGameStore = defineStore('game', () => {
         roomJoinedPromise, // Export roomJoinedPromise
         resetState, // Export resetState
         sendPlayerTalk, // Export the new action
+        globalMessage, // Export globalMessage
         // Manual Controls
         enterStateWaiting,
         enterStatePrepare,

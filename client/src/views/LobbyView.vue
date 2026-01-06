@@ -2,6 +2,7 @@
 import { useRouter } from 'vue-router';
 import { ref, computed, watch, onMounted, onUnmounted, onActivated, onDeactivated } from 'vue'; // Added onDeactivated
 import { debounce } from '../utils/debounce.js';
+import { formatCoins } from '../utils/format.js';
 import { useUserStore } from '../stores/user.js';
 import { useGameStore } from '../stores/game.js';
 import { useSettingsStore } from '../stores/settings.js';
@@ -20,7 +21,7 @@ const userInfo = computed(() => {
     return {
         name: userStore.userInfo.nick_name || userStore.userInfo.user_id,
         id: userStore.userInfo.user_id || '---',
-        coins: userStore.userInfo.balance || 0,
+        coins: formatCoins(userStore.userInfo.balance || 0),
         avatar: userStore.userInfo.avatar || defaultAvatar // Use imported avatar
     }
 });
@@ -65,8 +66,8 @@ const rooms = computed(() => {
         return {
             level: cfg.level,
             name: cfg.name,
-            base: cfg.base_bet,
-            min: cfg.min_balance,
+            base: formatCoins(cfg.base_bet),
+            min: formatCoins(cfg.min_balance),
             players: Math.floor(Math.random() * 100), // Mock player count for now
             colorClass: colorClasses[index % colorClasses.length]
         };

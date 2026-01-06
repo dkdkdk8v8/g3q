@@ -7,7 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func HandlerPlayerLeave(r *QZNNRoom, userID string) error {
+func HandlerPlayerLeave(r *QZNNRoom, userID string, broadcast bool) error {
 	if r == nil {
 		return comm.NewMyError("房间不存在")
 	}
@@ -25,12 +25,14 @@ func HandlerPlayerLeave(r *QZNNRoom, userID string) error {
 		}
 		return err
 	}
-	r.Broadcast(comm.PushData{
-		Cmd:      comm.ServerPush,
-		PushType: PushPlayLeave,
-		Data: PushPlayerLeaveStruct{
-			Room:    r,
-			UserIds: []string{userID}}})
+	if broadcast {
+		r.Broadcast(comm.PushData{
+			Cmd:      comm.ServerPush,
+			PushType: PushPlayLeave,
+			Data: PushPlayerLeaveStruct{
+				Room:    r,
+				UserIds: []string{userID}}})
+	}
 	r.logicTick()
 	return nil
 }

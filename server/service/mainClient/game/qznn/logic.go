@@ -722,7 +722,7 @@ func (r *QZNNRoom) StartGame() {
 		//不判断set status 成功与否，强行return，保护数据
 		return
 	}
-
+	
 	//准备牌堆并发牌
 	r.prepareDeck()
 	r.WaitStateLeftTicker()
@@ -778,19 +778,18 @@ func (r *QZNNRoom) StartGame() {
 		bRandomBanker = true
 	}
 
-	// 3. 确定庄家：从候选人中随机选取 (若只有1人，结果也是确定的)
+	// 3. 如果是随机产生的庄家（多人同倍数 或 无人抢庄），播放定庄动画
+	if bRandomBanker {
+		r.SetStatus([]RoomState{StateBanking}, StateRandomBank, 0)
+		r.WaitSleep(time.Second * SecStateBankingRandom)
+	}
+	// 4. 确定庄家：从候选人中随机选取 (若只有1人，结果也是确定的)
 	if len(candidates) > 0 {
 		banker := candidates[rand.Intn(len(candidates))]
 		r.SetBankerId(banker.ID)
 		if banker.CallMult <= 0 {
 			banker.CallMult = r.Config.BankerMult[0]
 		}
-	}
-
-	// 4. 如果是随机产生的庄家（多人同倍数 或 无人抢庄），播放定庄动画
-	if bRandomBanker {
-		r.SetStatus([]RoomState{StateBanking}, StateRandomBank, 0)
-		r.WaitSleep(time.Second * SecStateBankingRandom)
 	}
 
 	r.SetStatus([]RoomState{StateBanking, StateRandomBank}, StateBankerConfirm, 0)
@@ -915,6 +914,10 @@ func (r *QZNNRoom) StartGame() {
 			p.BalanceChange -= tax
 		}
 	}
+	//内存预先结算
+	for _, p := range activePlayer {
+		p.Balance += p.BalanceChange
+	}
 
 	//结算状态
 	if !r.SetStatus([]RoomState{StateShowCard}, StateSettling, 0) {
@@ -954,11 +957,11 @@ func (r *QZNNRoom) StartGame() {
 			//用最新数据更新balance
 			if player.ID == modelU.UserId {
 				//检查内存player 的balance和最终数据库的差异
-				if player.Balance+player.Balance != modelU.BalanceLock {
-					//todo:: log
+				if player.Balance != modelU.Balance {
+					//todo:: 可能外面有余额，这里和数据库有的不一样
 				}
 				//最终以数据库的数据为准
-				player.Balance = modelU.BalanceLock
+				player.Balance = modelU.Balance
 				break
 			}
 		}

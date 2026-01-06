@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"service/comm"
 	"service/mainClient/game/qznn"
+	"service/modelClient"
 	"sort"
 	"sync"
 	"time"
@@ -60,7 +61,8 @@ func (rm *RoomManager) GetRoomByRoomId(roomId string) *qznn.QZNNRoom {
 	return rm.QZNNRooms[roomId]
 }
 
-func (rm *RoomManager) JoinOrCreateNNRoom(player *qznn.Player, level int, bankerType int) (*qznn.QZNNRoom, error) {
+func (rm *RoomManager) JoinOrCreateNNRoom(user *modelClient.ModelUser,
+	player *qznn.Player, level int, bankerType int, roomCfg *qznn.LobbyConfig) (*qznn.QZNNRoom, error) {
 	// 如果处于排空模式，拒绝新的匹配请求
 	if rm.isDraining {
 		return nil, comm.ErrServerMaintenance
@@ -91,16 +93,34 @@ func (rm *RoomManager) JoinOrCreateNNRoom(player *qznn.Player, level int, banker
 		//2. 在遍历的同时，寻找一个合适的房间 (如果尚未找到)这样可以避免多次遍历
 		if room.Config.BankerType == bankerType && room.Config.Level == level {
 			// 避免加入即将被释放的房间
-			if room.GetPlayerCount() == 0 && time.Since(room.CreateAt) > time.Minute {
+			num := room.GetPlayerCount()
+			if num == 0 && time.Since(room.CreateAt) > time.Minute {
 				continue
 			}
 			// 检查房间人数是否未满
-			if room.GetPlayerCount() < room.GetPlayerCap() {
-				sortPlayerRoom = append(sortPlayerRoom, roomHolder{Room: room, PlayerNum: room.GetPlayerCount()})
+			if num < room.GetPlayerCap() {
+				sortPlayerRoom = append(sortPlayerRoom, roomHolder{Room: room, PlayerNum: num})
 			}
 		}
 	}
 	rm.mu.Unlock()
+	//todo::注意这里，如果无感发布，不会有问题。如果房间异常直接关闭进程
+	//确认用户没有在任何房间,但是记录了gameID
+	if user.GameId != "" {
+		//把用户的lockBalance 被gameId锁了，更新user
+		var err1 error
+		user, err1 = modelClient.RecoveryGameId(player.ID, user.GameId)
+		if err1 != nil {
+			return nil, err1
+		}
+	}
+
+	if user.Balance < roomCfg.MinBalance {
+		return nil, comm.NewMyError("用户余额不足")
+	} else {
+		player.Balance = user.Balance
+	}
+
 	// 3. 循环结束，此时已确认玩家不在任何房间内
 	// 如果找到了合适的房间，则尝试加入
 	sort.Slice(sortPlayerRoom, func(i, j int) bool {
@@ -108,7 +128,9 @@ func (rm *RoomManager) JoinOrCreateNNRoom(player *qznn.Player, level int, banker
 	})
 	for _, r := range sortPlayerRoom {
 		targetRoom = r.Room
+		break
 	}
+
 	if targetRoom != nil {
 		if _, err := targetRoom.AddPlayer(player); err != nil {
 			return nil, err
@@ -118,7 +140,10 @@ func (rm *RoomManager) JoinOrCreateNNRoom(player *qznn.Player, level int, banker
 
 	roomID := fmt.Sprintf("%s_%d_%d", util.EncodeToBase36(uid.Generate()), bankerType, level)
 	newRoom := qznn.NewRoom(roomID, bankerType, level)
-	newRoom.AddPlayer(player)
+	_, err := newRoom.AddPlayer(player)
+	if err != nil {
+		return nil, err
+	}
 	newRoom.OnBotAction = nil //RobotForQZNNRoom
 	rm.mu.Lock()
 	rm.QZNNRooms[roomID] = newRoom

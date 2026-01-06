@@ -7,32 +7,45 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func HandlerPlayerLeave(r *QZNNRoom, userID string, broadcast bool) error {
+func HandlerPlayerLeave(r *QZNNRoom, userID string) error {
 	if r == nil {
 		return comm.NewMyError("房间不存在")
 	}
-	err := r.CheckInMultiStatusDo([]RoomState{StateWaiting, StatePrepare}, func() error {
+
+	//先看用户是不是ob
+	p, ok := r.GetPlayerByID(userID)
+	if !ok {
+		return nil
+	}
+
+	if p.IsOb {
 		if !r.Leave(userID) {
 			//todo log
 			return comm.NewMyError("离开房间失败")
 		}
-		return nil
-	})
+	} else {
+		err := r.CheckInMultiStatusDo([]RoomState{StateWaiting, StatePrepare}, func() error {
+			if !r.Leave(userID) {
+				//todo log
+				return comm.NewMyError("离开房间失败")
+			}
+			return nil
+		})
 
-	if err != nil {
-		if errors.As(err, &errorStateNotMatch) {
-			return comm.NewMyError("游戏已开始,无法离开房间")
+		if err != nil {
+			if errors.As(err, &errorStateNotMatch) {
+				return comm.NewMyError("游戏已开始,无法离开房间")
+			}
+			return err
 		}
-		return err
 	}
-	if broadcast {
-		r.Broadcast(comm.PushData{
-			Cmd:      comm.ServerPush,
-			PushType: PushPlayLeave,
-			Data: PushPlayerLeaveStruct{
-				Room:    r,
-				UserIds: []string{userID}}})
-	}
+
+	r.Broadcast(comm.PushData{
+		Cmd:      comm.ServerPush,
+		PushType: PushPlayLeave,
+		Data: PushPlayerLeaveStruct{
+			Room:    r,
+			UserIds: []string{userID}}})
 	r.logicTick()
 	return nil
 }

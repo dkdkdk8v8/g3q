@@ -191,6 +191,12 @@ watch(() => [...store.playerSpeechQueue], (newQueue) => { // Watch a copy to tri
         const speechEvent = newQueue[0]; // Process the first event in the queue
         const { userId, type, index } = speechEvent;
 
+        // Check for mute users setting - ignore others if muted
+        if (settingsStore.muteUsers && userId !== store.myPlayerId) {
+            store.playerSpeechQueue.shift();
+            return;
+        }
+
         // Play sound if not muted and it's a phrase
         if (settingsStore.soundEnabled && type === 0) {
             playPhraseSound(index);

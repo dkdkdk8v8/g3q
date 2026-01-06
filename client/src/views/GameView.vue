@@ -758,27 +758,20 @@ watch(() => store.currentPhase, (newPhase) => {
         </div>
 
         <div class="table-center" ref="tableCenterRef">
-            <!-- 闹钟和阶段提示信息的容器 -->
-            <div v-if="store.countdown > 0 && ['READY_COUNTDOWN', 'ROB_BANKER', 'BETTING', 'SHOWDOWN'].includes(store.currentPhase)"
+            <!-- 阶段提示信息容器 -->
+            <div v-if="['READY_COUNTDOWN', 'ROB_BANKER', 'BETTING', 'SHOWDOWN', 'BANKER_SELECTION_ANIMATION', 'BANKER_CONFIRMED', 'SETTLEMENT'].includes(store.currentPhase)"
                 class="clock-and-info-wrapper">
-                    <!-- 阶段提示信息，统一显示在倒计时下方并样式类似“结算中...” -->
                     <div class="phase-info">
                         <span v-if="store.currentPhase === 'WAITING_FOR_PLAYERS'">匹配玩家中...</span>
                         <span v-else-if="store.currentPhase === 'READY_COUNTDOWN'">游戏即将开始  {{ store.countdown }}</span>
                         <span v-else-if="store.currentPhase === 'ROB_BANKER'">看牌抢庄  {{ store.countdown }}</span>
                         <span v-else-if="store.currentPhase === 'BETTING'">闲家下注  {{ store.countdown }}</span>
                         <span v-else-if="store.currentPhase === 'SHOWDOWN'">摊牌比拼  {{ store.countdown }}</span>
+                        <span v-else-if="store.currentPhase === 'BANKER_SELECTION_ANIMATION'">正在选庄...</span>
+                        <span v-else-if="store.currentPhase === 'BANKER_CONFIRMED'">庄家已定</span>
+                        <span v-else-if="store.currentPhase === 'SETTLEMENT'">结算中...</span>
                     </div>
-                </div>
-
-                <!-- 选庄动画提示 -->
-                <div v-if="store.currentPhase === 'BANKER_SELECTION_ANIMATION'" class="phase-info settlement-info">
-                    正在选庄...</div>
-                <div v-if="store.currentPhase === 'BANKER_CONFIRMED'" class="phase-info settlement-info">庄家已定</div>
-
-                <!-- 仅当闹钟不显示时，显示结算中 -->
-                <div v-if="store.currentPhase === 'SETTLEMENT' && store.countdown === 0"
-                    class="phase-info settlement-info">结算中...</div>
+            </div>
 
                 <!-- 重新开始按钮 -->
                 <div v-if="store.currentPhase === 'GAME_OVER'" class="restart-btn" @click="startGameDebounced()">
@@ -1467,19 +1460,17 @@ watch(() => store.currentPhase, (newPhase) => {
 }
 
 .phase-info {
-    background: rgba(0, 0, 0, 0.6);
-    color: white;
-    padding: 4px 12px;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.6));
+    color: #fbbf24; /* Golden text */
+    padding: 6px 20px;
     border-radius: 20px;
-    font-size: 14px;
+    font-size: 16px;
+    font-weight: bold;
     margin-top: 10px;
-}
-
-.phase-info.settlement-info {
-    /* Added for the independent settlement info */
-    margin-top: 50px;
-    /* Adjusted to move text down slightly */
-    /* To maintain some distance from other elements if not in wrapper */
+    border: 1px solid rgba(251, 191, 36, 0.3); /* Subtle gold border */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3), 0 0 10px rgba(251, 191, 36, 0.2); /* Shadow + Glow */
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    min-width: 120px; /* Ensure consistent width */
 }
 
 .phase-tip {

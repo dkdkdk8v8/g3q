@@ -364,8 +364,8 @@ const displayName = computed(() => {
 
 @keyframes bankerConfirmPop {
     0% { transform: scale(1); box-shadow: 0 0 0 rgba(251, 191, 36, 0); border-color: rgba(255,255,255,0.2); }
-    40% { transform: scale(1.4); box-shadow: 0 0 40px 10px rgba(251, 191, 36, 1); border-color: #fbbf24; }
-    60% { transform: scale(1.4); box-shadow: 0 0 40px 10px rgba(251, 191, 36, 1); border-color: #fbbf24; }
+    40% { transform: scale(1); box-shadow: 0 0 40px 10px rgba(251, 191, 36, 1); border-color: #fbbf24; }
+    60% { transform: scale(1); box-shadow: 0 0 40px 10px rgba(251, 191, 36, 1); border-color: #fbbf24; }
     100% { transform: scale(1); box-shadow: 0 0 15px 2px rgba(251, 191, 36, 0.6); border-color: #fbbf24; }
 }
 
@@ -531,7 +531,7 @@ const displayName = computed(() => {
   font-size: 14px;
   border-radius: 50%;
   font-weight: bold;
-  z-index: 10;
+  z-index: 60;
   border: 1px solid #fff;
   box-shadow: 0 0 10px #fbbf24;
   animation: shine 2s infinite;

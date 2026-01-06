@@ -701,7 +701,7 @@ watch(() => store.currentPhase, (newPhase) => {
                     <van-icon name="wap-nav" size="20" color="white" />
                     <span style="margin-left:4px;font-size:14px;">菜单</span>
                 </div>
-                
+
                 <div class="network-badge" :class="networkStatusClass">
                     <div class="wifi-dot"></div>
                     <span>{{ networkLatency }}ms</span>
@@ -1081,9 +1081,12 @@ watch(() => store.currentPhase, (newPhase) => {
 .menu-container {
     position: relative;
     z-index: 300;
-    display: flex; /* Add flex layout */
-    align-items: center; /* Vertically center */
-    gap: 10px; /* Space between menu button and network badge */
+    display: flex;
+    /* Add flex layout */
+    align-items: center;
+    /* Vertically center */
+    gap: 10px;
+    /* Space between menu button and network badge */
 }
 
 .network-badge {
@@ -1095,20 +1098,32 @@ watch(() => store.currentPhase, (newPhase) => {
     border-radius: 6px;
     font-size: 12px;
     color: white;
-    border: 1px solid rgba(255,255,255,0.2);
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .wifi-dot {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background-color: #22c55e; /* Default green */
+    background-color: #22c55e;
+    /* Default green */
     box-shadow: 0 0 4px currentColor;
 }
 
-.network-badge.good .wifi-dot { background-color: #22c55e; color: #22c55e; }
-.network-badge.fair .wifi-dot { background-color: #facc15; color: #facc15; }
-.network-badge.poor .wifi-dot { background-color: #ef4444; color: #ef4444; }
+.network-badge.good .wifi-dot {
+    background-color: #22c55e;
+    color: #22c55e;
+}
+
+.network-badge.fair .wifi-dot {
+    background-color: #facc15;
+    color: #facc15;
+}
+
+.network-badge.poor .wifi-dot {
+    background-color: #ef4444;
+    color: #ef4444;
+}
 
 .menu-dropdown {
     position: absolute;

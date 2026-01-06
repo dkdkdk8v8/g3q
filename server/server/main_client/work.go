@@ -129,25 +129,6 @@ func (w *mainClientWork) Start(baseCtx *initMain.BaseCtx) error {
 	w.adminEngine.Use(gin.Logger(), gin.CustomRecovery(midPanicHttp))
 	mainClient.InitAdminWebHandler(w.adminEngine)
 
-	//if w.cfg.RedisTunnel.Target != "" {
-	//	logrus.Info("redisTunnel")
-	//	redisTunnel := util.SSHTunnel{
-	//		SSHUser:       w.cfg.RedisTunnel.User,
-	//		SSHKeyPath:    w.cfg.RedisTunnel.Rsa,
-	//		SSHHost:       w.cfg.RedisTunnel.Host,
-	//		LocalAddress:  w.cfg.RedisAddr,
-	//		RemoteAddress: w.cfg.RedisTunnel.Target,
-	//		AutoReconnect: true,
-	//		KeepAlive:     true,
-	//		RetryInterval: time.Second * 5,
-	//	}
-	//	if err := redisTunnel.Start(); err != nil {
-	//		logrus.WithError(err).Error("redisTunnel-Fail")
-	//		return err
-	//	}
-	//	//有tunnel需要等一下
-	//	time.Sleep(time.Second)
-	//}
 	//logrus.Info("redisInit")
 	//if redisPool, err := rds.Login(w.cfg.RedisAddr, w.cfg.RedisPwd, true); err != nil {
 	//	logrus.WithError(err).Error("redisLogin-Fail")

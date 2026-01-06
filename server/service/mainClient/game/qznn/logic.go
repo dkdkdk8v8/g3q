@@ -660,6 +660,7 @@ func (r *QZNNRoom) StartGame() {
 	if !r.SetStatus([]RoomState{StatePrepare}, StateStartGame, SecStateGameStart) {
 		return
 	}
+	r.GameID = fmt.Sprintf("%d_%s", time.Now().Unix(), r.ID)
 
 	//保底的检查，用户能不能玩，至少2个有效用户，不够要再踢回waiting
 	activePlayer := r.GetActivePlayers(nil)

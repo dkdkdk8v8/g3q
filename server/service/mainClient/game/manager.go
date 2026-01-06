@@ -1,6 +1,7 @@
 package game
 
 import (
+	"compoment/uid"
 	"encoding/json"
 	"fmt"
 	"service/comm"
@@ -8,6 +9,8 @@ import (
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 type RoomManager struct {
@@ -27,6 +30,7 @@ func GetMgr() *RoomManager {
 		DefaultMgr = &RoomManager{
 			QZNNRooms: make(map[string]*qznn.QZNNRoom),
 		}
+		go DefaultMgr.cleanupLoop()
 	})
 	return DefaultMgr
 }
@@ -85,6 +89,10 @@ func (rm *RoomManager) JoinOrCreateNNRoom(player *qznn.Player, level int, banker
 		}
 		//2. 在遍历的同时，寻找一个合适的房间 (如果尚未找到)这样可以避免多次遍历
 		if room.Config.BankerType == bankerType && room.Config.Level == level {
+			// 避免加入即将被释放的房间
+			if room.GetPlayerCount() == 0 && time.Since(room.CreateAt) > time.Minute {
+				continue
+			}
 			// 检查房间人数是否未满
 			if room.GetPlayerCount() < room.GetPlayerCap() {
 				sortPlayerRoom = append(sortPlayerRoom, roomHolder{Room: room, PlayerNum: room.GetPlayerCount()})
@@ -107,7 +115,7 @@ func (rm *RoomManager) JoinOrCreateNNRoom(player *qznn.Player, level int, banker
 		return targetRoom, nil
 	}
 
-	roomID := fmt.Sprintf("R_%d_%d_%d", time.Now().UnixMilli(), bankerType, level)
+	roomID := fmt.Sprintf("%d_%d_%d", uid.Generate(), bankerType, level)
 	newRoom := qznn.NewRoom(roomID, bankerType, level)
 	newRoom.AddPlayer(player)
 	newRoom.OnBotAction = nil //RobotForQZNNRoom
@@ -115,6 +123,26 @@ func (rm *RoomManager) JoinOrCreateNNRoom(player *qznn.Player, level int, banker
 	rm.QZNNRooms[roomID] = newRoom
 	rm.mu.Unlock()
 	return newRoom, nil
+}
+
+func (rm *RoomManager) cleanupLoop() {
+	ticker := time.NewTicker(time.Second * 10)
+	defer ticker.Stop()
+	for range ticker.C {
+		rm.mu.Lock()
+		var delRooms []string
+		for id, r := range rm.QZNNRooms {
+			if r.GetPlayerCount() == 0 && time.Since(r.CreateAt) > time.Minute {
+				delRooms = append(delRooms, id)
+			}
+		}
+		for _, id := range delRooms {
+			rm.QZNNRooms[id].Destory()
+			delete(rm.QZNNRooms, id)
+			logrus.WithField("roomId", id).Info("RoomManager-ReleaseRoom")
+		}
+		rm.mu.Unlock()
+	}
 }
 
 // GetRoomCount 获取当前活跃房间数

@@ -381,6 +381,18 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
         currentlyHighlightedPlayerId.value = null;
     }
 
+    // Fix: Ensure cards are visible if joining during SHOWDOWN or SETTLEMENT
+    if (['SHOWDOWN', 'SETTLEMENT'].includes(newPhase)) {
+        store.players.forEach(p => {
+            if (p.hand && p.hand.length > 0) {
+                // If visible count is less than hand length (e.g. 0 for new joiner), show all
+                if ((visibleCounts.value[p.id] || 0) < p.hand.length) {
+                    visibleCounts.value[p.id] = p.hand.length;
+                }
+            }
+        });
+    }
+
 
     if (newPhase === 'SETTLEMENT' && tableCenterRef.value && coinLayer.value) {
         // Trigger Win/Loss Animation

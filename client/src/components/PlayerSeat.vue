@@ -245,7 +245,7 @@ const displayName = computed(() => {
           <div v-if="player.isObserver" class="observer-badge">等待下一局</div>
       </div>
 
-      <div class="info-box">
+      <div class="info-box" :class="{ 'is-observer': player.isObserver }">
         <div class="name van-ellipsis">{{ displayName }}</div>
         <div class="coins-pill">
             <span class="coin-symbol">🟡</span>
@@ -574,6 +574,11 @@ const displayName = computed(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+.info-box.is-observer {
+    filter: grayscale(100%);
+    opacity: 0.6;
 }
 
 .name {

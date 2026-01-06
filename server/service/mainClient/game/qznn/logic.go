@@ -889,7 +889,20 @@ func (r *QZNNRoom) StartGame() {
 		return
 	}
 
-	settle := modelClient.GameSettletruct{RoomId: r.ID, GameId: r.GameID}
+	type qznnGameData struct {
+		Room *QZNNRoom
+	}
+	roomBytes, _ := json.Marshal(qznnGameData{Room: r})
+	//产生对局记录
+	nGameRecordId, err := modelClient.InsertGameRecord(&modelClient.ModelGameRecord{
+		GameId:   r.GameID,
+		GameData: string(roomBytes),
+	})
+	if err != nil {
+		//todo:: just log do no break logic
+	}
+
+	settle := modelClient.GameSettletruct{RoomId: r.ID, GameRecordId: nGameRecordId}
 	for _, p := range activePlayer {
 		settle.Players = append(settle.Players, modelClient.UserSettingStruct{
 			UserId:        p.ID,
@@ -902,23 +915,19 @@ func (r *QZNNRoom) StartGame() {
 		//todo:: log very detail for recovery user data
 		return
 	}
-	type qznnGameData struct {
-		Room *QZNNRoom
-	}
-	roomBytes, _ := json.Marshal(qznnGameData{Room: r})
-	//产生对局记录
-	_, err = modelClient.InsertGame(&modelClient.ModelGame{
-		GameId:   r.GameID,
-		GameData: string(roomBytes),
-	})
-	if err != nil {
-		//todo:: just log do no break logic
-	}
 
 	for _, modelU := range modelUsers {
 		for _, player := range activePlayer {
-			//用数据的最新数据更新balance
-			player.Balance = modelU.BalanceLock
+			//用最新数据更新balance
+			if player.ID == modelU.UserId {
+				//检查内存player 的balance和最终数据库的差异
+				if player.Balance+player.Balance != modelU.BalanceLock {
+					//todo:: log
+				}
+				//最终以数据库的数据为准
+				player.Balance = modelU.BalanceLock
+				break
+			}
 		}
 	}
 
@@ -952,7 +961,8 @@ func (r *QZNNRoom) StartGame() {
 					Cmd:      comm.ServerPush,
 					PushType: znet.PushRouter,
 					Data: znet.PushRouterStruct{
-						Router: znet.Lobby}})
+						Router:  znet.Lobby,
+						Message: "余额不足,离开房间"}})
 			}
 		}
 	}

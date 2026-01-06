@@ -44,9 +44,10 @@ func (a *ModelUser) TableIndex() [][]string {
 type ModelUserRecord struct {
 	Id            uint64    `orm:"column(id);auto" json:"-"`                           // 标识
 	UserId        string    `orm:"column(user_id);size(64)"`                           // 用户标识(带APPID前缀)
+	RecordType    int       `orm:"column(record_type);default(0)"`                     // 类型
 	BalanceBefore int64     `orm:"column(balance_before);default(0)"`                  // 余额（分）
 	BalanceAfter  int64     `orm:"column(balance_after);default(0)"`                   // 余额（分）
-	GameId        string    `orm:"column(game_id);size(64)"`                           // 游戏ID // join MOdelGame的Id 主键
+	GameRecordId  int64     `orm:"column(game_record_id);size(64)"`                    // 游戏RecordID // join ModelGame的Id 主键
 	CreateAt      time.Time `orm:"column(create_at);type(datetime);auto_now_add"`      // 创建时间
 	UpdateAt      time.Time `orm:"column(update_at);type(datetime);auto_now" json:"-"` // 更新时间
 }

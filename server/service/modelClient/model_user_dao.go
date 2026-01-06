@@ -69,6 +69,11 @@ func UpdateUserParam(userId string, param *ormutil.ModelChanger) (int64, error) 
 	return ormutil.UpdateParam[ModelUser](GetDb(), param, ormutil.WithKV("user_id", userId))
 }
 
+// InsertUserRecord
+func InsertUserRecord(user *ModelUserRecord) (int64, error) {
+	return WrapInsert(user)
+}
+
 // func UpdateUserFields(model *ModelUser, fields ...string) (int64, error) {
 // 	if model.UserId == "" {
 // 		return 0, ormutil.ErrInvalidModelKeyIndex
@@ -121,9 +126,9 @@ func UserGameRoom(userId string, gameId string, minBalance int64) (*ModelUser, e
 }
 
 type GameSettletruct struct {
-	RoomId  string
-	GameId  string
-	Players []UserSettingStruct
+	RoomId       string
+	GameRecordId int64
+	Players      []UserSettingStruct
 }
 type UserSettingStruct struct {
 	UserId        string
@@ -141,7 +146,10 @@ func UpdateUserSetting(setting *GameSettletruct) ([]*ModelUser, error) {
 			if err != nil {
 				return err
 			}
-			user.BalanceLock += player.ChangeBalance
+
+			user.Balance += user.BalanceLock + player.ChangeBalance
+			user.BalanceLock = 0
+			user.GameId = ""
 			_, err = txOrm.Update(&user, "BalanceLock")
 			if err != nil {
 				return err
@@ -152,7 +160,7 @@ func UpdateUserSetting(setting *GameSettletruct) ([]*ModelUser, error) {
 				UserId:        user.UserId,
 				BalanceBefore: user.BalanceLock,
 				BalanceAfter:  user.BalanceLock + player.ChangeBalance,
-				GameId:        setting.GameId,
+				GameRecordId:  setting.GameRecordId,
 			}
 			_, err = txOrm.Insert(&userRecord)
 			if err != nil {

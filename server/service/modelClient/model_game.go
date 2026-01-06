@@ -2,7 +2,7 @@ package modelClient
 
 import "time"
 
-type ModelGame struct {
+type ModelGameRecord struct {
 	Id       uint64    `orm:"column(id);auto" json:"-"`                           // 标识
 	GameId   string    `orm:"column(game_id);size(64)"`                           // 游戏ID
 	GameData string    `orm:"column(game_data);type(text);null"`                  // 游戏json
@@ -10,22 +10,22 @@ type ModelGame struct {
 	UpdateAt time.Time `orm:"column(update_at);type(datetime);auto_now" json:"-"` // 更新时间
 }
 
-func (a *ModelGame) TableName() string {
-	return "g3q_game"
+func (a *ModelGameRecord) TableName() string {
+	return "g3q_game_record"
 }
 
-func (a *ModelGame) TableUnique() [][]string {
+func (a *ModelGameRecord) TableUnique() [][]string {
 	return [][]string{
 		{"game_id"},
 	}
 }
 
-func (a *ModelGame) TableIndex() [][]string {
+func (a *ModelGameRecord) TableIndex() [][]string {
 	return [][]string{
 		{"game_id"},
 	}
 }
 
-func InsertGame(game *ModelGame) (int64, error) {
+func InsertGameRecord(game *ModelGameRecord) (int64, error) {
 	return WrapInsert(game)
 }

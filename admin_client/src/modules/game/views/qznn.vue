@@ -8,7 +8,10 @@
         <span class="value">{{ roomCount }}</span>
         <span class="divider">|</span>
         <span class="label">用户:</span>
-        <span class="value">{{ playerCount }}</span>
+        <span class="value">{{ playerStats.user }}</span>
+        <span class="divider">|</span>
+        <span class="label">机器人:</span>
+        <span class="value">{{ playerStats.robot }}</span>
       </div>
     </div>
 
@@ -61,7 +64,8 @@
 
                 <div class="room-content">
                   <div class="players-list">
-                    <div v-for="(player, index) in item.Players" :key="index" class="player-item">
+                    <div v-for="(player, index) in item.Players" :key="index" class="player-item"
+                      :class="{ 'is-robot': player && player.IsRobot, 'is-human': player && !player.IsRobot }">
                       <div v-if="player" class="player-info">
                         <!-- <el-avatar :size="24" :src="player.Avatar" :icon="UserFilled" class="avatar"></el-avatar> -->
                         <div class="details">
@@ -135,6 +139,7 @@ import dayjs from "dayjs";
 import { Refresh } from "@element-plus/icons-vue";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/zh-cn";
+import { getCardResult, getCardStyle } from "../utils/card";
 
 dayjs.extend(relativeTime);
 dayjs.locale("zh-cn");
@@ -226,57 +231,6 @@ const typeMap: Record<string, string> = {
   "2": "看四张",
 };
 
-function getCardResult(cards: number[]) {
-  if (!Array.isArray(cards) || cards.length !== 5) return "";
-  const ranks = cards.map((c) => Math.floor(c / 4));
-  const values = ranks.map((r) => (r >= 10 ? 10 : r + 1));
-
-  // 五小牛: 所有牌值<5 (rank < 4) 且 和 <= 10
-  if (ranks.every((r) => r < 4) && values.reduce((a, b) => a + b, 0) <= 10) {
-    return "五小牛";
-  }
-  // 炸弹: 4张牌点数相同
-  const counts: Record<number, number> = {};
-  ranks.forEach((r) => (counts[r] = (counts[r] || 0) + 1));
-  if (Object.values(counts).some((c) => c === 4)) {
-    return "炸弹";
-  }
-  // 五花牛: 全是花牌 (J,Q,K -> rank >= 10)
-  if (ranks.every((r) => r >= 10)) return "五花牛";
-  // 四花牛: 4张花牌 + 1张10 (rank 9)
-  const flowers = ranks.filter((r) => r >= 10).length;
-  const tens = ranks.filter((r) => r === 9).length;
-  if (flowers === 4 && tens === 1) return "四花牛";
-
-  const sum = values.reduce((a, b) => a + b, 0);
-  for (let i = 0; i < 3; i++) {
-    for (let j = i + 1; j < 4; j++) {
-      for (let k = j + 1; k < 5; k++) {
-        if ((values[i] + values[j] + values[k]) % 10 === 0) {
-          const left = sum - (values[i] + values[j] + values[k]);
-          const niu = left % 10 === 0 ? 10 : left % 10;
-          return niu === 10 ? "牛牛" : "牛" + ["", "一", "二", "三", "四", "五", "六", "七", "八", "九"][niu];
-        }
-      }
-    }
-  }
-  return "无牛";
-}
-
-const rankMap = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
-const suitMap = ["♠", "♥", "♣", "♦"];
-const colorMap = ["var(--el-text-color-regular)", "var(--el-color-danger)", "var(--el-text-color-regular)", "var(--el-color-danger)"];
-
-function getCardStyle(val: number) {
-  if (val === undefined || val === null || val < 0 || val > 51) return { text: "", color: "" };
-  const rank = Math.floor(val / 4);
-  const suit = val % 4;
-  return {
-    text: suitMap[suit] + rankMap[rank],
-    color: colorMap[suit],
-  };
-}
-
 function getRoomInfo(id: string) {
   if (!id) return { level: "", type: "" };
   const parts = id.split("_");
@@ -291,14 +245,20 @@ function getRoomInfo(id: string) {
 
 const roomCount = computed(() => Object.keys(list.value).length);
 
-const playerCount = computed(() => {
-  let count = 0;
+const playerStats = computed(() => {
+  let user = 0;
+  let robot = 0;
   Object.values(list.value).forEach((room: any) => {
     if (room.Players && Array.isArray(room.Players)) {
-      count += room.Players.filter((p: any) => p).length;
+      room.Players.forEach((p: any) => {
+        if (p) {
+          if (p.IsRobot) robot++;
+          else user++;
+        }
+      });
     }
   });
-  return count;
+  return { user, robot };
 });
 
 const statsData = computed(() => {
@@ -497,6 +457,14 @@ onUnmounted(() => {
           background-color: var(--el-bg-color);
           border-radius: 4px;
           overflow: hidden;
+
+          &.is-human {
+            background-color: var(--el-color-success-light-9);
+          }
+
+          &.is-robot {
+            background-color: var(--el-color-primary-light-9);
+          }
 
           .player-info {
             flex: 1;

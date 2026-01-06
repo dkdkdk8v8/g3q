@@ -16,7 +16,7 @@ export class GameRobotService extends BaseService {
     // 随机生成8位字母数字组合
     generateAppUserId(): string {
         const length = 8;
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
         let result = '';
         for (let i = 0; i < length; i++) {
             result += chars.charAt(Math.floor(Math.random() * chars.length));

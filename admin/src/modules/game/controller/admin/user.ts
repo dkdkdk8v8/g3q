@@ -1,6 +1,6 @@
 import { CoolController, BaseController } from '@cool-midway/core';
 
-import { Body, Inject, Post, Provide } from "@midwayjs/decorator";
+import { Body, Get, Inject, Post, Provide, Query } from "@midwayjs/decorator";
 
 import { GameUserEntity } from '../../entityGame/user';
 import { GameUserService } from '../../service/user';
@@ -32,5 +32,14 @@ export class GameUserController extends BaseController {
     @Post('/batchEnable', { summary: '批量启用' })
     async batchEnable(@Body('ids') ids: number[]) {
         return this.gameUserService.batchEnable(ids);
+    }
+
+    @Get('/pageUserRecords', { summary: '获取用户资金记录' })
+    async getUserRecords(
+        @Query('page') page: number,
+        @Query('size') size: number,
+        @Query('user_id') user_id: string) {
+        const res = await this.gameUserService.pageUserRecords(user_id, page, size);
+        return this.ok(res);
     }
 }

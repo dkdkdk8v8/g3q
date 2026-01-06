@@ -11,7 +11,7 @@ import { GameRobotService } from '../../service/robot';
     entity: GameUserEntity,
     service: GameRobotService,
     pageQueryOp: {
-        fieldEq: ['enable'],
+        fieldEq: ['enable', 'user_id'],
         where: async (ctx) => {
             return [
                 ["a.is_robot = :is_robot", { is_robot: true }],

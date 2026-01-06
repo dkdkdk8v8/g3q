@@ -13,7 +13,7 @@
       <cl-flex1 />
       <cl-filter label="">
         <el-radio-group v-model="enable" @change="refresh({ enable })">
-          <el-radio-button v-for="(item, index) in DictEnable" :key="index" :label="item.value">
+          <el-radio-button v-for="(item, index) in DictEnable" :key="index" :value="item.value">
             {{ item.label }}
           </el-radio-button>
         </el-radio-group>
@@ -47,6 +47,8 @@
 
     <!-- 新增、编辑 -->
     <cl-upsert ref="Upsert" />
+    <!-- 资金记录 -->
+    <user-record ref="UserRecordRef" />
   </cl-crud>
 </template>
 
@@ -55,6 +57,7 @@ import { useCrud, useTable, useUpsert } from "@cool-vue/crud";
 import { useCool } from "/@/cool";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { ref } from "vue";
+import UserRecord from "../components/user-record.vue";
 
 const { service } = useCool();
 
@@ -73,6 +76,9 @@ const DictEnable = [
 
 // 状态
 const enable = ref(1);
+
+// 记录弹窗
+const UserRecordRef = ref();
 
 // cl-table
 const Table = useTable({
@@ -121,12 +127,28 @@ const Table = useTable({
     {
       label: "状态",
       prop: "enable",
-      width: 90,
+      width: 80,
       fixed: "right",
       dict: DictEnable,
     },
-    // { type: "op", buttons: ["edit"], width: 90 },
+    {
+      type: "op",
+      width: 80,
+      buttons: [
+        {
+          label: "记录",
+          onClick({ scope }) {
+            UserRecordRef.value?.open(scope.row);
+          },
+        },
+      ]
+    },
   ],
+});
+
+// cl-upsert
+const Upsert = useUpsert({
+  items: [],
 });
 
 // cl-crud

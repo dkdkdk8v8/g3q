@@ -14,11 +14,18 @@
 			<cl-flex1 />
 			<cl-filter label="">
 				<el-radio-group v-model="enable" @change="refresh({ enable })">
-					<el-radio-button v-for="(item, index) in DictEnable" :key="index" :label="item.value">
+					<el-radio-button v-for="(item, index) in DictEnable" :key="index" :value="item.value">
 						{{ item.label }}
 					</el-radio-button>
 				</el-radio-group>
 			</cl-filter>
+			<cl-flex1 />
+			<cl-search-key field="user_id" :field-list="[
+				{
+					label: '用户ID',
+					value: 'user_id'
+				},
+			]" />
 		</cl-row>
 		<cl-row>
 			<!-- 数据表格 -->
@@ -30,7 +37,6 @@
 			<!-- 分页控件 -->
 			<cl-pagination />
 		</cl-row>
-
 		<!-- 新增、编辑 -->
 		<cl-upsert ref="Upsert" />
 		<!-- 表单 -->
@@ -252,4 +258,9 @@ async function batchEnable() {
 function refresh(params?: any) {
 	Crud.value?.refresh(params);
 }
+
+// cl-upsert
+const Upsert = useUpsert({
+	items: [],
+});
 </script>

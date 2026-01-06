@@ -22,7 +22,8 @@ const props = defineProps({
       selectedCardIndices: {
           type: Array,
           default: () => []
-      }
+      },
+      triggerBankerAnimation: Boolean // New prop for one-time banker confirmation animation
   });
   
   const store = useGameStore();
@@ -193,7 +194,7 @@ const displayName = computed(() => {
     <!-- ... (keep avatar area) -->
     <div class="avatar-area">
       <div class="avatar-wrapper">
-          <div class="avatar-frame" :class="{ 'banker-candidate-highlight': isAnimatingHighlight }">
+          <div class="avatar-frame" :class="{ 'banker-candidate-highlight': isAnimatingHighlight, 'banker-confirm-anim': triggerBankerAnimation }">
               <van-image
                 round
                 :src="player.avatar"
@@ -353,6 +354,19 @@ const displayName = computed(() => {
     box-shadow: 0 0 15px 5px #facc15, 0 0 8px 2px #d97706; /* Golden glow */
     border-color: #facc15;
     animation: pulse-border-glow 1s infinite alternate;
+}
+
+.avatar-frame.banker-confirm-anim {
+    position: relative;
+    z-index: 50; /* Ensure it pops over other things */
+    animation: bankerConfirmPop 1.2s ease-out forwards;
+}
+
+@keyframes bankerConfirmPop {
+    0% { transform: scale(1); box-shadow: 0 0 0 rgba(251, 191, 36, 0); border-color: rgba(255,255,255,0.2); }
+    40% { transform: scale(1.4); box-shadow: 0 0 40px 10px rgba(251, 191, 36, 1); border-color: #fbbf24; }
+    60% { transform: scale(1.4); box-shadow: 0 0 40px 10px rgba(251, 191, 36, 1); border-color: #fbbf24; }
+    100% { transform: scale(1); box-shadow: 0 0 15px 2px rgba(251, 191, 36, 0.6); border-color: #fbbf24; }
 }
 
 @keyframes pulse-border-glow {

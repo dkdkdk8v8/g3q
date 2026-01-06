@@ -118,6 +118,7 @@ const onEmojiSelected = (emojiUrl, index) => { // Added index parameter
 
 // Banker selection animation state
 const currentlyHighlightedPlayerId = ref(null);
+const showBankerConfirmAnim = ref(false); // New state for confirmation animation
 let animationIntervalId = null;
 let candidateIndex = 0;
 
@@ -381,16 +382,11 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
         currentlyHighlightedPlayerId.value = null;
     }
 
-    // Fix: Ensure cards are visible if joining during SHOWDOWN or SETTLEMENT
-    if (['SHOWDOWN', 'SETTLEMENT'].includes(newPhase)) {
-        store.players.forEach(p => {
-            if (p.hand && p.hand.length > 0) {
-                // If visible count is less than hand length (e.g. 0 for new joiner), show all
-                if ((visibleCounts.value[p.id] || 0) < p.hand.length) {
-                    visibleCounts.value[p.id] = p.hand.length;
-                }
-            }
-        });
+    if (newPhase === 'BANKER_CONFIRMED') {
+        showBankerConfirmAnim.value = true;
+        setTimeout(() => {
+            showBankerConfirmAnim.value = false;
+        }, 1500); // Animation lasts ~1.2s, keep state bit longer to be safe or shorter? CSS is 1.2s. 1.5s is fine.
     }
 
 
@@ -752,7 +748,8 @@ watch(() => store.currentPhase, (newPhase) => {
                     :position="getLayoutType(index + 1)"
                     :visible-card-count="visibleCounts[p.id] !== undefined ? visibleCounts[p.id] : 0"
                     :is-ready="p.isReady" :is-animating-highlight="p.id === currentlyHighlightedPlayerId"
-                    :speech="playerSpeech.get(p.id)" />
+                    :speech="playerSpeech.get(p.id)" 
+                    :trigger-banker-animation="showBankerConfirmAnim && p.isBanker" />
                 <div v-else class="empty-seat">
                     <div class="empty-seat-avatar">
                         <van-icon name="plus" color="rgba(255,255,255,0.3)" size="20" />
@@ -870,7 +867,8 @@ watch(() => store.currentPhase, (newPhase) => {
                     :is-ready="myPlayer && myPlayer.isReady"
                     :is-animating-highlight="myPlayer && myPlayer.id === currentlyHighlightedPlayerId"
                     :speech="myPlayer ? playerSpeech.get(myPlayer.id) : null"
-                    :selected-card-indices="selectedCardIndices" @card-click="handleCardClick" />
+                    :selected-card-indices="selectedCardIndices" @card-click="handleCardClick" 
+                    :trigger-banker-animation="showBankerConfirmAnim && myPlayer && myPlayer.isBanker" />
             </div>
 
             <!-- 全局点击关闭菜单 -->

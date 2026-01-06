@@ -188,14 +188,13 @@ export default {
 
       // Register PushRouter handler
       gameClient.onServerPush('PushRouter', (data) => {
-        console.log("[LoadingPage] Received PushRouter:", data);
         if (data && data.Router) {
-            if (data.Router === 'lobby') {
-                targetRoute = '/lobby';
-            } else if (data.Router === 'game') {
-                targetRoute = '/game?autoJoin=true';
-            }
-            checkReady();
+          if (data.Router === 'lobby') {
+            targetRoute = '/lobby';
+          } else if (data.Router === 'game') {
+            targetRoute = '/game?autoJoin=true';
+          }
+          checkReady();
         }
       });
 

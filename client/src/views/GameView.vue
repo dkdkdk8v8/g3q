@@ -809,6 +809,10 @@ watch(() => store.currentPhase, (newPhase) => {
                     <div v-if="store.currentPhase === 'SHOWDOWN' && !myPlayer.isShowHand && store.countdown > 0 && !myPlayer.isObserver"
                         class="showdown-wrapper">
                         
+                        <div class="game-btn orange showdown-btn" @click="playerShowHandDebounced(myPlayer.id)">
+                            摊牌
+                        </div>
+
                         <!-- Calculation Formula -->
                         <div class="calc-container">
                             <div class="calc-box">{{ calculationData.labels[0] || '?' }}</div>
@@ -818,10 +822,6 @@ watch(() => store.currentPhase, (newPhase) => {
                             <div class="calc-box">{{ calculationData.labels[2] || '?' }}</div>
                             <div class="calc-symbol">=</div>
                             <div class="calc-box result">{{ calculationData.isFull ? calculationData.sum : '?' }}</div>
-                        </div>
-
-                        <div class="game-btn orange showdown-btn" @click="playerShowHandDebounced(myPlayer.id)">
-                            摊牌
                         </div>
                     </div>
 
@@ -1672,24 +1672,26 @@ watch(() => store.currentPhase, (newPhase) => {
     position: relative;
     width: 100%;
     display: flex;
+    flex-direction: column; /* Stack vertically */
     justify-content: center;
     align-items: center;
-    height: 60px; /* Ensure enough height for larger boxes */
+    gap: 15px; /* Space between button and calculation */
+    margin-bottom: 10px;
 }
 
 .calc-container {
     display: flex;
     align-items: center;
-    gap: 8px; /* Increased gap */
-    background: rgba(0, 0, 0, 0.5); /* Darker bg for contrast */
-    padding: 8px 16px; /* Increased padding */
+    gap: 8px; 
+    background: rgba(0, 0, 0, 0.5); 
+    padding: 8px 16px; 
     border-radius: 12px;
-    transform: translateY(-40px); /* Move up slightly as requested */
+    /* Removed transform: translateY */
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
 .calc-box {
-    width: 40px; /* Larger box */
+    width: 40px; 
     height: 40px;
     background: rgba(255, 255, 255, 0.1);
     border: 2px solid rgba(255, 255, 255, 0.4);
@@ -1699,7 +1701,7 @@ watch(() => store.currentPhase, (newPhase) => {
     align-items: center;
     color: white;
     font-weight: bold;
-    font-size: 20px; /* Larger font */
+    font-size: 20px; 
 }
 
 .calc-box.result {
@@ -1711,12 +1713,11 @@ watch(() => store.currentPhase, (newPhase) => {
 .calc-symbol {
     color: white;
     font-weight: bold;
-    font-size: 24px; /* Larger symbol */
+    font-size: 24px; 
 }
 
 .showdown-btn {
-    position: absolute;
-    right: 50px; /* 50px from right */
+    /* Removed absolute positioning */
     width: 100px;
 }
 </style>

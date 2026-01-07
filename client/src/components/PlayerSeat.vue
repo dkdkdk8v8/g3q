@@ -162,7 +162,7 @@ const shouldShowRobMult = computed(() => {
     if (['IDLE', 'READY_COUNTDOWN'].includes(store.currentPhase)) return false;
 
     // Phase: Robbing Banker or Selection (Show for everyone who has acted)
-    if (['ROB_BANKER', 'BANKER_SELECTION_ANIMATION'].includes(store.currentPhase)) {
+    if (['ROB_BANKER', 'BANKER_SELECTION_ANIMATION', 'BANKER_CONFIRMED'].includes(store.currentPhase)) {
         return props.player.robMultiplier > -1;
     }
     
@@ -292,9 +292,7 @@ const displayName = computed(() => {
 }
 
 .hand-card.selected {
-    /* transform: translateY(-20px); Removed per user request */
-    filter: brightness(60%) grayscale(50%);
-    opacity: 0.8;
+    transform: translateY(-20px);
 }
 
 /* 布局方向定义 */

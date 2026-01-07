@@ -102,6 +102,7 @@ const Table = useTable({
 				return (row.balance_lock / 100).toFixed(2);
 			},
 		},
+		{ label: "游戏ID", prop: "game_id", minWidth: 180, showOverflowTooltip: true },
 		{
 			label: "最近游戏",
 			prop: "last_played",

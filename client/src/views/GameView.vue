@@ -167,6 +167,7 @@ const showMenu = ref(false);
 const showHistory = ref(false);
 
 const visibleCounts = ref({});
+const dealingCounts = ref({});
 
 const modeName = computed(() => {
     const m = store.gameMode;
@@ -315,6 +316,7 @@ watch(() => store.countdown, (newVal, oldVal) => {
 watch(() => store.currentPhase, async (newPhase, oldPhase) => {
     if (newPhase === 'IDLE' || newPhase === 'GAME_OVER') {
         visibleCounts.value = {};
+        dealingCounts.value = {}; // Reset dealing counts
         lastBetStates.value = {};
     } else if (newPhase === 'GAME_START_ANIMATION') {
         startAnimationClass.value = '';
@@ -339,12 +341,14 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
         }, 2550);
     } else if (newPhase === 'PRE_DEAL') {
         visibleCounts.value = {};
+        dealingCounts.value = {}; // Reset dealing counts
         setTimeout(() => {
             startDealingAnimation();
         }, 100);
     } else if (newPhase === 'ROB_BANKER') {
         if (oldPhase !== 'PRE_DEAL') {
             visibleCounts.value = {};
+            dealingCounts.value = {}; // Reset dealing counts
         }
         lastBetStates.value = {};
 
@@ -482,6 +486,7 @@ const startDealingAnimation = (isSupplemental = false) => {
 
     if (!isSupplemental) {
         visibleCounts.value = {}; // Reset visible counts ONLY if not supplemental
+        dealingCounts.value = {}; // Reset dealing counts too
     }
     
     // Fallback: If dealingLayer is not ready (e.g. immediate watcher on mount), 
@@ -500,10 +505,15 @@ const startDealingAnimation = (isSupplemental = false) => {
         if (!p.hand || p.hand.length === 0) return;
 
         const currentVisible = visibleCounts.value[p.id] || 0;
+        const currentDealing = dealingCounts.value[p.id] || 0; // Cards currently flying
         const total = p.hand.length;
-        const toDeal = total - currentVisible;
+        const toDeal = total - currentVisible - currentDealing; // Subtract flying cards
 
         if (toDeal > 0) {
+            // Mark these cards as "in flight" immediately
+            if (!dealingCounts.value[p.id]) dealingCounts.value[p.id] = 0;
+            dealingCounts.value[p.id] += toDeal;
+
             const seatEl = seatRefs.value[p.id];
             if (seatEl) {
                 const handArea = seatEl.querySelector('.hand-area');
@@ -516,7 +526,7 @@ const startDealingAnimation = (isSupplemental = false) => {
                     x: rect.left + rect.width / 2,
                     y: rect.top + rect.height / 2,
                     count: toDeal,
-                    startIdx: currentVisible,
+                    startIdx: currentVisible + currentDealing, // Offset by both visible and flying
                     total: total,
                     isMe: isMe
                 });
@@ -551,6 +561,12 @@ const startDealingAnimation = (isSupplemental = false) => {
             dealingLayer.value.dealToPlayer(cardTargets, () => {
                 if (!visibleCounts.value[t.id]) visibleCounts.value[t.id] = 0;
                 visibleCounts.value[t.id] += t.count;
+                
+                // Animation finished: remove from flying count
+                if (dealingCounts.value[t.id]) {
+                    dealingCounts.value[t.id] -= t.count;
+                    if (dealingCounts.value[t.id] < 0) dealingCounts.value[t.id] = 0;
+                }
             }, isSupplemental && store.gameMode === 2);
         }, pIndex * 80);
     });;
@@ -618,6 +634,7 @@ const onBet = debounce((multiplier) => {
 
 const playerShowHandDebounced = debounce((playerId) => {
     store.playerShowHand(playerId);
+    selectedCardIndices.value = []; // Immediately restore height
 }, 500);
 
 const startGameDebounced = debounce(() => {

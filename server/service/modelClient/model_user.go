@@ -20,7 +20,7 @@ type ModelUser struct {
 	Enable      bool      `orm:"column(enable);default(0)" json:"-"`                 // 是否启用
 	Effect      bool      `orm:"column(effect);default(true)"`                       // 是否开启音效
 	Music       bool      `orm:"column(music);default(true)"`                        // 是否开启音乐
-	Talk        bool      `orm:"column(talk);default(true)"`                         // 是否开启聊天
+	Talk        bool      `orm:"column(talk);default(0)"`                            // 是否开启聊天
 	CreateAt    time.Time `orm:"column(create_at);type(datetime);auto_now_add"`      // 创建时间
 	UpdateAt    time.Time `orm:"column(update_at);type(datetime);auto_now" json:"-"` // 更新时间
 }

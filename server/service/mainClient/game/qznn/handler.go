@@ -60,6 +60,9 @@ func HandleCallBanker(r *QZNNRoom, userID string, mult int64) error {
 		if !ok {
 			return comm.NewMyError("无效用户")
 		}
+		if p.IsOb {
+			return comm.NewMyError("观战中")
+		}
 		p.Mu.Lock()
 		defer p.Mu.Unlock()
 		if p.CallMult != -1 {
@@ -104,6 +107,10 @@ func HandlePlaceBet(r *QZNNRoom, userID string, mult int64) error {
 		if !ok || p == nil {
 			return comm.NewMyError("无效用户")
 		}
+		if p.IsOb {
+			return comm.NewMyError("观战中")
+		}
+
 		p.Mu.Lock()
 		defer p.Mu.Unlock()
 		if p.BetMult != -1 {
@@ -143,6 +150,9 @@ func HandleShowCards(r *QZNNRoom, userID string) error {
 		p, ok := r.GetPlayerByID(userID)
 		if !ok {
 			return comm.NewMyError("无效用户")
+		}
+		if p.IsOb {
+			return comm.NewMyError("观战中")
 		}
 		p.Mu.Lock()
 		defer p.Mu.Unlock()

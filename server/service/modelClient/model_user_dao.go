@@ -177,7 +177,7 @@ func UpdateUserSetting(setting *GameSettletruct) ([]*ModelUser, error) {
 			if err != nil {
 				return err
 			}
-
+			oldBalance := user.Balance
 			user.Balance += user.BalanceLock + player.ChangeBalance
 			user.BalanceLock = 0
 			user.GameId = ""
@@ -190,8 +190,8 @@ func UpdateUserSetting(setting *GameSettletruct) ([]*ModelUser, error) {
 			//插入用户的userRecord
 			userRecord := ModelUserRecord{
 				UserId:        user.UserId,
-				BalanceBefore: user.BalanceLock,
-				BalanceAfter:  user.BalanceLock + player.ChangeBalance,
+				BalanceBefore: oldBalance,
+				BalanceAfter:  user.Balance,
 				GameRecordId:  setting.GameRecordId,
 			}
 			_, err = txOrm.Insert(&userRecord)

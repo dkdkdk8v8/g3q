@@ -241,11 +241,20 @@ export const useGameStore = defineStore('game', () => {
             bankerId.value = null;
         } else if (phase === 'BANKER_SELECTION_ANIMATION') {
             // 收到随机抢庄状态，播放全员随机动画
-            // 为了保证动画效果（一直播放随机动画），这里直接将所有玩家视为候选人
-            // 这样视觉上会在所有人之间跳动，直到 StateBankerConfirm 定格
-            let candidates = players.value.filter(p => !p.isObserver);
-
-            bankerCandidates.value = candidates.map(p => p.id);
+            // 逻辑更新：只在抢庄倍数最高且相同的玩家之间进行随机
+            let activePlayers = players.value.filter(p => !p.isObserver);
+            
+            if (activePlayers.length > 0) {
+                // 1. Find max multiplier
+                const maxMult = Math.max(...activePlayers.map(p => p.robMultiplier));
+                
+                // 2. Filter candidates with max multiplier
+                const candidates = activePlayers.filter(p => p.robMultiplier === maxMult);
+                
+                bankerCandidates.value = candidates.map(p => p.id);
+            } else {
+                bankerCandidates.value = [];
+            }
 
             // 在随机动画阶段，强制隐藏所有人的庄家标识
             players.value.forEach(p => p.isBanker = false);

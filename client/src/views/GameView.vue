@@ -618,6 +618,7 @@ const onBet = debounce((multiplier) => {
 
 const playerShowHandDebounced = debounce((playerId) => {
     store.playerShowHand(playerId);
+    selectedCardIndices.value = []; // Immediately restore height
 }, 500);
 
 const startGameDebounced = debounce(() => {

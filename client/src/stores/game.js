@@ -4,7 +4,6 @@ import { createDeck, shuffle, calculateHandType, transformServerCard } from '../
 import gameClient from '../socket.js'
 import defaultAvatar from '@/assets/common/default_avatar.png'; // Use import for asset
 import { useUserStore } from './user.js';
-import router from '../router/index.js';
 
 const QZNN_Prefix = "QZNN."; // 定义QZNN游戏协议前缀
 const DEFAULT_AVATAR = defaultAvatar;
@@ -55,7 +54,48 @@ export const useGameStore = defineStore('game', () => {
     const roomName = ref('');
     const baseBet = ref(0);
     const gameMode = ref(0); // 0: Bukan, 1: Kan3, 2: Kan4
-    const history = ref([]); // 游戏记录
+    
+    // Mock History Data
+    const generateMockHistory = () => {
+        const now = Date.now();
+        const oneDay = 24 * 60 * 60 * 1000;
+        return [
+            {
+                timestamp: now - 1000 * 60 * 5, // 5 mins ago
+                roomName: '1金币底分房',
+                handType: '无牛',
+                score: -35.00,
+                bet: 35.00,
+                isBanker: false
+            },
+            {
+                timestamp: now - 1000 * 60 * 20, // 20 mins ago
+                roomName: '1金币底分房',
+                handType: '牛7',
+                score: 38.00,
+                bet: 40.00,
+                isBanker: false
+            },
+            {
+                timestamp: now - oneDay * 4, // 4 days ago
+                roomName: '1金币底分房',
+                handType: '无牛',
+                score: -4.75, // Example from image (approx)
+                bet: 5.00,
+                isBanker: false
+            },
+             {
+                timestamp: now - oneDay * 4 - 1000 * 60 * 30, 
+                roomName: '5金币底分房',
+                handType: '牛牛',
+                score: 120.00,
+                bet: 50.00,
+                isBanker: true
+            }
+        ];
+    };
+
+    const history = ref(generateMockHistory()); // 游戏记录
     const bankerCandidates = ref([]); // Store IDs of players who are candidates for banker
     const bankerMult = ref([]); // Store banker multiplier options
     const betMult = ref([]); // Store betting multiplier options
@@ -242,11 +282,20 @@ export const useGameStore = defineStore('game', () => {
             bankerId.value = null;
         } else if (phase === 'BANKER_SELECTION_ANIMATION') {
             // 收到随机抢庄状态，播放全员随机动画
-            // 为了保证动画效果（一直播放随机动画），这里直接将所有玩家视为候选人
-            // 这样视觉上会在所有人之间跳动，直到 StateBankerConfirm 定格
-            let candidates = players.value.filter(p => !p.isObserver);
-
-            bankerCandidates.value = candidates.map(p => p.id);
+            // 逻辑更新：只在抢庄倍数最高且相同的玩家之间进行随机
+            let activePlayers = players.value.filter(p => !p.isObserver);
+            
+            if (activePlayers.length > 0) {
+                // 1. Find max multiplier
+                const maxMult = Math.max(...activePlayers.map(p => p.robMultiplier));
+                
+                // 2. Filter candidates with max multiplier
+                const candidates = activePlayers.filter(p => p.robMultiplier === maxMult);
+                
+                bankerCandidates.value = candidates.map(p => p.id);
+            } else {
+                bankerCandidates.value = [];
+            }
 
             // 在随机动画阶段，强制隐藏所有人的庄家标识
             players.value.forEach(p => p.isBanker = false);
@@ -269,19 +318,6 @@ export const useGameStore = defineStore('game', () => {
         // Handle Global Message Alert
         if (data.Message && typeof data.Message === 'string' && data.Message.trim() !== '') {
             globalMessage.value = data.Message;
-        }
-
-        // Handle PushRouter
-        if (pushType === 'PushRouter') {
-            if (data.Router) {
-                if (data.Router === 'lobby') {
-                    // Use replace to avoid back-history issues
-                    router.replace('/lobby');
-                } else if (data.Router === 'game') {
-                    router.replace('/game?autoJoin=true');
-                }
-            }
-            return;
         }
 
         // Handle PushTalk specifically

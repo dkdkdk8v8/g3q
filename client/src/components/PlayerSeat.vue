@@ -143,19 +143,37 @@ const isBullPart = (index) => {
     return false;
 };
 
-const shouldShowBadge = computed(() => {
+const shouldShowBadge = ref(false);
+let badgeTimer = null;
+
+const badgeTriggerCondition = computed(() => {
     if (!props.player.handResult) return false;
     // Hide badge during IDLE, READY_COUNTDOWN and GAME_OVER phases
     if (['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)) return false;
     
-    if (props.isMe) {
-        // 自己：必须点了摊牌(isShowHand) 或 结算阶段 才显示牌型结果
-        return props.player.isShowHand || store.currentPhase === 'SETTLEMENT';
-    } else {
-        // 别人：必须等待翻牌动画结束
-        return enableHighlight.value;
-    }
+    // Unified logic: Show if player has shown hand OR if it is settlement
+    return props.player.isShowHand || store.currentPhase === 'SETTLEMENT';
 });
+
+watch(badgeTriggerCondition, (val) => {
+    if (badgeTimer) {
+        clearTimeout(badgeTimer);
+        badgeTimer = null;
+    }
+
+    if (val) {
+        if (props.isMe) {
+            shouldShowBadge.value = true;
+        } else {
+            // Delay for others
+            badgeTimer = setTimeout(() => {
+                shouldShowBadge.value = true;
+            }, 500);
+        }
+    } else {
+        shouldShowBadge.value = false;
+    }
+}, { immediate: true });
 
 const shouldShowRobMult = computed(() => {
     // Hide in IDLE or READY phases (new game)

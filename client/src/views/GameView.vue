@@ -624,6 +624,47 @@ onUnmounted(() => {
     gameClient.setLatencyCallback(null);
 });
 
+// History Logic
+const historyGrouped = computed(() => {
+    const groups = {};
+    // Sort history by timestamp desc first
+    const sortedHistory = [...store.history].sort((a, b) => b.timestamp - a.timestamp);
+    
+    sortedHistory.forEach(item => {
+        const date = new Date(item.timestamp);
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
+        const dateKey = `${month}-${day}`;
+        
+        if (!groups[dateKey]) {
+            groups[dateKey] = {
+                dateStr: `${month}-${day}日`,
+                items: [],
+                totalBet: 0,
+                totalValid: 0
+            };
+        }
+        groups[dateKey].items.push(item);
+        groups[dateKey].totalBet += (item.bet || 0);
+        groups[dateKey].totalValid += (item.bet || 0); // Assuming valid bet = bet
+    });
+    
+    // Return array sorted by date desc (keys are MM-DD, so lex sort reverse works for same year)
+    return Object.keys(groups).sort().reverse().map(key => groups[key]);
+});
+
+const formatHistoryTime = (ts) => {
+    const date = new Date(ts);
+    const now = new Date();
+    const isToday = date.getDate() === now.getDate() && date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+    
+    const h = date.getHours().toString().padStart(2, '0');
+    const m = date.getMinutes().toString().padStart(2, '0');
+    const s = date.getSeconds().toString().padStart(2, '0');
+    
+    return `${isToday ? '今天' : ''} ${h}:${m}:${s}`;
+};
+
 const onRob = debounce((multiplier) => {
     store.playerRob(multiplier);
 }, 500);
@@ -900,31 +941,53 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
             </div>
 
             <!-- 押注记录弹窗 -->
-            <div v-if="showHistory" class="modal-overlay">
-                <div class="modal-content">
+            <div v-if="showHistory" class="modal-overlay" style="z-index: 3000;">
+                <div class="modal-content history-modal">
                     <div class="modal-header">
                         <h3>投注记录</h3>
-                        <div class="close-icon" @click="closeHistoryDebounced()">×</div>
+                        <div class="header-right">
+                            <div class="close-icon" @click="closeHistoryDebounced()">×</div>
+                        </div>
                     </div>
-                    <div class="history-list">
-                        <div v-if="store.history.length === 0" class="empty-tip">暂无记录</div>
-                        <div v-for="(item, idx) in store.history" :key="idx" class="history-item">
-                            <div class="h-row top">
-                                <span class="h-time">{{ new Date(item.timestamp).toLocaleTimeString() }}</span>
-                                <span class="h-role" :class="{ banker: item.isBanker }">{{ item.isBanker ? '庄' : '闲'
-                                    }}</span>
+                    
+                    <!-- Filter Row (Mock) -->
+                    <div class="filter-bar">
+                        <div class="filter-chip">全部 ▼</div>
+                    </div>
+
+                    <div class="history-list-new">
+                        <div v-if="historyGrouped.length === 0" class="empty-tip">暂无记录</div>
+                        
+                        <div v-for="group in historyGrouped" :key="group.dateStr" class="history-group">
+                            <div class="group-header">
+                                <div class="gh-date">{{ group.dateStr }} <span class="down-triangle">▼</span></div>
+                                <div class="gh-totals">
+                                    投注 ¥{{ formatCoins(group.totalBet) }} &nbsp; 有效投注 ¥{{ formatCoins(group.totalValid) }}
+                                </div>
                             </div>
-                            <div class="h-row main">
-                                <span class="h-result" :class="item.score >= 0 ? 'win' : 'lose'">
-                                    {{ item.score >= 0 ? '赢' : '输' }}
-                                </span>
-                                <span class="h-score" :class="item.score >= 0 ? 'win' : 'lose'">
-                                    {{ item.score >= 0 ? '+' : '' }}{{ formatCoins(item.score) }}
-                                </span>
-                                <span class="h-hand">{{ item.handType }}</span>
-                            </div>
-                            <div class="h-row bottom">
-                                <span>余额: {{ formatCoins(item.balance) }}</span>
+                            
+                            <div v-for="(item, idx) in group.items" :key="idx" class="history-card">
+                                <div class="hc-icon-wrapper">
+                                    <!-- Use a generic icon or game icon -->
+                                    <div class="game-icon-placeholder">牛</div>
+                                </div>
+                                <div class="hc-content">
+                                    <div class="hc-top-row">
+                                        <span class="hc-title">抢庄牛牛 | {{ item.roomName }}</span>
+                                        <span class="hc-hand">{{ item.handType }}</span>
+                                    </div>
+                                    <div class="hc-bottom-row">
+                                        <span class="hc-time">{{ formatHistoryTime(item.timestamp) }}</span>
+                                    </div>
+                                </div>
+                                <div class="hc-right">
+                                    <div class="hc-score" :class="item.score >= 0 ? 'win' : 'lose'">
+                                        {{ item.score > 0 ? '+' : '' }}{{ formatCoins(item.score) }}
+                                    </div>
+                                    <div class="hc-bet-amt">
+                                        投注: ¥{{ formatCoins(item.bet) }}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1758,5 +1821,178 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 .showdown-btn {
     /* Removed absolute positioning */
     width: 100px;
+}
+
+/* History Modal New Styles */
+.history-modal {
+    background-color: #111827; /* Darker bg */
+    color: #e5e7eb;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    max-width: 400px; /* Mobile width */
+    width: 85%;
+    height: 80vh;
+    border-radius: 16px; /* Full screen-ish on mobile or rectangular */
+    overflow: hidden;
+}
+
+.history-modal .modal-header {
+    background-color: #111827;
+    border-bottom: none;
+    position: relative;
+    padding: 12px 16px;
+}
+
+.history-modal .modal-header h3 {
+    font-size: 17px;
+    font-weight: 500;
+}
+
+.header-left, .header-right {
+    width: 40px;
+    display: flex;
+    align-items: center;
+}
+
+.back-icon {
+    font-size: 20px;
+    color: #9ca3af;
+}
+
+.filter-bar {
+    display: flex;
+    justify-content: flex-end;
+    padding: 4px 16px 8px;
+    background-color: #111827;
+}
+
+.filter-chip {
+    background-color: #374151;
+    color: #e5e7eb;
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.history-list-new {
+    flex: 1;
+    overflow-y: auto;
+    background-color: #0f172a; /* Slightly darker list bg */
+    padding-bottom: 20px;
+}
+
+.history-group {
+    margin-bottom: 8px;
+}
+
+.group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px 8px;
+    font-size: 12px;
+    color: #9ca3af; /* Gray text */
+    background-color: #0f172a;
+}
+
+.gh-date {
+    font-size: 16px;
+    color: #f3f4f6; /* White date */
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.down-triangle {
+    font-size: 10px;
+    color: #9ca3af;
+}
+
+.gh-totals {
+    font-size: 11px;
+}
+
+.history-card {
+    background-color: #1e293b;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #334155;
+}
+
+.hc-icon-wrapper {
+    margin-right: 12px;
+}
+
+.game-icon-placeholder {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    color: white;
+    font-size: 18px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    border: 1px solid #fbbf24;
+}
+
+.hc-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.hc-top-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.hc-title {
+    font-size: 14px;
+    color: #f3f4f6;
+    font-weight: 400;
+}
+
+.hc-hand {
+    font-size: 12px;
+    color: #64748b; /* Gray */
+}
+
+.hc-bottom-row {
+    font-size: 12px;
+    color: #64748b;
+}
+
+.hc-right {
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.hc-score {
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.hc-score.win {
+    color: #fff; /* White as per image */
+}
+
+.hc-score.lose {
+    color: #fff; /* White as per image */
+}
+
+.hc-bet-amt {
+    font-size: 12px;
+    color: #64748b;
 }
 </style>

@@ -9,7 +9,7 @@ import (
 
 func HandlerPlayerLeave(r *QZNNRoom, userID string) error {
 	if r == nil {
-		return comm.NewMyError("房间不存在")
+		return nil
 	}
 
 	//先看用户是不是ob

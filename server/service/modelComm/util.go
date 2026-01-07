@@ -6,9 +6,11 @@ import (
 	"compoment/util"
 	"encoding/json"
 	"errors"
-	"github.com/sirupsen/logrus"
 	"reflect"
+	"runtime"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 func GetModelById[T any](o orm.Ormer, id uint64) (*T, error) {
@@ -69,9 +71,10 @@ func unpackResult(ft reflect.Type, cached any, err error) []reflect.Value {
 }
 
 func makeCacheKey(fn reflect.Value, args []reflect.Value) string {
-	arr := make([]any, len(args))
+	arr := make([]any, len(args)+1)
+	arr[0] = runtime.FuncForPC(fn.Pointer()).Name()
 	for i, v := range args {
-		arr[i] = v.Interface()
+		arr[i+1] = v.Interface()
 	}
 	b, _ := json.Marshal(arr)
 	return util.Md5(b)

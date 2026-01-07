@@ -5,6 +5,7 @@ import "service/comm"
 const (
 	CmdUserInfo    comm.CmdType = "UserInfo"
 	CmdSaveSetting comm.CmdType = "SaveSetting"
+	CmdGameRecord  comm.CmdType = "GameRecord"
 )
 
 const (

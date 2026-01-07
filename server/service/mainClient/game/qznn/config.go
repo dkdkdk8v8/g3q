@@ -1,6 +1,7 @@
 package qznn
 
 const PlayerCardMax = 5
+const GameName = "qznn"
 
 var Configs = []LobbyConfig{
 	{Level: 1, Name: "初级场", MinBalance: 600, BaseBet: 100, BetMult: []int64{5, 10, 15, 20}, BankerMult: []int64{1, 2, 4}},

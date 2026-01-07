@@ -159,6 +159,7 @@ func GameLockUserBalance(userId string, gameId string, minBalance int64) error {
 type GameSettletruct struct {
 	RoomId       string
 	GameRecordId int64
+	GameName     string
 	Players      []UserSettingStruct
 }
 type UserSettingStruct struct {
@@ -205,4 +206,11 @@ func UpdateUserSetting(setting *GameSettletruct) ([]*ModelUser, error) {
 		return nil, err
 	}
 	return ret, nil
+}
+
+func GetUserGameRecords(userId string, limit, offset int) ([]*ModelUserRecord, error) {
+	return ormutil.QueryMany[ModelUserRecord](GetDb(),
+		ormutil.WithKV("user_id", userId),
+		ormutil.WithLimitOffset(limit, offset),
+	)
 }

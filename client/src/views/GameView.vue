@@ -1825,7 +1825,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 /* History Modal New Styles */
 .history-modal {
-    background-color: #111827; /* Darker bg */
+    background-color: #1e293b; /* Match Settings Modal */
     color: #e5e7eb;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     max-width: 400px; /* Mobile width */
@@ -1836,8 +1836,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .history-modal .modal-header {
-    background-color: #111827;
-    border-bottom: none;
+    background-color: #1e293b;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     position: relative;
     padding: 12px 16px;
 }
@@ -1861,8 +1861,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 .filter-bar {
     display: flex;
     justify-content: flex-end;
-    padding: 4px 16px 8px;
-    background-color: #111827;
+    padding: 12px 16px 8px;
+    background-color: #1e293b;
 }
 
 .filter-chip {
@@ -1879,26 +1879,28 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 .history-list-new {
     flex: 1;
     overflow-y: auto;
-    background-color: #0f172a; /* Slightly darker list bg */
-    padding-bottom: 20px;
+    background-color: #1e293b;
+    padding: 0 16px 20px; /* Added horizontal padding */
 }
 
 .history-group {
-    margin-bottom: 8px;
+    margin-bottom: 12px;
 }
 
 .group-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 16px 8px;
+    padding: 8px 12px;
     font-size: 12px;
     color: #9ca3af; /* Gray text */
-    background-color: #0f172a;
+    background-color: #0f172a; /* Slightly darker header */
+    border-radius: 8px; /* Rounded corners */
+    margin-bottom: 4px;
 }
 
 .gh-date {
-    font-size: 16px;
+    font-size: 14px;
     color: #f3f4f6; /* White date */
     font-weight: 500;
     display: flex;
@@ -1916,11 +1918,12 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .history-card {
-    background-color: #1e293b;
-    padding: 12px 16px;
+    background-color: #334155; /* Slightly lighter card bg */
+    padding: 12px 12px;
     display: flex;
     align-items: center;
-    border-bottom: 1px solid #334155;
+    border-radius: 8px; /* Rounded corners */
+    margin-bottom: 4px;
 }
 
 .hc-icon-wrapper {

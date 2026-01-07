@@ -7,8 +7,8 @@
     </div>
     <p v-if="appId">App ID: {{ appId }}</p>
     <p v-if="userId">User ID: {{ userId }}</p>
+    <button v-if="lastUid" @click="enterGameWithLast">继续上次UID进入 ({{ lastUid }})</button>
     <button @click="enterGameRandom" class="random-btn">随机UID进入</button>
-    <button v-if="userId" @click="enterGame">继续上次UID进入</button>
     <button @click="enterGameByUrl" class="url-btn">使用URL参数进入</button>
     <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
 
@@ -40,6 +40,8 @@ export default {
     const ipAddress = ref('');
     const appId = ref('');
     const userId = ref('');
+    const lastAppId = ref('');
+    const lastUid = ref('');
     const errorMessage = ref(''); // Use errorMessage for persistent error messages
     const isLoading = ref(false); // New loading state
     const router = useRouter();
@@ -49,28 +51,40 @@ export default {
 
     const LOCAL_STORAGE_IP_KEY = 'game_server_ip';
     const LOCAL_STORAGE_UID_KEY = 'game_user_uid';
+    const LOCAL_STORAGE_APP_KEY = 'game_app_id';
 
     onMounted(() => {
       const urlParams = new URLSearchParams(window.location.search);
-      let currentAppId = urlParams.get('app');
-      let currentUserId = urlParams.get('uid');
+      let urlAppId = urlParams.get('app');
+      let urlUserId = urlParams.get('uid');
 
-      if (!currentAppId) {
-        currentAppId = '91xj';
-      }
-      
-      if (!currentUserId) {
-        // Try to load from local storage if not in URL
-        currentUserId = localStorage.getItem(LOCAL_STORAGE_UID_KEY) || '';
+      // Load stored values
+      const storedAppId = localStorage.getItem(LOCAL_STORAGE_APP_KEY) || '';
+      const storedUid = localStorage.getItem(LOCAL_STORAGE_UID_KEY) || '';
+
+      lastAppId.value = storedAppId;
+      lastUid.value = storedUid;
+
+      // Initialize inputs: Priority URL -> Stored -> Default
+      if (urlAppId) {
+        appId.value = urlAppId;
+      } else if (storedAppId) {
+        appId.value = storedAppId;
+      } else {
+        appId.value = '91xj';
       }
 
-      appId.value = currentAppId;
-      userId.value = currentUserId;
+      if (urlUserId) {
+        userId.value = urlUserId;
+      } else if (storedUid) {
+        userId.value = storedUid;
+      } else {
+        userId.value = '';
+      }
 
       const savedIp = localStorage.getItem(LOCAL_STORAGE_IP_KEY);
       if (savedIp) {
         ipAddress.value = savedIp;
-        // No persistent message for loaded IP, just set it
       } else {
         ipAddress.value = '43.198.8.247:8082'; // Set default IP
       }
@@ -94,8 +108,13 @@ export default {
       }
       appId.value = '91xj';
       userId.value = result;
-      // Save immediately to ensure persistence
-      localStorage.setItem(LOCAL_STORAGE_UID_KEY, result);
+      
+      // Save immediately
+      localStorage.setItem(LOCAL_STORAGE_APP_KEY, appId.value);
+      localStorage.setItem(LOCAL_STORAGE_UID_KEY, userId.value);
+      lastAppId.value = appId.value;
+      lastUid.value = userId.value;
+
       // Use setTimeout to allow UI to update model binding before entering
       setTimeout(() => {
         enterGame();
@@ -114,12 +133,23 @@ export default {
 
       appId.value = urlAppId;
       userId.value = urlUserId;
+      
       // Save immediately
+      localStorage.setItem(LOCAL_STORAGE_APP_KEY, urlAppId);
       localStorage.setItem(LOCAL_STORAGE_UID_KEY, urlUserId);
+      lastAppId.value = urlAppId;
+      lastUid.value = urlUserId;
+
       // Use setTimeout to allow UI to update model binding before entering
       setTimeout(() => {
         enterGame();
       }, 0);
+    };
+
+    const enterGameWithLast = () => {
+      if (lastAppId.value) appId.value = lastAppId.value;
+      if (lastUid.value) userId.value = lastUid.value;
+      enterGame();
     };
 
     const enterGame = () => {
@@ -139,8 +169,12 @@ export default {
         return;
       }
 
-      // Save UID for future sessions
+      // Save UID and AppID for future sessions
       localStorage.setItem(LOCAL_STORAGE_UID_KEY, userId.value);
+      localStorage.setItem(LOCAL_STORAGE_APP_KEY, appId.value);
+      // Update refs to reflect current successful login attempt
+      lastUid.value = userId.value;
+      lastAppId.value = appId.value;
 
       isLoading.value = true; // Start loading
 
@@ -237,9 +271,11 @@ export default {
       errorMessage, // Renamed message to errorMessage
       appId,
       userId,
+      lastUid, // Export for template
       enterGame,
       enterGameRandom,
       enterGameByUrl,
+      enterGameWithLast, // Export new function
       isLoading, // Return isLoading
     };
   },

@@ -292,9 +292,7 @@ const displayName = computed(() => {
 }
 
 .hand-card.selected {
-    /* transform: translateY(-20px); Removed per user request */
-    filter: brightness(60%) grayscale(50%);
-    opacity: 0.8;
+    transform: translateY(-20px);
 }
 
 /* 布局方向定义 */

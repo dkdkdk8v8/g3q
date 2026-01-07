@@ -158,7 +158,7 @@ func GameLockUserBalance(userId string, gameId string, minBalance int64) error {
 
 type GameSettletruct struct {
 	RoomId       string
-	GameRecordId int64
+	GameRecordId uint64
 	GameName     string
 	Players      []UserSettingStruct
 }

@@ -946,7 +946,7 @@ func (r *QZNNRoom) StartGame() {
 		//todo:: just log do no break logic
 	}
 
-	settle := modelClient.GameSettletruct{RoomId: r.ID, GameRecordId: nGameRecordId}
+	settle := modelClient.GameSettletruct{RoomId: r.ID, GameRecordId: uint64(nGameRecordId)}
 	for _, p := range activePlayer {
 		settle.Players = append(settle.Players, modelClient.UserSettingStruct{
 			UserId:        p.ID,

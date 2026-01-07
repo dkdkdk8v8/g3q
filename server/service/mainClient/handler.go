@@ -5,7 +5,6 @@ import (
 	"compoment/ws"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"service/comm"
 	"service/mainClient/game"
 	"service/mainClient/game/qznn"
@@ -215,64 +214,64 @@ type handleGameRecordRsp struct {
 }
 
 func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) {
-	var req struct {
-		Limit  int
-		Offset int
-	}
-	if err := json.Unmarshal(data, &req); err != nil {
-		return nil, comm.ErrClientParam
-	}
-	if req.Limit > 20 {
-		req.Limit = 20
-	}
-	if req.Limit <= 0 {
-		req.Limit = 10
-	}
-	var ret handleGameRecordRsp
-	ret.List = make([]recordSummy, 0)
+	// var req struct {
+	// 	Limit  int
+	// 	Offset int
+	// }
+	// if err := json.Unmarshal(data, &req); err != nil {
+	// 	return nil, comm.ErrClientParam
+	// }
+	// if req.Limit > 20 {
+	// 	req.Limit = 20
+	// }
+	// if req.Limit <= 0 {
+	// 	req.Limit = 10
+	// }
+	// var ret handleGameRecordRsp
+	// ret.List = make([]recordSummy, 0)
 
-	records, err := modelClient.GetUserGameRecords(userId, req.Limit, req.Offset)
-	if err != nil {
-		return nil, err
-	}
-	if len(records) == 0 {
-		return &ret, nil
-	}
+	// records, err := modelClient.GetUserGameRecords(userId, req.Limit, req.Offset)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// if len(records) == 0 {
+	// 	return &ret, nil
+	// }
 
-	var currentSummy *recordSummy
-	for _, userRecoed := range records {
-		wd := int(userRecoed.CreateAt.Weekday())
-		if wd == 0 {
-			wd = 7
-		}
-		dateStr := fmt.Sprintf("%s周%d", userRecoed.CreateAt.Format("01月02"), wd)
+	// var currentSummy *recordSummy
+	// for _, userRecoed := range records {
+	// 	wd := int(userRecoed.CreateAt.Weekday())
+	// 	if wd == 0 {
+	// 		wd = 7
+	// 	}
+	// 	dateStr := fmt.Sprintf("%s周%d", userRecoed.CreateAt.Format("01月02"), wd)
 
-		if currentSummy == nil || currentSummy.Date != dateStr {
-			if currentSummy != nil {
-				ret.List = append(ret.List, *currentSummy)
-			}
-			currentSummy = &recordSummy{
-				Date: dateStr,
-				List: make([]recordItem, 0),
-			}
-		}
+	// 	if currentSummy == nil || currentSummy.Date != dateStr {
+	// 		if currentSummy != nil {
+	// 			ret.List = append(ret.List, *currentSummy)
+	// 		}
+	// 		currentSummy = &recordSummy{
+	// 			Date: dateStr,
+	// 			List: make([]recordItem, 0),
+	// 		}
+	// 	}
 
-		gameRecord, err := modelClient.GetGameRecordByIdCache(userRecoed.GameRecordId)
-		if err != nil {
-			continue
-		}
-		currentSummy.TotalWinBalance += (userRecoed.BalanceAfter - userRecoed.BalanceBefore)
-		currentSummy.List = append(currentSummy.List, recordItem{
-			BalanceBefore: userRecoed.BalanceBefore,
-			BalanceAfter:  userRecoed.BalanceAfter,
-			GameName:      gameRecord.GameName,
-		})
-	}
+	// 	gameRecord, err := modelClient.GetGameRecordByIdCache(userRecoed.GameRecordId)
+	// 	if err != nil {
+	// 		continue
+	// 	}
+	// 	currentSummy.TotalWinBalance += (userRecoed.BalanceAfter - userRecoed.BalanceBefore)
+	// 	currentSummy.List = append(currentSummy.List, recordItem{
+	// 		BalanceBefore: userRecoed.BalanceBefore,
+	// 		BalanceAfter:  userRecoed.BalanceAfter,
+	// 		GameName:      gameRecord.GameName,
+	// 	})
+	// }
 
-	if currentSummy != nil {
-		ret.List = append(ret.List, *currentSummy)
-	}
+	// if currentSummy != nil {
+	// 	ret.List = append(ret.List, *currentSummy)
+	// }
 
-	return &ret, nil
-
+	// return &ret, nil
+	return nil, nil
 }

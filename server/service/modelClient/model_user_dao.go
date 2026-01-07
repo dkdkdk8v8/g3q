@@ -4,7 +4,9 @@ import (
 	"beego/v2/client/orm"
 	"compoment/ormutil"
 	"context"
+	"errors"
 	"service/comm"
+	"time"
 
 	"github.com/sirupsen/logrus"
 )
@@ -28,7 +30,7 @@ func GetOrCreateUser(appId string, appUserId string) (*ModelUser, error) {
 		AppId:     appId,
 		AppUserId: appUserId,
 		Enable:    true,
-		Balance:   200000, // 默认2000元 用于测试
+		Balance:   20000, // 默认2000元 用于测试
 	}
 
 	_, err = WrapInsert(&user)
@@ -88,7 +90,37 @@ func GetRandomRobots(limit int) ([]*ModelUser, error) {
 	return robots, err
 }
 
-// UserEnterRoom 用户进入房间，锁定余额
+// RecoveryGameId
+func RecoveryGameId(userId string, gameId string) (*ModelUser, error) {
+	ormDb := GetDb()
+	var user ModelUser
+	err := ormDb.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
+		var err error
+		// 使用 ForUpdate 锁行，防止并发问题
+		err = txOrm.QueryTable(new(ModelUser)).Filter("user_id", userId).ForUpdate().One(&user)
+		if err != nil {
+			return err
+		}
+		if user.GameId != gameId {
+			return errors.New("gameIdNotMatch")
+		}
+		user.Balance += user.BalanceLock
+		user.BalanceLock = 0
+		user.GameId = ""
+		_, err = txOrm.Update(&user, "balance", "balance_lock", "game_id")
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+// 用户进入游戏，锁定余额
 func GameLockUserBalance(userId string, gameId string, minBalance int64) error {
 	ormDb := GetDb()
 	err := ormDb.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
@@ -149,7 +181,8 @@ func UpdateUserSetting(setting *GameSettletruct) ([]*ModelUser, error) {
 			user.Balance += user.BalanceLock + player.ChangeBalance
 			user.BalanceLock = 0
 			user.GameId = ""
-			_, err = txOrm.Update(&user, "BalanceLock")
+			user.LastPlayed = time.Now()
+			_, err = txOrm.Update(&user, "balance", "balance_lock", "game_id", "last_played")
 			if err != nil {
 				return err
 			}

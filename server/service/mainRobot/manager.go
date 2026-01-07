@@ -9,6 +9,7 @@ import (
 	"service/initMain"
 	"service/mainClient/game"
 	"service/mainClient/game/qznn"
+	"service/mainClient/game/znet"
 	"service/modelClient"
 	"sync"
 	"time"
@@ -212,14 +213,14 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 	time.Sleep(time.Millisecond * time.Duration(rand.Intn(500)+500))
 
 	switch pushType {
-	case game.PushRouter:
+	case znet.PushRouter:
 		var d struct {
-			Router game.RouterType `json:"Router"`
+			Router znet.RouterType `json:"Router"`
 			Room   json.RawMessage `json:"Room"`
 		}
 		json.Unmarshal(data, &d)
 		switch d.Router {
-		case game.Lobby:
+		case znet.Lobby:
 			logrus.Infof("机器人 %s 进入大厅...", r.Uid)
 			// 根据配置随机选择房间等级
 			if len(qznn.Configs) > 0 {
@@ -232,7 +233,7 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 					r.Send(qznn.CmdPlayerJoin, map[string]interface{}{"Level": randomConfig.Level, "BankerType": qznn.BankerTypeNoLook})
 				}
 			}
-		case game.Game:
+		case znet.Game:
 			logrus.Infof("机器人 %s 进入房间...", r.Uid)
 			var room qznn.QZNNRoom
 			if err := json.Unmarshal(d.Room, &room); err == nil {

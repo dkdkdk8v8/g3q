@@ -17,6 +17,9 @@ export class GameUserEntity {
   @Column({ comment: '应用用户ID' })
   app_user_id: string;
 
+  @Column({ comment: '游戏ID' })
+  game_id: string;
+
   @Column({ comment: '昵称' })
   nick_name: string;
 

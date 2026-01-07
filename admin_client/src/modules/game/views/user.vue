@@ -115,6 +115,7 @@ const Table = useTable({
       },
     },
     { label: "设置", prop: "settings", minWidth: 180 },
+    { label: "游戏ID", prop: "game_id", minWidth: 180, showOverflowTooltip: true },
     { label: "备注", prop: "remark", minWidth: 180, showOverflowTooltip: true },
     {
       label: "最近游戏",

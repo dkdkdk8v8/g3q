@@ -236,6 +236,17 @@ export default class GameClient {
                 return; // Stop further processing for this specific push type
             }
 
+            // Handle PushRouter
+            if (msg.pushType === "PushRouter" && msg.data && msg.data.Router) {
+                console.log("[Network] Handling PushRouter:", msg.data.Router);
+                if (msg.data.Router === 'lobby') {
+                    router.replace('/lobby');
+                } else if (msg.data.Router === 'game') {
+                    router.replace('/game?autoJoin=true');
+                }
+                // Do NOT return here, so that global handlers (like gameStore's message handler) can still run
+            }
+
             // 优先执行全局监听
             if (this.globalPushHandler) {
                 try {

@@ -8,7 +8,8 @@
     <p v-if="appId">App ID: {{ appId }}</p>
     <p v-if="userId">User ID: {{ userId }}</p>
     <button @click="enterGameRandom" class="random-btn">随机UID进入</button>
-    <button @click="enterGame">进入游戏</button>
+    <button v-if="userId" @click="enterGame">继续上次UID进入</button>
+    <button @click="enterGameByUrl" class="url-btn">使用URL参数进入</button>
     <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
 
     <!-- Loading Overlay -->
@@ -27,6 +28,7 @@ import gameClient from '../socket.js'; // Use singleton
 import { useUserStore } from '../stores/user.js';
 import { useSettingsStore } from '../stores/settings.js';
 import { useGameStore } from '../stores/game.js';
+import { showToast } from 'vant';
 
 export default {
   name: 'LoadingPage',
@@ -46,6 +48,7 @@ export default {
     const gameStore = useGameStore();
 
     const LOCAL_STORAGE_IP_KEY = 'game_server_ip';
+    const LOCAL_STORAGE_UID_KEY = 'game_user_uid';
 
     onMounted(() => {
       const urlParams = new URLSearchParams(window.location.search);
@@ -55,8 +58,10 @@ export default {
       if (!currentAppId) {
         currentAppId = '91xj';
       }
+      
       if (!currentUserId) {
-        currentUserId = 'dk6';
+        // Try to load from local storage if not in URL
+        currentUserId = localStorage.getItem(LOCAL_STORAGE_UID_KEY) || '';
       }
 
       appId.value = currentAppId;
@@ -89,6 +94,28 @@ export default {
       }
       appId.value = '91xj';
       userId.value = result;
+      // Save immediately to ensure persistence
+      localStorage.setItem(LOCAL_STORAGE_UID_KEY, result);
+      // Use setTimeout to allow UI to update model binding before entering
+      setTimeout(() => {
+        enterGame();
+      }, 0);
+    };
+
+    const enterGameByUrl = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlAppId = urlParams.get('app');
+      const urlUserId = urlParams.get('uid');
+
+      if (!urlAppId || !urlUserId) {
+        showToast('URL参数缺失: 需同时包含 app 和 uid');
+        return;
+      }
+
+      appId.value = urlAppId;
+      userId.value = urlUserId;
+      // Save immediately
+      localStorage.setItem(LOCAL_STORAGE_UID_KEY, urlUserId);
       // Use setTimeout to allow UI to update model binding before entering
       setTimeout(() => {
         enterGame();
@@ -111,6 +138,9 @@ export default {
         errorMessage.value = 'URL 中缺少 uid 参数！';
         return;
       }
+
+      // Save UID for future sessions
+      localStorage.setItem(LOCAL_STORAGE_UID_KEY, userId.value);
 
       isLoading.value = true; // Start loading
 
@@ -209,6 +239,7 @@ export default {
       userId,
       enterGame,
       enterGameRandom,
+      enterGameByUrl,
       isLoading, // Return isLoading
     };
   },
@@ -283,6 +314,14 @@ button:hover {
 
 .random-btn:hover {
   background-color: #2980b9;
+}
+
+.url-btn {
+  background-color: #9b59b6;
+}
+
+.url-btn:hover {
+  background-color: #8e44ad;
 }
 
 .error-message {

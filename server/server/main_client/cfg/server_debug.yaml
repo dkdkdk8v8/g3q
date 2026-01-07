@@ -16,9 +16,5 @@ MysqlPwd: "S40bdYFgTy8uzz6A"
 MysqlConn: 10
 MysqlIdle: 5
 RedisAddr: "127.0.0.1:16379"
-RedisPwd: ""
-RedisTunnel:
-  Host: "13.251.18.153:22"
-  User: "ec2-user"
-  Rsa: "/Users/admin/Documents/ssh/fly"
-  Target: "hsxs-cache-nozgx2.serverless.apse1.cache.amazonaws.com:6379"
+RedisPwd: "asdflkjh12321"
+IsSsl: false

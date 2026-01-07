@@ -138,7 +138,7 @@ func (rm *RoomManager) JoinOrCreateNNRoom(user *modelClient.ModelUser,
 		return targetRoom, nil
 	}
 
-	roomID := fmt.Sprintf("%s_%d_%d", util.EncodeToBase36(uid.Generate()), bankerType, level)
+	roomID := fmt.Sprintf("%s_%d_%d_"+qznn.GameName, util.EncodeToBase36(uid.Generate()), bankerType, level)
 	newRoom := qznn.NewRoom(roomID, bankerType, level)
 	_, err := newRoom.AddPlayer(player)
 	if err != nil {

@@ -88,12 +88,7 @@ func WSEntry(c *gin.Context) {
 	// 		userId = t.ID
 	// 	}
 	// }
-	// 1.5 查询数据库校验用户是否存在，不存在则自动注册
-	// user, err := modelClient.GetOrCreateUser(appId, appUserId)
-	// if err != nil {
-	// 	logrus.WithError(err).WithField("appUserId", appUserId).Error("WS-GetOrCreateUser-Fail")
-	// 	return
-	// }
+
 	logrus.WithField("appId", appId).WithField("appUserId", appUserId).Info("WS-Client-Connected")
 
 	connWrap := &ws.WsConnWrap{WsConn: conn}
@@ -228,14 +223,6 @@ func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, userId st
 		}).Info("RecvMsg")
 	}
 
-	// 检查全局维护状态（实际应从 Redis 或配置中心读取）
-	// if GlobalMaintenanceConfig.IsActive() {
-	//     conn.WriteJSON(comm.Response{
-	//         Cmd: "sys.maintenance",
-	//         Data: gin.H{"msg": "系统维护中", "end_time": 1700000000},
-	//     })
-	//     return
-	// }
 	var rsp = comm.Response{
 		Cmd: msg.Cmd,
 		Seq: msg.Seq,
@@ -284,6 +271,8 @@ func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, userId st
 		errRsp = handlePlayerShowCard(userId, msg.Data)
 	case qznn.CmdLobbyConfig: // 大厅配置请求
 		rsp.Data = handleLobbyConfig()
+	case znet.CmdGameRecord: //获取游戏记录
+		rsp.Data, errRsp = handleGameRecord(userId, msg.Data)
 	case qznn.CmdTalk:
 		errRsp = handlerPlayerTalk(userId, msg.Data)
 	case znet.CmdSaveSetting: // 保存用户设置

@@ -722,7 +722,7 @@ func (r *QZNNRoom) StartGame() {
 		//不判断set status 成功与否，强行return，保护数据
 		return
 	}
-	
+
 	//准备牌堆并发牌
 	r.prepareDeck()
 	r.WaitStateLeftTicker()
@@ -776,6 +776,13 @@ func (r *QZNNRoom) StartGame() {
 		// 2. 没人抢庄：所有活跃玩家参与随机
 		candidates = r.GetActivePlayers(nil)
 		bRandomBanker = true
+	}
+	for _, p := range activePlayer {
+		p.Mu.Lock()
+		if p.CallMult < 0 {
+			p.CallMult = 0
+		}
+		p.Mu.Unlock()
 	}
 
 	// 3. 如果是随机产生的庄家（多人同倍数 或 无人抢庄），播放定庄动画
@@ -932,13 +939,14 @@ func (r *QZNNRoom) StartGame() {
 	//产生对局记录
 	nGameRecordId, err := modelClient.InsertGameRecord(&modelClient.ModelGameRecord{
 		GameId:   r.GameID,
+		GameName: GameName,
 		GameData: string(roomBytes),
 	})
 	if err != nil {
 		//todo:: just log do no break logic
 	}
 
-	settle := modelClient.GameSettletruct{RoomId: r.ID, GameRecordId: nGameRecordId}
+	settle := modelClient.GameSettletruct{RoomId: r.ID, GameRecordId: uint64(nGameRecordId)}
 	for _, p := range activePlayer {
 		settle.Players = append(settle.Players, modelClient.UserSettingStruct{
 			UserId:        p.ID,

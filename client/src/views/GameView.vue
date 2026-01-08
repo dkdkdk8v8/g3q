@@ -1042,15 +1042,15 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                         <h3>投注记录</h3>
                         <div class="filter-chip" @click.stop="toggleFilterMenu">
                             {{ filterLabel }} <span class="down-triangle" :class="{ 'rotate-180': showFilterMenu }">▼</span>
-                        </div>
-                        
-                        <!-- Filter Menu -->
-                        <div v-if="showFilterMenu" class="filter-menu" @click.stop>
-                            <div class="filter-menu-item" :class="{ active: filterType === 'all' }" @click="selectFilter('all')">全部</div>
-                            <div class="filter-menu-item" :class="{ active: filterType === 'today' }" @click="selectFilter('today')">今天</div>
-                            <div class="filter-menu-item" :class="{ active: filterType === 'yesterday' }" @click="selectFilter('yesterday')">昨天</div>
-                            <div class="filter-menu-item" :class="{ active: filterType === 'week' }" @click="selectFilter('week')">7天内</div>
-                            <div class="filter-menu-item" :class="{ active: filterType === 'custom' }" @click="selectFilter('custom')">自定义</div>
+                            
+                            <!-- Filter Menu -->
+                            <div v-if="showFilterMenu" class="filter-menu" @click.stop>
+                                <div class="filter-menu-item" :class="{ active: filterType === 'all' }" @click="selectFilter('all')">全部</div>
+                                <div class="filter-menu-item" :class="{ active: filterType === 'today' }" @click="selectFilter('today')">今天</div>
+                                <div class="filter-menu-item" :class="{ active: filterType === 'yesterday' }" @click="selectFilter('yesterday')">昨天</div>
+                                <div class="filter-menu-item" :class="{ active: filterType === 'week' }" @click="selectFilter('week')">7天内</div>
+                                <div class="filter-menu-item" :class="{ active: filterType === 'custom' }" @click="selectFilter('custom')">自定义</div>
+                            </div>
                         </div>
 
                         <div class="header-right">
@@ -1988,7 +1988,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .filter-menu {
     position: absolute;
-    top: 45px; /* Below the header */
+    top: calc(100% + 8px); /* Below the chip with spacing */
     left: 50%;
     transform: translateX(-50%);
     background-color: #334155;

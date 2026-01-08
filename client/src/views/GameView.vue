@@ -1197,9 +1197,9 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
                     <section>
                         <h4>牌型比较</h4>
-                        <p>• <b>单张大小：</b>从大到小排序为：K > Q > J > 10 > 9 > 8 > 7 > 6 > 5 > 4 > 3 > 2 > A。</p>
-                        <p>• <b>花色大小：</b>花色由大到小排序为：黑桃 ♠ > 红桃 ♥ > 梅花 ♣ > 方片 ♦。</p>
-                        <p>• <b>牌型大小：</b>从大到小排序为：五小牛 > 五花牛 > 四炸 > 四花牛 > 牛牛 > 有牛 > 无牛。</p>
+                                                <p>• <b>单张大小：</b>从大到小排序为：K > Q > J > 10 > 9 > 8 > 7 > 6 > 5 > 4 > 3 > 2 > A。</p>
+                                                <p>• <b>花色大小：</b>花色由大到小排序为：黑桃 <span style="color: black; font-size: 1.3em; text-shadow: 1px 0 0 #fff, 0 1px 0 #fff, -1px 0 0 #fff, 0 -1px 0 #fff;">♠</span> > 红桃 <span style="color: #ef4444; font-size: 1.3em; text-shadow: 1px 0 0 #fff, 0 1px 0 #fff, -1px 0 0 #fff, 0 -1px 0 #fff;">♥</span> > 梅花 <span style="color: black; font-size: 1.3em; text-shadow: 1px 0 0 #fff, 0 1px 0 #fff, -1px 0 0 #fff, 0 -1px 0 #fff;">♣</span> > 方片 <span style="color: #ef4444; font-size: 1.3em; text-shadow: 1px 0 0 #fff, 0 1px 0 #fff, -1px 0 0 #fff, 0 -1px 0 #fff;">♦</span>。</p>
+                                                <p>• <b>牌型大小：</b>从大到小排序为：五小牛 > 五花牛 > 四炸 > 四花牛 > 牛牛 > 有牛 > 无牛。</p>
                         <p>• <b>有牛大小：</b>当都为有牛时，从大到小排序为：牛九 > 牛八 > 牛七 > 牛六 > 牛五 > 牛四 > 牛三 > 牛二 > 牛一。</p>
                         <p>• <b>牌型相同：</b>当庄和闲相同牌型时，挑出最大的一张牌进行比较，如果最大牌点数一样，则按花色进行比较。（特例：当有多个四炸时，比较四张相同的牌的点数大小）</p>
                     </section>
@@ -2295,7 +2295,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     bottom: 0;
     left: 50%;
     transform: translateX(-50%);
-    width: 70%;
+    width: 100%;
     /* Short divider */
     height: 2px;
     background-color: rgba(251, 191, 36, 0.5);

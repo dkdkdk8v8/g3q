@@ -2295,7 +2295,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     bottom: 0;
     left: 50%;
     transform: translateX(-50%);
-    width: 30px;
+    width: 50%;
     /* Short divider */
     height: 2px;
     background-color: rgba(251, 191, 36, 0.5);

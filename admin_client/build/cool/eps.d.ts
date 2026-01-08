@@ -962,19 +962,24 @@ declare namespace Eps {
 
 	interface GameStaPeriod {
 		/**
-		 * 某个时间段的统计数据
+		 * 某个时间段的统计数据(按日期或者按应用)
 		 */
 		getDateStats(data?: any): Promise<any>;
 
 		/**
+		 * 某个时间段的统计数据(按用户)
+		 */
+		getUserStats(data?: any): Promise<any>;
+
+		/**
 		 * 权限标识
 		 */
-		permission: { getDateStats: string };
+		permission: { getDateStats: string; getUserStats: string };
 
 		/**
 		 * 权限状态
 		 */
-		_permission: { getDateStats: boolean };
+		_permission: { getDateStats: boolean; getUserStats: boolean };
 
 		request: Request;
 	}

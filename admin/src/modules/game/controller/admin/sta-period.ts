@@ -10,7 +10,7 @@ export class StaPeriodController extends BaseController {
     @Inject()
     staPeriodService: StaPeriodService;
 
-    @Get('/getDateStats', { summary: '某个时间段的统计数据' })
+    @Get('/getDateStats', { summary: '某个时间段的统计数据(按日期或者按应用)' })
     async getDateStats(
         @Query('startDate') startDate: string,
         @Query('endDate') endDate: string,
@@ -20,5 +20,16 @@ export class StaPeriodController extends BaseController {
         @Query('order') order: string,
     ) {
         return this.staPeriodService.getDateStats(startDate, endDate, app, showType, sort, order);
+    }
+
+    @Get('/getUserStats', { summary: '某个时间段的统计数据(按用户)' })
+    async getUserStats(
+        @Query('startDate') startDate: string,
+        @Query('endDate') endDate: string,
+        @Query('app') app: string,
+        @Query('sort') sort: string,
+        @Query('order') order: string,
+    ) {
+        return this.staPeriodService.getUserStats(startDate, endDate, app, sort, order);
     }
 }

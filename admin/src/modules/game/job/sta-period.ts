@@ -1,14 +1,15 @@
 import { IJob, Job } from '@midwayjs/cron';
 import { Inject } from '@midwayjs/decorator';
-import { InjectEntityModel } from '@midwayjs/typeorm';
+import { InjectDataSource, InjectEntityModel } from '@midwayjs/typeorm';
 import { CachingFactory, MidwayCache } from '@midwayjs/cache-manager';
-import { MoreThan, Repository } from 'typeorm';
+import { DataSource, MoreThan, Repository } from 'typeorm';
 import * as moment from 'moment';
 
 import { FORMAT, ILogger, InjectClient } from '@midwayjs/core';
 import { StaPeriodEntity } from '../entity/sta-period';
 import { GameUserEntity } from '../entityGame/user';
 import { GameRecordEntity } from '../entityGame/game-record';
+import { StaUserEntity } from '../entity/sta-user';
 import { StaPeriodService } from '../service/sta-period';
 
 interface StatsData {
@@ -21,6 +22,17 @@ interface StatsData {
   gameWin: number;
   firstGameUserCount: number;
   firstGameUserIds: string[];
+}
+
+interface UserStatsData {
+  date: Date;
+  userId: string;
+  appId: string;
+  betCount: number;
+  betAmount: number;
+  winCount: number;
+  bankerCount: number;
+  betWin: number;
 }
 
 @Job({
@@ -49,6 +61,12 @@ export class StaPeriodJob implements IJob {
   @InjectEntityModel(StaPeriodEntity)
   staPeriodEntity: Repository<StaPeriodEntity>;
 
+  @InjectEntityModel(StaUserEntity)
+  staUserEntity: Repository<StaUserEntity>;
+
+  @InjectDataSource()
+  dataSource: DataSource;
+
   private static isRunning = false;
 
   async getLastId() {
@@ -69,7 +87,6 @@ export class StaPeriodJob implements IJob {
     recordTime.minute(Math.floor(recordTime.minute() / 10) * 10).second(0).millisecond(0);
     return recordTime.toDate();
   }
-
 
   /**
    * 获取或初始化统计对象
@@ -96,35 +113,73 @@ export class StaPeriodJob implements IJob {
    * 保存统计数据
    */
   private async saveStats(statsMap: Map<string, StatsData>) {
-    for (const stats of statsMap.values()) {
-      let entity = await this.staPeriodEntity.findOne({
-        where: { timeKey: stats.timeKey, appId: stats.appId },
-      });
-      if (!entity) {
-        entity = new StaPeriodEntity();
-        entity.timeKey = stats.timeKey;
-        entity.appId = stats.appId;
-        entity.gameUserCount = 0;
-        entity.gameCount = 0;
-        entity.betCount = 0;
-        entity.betAmount = 0;
-        entity.gameWin = 0;
-        entity.firstGameUserCount = 0;
-        entity.firstGameUserIds = [];
+    if (statsMap.size === 0) return;
+    await this.dataSource.transaction(async manager => {
+      for (const stats of statsMap.values()) {
+        let entity = await manager.findOne(StaPeriodEntity, {
+          where: { timeKey: stats.timeKey, appId: stats.appId },
+          lock: { mode: 'pessimistic_write' },
+        });
+        if (!entity) {
+          entity = new StaPeriodEntity();
+          entity.timeKey = stats.timeKey;
+          entity.appId = stats.appId;
+          entity.gameUserCount = 0;
+          entity.gameCount = 0;
+          entity.betCount = 0;
+          entity.betAmount = 0;
+          entity.gameWin = 0;
+          entity.firstGameUserCount = 0;
+          entity.firstGameUserIds = [];
+        }
+
+        entity.gameUserCount += stats.gameUserCount;
+        entity.gameCount += stats.gameCount;
+        entity.betCount += stats.betCount;
+        entity.betAmount += stats.betAmount;
+        entity.gameWin += stats.gameWin;
+        entity.firstGameUserCount += stats.firstGameUserCount;
+
+        const existingIds = Array.isArray(entity.firstGameUserIds) ? entity.firstGameUserIds : [];
+        entity.firstGameUserIds = [...existingIds, ...stats.firstGameUserIds];
+
+        await manager.save(entity);
       }
+    });
+  }
 
-      entity.gameUserCount += stats.gameUserCount;
-      entity.gameCount += stats.gameCount;
-      entity.betCount += stats.betCount;
-      entity.betAmount += stats.betAmount;
-      entity.gameWin += stats.gameWin;
-      entity.firstGameUserCount += stats.firstGameUserCount;
+  /**
+   * 保存用户统计数据
+   */
+  private async saveUserStats(userStatsMap: Map<string, UserStatsData>) {
+    if (userStatsMap.size === 0) return;
+    await this.dataSource.transaction(async manager => {
+      for (const stats of userStatsMap.values()) {
+        let entity = await manager.findOne(StaUserEntity, {
+          where: { date: stats.date, userId: stats.userId },
+          lock: { mode: 'pessimistic_write' },
+        });
+        if (!entity) {
+          entity = new StaUserEntity();
+          entity.date = stats.date;
+          entity.userId = stats.userId;
+          entity.appId = stats.appId;
+          entity.betCount = 0;
+          entity.betAmount = 0;
+          entity.winCount = 0;
+          entity.bankerCount = 0;
+          entity.betWin = 0;
+        }
 
-      const existingIds = Array.isArray(entity.firstGameUserIds) ? entity.firstGameUserIds : [];
-      entity.firstGameUserIds = [...existingIds, ...stats.firstGameUserIds];
+        entity.betCount = (entity.betCount || 0) + stats.betCount;
+        entity.betAmount = (Number(entity.betAmount) || 0) + stats.betAmount;
+        entity.winCount = (entity.winCount || 0) + stats.winCount;
+        entity.bankerCount = (entity.bankerCount || 0) + stats.bankerCount;
+        entity.betWin = (Number(entity.betWin) || 0) + stats.betWin;
 
-      await this.staPeriodEntity.save(entity);
-    }
+        await manager.save(entity);
+      }
+    });
   }
 
   async onTick(): Promise<void> {
@@ -141,20 +196,24 @@ export class StaPeriodJob implements IJob {
       });
       this.logger.info(`开始处理id大于${lastId}的数据，共${records.length}条`);
       const statsMap = new Map<string, StatsData>();
+      const userStatsMap = new Map<string, UserStatsData>();
       let newLastId = lastId;
 
       for (const record of records) {
         const gameData = JSON.parse(record.game_data);
         const { Room } = gameData;
         let { Players = [] } = Room;
+        const { BankerID } = Room;
 
         const timeKey = this.getTimeKey(record);
+        const dateKey = moment(record.create_at).startOf('day').toDate();
 
         Players = Players.filter(Boolean);
         const involvedApps = new Set<string>();
 
         for (const player of Players) {
-          const { ID, IsOb, BalanceChange } = player;
+          console.log(player);
+          const { ID, IsOb, BalanceChange, ActiveBet } = player;
           if (IsOb) continue;
 
           const user = await this.userEntity.findOne({ where: { user_id: ID } });
@@ -166,7 +225,7 @@ export class StaPeriodJob implements IJob {
           const stats = this.getStats(statsMap, timeKey, app_id);
 
           stats.betCount++;
-          stats.betAmount += Math.abs(BalanceChange); // todo 
+          stats.betAmount += Math.abs(ActiveBet);
 
           // 平台盈亏 = 用户输赢的负数
           stats.gameWin += -1 * (Number(BalanceChange) || 0);
@@ -181,6 +240,31 @@ export class StaPeriodJob implements IJob {
           if (await this.staPeriodService.isDailyActive(timeKey, ID)) {
             stats.gameUserCount += 1;
           }
+
+          // 用户数据统计
+          const userKey = `${dateKey.getTime()}_${ID}`;
+          if (!userStatsMap.has(userKey)) {
+            userStatsMap.set(userKey, {
+              date: dateKey,
+              userId: ID,
+              appId: app_id,
+              betCount: 0,
+              betAmount: 0,
+              winCount: 0,
+              bankerCount: 0,
+              betWin: 0,
+            });
+          }
+          const uStats = userStatsMap.get(userKey);
+          uStats.betCount++;
+          uStats.betAmount += Math.abs(ActiveBet);
+          uStats.betWin += (Number(BalanceChange) || 0);
+          if ((Number(BalanceChange) || 0) > 0) {
+            uStats.winCount++;
+          }
+          if (BankerID && String(BankerID) === String(ID)) {
+            uStats.bankerCount++;
+          }
         }
 
         // 增加游戏次数 (每个涉及的APP都+1)
@@ -192,6 +276,7 @@ export class StaPeriodJob implements IJob {
         newLastId = record.id;
       }
       await this.saveStats(statsMap);
+      await this.saveUserStats(userStatsMap);
       if (newLastId > lastId) {
         await this.setLastId(newLastId);
       }

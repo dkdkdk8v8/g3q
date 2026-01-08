@@ -40,6 +40,9 @@
           <el-tag v-for="(item, index) in DictEnable" :key="index" :type="item.type as any" size="small"
             v-show="scope.row.enable == item.value">{{ item.label }}</el-tag>
         </template>
+        <template #column-total_net_balance="{ scope }">
+          <format-money :value="scope.row.total_net_balance" />
+        </template>
       </cl-table>
     </cl-row>
 
@@ -63,6 +66,7 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import { ref } from "vue";
 import UserRecord from "../components/user-record.vue";
 import { DictEnable } from "../utils/dict";
+import FormatMoney from "../components/format-money.vue";
 
 const { service } = useCool();
 
@@ -81,7 +85,7 @@ const Table = useTable({
     {
       label: "头像",
       prop: "avatar",
-      width: 100,
+      width: 80,
       component: {
         name: "cl-image",
         props: {
@@ -89,11 +93,11 @@ const Table = useTable({
         },
       },
     },
-    { label: "昵称", prop: "nick_name", minWidth: 120 },
+    { label: "昵称", prop: "nick_name", minWidth: 100 },
     {
       label: "余额",
       prop: "balance",
-      minWidth: 100,
+      minWidth: 80,
       formatter(row) {
         return (row.balance / 100).toFixed(2);
       },
@@ -101,14 +105,48 @@ const Table = useTable({
     {
       label: "锁定余额",
       prop: "balance_lock",
-      minWidth: 100,
+      minWidth: 80,
       formatter(row) {
         return (row.balance_lock / 100).toFixed(2);
       },
     },
-    { label: "设置", prop: "settings", minWidth: 180 },
-    { label: "游戏ID", prop: "game_id", minWidth: 180, showOverflowTooltip: true },
-    { label: "备注", prop: "remark", minWidth: 180, showOverflowTooltip: true },
+    {
+      label: "总充值",
+      prop: "total_deposit",
+      minWidth: 80,
+      formatter(row) {
+        return (row.total_deposit / 100).toFixed(2);
+      },
+    },
+    {
+      label: "总提现",
+      prop: "total_with_draw",
+      minWidth: 80,
+      formatter(row) {
+        return (row.total_with_draw / 100).toFixed(2);
+      },
+    },
+    {
+      label: "游戏次数",
+      prop: "total_game_count",
+      minWidth: 80,
+    },
+    {
+      label: "总投注",
+      prop: "total_bet",
+      minWidth: 80,
+      formatter(row) {
+        return (row.total_bet / 100).toFixed(2);
+      },
+    },
+    {
+      label: "净输赢",
+      prop: "total_net_balance",
+      minWidth: 80,
+    },
+    { label: "用户设置", prop: "settings", minWidth: 160 },
+    { label: "当前游戏ID", prop: "game_id", minWidth: 120, showOverflowTooltip: true },
+    { label: "备注", prop: "remark", minWidth: 120, showOverflowTooltip: true },
     {
       label: "最近游戏",
       prop: "last_played",
@@ -116,7 +154,6 @@ const Table = useTable({
       sortable: "custom",
     },
     { label: "创建时间", prop: "create_at", minWidth: 150, sortable: "desc" },
-    { label: "更新时间", prop: "update_at", minWidth: 150, sortable: "custom" },
     {
       label: "状态",
       prop: "enable",

@@ -94,7 +94,8 @@ export const useGameStore = defineStore('game', () => {
         const currentLength = history.value.length;
         
         const newItems = [];
-        for (let i = 0; i < 10; i++) {
+        const randomCount = Math.floor(Math.random() * 11) + 5; // Generate 5 to 15 items
+        for (let i = 0; i < randomCount; i++) {
             const isWin = Math.random() > 0.5;
             const bet = Math.floor(Math.random() * 5 + 1) * 10;
             newItems.push({

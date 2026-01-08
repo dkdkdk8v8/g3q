@@ -626,7 +626,7 @@ onUnmounted(() => {
 
 // Date Filter Logic
 const showFilterMenu = ref(false);
-const filterType = ref('all'); // 'all' or 'custom'
+const filterType = ref('all'); // 'all', 'today', 'yesterday', 'week', 'custom'
 const showDatePicker = ref(false);
 const currentDate = ref([]); // Vant 4 DatePicker uses array of strings
 const minDate = new Date(new Date().getFullYear() - 2, 0, 1);
@@ -634,6 +634,9 @@ const maxDate = new Date();
 
 const filterLabel = computed(() => {
     if (filterType.value === 'all') return '全部';
+    if (filterType.value === 'today') return '今天';
+    if (filterType.value === 'yesterday') return '昨天';
+    if (filterType.value === 'week') return '7天内';
     if (currentDate.value.length === 3) {
         return `${currentDate.value[0]}-${currentDate.value[1]}-${currentDate.value[2]}`;
     }
@@ -657,7 +660,7 @@ const selectFilter = (type) => {
         }
         showDatePicker.value = true;
     } else {
-        filterType.value = 'all';
+        filterType.value = type;
     }
     showFilterMenu.value = false;
 };
@@ -694,16 +697,31 @@ const historyGrouped = computed(() => {
     let sortedHistory = [...store.history, ...mockHistory].sort((a, b) => b.timestamp - a.timestamp);
     
     // Apply Date Filter
-    if (filterType.value === 'custom' && currentDate.value.length === 3) {
-        const [y, m, d] = currentDate.value;
-        const targetStr = `${y}-${m}-${d}`;
+    if (filterType.value !== 'all') {
+        const now = new Date();
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
         
         sortedHistory = sortedHistory.filter(item => {
-            const date = new Date(item.timestamp);
-            const itemY = date.getFullYear().toString();
-            const itemM = (date.getMonth() + 1).toString().padStart(2, '0');
-            const itemD = date.getDate().toString().padStart(2, '0');
-            return `${itemY}-${itemM}-${itemD}` === targetStr;
+            const itemTime = item.timestamp;
+            
+            if (filterType.value === 'today') {
+                return itemTime >= todayStart;
+            } else if (filterType.value === 'yesterday') {
+                const yesterdayStart = todayStart - 24 * 60 * 60 * 1000;
+                return itemTime >= yesterdayStart && itemTime < todayStart;
+            } else if (filterType.value === 'week') {
+                const weekStart = todayStart - 6 * 24 * 60 * 60 * 1000; // 7 days including today
+                return itemTime >= weekStart;
+            } else if (filterType.value === 'custom' && currentDate.value.length === 3) {
+                const [y, m, d] = currentDate.value;
+                const targetStr = `${y}-${m}-${d}`;
+                const date = new Date(itemTime);
+                const itemY = date.getFullYear().toString();
+                const itemM = (date.getMonth() + 1).toString().padStart(2, '0');
+                const itemD = date.getDate().toString().padStart(2, '0');
+                return `${itemY}-${itemM}-${itemD}` === targetStr;
+            }
+            return true;
         });
     }
 
@@ -1023,12 +1041,15 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                     <div class="modal-header">
                         <h3>投注记录</h3>
                         <div class="filter-chip" @click.stop="toggleFilterMenu">
-                            {{ filterLabel }} <span class="down-triangle">▼</span>
+                            {{ filterLabel }} <span class="down-triangle" :class="{ 'rotate-180': showFilterMenu }">▼</span>
                         </div>
                         
                         <!-- Filter Menu -->
                         <div v-if="showFilterMenu" class="filter-menu" @click.stop>
                             <div class="filter-menu-item" :class="{ active: filterType === 'all' }" @click="selectFilter('all')">全部</div>
+                            <div class="filter-menu-item" :class="{ active: filterType === 'today' }" @click="selectFilter('today')">今天</div>
+                            <div class="filter-menu-item" :class="{ active: filterType === 'yesterday' }" @click="selectFilter('yesterday')">昨天</div>
+                            <div class="filter-menu-item" :class="{ active: filterType === 'week' }" @click="selectFilter('week')">7天内</div>
                             <div class="filter-menu-item" :class="{ active: filterType === 'custom' }" @click="selectFilter('custom')">自定义</div>
                         </div>
 
@@ -2036,6 +2057,11 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 .down-triangle {
     font-size: 10px;
     color: #9ca3af;
+    transition: transform 0.2s ease;
+}
+
+.rotate-180 {
+    transform: rotate(180deg);
 }
 
 .gh-totals {

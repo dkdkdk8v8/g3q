@@ -17,7 +17,6 @@ import (
 
 type RoomManager struct {
 	QZNNRooms map[string]*qznn.QZNNRoom
-	//playerRoom map[string]string // userID -> roomID
 	mu         sync.RWMutex `json:"-"`
 	isDraining bool         // 是否处于排空模式（无感知更新用）
 }

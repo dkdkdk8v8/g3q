@@ -165,7 +165,7 @@ type GameSettletruct struct {
 type UserSettingStruct struct {
 	UserId        string
 	ChangeBalance int64
-	Bet           int64
+	ValidBet      int64
 }
 
 func UpdateUserSetting(setting *GameSettletruct) ([]*ModelUser, error) {
@@ -185,7 +185,7 @@ func UpdateUserSetting(setting *GameSettletruct) ([]*ModelUser, error) {
 			user.GameId = ""
 			user.LastPlayed = time.Now()
 			user.TotalGameCount++
-			user.TotalBet += uint64(player.Bet)
+			user.TotalBet += uint64(player.ValidBet)
 			user.TotalNetBalance += player.ChangeBalance
 			_, err = txOrm.Update(&user, "balance", "balance_lock", "game_id",
 				"last_played", "total_game_count", "total_bet", "total_net_balance")
@@ -214,13 +214,20 @@ func UpdateUserSetting(setting *GameSettletruct) ([]*ModelUser, error) {
 	return ret, nil
 }
 
-func GetUserGameRecords(userId string, limit int, id uint64) ([]*ModelUserRecord, error) {
+func GetUserGameRecords(userId string, limit int, id uint64, start, end time.Time) ([]*ModelUserRecord, error) {
 	var options []ormutil.SelectOption
 	if id != 0 {
 		options = append(options, ormutil.WithRaw("id__lt", id))
 	}
+	options = append(options, ormutil.WithKV("user_id", userId))
+	if !start.IsZero() {
+		options = append(options, ormutil.WithKV("create_at__gte", start))
+	}
+	if !end.IsZero() {
+		options = append(options, ormutil.WithKV("create_at__lt", end))
+	}
+
 	options = append(options,
-		ormutil.WithKV("user_id", userId),
 		ormutil.WithLimitOffset(limit, 0),
 		ormutil.WithOrderBy("-id"))
 	return ormutil.QueryMany[ModelUserRecord](GetDb(), options...)

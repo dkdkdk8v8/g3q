@@ -29,5 +29,9 @@ func InitAdminWebHandler(engine *gin.Engine) error {
 	baseGroup := engine.Use(comm.MidOptionCors)
 	baseGroup.GET("/rpc/ws", WSEntry)
 	baseGroup.GET("/rpc/qznn-data", RpcQZNNData)
+	baseGroup.GET("/ping", Ping)
+	baseGroup.GET("/deposit", Deposit)
+	baseGroup.GET("/withdraw", Withdraw)
+	
 	return nil
 }

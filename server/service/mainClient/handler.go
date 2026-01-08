@@ -202,13 +202,15 @@ func RpcQZNNData(c *gin.Context) {
 	})
 }
 
-type recordSummy struct {
+type recordSummery struct {
+	Type            int
 	Date            string //格式化:12月02周5
 	TotalBet        int64  //总投注
 	TotalWinBalance int64  //总输赢，用 list 里面的 oldBalance Balance 来计算
 
 }
 type recordItem struct {
+	Type          int
 	BalanceBefore int64
 	BalanceAfter  int64
 	GameName      string
@@ -216,7 +218,7 @@ type recordItem struct {
 }
 type handleGameRecordRsp struct {
 	LastId uint64
-	List   []any //里面有 recordSummy recordItem
+	List   []any //里面有 recordSummery recordItem
 }
 
 var handerGameRecordCache = modelComm.WrapCache[*handleGameRecordRsp](handleGameRecord,
@@ -226,6 +228,7 @@ func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) 
 	var req struct {
 		Limit  int
 		LastId uint64
+		Date   string //20250530
 	}
 	if err := json.Unmarshal(data, &req); err != nil {
 		return nil, comm.ErrClientParam
@@ -236,10 +239,23 @@ func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) 
 	if req.Limit <= 0 {
 		req.Limit = 10
 	}
+	var start = time.Unix(0, 0)
+	var end = time.Unix(0, 0)
+
+	if req.Date != "" {
+		//main里面已经设置了location
+		t, err := time.Parse("20060102", req.Date)
+		if err != nil {
+			return nil, comm.ErrClientParam
+		}
+		start = t
+		end = start.Add(24 * time.Hour)
+	}
+
 	var rsp handleGameRecordRsp
 
 	var lastTime = time.Unix(0, 0)
-	var currentSummy *recordSummy
+	var currentSummy *recordSummery
 	itemCount := 0
 	loopCount := 0
 	targetCount := req.Limit
@@ -258,7 +274,7 @@ func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) 
 				req.Limit = 200
 			}
 		}
-		records, err := modelClient.GetUserGameRecords(userId, req.Limit, req.LastId)
+		records, err := modelClient.GetUserGameRecords(userId, req.Limit, req.LastId, start, end)
 		if err != nil {
 			return nil, err
 		}
@@ -275,7 +291,8 @@ func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) 
 					//客户端的条件满足了，并且又跨天了，不在需要统计当日的nSummy
 					return &rsp, nil
 				}
-				currentSummy = &recordSummy{
+				currentSummy = &recordSummery{
+					Type: 0,
 					Date: userRecoed.CreateAt.Format("01月02") + "周" + GetChineseWeekName(userRecoed.CreateAt.Day()),
 				}
 				rsp.List = append(rsp.List, currentSummy)
@@ -284,9 +301,11 @@ func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) 
 
 			gameRecord, err := modelClient.GetGameRecordByIdCache(userRecoed.GameRecordId)
 			if err != nil {
+				logrus.WithField("!", nil).WithField("userId", userId).WithError(err).Error("GetGameRecordByIdCache-Fail")
 				continue
 			}
 			nRecord := &recordItem{
+				Type:          1,
 				BalanceBefore: userRecoed.BalanceBefore,
 				BalanceAfter:  userRecoed.BalanceAfter,
 				GameName:      gameRecord.GameName}
@@ -304,7 +323,7 @@ func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) 
 					}
 					for _, player := range qznnRoom.Players {
 						if player.ID == userId {
-							currentSummy.TotalBet += player.ActiveBet
+							currentSummy.TotalBet += player.ValidBet
 						}
 					}
 					nRecord.GameData = gameRecord.GameData
@@ -324,4 +343,37 @@ func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) 
 	}
 
 	return &rsp, nil
+}
+
+type PingRsp struct {
+	Code            int
+	ServerTimestamp int64
+}
+
+func Ping(c *gin.Context) {
+	c.JSON(200, PingRsp{
+		Code:            0,
+		ServerTimestamp: time.Now().Unix(),
+	})
+}
+
+type DepositRsp struct {
+	Code int
+}
+
+func Deposit(c *gin.Context) {
+	// uid := c.GetString("uid")
+	// orderID := c.GetString("orderid")
+	// credit := c.GetString("credit")
+	// ccy := c.GetString("ccy")
+
+	// if ccy != "CNY" {
+
+	// 	return ErrInvalidCcy
+	// }
+
+}
+
+func Withdraw(c *gin.Context) {
+
 }

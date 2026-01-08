@@ -18,17 +18,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// WebSocket 服务器地址
-const SERVER_URL = "ws://127.0.0.1:8084/rpc/ws"         // 正式服地址
-const SERVER_URL_DEV = "ws://172.20.10.11:18084/rpc/ws" // 测试服地址
-
-const MINUTE_WAIT_MAX = 10       // 进入房间前等待的最长分钟数
-const MIN_GAMES = 10             // 机器人至少玩几局
-const PROB_LEAVE_5_PLAYERS = 0.8 // 5人时退出概率
-const PROB_LEAVE_4_PLAYERS = 0.6 // 4人时退出概率
-const PROB_LEAVE_3_PLAYERS = 0.4 // 3人时退出概率
-const PROB_LEAVE_2_PLAYERS = 0.0 // 2人时退出概率
-
 var targetServerURL = SERVER_URL
 
 func Start() {
@@ -167,6 +156,8 @@ func (r *Robot) Run() {
 			Cmd      comm.CmdType    `json:"Cmd"`
 			PushType comm.PushType   `json:"PushType"`
 			Data     json.RawMessage `json:"Data"`
+			Code     int             `json:"Code"`
+			Msg      string          `json:"Msg"`
 		}
 		var msg GenericMsg
 		err := r.Conn.ReadJSON(&msg)
@@ -178,6 +169,11 @@ func (r *Robot) Run() {
 				return
 			}
 			logrus.Errorf("机器人 %s 读取消息错误: %v", r.Uid, err)
+			return
+		}
+
+		if msg.Code != 0 {
+			logrus.Errorf("机器人 %s 收到错误: %d %s", r.Uid, msg.Code, msg.Msg)
 			return
 		}
 
@@ -270,22 +266,34 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 
 	case qznn.PushPlayerCallBanker:
 		var d qznn.PushPlayerCallBankerStruct
-		json.Unmarshal(data, &d)
+		if err := json.Unmarshal(data, &d); err != nil {
+			logrus.Errorf("机器人 %s 解析 PushPlayerCallBanker 失败: %v", r.Uid, err)
+			return
+		}
 		r.updateRoomInfo(d.Room)
 
 	case qznn.PushPlayerPlaceBet:
 		var d qznn.PushPlayerPlaceBetStruct
-		json.Unmarshal(data, &d)
+		if err := json.Unmarshal(data, &d); err != nil {
+			logrus.Errorf("机器人 %s 解析 PushPlayerPlaceBet 失败: %v", r.Uid, err)
+			return
+		}
 		r.updateRoomInfo(d.Room)
 
 	case qznn.PushPlayerShowCard:
 		var d qznn.PushPlayerShowCardStruct
-		json.Unmarshal(data, &d)
+		if err := json.Unmarshal(data, &d); err != nil {
+			logrus.Errorf("机器人 %s 解析 PushPlayerShowCard 失败: %v", r.Uid, err)
+			return
+		}
 		r.updateRoomInfo(d.Room)
 
 	case qznn.PushRoom:
 		var d qznn.PushRoomStruct
-		json.Unmarshal(data, &d)
+		if err := json.Unmarshal(data, &d); err != nil {
+			logrus.Errorf("机器人 %s 解析 PushRoom 失败: %v", r.Uid, err)
+			return
+		}
 		r.updateRoomInfo(d.Room)
 	}
 }
@@ -312,8 +320,8 @@ func (r *Robot) handleStateChange(state qznn.RoomState) {
 	r.mu.Unlock()
 
 	go func() {
-		// 模拟用户随机等待 1-3 秒
-		time.Sleep(time.Duration(rand.Intn(3)+1) * time.Second)
+		// 模拟用户随机等待 1-2 秒
+		time.Sleep(time.Duration(rand.Intn(2)+1) * time.Second)
 
 		switch state {
 		case qznn.StateBanking:

@@ -344,3 +344,36 @@ func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) 
 
 	return &rsp, nil
 }
+
+type PingRsp struct {
+	Code            int
+	ServerTimestamp int64
+}
+
+func Ping(c *gin.Context) {
+	c.JSON(200, PingRsp{
+		Code:            0,
+		ServerTimestamp: time.Now().Unix(),
+	})
+}
+
+type DepositRsp struct {
+	Code int
+}
+
+func Deposit(c *gin.Context) {
+	// uid := c.GetString("uid")
+	// orderID := c.GetString("orderid")
+	// credit := c.GetString("credit")
+	// ccy := c.GetString("ccy")
+
+	// if ccy != "CNY" {
+
+	// 	return ErrInvalidCcy
+	// }
+
+}
+
+func Withdraw(c *gin.Context) {
+
+}

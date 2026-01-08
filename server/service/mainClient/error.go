@@ -8,4 +8,6 @@ var (
 	ErrDidExist      = comm.NewMyErrorWithCode(400001, "设备已经被注册，请重新安装或清缓存重新进入")
 	ErrCoinNotEnough = comm.NewMyErrorWithCode(400002, "玩币不足")
 	ErrCommonError   = comm.NewMyErrorWithCode(999999, "")
+
+	ErrInvalidCcy = comm.NewMyErrorWithCode(100, "不支持的币种")
 )

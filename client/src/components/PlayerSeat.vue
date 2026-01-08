@@ -23,7 +23,8 @@ const props = defineProps({
           type: Array,
           default: () => []
       },
-      triggerBankerAnimation: Boolean // New prop for one-time banker confirmation animation
+      triggerBankerAnimation: Boolean, // New prop for one-time banker confirmation animation
+      isWin: Boolean // New prop for neon flash effect on winner
   });
   
   const store = useGameStore();
@@ -223,7 +224,7 @@ const displayName = computed(() => {
     <!-- ... (keep avatar area) -->
     <div class="avatar-area">
       <div class="avatar-wrapper">
-          <div class="avatar-frame" :class="{ 'banker-candidate-highlight': isAnimatingHighlight, 'banker-confirm-anim': triggerBankerAnimation, 'is-banker': player.isBanker }">
+          <div class="avatar-frame" :class="{ 'banker-candidate-highlight': isAnimatingHighlight, 'banker-confirm-anim': triggerBankerAnimation, 'is-banker': player.isBanker, 'win-neon-flash': isWin }">
               <van-image
                 round
                 :src="player.avatar"
@@ -412,6 +413,16 @@ const displayName = computed(() => {
 @keyframes pulse-border-glow {
     from { box-shadow: 0 0 15px 5px #facc15, 0 0 8px 2px #d97706; }
     to { box-shadow: 0 0 20px 8px #fcd34d, 0 0 10px 3px #fbbf24; }
+}
+
+.avatar-frame.win-neon-flash {
+    animation: neon-flash 0.5s infinite alternate;
+    border-color: #ffd700;
+}
+
+@keyframes neon-flash {
+    0% { box-shadow: 0 0 5px #ffd700, 0 0 10px #ffd700; }
+    100% { box-shadow: 0 0 20px #ffd700, 0 0 40px #ff4500; }
 }
 
 /* Make the van-image fill its parent frame */

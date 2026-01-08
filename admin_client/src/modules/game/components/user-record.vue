@@ -6,23 +6,23 @@
                     <el-card shadow="hover" class="record-card">
                         <template #header>
                             <div class="card-header"
-                                @click="item.record_type === 0 ? item.expanded = !item.expanded : null"
-                                :class="{ 'is-clickable': item.record_type === 0 }">
+                                @click="item.record_type === RecordType.GAME ? item.expanded = !item.expanded : null"
+                                :class="{ 'is-clickable': item.record_type === RecordType.GAME }">
                                 <div class="left">
                                     <span class="time">{{ item.create_at }}</span>
-                                    <el-tag :type="item.record_type === 0 ? 'success' : 'info'" effect="dark">
-                                        {{ item.record_type === 0 ? '游戏' : '其他' }}
+                                    <el-tag :type="getRecordTypeInfo(item.record_type).type" effect="dark">
+                                        {{ getRecordTypeInfo(item.record_type).label }}
                                     </el-tag>
                                 </div>
                                 <div class="right">
-                                    <span class="label">变动:</span>
+                                    <span class="label"></span>
                                     <span class="amount" :class="getBalanceChange(item) >= 0 ? 'plus' : 'minus'">
                                         {{ getBalanceChange(item) > 0 ? '+' : '' }}{{ (getBalanceChange(item) /
                                             100).toFixed(2) }}
                                     </span>
                                     <span class="label">余额:</span>
                                     <span class="balance">{{ (item.balance_after / 100).toFixed(2) }}</span>
-                                    <el-icon v-if="item.record_type === 0" class="expand-icon"
+                                    <el-icon v-if="item.record_type === RecordType.GAME" class="expand-icon"
                                         :class="{ 'is-expanded': item.expanded }">
                                         <ArrowRight />
                                     </el-icon>
@@ -30,7 +30,7 @@
                             </div>
                         </template>
 
-                        <div v-show="item.expanded" v-if="item.record_type === 0 && item.parsedGameData"
+                        <div v-show="item.expanded" v-if="item.record_type === RecordType.GAME && item.parsedGameData"
                             class="game-detail">
                             <div class="room-info">
                                 <div class="tags">
@@ -87,6 +87,24 @@ import { useCool } from "/@/cool";
 import { getCardResult, getCardStyle } from "../utils/card";
 import { getRoomInfo } from "../utils/room";
 import { ArrowRight } from "@element-plus/icons-vue";
+
+const RecordType = {
+    DEPOSIT: 0,
+    WITHDRAW: 1,
+    GAME: 2,
+    ADMIN: 3,
+};
+
+const RecordTypeMap: any = {
+    [RecordType.DEPOSIT]: { label: "充值", type: "primary" },
+    [RecordType.WITHDRAW]: { label: "提现", type: "warning" },
+    [RecordType.GAME]: { label: "游戏", type: "success" },
+    [RecordType.ADMIN]: { label: "后台", type: "info" },
+};
+
+function getRecordTypeInfo(type: number) {
+    return RecordTypeMap[type] || { label: "其他", type: "info" };
+}
 
 const { service } = useCool();
 

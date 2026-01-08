@@ -25,7 +25,4 @@ export class GameUserRecordEntity {
 
   @Column({ comment: '创建时间' })
   create_at: Date;
-
-  @Column({ comment: '更新时间' })
-  update_at: Date;
 }

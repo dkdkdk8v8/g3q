@@ -488,7 +488,7 @@ const startDealingAnimation = (isSupplemental = false) => {
         visibleCounts.value = {}; // Reset visible counts ONLY if not supplemental
         dealingCounts.value = {}; // Reset dealing counts too
     }
-    
+
     // Fallback: If dealingLayer is not ready (e.g. immediate watcher on mount), 
     // directly set visible counts to ensure cards are shown without animation.
     if (!dealingLayer.value) {
@@ -561,7 +561,7 @@ const startDealingAnimation = (isSupplemental = false) => {
             dealingLayer.value.dealToPlayer(cardTargets, () => {
                 if (!visibleCounts.value[t.id]) visibleCounts.value[t.id] = 0;
                 visibleCounts.value[t.id] += t.count;
-                
+
                 // Animation finished: remove from flying count
                 if (dealingCounts.value[t.id]) {
                     dealingCounts.value[t.id] -= t.count;
@@ -678,18 +678,18 @@ const onCancelDate = () => {
 // History Logic
 const historyGrouped = computed(() => {
     const groups = {};
-    
+
     // Sort history by timestamp desc first
     let sortedHistory = [...store.history].sort((a, b) => b.timestamp - a.timestamp);
-    
+
     // Apply Date Filter
     if (filterType.value !== 'all') {
         const now = new Date();
         const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-        
+
         sortedHistory = sortedHistory.filter(item => {
             const itemTime = item.timestamp;
-            
+
             if (filterType.value === 'today') {
                 return itemTime >= todayStart;
             } else if (filterType.value === 'yesterday') {
@@ -716,7 +716,7 @@ const historyGrouped = computed(() => {
         const month = (date.getMonth() + 1).toString().padStart(2, '0');
         const day = date.getDate().toString().padStart(2, '0');
         const dateKey = `${month}-${day}`;
-        
+
         if (!groups[dateKey]) {
             groups[dateKey] = {
                 dateStr: `${month}-${day}日`,
@@ -729,7 +729,7 @@ const historyGrouped = computed(() => {
         groups[dateKey].totalBet += (item.bet || 0);
         groups[dateKey].totalValid += (item.bet || 0); // Assuming valid bet = bet
     });
-    
+
     // Return array sorted by date desc (keys are MM-DD, so lex sort reverse works for same year)
     return Object.keys(groups).sort().reverse().map(key => groups[key]);
 });
@@ -738,11 +738,11 @@ const formatHistoryTime = (ts) => {
     const date = new Date(ts);
     const now = new Date();
     const isToday = date.getDate() === now.getDate() && date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
-    
+
     const h = date.getHours().toString().padStart(2, '0');
     const m = date.getMinutes().toString().padStart(2, '0');
     const s = date.getSeconds().toString().padStart(2, '0');
-    
+
     return `${isToday ? '今天' : ''} ${h}:${m}:${s}`;
 };
 
@@ -916,8 +916,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                     :position="getLayoutType(index + 1)"
                     :visible-card-count="visibleCounts[p.id] !== undefined ? visibleCounts[p.id] : 0"
                     :is-ready="p.isReady" :is-animating-highlight="p.id === currentlyHighlightedPlayerId"
-                    :speech="playerSpeech.get(p.id)" 
-                    :trigger-banker-animation="showBankerConfirmAnim && p.isBanker" />
+                    :speech="playerSpeech.get(p.id)" :trigger-banker-animation="showBankerConfirmAnim && p.isBanker" />
                 <div v-else class="empty-seat">
                     <div class="empty-seat-avatar">
                         <van-icon name="plus" color="rgba(255,255,255,0.3)" size="20" />
@@ -931,219 +930,219 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
             <!-- 阶段提示信息容器 -->
             <div v-if="['READY_COUNTDOWN', 'ROB_BANKER', 'BETTING', 'SHOWDOWN', 'BANKER_SELECTION_ANIMATION', 'BANKER_CONFIRMED', 'SETTLEMENT'].includes(store.currentPhase)"
                 class="clock-and-info-wrapper">
-                    <div class="phase-info">
-                        <span v-if="store.currentPhase === 'WAITING_FOR_PLAYERS'">匹配玩家中...</span>
-                        <span v-else-if="store.currentPhase === 'READY_COUNTDOWN'">游戏即将开始  {{ store.countdown }}</span>
-                        <span v-else-if="store.currentPhase === 'ROB_BANKER'">看牌抢庄  {{ store.countdown }}</span>
-                        <span v-else-if="store.currentPhase === 'BETTING'">闲家下注  {{ store.countdown }}</span>
-                        <span v-else-if="store.currentPhase === 'SHOWDOWN'">摊牌比拼  {{ store.countdown }}</span>
-                        <span v-else-if="store.currentPhase === 'BANKER_SELECTION_ANIMATION'">正在选庄...</span>
-                        <span v-else-if="store.currentPhase === 'BANKER_CONFIRMED'">庄家已定</span>
-                        <span v-else-if="store.currentPhase === 'SETTLEMENT'">结算中...</span>
-                    </div>
-            </div>
-
-                <!-- 重新开始按钮 -->
-                <div v-if="store.currentPhase === 'GAME_OVER'" class="restart-btn" @click="startGameDebounced()">
-                    继续游戏
+                <div class="phase-info">
+                    <span v-if="store.currentPhase === 'WAITING_FOR_PLAYERS'">匹配玩家中...</span>
+                    <span v-else-if="store.currentPhase === 'READY_COUNTDOWN'">游戏即将开始 {{ store.countdown }}</span>
+                    <span v-else-if="store.currentPhase === 'ROB_BANKER'">看牌抢庄 {{ store.countdown }}</span>
+                    <span v-else-if="store.currentPhase === 'BETTING'">闲家下注 {{ store.countdown }}</span>
+                    <span v-else-if="store.currentPhase === 'SHOWDOWN'">摊牌比拼 {{ store.countdown }}</span>
+                    <span v-else-if="store.currentPhase === 'BANKER_SELECTION_ANIMATION'">正在选庄...</span>
+                    <span v-else-if="store.currentPhase === 'BANKER_CONFIRMED'">庄家已定</span>
+                    <span v-else-if="store.currentPhase === 'SETTLEMENT'">结算中...</span>
                 </div>
             </div>
 
-            <!-- 自己区域 -->
-
-            <div class="my-area" v-if="myPlayer">
-                <div class="controls-container">
-                    <!-- Auto Join Banner -->
-                    <transition name="fade">
-                        <div v-if="showAutoJoinMessage" class="auto-join-banner">
-                            上一局游戏未结束，自动进入此房间
-                        </div>
-                    </transition>
-
-
-                    <div v-if="store.currentPhase === 'ROB_BANKER' && !myPlayer.isObserver && myPlayer.robMultiplier === -1"
-                        class="btn-group">
-                        <div class="game-btn blue" @click="onRob(0)">不抢</div>
-                        <div v-for="mult in store.bankerMult.filter(m => m > 0)" :key="mult" class="game-btn orange"
-                            @click="onRob(mult)">
-                            {{ mult }}倍
-                        </div>
-                    </div>
-
-                    <div v-if="store.currentPhase === 'BETTING' && !myPlayer.isBanker && myPlayer.betMultiplier === 0 && !myPlayer.isObserver"
-                        class="btn-group">
-                        <div v-for="mult in store.betMult" :key="mult" class="game-btn orange" @click="onBet(mult)">
-                            {{ mult }}倍
-                        </div>
-                    </div>
-
-                    <div v-if="store.currentPhase === 'BETTING' && myPlayer.isBanker" class="waiting-text">
-                        等待闲家下注...
-                    </div>
-
-                    <div v-if="myPlayer.betMultiplier > 0 && store.currentPhase === 'BETTING' && !myPlayer.isBanker && !myPlayer.isObserver"
-                        class="waiting-text">
-                        已下注，等待开牌...
-                    </div>
-
-                    <!-- 摊牌按钮 -->
-                    <div v-if="store.currentPhase === 'SHOWDOWN' && !myPlayer.isShowHand && store.countdown > 0 && !myPlayer.isObserver"
-                        class="showdown-wrapper">
-
-                        <div class="game-btn orange showdown-btn" @click="playerShowHandDebounced(myPlayer.id)">
-                            摊牌
-                        </div>
-
-                        <!-- Calculation Formula -->
-                        <div class="calc-container">
-                            <div class="calc-box">{{ calculationData.labels[0] || '' }}</div>
-                            <div class="calc-symbol">+</div>
-                            <div class="calc-box">{{ calculationData.labels[1] || '' }}</div>
-                            <div class="calc-symbol">+</div>
-                            <div class="calc-box">{{ calculationData.labels[2] || '' }}</div>
-                            <div class="calc-symbol">=</div>
-                            <div class="calc-box result">{{ calculationData.isFull ? calculationData.sum : '' }}</div>
-                        </div>
-                    </div>
-
-                    <!-- Observer Waiting Text for Me -->
-                    <div v-if="myPlayer.isObserver" class="observer-waiting-banner">
-                        请耐心等待下一局<span class="loading-dots"></span>
-                    </div>
-                </div>
-
-                <PlayerSeat :player="myPlayer" :is-me="true" :ref="(el) => myPlayer && setSeatRef(el, myPlayer.id)"
-                    position="bottom"
-                    :visible-card-count="(myPlayer && visibleCounts[myPlayer.id] !== undefined) ? visibleCounts[myPlayer.id] : 0"
-                    :is-ready="myPlayer && myPlayer.isReady"
-                    :is-animating-highlight="myPlayer && myPlayer.id === currentlyHighlightedPlayerId"
-                    :speech="myPlayer ? playerSpeech.get(myPlayer.id) : null"
-                    :selected-card-indices="selectedCardIndices" @card-click="handleCardClick" 
-                    :trigger-banker-animation="showBankerConfirmAnim && myPlayer && myPlayer.isBanker" />
+            <!-- 重新开始按钮 -->
+            <div v-if="store.currentPhase === 'GAME_OVER'" class="restart-btn" @click="startGameDebounced()">
+                继续游戏
             </div>
-
-            <!-- 全局点击关闭菜单 -->
-            <div v-if="showMenu" class="mask-transparent" @click="toggleShowMenu()"></div>
-
-            <!-- 评论/表情按钮 -->
-            <div class="chat-toggle-btn" @click="toggleShowChatSelector()">
-                <van-icon name="comment" size="24" color="white" />
-            </div>
-
-            <!-- 押注记录弹窗 -->
-            <div v-if="showHistory" class="modal-overlay" style="z-index: 8000;">
-                <div class="modal-content history-modal">
-                    <div class="modal-header">
-                        <h3>投注记录</h3>
-                        <div class="filter-chip" @click.stop="toggleFilterMenu">
-                            {{ filterLabel }} <span class="down-triangle" :class="{ 'rotate-180': showFilterMenu }">▼</span>
-                            
-                            <!-- Filter Menu -->
-                            <div v-if="showFilterMenu" class="filter-menu" @click.stop>
-                                <div class="filter-menu-item" :class="{ active: filterType === 'all' }" @click="selectFilter('all')">全部</div>
-                                <div class="filter-menu-item" :class="{ active: filterType === 'today' }" @click="selectFilter('today')">今天</div>
-                                <div class="filter-menu-item" :class="{ active: filterType === 'yesterday' }" @click="selectFilter('yesterday')">昨天</div>
-                                <div class="filter-menu-item" :class="{ active: filterType === 'week' }" @click="selectFilter('week')">7天内</div>
-                                <div class="filter-menu-item" :class="{ active: filterType === 'custom' }" @click="selectFilter('custom')">自定义</div>
-                            </div>
-                        </div>
-
-                        <div class="header-right">
-                            <div class="close-icon" @click="closeHistoryDebounced()">×</div>
-                        </div>
-                    </div>
-                    
-                    <div class="history-list-new" ref="historyListRef" @scroll="handleHistoryScroll">
-                        <div v-if="historyGrouped.length === 0" class="empty-tip">暂无记录</div>
-                        
-                        <div v-for="group in historyGrouped" :key="group.dateStr" class="history-group">
-                            <div class="group-header">
-                                <div class="gh-date">{{ group.dateStr }} <span class="down-triangle">▼</span></div>
-                                <div class="gh-totals">
-                                    投注 ¥{{ formatCoins(group.totalBet) }} &nbsp; 有效投注 ¥{{ formatCoins(group.totalValid) }}
-                                </div>
-                            </div>
-                            
-                            <div v-for="(item, idx) in group.items" :key="idx" class="history-card">
-                                <div class="hc-content">
-                                    <div class="hc-top-row">
-                                        <span class="hc-title">抢庄牛牛 | {{ item.roomName }}</span>
-                                        <span class="hc-hand">{{ item.handType }}</span>
-                                    </div>
-                                    <div class="hc-bottom-row">
-                                        <span class="hc-time">{{ formatHistoryTime(item.timestamp) }}</span>
-                                    </div>
-                                </div>
-                                <div class="hc-right">
-                                    <div class="hc-score" :class="item.score >= 0 ? 'win' : 'lose'">
-                                        {{ item.score > 0 ? '+' : '' }}{{ formatCoins(item.score) }}
-                                    </div>
-                                    <div class="hc-bet-amt">
-                                        投注: ¥{{ formatCoins(item.bet) }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div v-if="store.isLoadingHistory" class="loading-more">
-                            <van-loading type="spinner" size="24px" color="#cbd5e1">加载中...</van-loading>
-                        </div>
-                    </div>
-
-                    <!-- Date Picker Popup -->
-                    <van-popup v-model:show="showDatePicker" position="bottom" :style="{ height: '40%' }" teleport="body" z-index="9000" class="dark-theme-popup">
-                        <van-date-picker
-                            v-model="currentDate"
-                            title="选择日期"
-                            :min-date="minDate"
-                            :max-date="maxDate"
-                            @confirm="onConfirmDate"
-                            @cancel="onCancelDate"
-                        />
-                    </van-popup>
-                </div>
-            </div>
-
-            <!-- Settings Modal -->
-            <div v-if="showSettings" class="modal-overlay">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3>游戏设置</h3>
-                        <div class="close-icon" @click="closeSettingsDebounced()">×</div>
-                    </div>
-                    <div class="settings-list">
-                        <div class="setting-item">
-                            <span>背景音乐</span>
-                            <van-switch v-model="settingsStore.musicEnabled" size="24px" active-color="#13ce66"
-                                inactive-color="#ff4949" />
-                        </div>
-                        <div class="setting-item">
-                            <span>游戏音效</span>
-                            <van-switch v-model="settingsStore.soundEnabled" size="24px" active-color="#13ce66"
-                                inactive-color="#ff4949" />
-                        </div>
-                        <div class="setting-item">
-                            <span>屏蔽他人发言</span>
-                            <van-switch v-model="settingsStore.muteUsers" size="24px" active-color="#13ce66"
-                                inactive-color="#ff4949" />
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Wrap ChatBubbleSelector to avoid nextSibling error -->
-            <div>
-                <ChatBubbleSelector v-model:visible="showChatSelector" @selectPhrase="onPhraseSelected"
-                    @selectEmoji="onEmojiSelected" />
-            </div>
-
-            <!-- Cooldown Toast -->
-            <transition name="toast-fade">
-                <div v-if="showToast" class="cooldown-toast">
-                    {{ cooldownMessage }}
-                </div>
-            </transition>
         </div>
+
+        <!-- 自己区域 -->
+
+        <div class="my-area" v-if="myPlayer">
+            <div class="controls-container">
+                <!-- Auto Join Banner -->
+                <transition name="fade">
+                    <div v-if="showAutoJoinMessage" class="auto-join-banner">
+                        上一局游戏未结束，自动进入此房间
+                    </div>
+                </transition>
+
+
+                <div v-if="store.currentPhase === 'ROB_BANKER' && !myPlayer.isObserver && myPlayer.robMultiplier === -1"
+                    class="btn-group">
+                    <div class="game-btn blue" @click="onRob(0)">不抢</div>
+                    <div v-for="mult in store.bankerMult.filter(m => m > 0)" :key="mult" class="game-btn orange"
+                        @click="onRob(mult)">
+                        {{ mult }}倍
+                    </div>
+                </div>
+
+                <div v-if="store.currentPhase === 'BETTING' && !myPlayer.isBanker && myPlayer.betMultiplier === 0 && !myPlayer.isObserver"
+                    class="btn-group">
+                    <div v-for="mult in store.betMult" :key="mult" class="game-btn orange" @click="onBet(mult)">
+                        {{ mult }}倍
+                    </div>
+                </div>
+
+                <div v-if="store.currentPhase === 'BETTING' && myPlayer.isBanker" class="waiting-text">
+                    等待闲家下注...
+                </div>
+
+                <div v-if="myPlayer.betMultiplier > 0 && store.currentPhase === 'BETTING' && !myPlayer.isBanker && !myPlayer.isObserver"
+                    class="waiting-text">
+                    已下注，等待开牌...
+                </div>
+
+                <!-- 摊牌按钮 -->
+                <div v-if="store.currentPhase === 'SHOWDOWN' && !myPlayer.isShowHand && store.countdown > 0 && !myPlayer.isObserver"
+                    class="showdown-wrapper">
+
+                    <div class="game-btn orange showdown-btn" @click="playerShowHandDebounced(myPlayer.id)">
+                        摊牌
+                    </div>
+
+                    <!-- Calculation Formula -->
+                    <div class="calc-container">
+                        <div class="calc-box">{{ calculationData.labels[0] || '' }}</div>
+                        <div class="calc-symbol">+</div>
+                        <div class="calc-box">{{ calculationData.labels[1] || '' }}</div>
+                        <div class="calc-symbol">+</div>
+                        <div class="calc-box">{{ calculationData.labels[2] || '' }}</div>
+                        <div class="calc-symbol">=</div>
+                        <div class="calc-box result">{{ calculationData.isFull ? calculationData.sum : '' }}</div>
+                    </div>
+                </div>
+
+                <!-- Observer Waiting Text for Me -->
+                <div v-if="myPlayer.isObserver" class="observer-waiting-banner">
+                    请耐心等待下一局<span class="loading-dots"></span>
+                </div>
+            </div>
+
+            <PlayerSeat :player="myPlayer" :is-me="true" :ref="(el) => myPlayer && setSeatRef(el, myPlayer.id)"
+                position="bottom"
+                :visible-card-count="(myPlayer && visibleCounts[myPlayer.id] !== undefined) ? visibleCounts[myPlayer.id] : 0"
+                :is-ready="myPlayer && myPlayer.isReady"
+                :is-animating-highlight="myPlayer && myPlayer.id === currentlyHighlightedPlayerId"
+                :speech="myPlayer ? playerSpeech.get(myPlayer.id) : null" :selected-card-indices="selectedCardIndices"
+                @card-click="handleCardClick"
+                :trigger-banker-animation="showBankerConfirmAnim && myPlayer && myPlayer.isBanker" />
+        </div>
+
+        <!-- 全局点击关闭菜单 -->
+        <div v-if="showMenu" class="mask-transparent" @click="toggleShowMenu()"></div>
+
+        <!-- 评论/表情按钮 -->
+        <div class="chat-toggle-btn" @click="toggleShowChatSelector()">
+            <van-icon name="comment" size="24" color="white" />
+        </div>
+
+        <!-- 押注记录弹窗 -->
+        <div v-if="showHistory" class="modal-overlay" style="z-index: 8000;">
+            <div class="modal-content history-modal">
+                <div class="modal-header">
+                    <h3>投注记录</h3>
+                    <div class="filter-chip" @click.stop="toggleFilterMenu">
+                        {{ filterLabel }} <span class="down-triangle" :class="{ 'rotate-180': showFilterMenu }">▼</span>
+
+                        <!-- Filter Menu -->
+                        <div v-if="showFilterMenu" class="filter-menu" @click.stop>
+                            <div class="filter-menu-item" :class="{ active: filterType === 'all' }"
+                                @click="selectFilter('all')">全部</div>
+                            <div class="filter-menu-item" :class="{ active: filterType === 'today' }"
+                                @click="selectFilter('today')">今天</div>
+                            <div class="filter-menu-item" :class="{ active: filterType === 'yesterday' }"
+                                @click="selectFilter('yesterday')">昨天</div>
+                            <div class="filter-menu-item" :class="{ active: filterType === 'week' }"
+                                @click="selectFilter('week')">7天内</div>
+                            <div class="filter-menu-item" :class="{ active: filterType === 'custom' }"
+                                @click="selectFilter('custom')">自定义</div>
+                        </div>
+                    </div>
+
+                    <div class="header-right">
+                        <div class="close-icon" @click="closeHistoryDebounced()">×</div>
+                    </div>
+                </div>
+
+                <div class="history-list-new" ref="historyListRef" @scroll="handleHistoryScroll">
+                    <div v-if="historyGrouped.length === 0" class="empty-tip">暂无记录</div>
+
+                    <div v-for="group in historyGrouped" :key="group.dateStr" class="history-group">
+                        <div class="group-header">
+                            <div class="gh-date">{{ group.dateStr }} <span class="down-triangle">▼</span></div>
+                            <div class="gh-totals">
+                                投注 ¥{{ formatCoins(group.totalBet) }} &nbsp; 有效投注 ¥{{ formatCoins(group.totalValid) }}
+                            </div>
+                        </div>
+
+                        <div v-for="(item, idx) in group.items" :key="idx" class="history-card">
+                            <div class="hc-content">
+                                <div class="hc-top-row">
+                                    <span class="hc-title">抢庄牛牛 | {{ item.roomName }}</span>
+                                    <span class="hc-hand">{{ item.handType }}</span>
+                                </div>
+                                <div class="hc-bottom-row">
+                                    <span class="hc-time">{{ formatHistoryTime(item.timestamp) }}</span>
+                                </div>
+                            </div>
+                            <div class="hc-right">
+                                <div class="hc-score" :class="item.score >= 0 ? 'win' : 'lose'">
+                                    {{ item.score > 0 ? '+' : '' }}{{ formatCoins(item.score) }}
+                                </div>
+                                <div class="hc-bet-amt">
+                                    投注: ¥{{ formatCoins(item.bet) }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="store.isLoadingHistory" class="loading-more">
+                        <van-loading type="spinner" size="24px" color="#cbd5e1">加载中...</van-loading>
+                    </div>
+                </div>
+
+                <!-- Date Picker Popup -->
+                <van-popup v-model:show="showDatePicker" position="bottom" :style="{ height: '40%' }" teleport="body"
+                    z-index="9000" class="dark-theme-popup">
+                    <van-date-picker v-model="currentDate" title="选择日期" :min-date="minDate" :max-date="maxDate"
+                        @confirm="onConfirmDate" @cancel="onCancelDate" />
+                </van-popup>
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div v-if="showSettings" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>游戏设置</h3>
+                    <div class="close-icon" @click="closeSettingsDebounced()">×</div>
+                </div>
+                <div class="settings-list">
+                    <div class="setting-item">
+                        <span>背景音乐</span>
+                        <van-switch v-model="settingsStore.musicEnabled" size="24px" active-color="#13ce66"
+                            inactive-color="#ff4949" />
+                    </div>
+                    <div class="setting-item">
+                        <span>游戏音效</span>
+                        <van-switch v-model="settingsStore.soundEnabled" size="24px" active-color="#13ce66"
+                            inactive-color="#ff4949" />
+                    </div>
+                    <div class="setting-item">
+                        <span>屏蔽他人发言</span>
+                        <van-switch v-model="settingsStore.muteUsers" size="24px" active-color="#13ce66"
+                            inactive-color="#ff4949" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Wrap ChatBubbleSelector to avoid nextSibling error -->
+        <div>
+            <ChatBubbleSelector v-model:visible="showChatSelector" @selectPhrase="onPhraseSelected"
+                @selectEmoji="onEmojiSelected" />
+        </div>
+
+        <!-- Cooldown Toast -->
+        <transition name="toast-fade">
+            <div v-if="showToast" class="cooldown-toast">
+                {{ cooldownMessage }}
+            </div>
+        </transition>
+    </div>
 </template>
 
 <style scoped>
@@ -1673,16 +1672,20 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .phase-info {
     background: linear-gradient(to bottom, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.7));
-    color: #fbbf24; /* Golden text */
-    padding: 8px 24px; /* Slightly larger padding */
+    color: #fbbf24;
+    /* Golden text */
+    padding: 8px 24px;
+    /* Slightly larger padding */
     border-radius: 24px;
     font-size: 16px;
     font-weight: bold;
     margin-top: 10px;
     border: 1px solid rgba(251, 191, 36, 0.4);
-    border-bottom: 3px solid rgba(180, 83, 9, 0.8); /* Distinct bottom frame/border */
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.6), 0 0 15px rgba(251, 191, 36, 0.2); /* Deep shadow + Glow */
-    text-shadow: 0 2px 4px rgba(0,0,0,0.9);
+    border-bottom: 3px solid rgba(180, 83, 9, 0.8);
+    /* Distinct bottom frame/border */
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.6), 0 0 15px rgba(251, 191, 36, 0.2);
+    /* Deep shadow + Glow */
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
     min-width: 140px;
     display: flex;
     justify-content: center;
@@ -1935,13 +1938,16 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 /* History Modal New Styles */
 .history-modal {
-    background-color: #1e293b; /* Match Settings Modal */
+    background-color: #1e293b;
+    /* Match Settings Modal */
     color: #e5e7eb;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    max-width: 400px; /* Mobile width */
+    max-width: 400px;
+    /* Mobile width */
     width: 85%;
     height: 80vh;
-    border-radius: 16px; /* Full screen-ish on mobile or rectangular */
+    border-radius: 16px;
+    /* Full screen-ish on mobile or rectangular */
     overflow: hidden;
 }
 
@@ -1957,7 +1963,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     font-weight: 500;
 }
 
-.header-left, .header-right {
+.header-left,
+.header-right {
     width: 40px;
     display: flex;
     align-items: center;
@@ -1982,21 +1989,23 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     min-width: 70px;
     justify-content: center;
     cursor: pointer;
-    position: relative; /* For popup positioning context if needed, though menu is in header */
+    position: relative;
+    /* For popup positioning context if needed, though menu is in header */
 }
 
 .filter-menu {
     position: absolute;
-    top: calc(100% + 8px); /* Below the chip with spacing */
+    top: calc(100% + 8px);
+    /* Below the chip with spacing */
     left: 50%;
     transform: translateX(-50%);
     background-color: #334155;
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
     z-index: 20;
     overflow: hidden;
     min-width: 100px;
-    border: 1px solid rgba(255,255,255,0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .filter-menu-item {
@@ -2020,7 +2029,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     flex: 1;
     overflow-y: auto;
     background-color: #1e293b;
-    padding: 0 0 20px; /* Removed horizontal padding */
+    padding: 0 0 20px;
+    /* Removed horizontal padding */
 }
 
 .history-group {
@@ -2031,13 +2041,15 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 16px; /* Expanded padding */
+    padding: 10px 16px;
+    /* Expanded padding */
     font-size: 12px;
-    color: #9ca3af; 
-    background-color: #0f172a; 
+    color: #9ca3af;
+    background-color: #0f172a;
     /* border-radius removed */
     margin-bottom: 8px;
-    width: 100%; /* Full width */
+    width: 100%;
+    /* Full width */
     box-sizing: border-box;
     position: sticky;
     top: 0;
@@ -2046,7 +2058,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .gh-date {
     font-size: 14px;
-    color: #f3f4f6; /* White date */
+    color: #f3f4f6;
+    /* White date */
     font-weight: 500;
     display: flex;
     align-items: center;
@@ -2068,12 +2081,15 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .history-card {
-    background-color: #334155; /* Slightly lighter card bg */
+    background-color: #28374b;
+    /* Slightly lighter card bg */
     padding: 12px 12px;
     display: flex;
     align-items: center;
-    border-radius: 8px; /* Rounded corners */
-    margin: 4px 16px; /* Added margin */
+    border-radius: 8px;
+    /* Rounded corners */
+    margin: 4px 16px;
+    /* Added margin */
 }
 
 /* Icon wrapper removed */
@@ -2100,7 +2116,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .hc-hand {
     font-size: 12px;
-    color: #64748b; /* Gray */
+    color: #64748b;
+    /* Gray */
 }
 
 .hc-bottom-row {
@@ -2121,11 +2138,13 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .hc-score.win {
-    color: #fff; /* White as per image */
+    color: #fff;
+    /* White as per image */
 }
 
 .hc-score.lose {
-    color: #fff; /* White as per image */
+    color: #fff;
+    /* White as per image */
 }
 
 .hc-bet-amt {
@@ -2159,7 +2178,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .dark-theme-popup .van-picker-column__item--selected {
-    color: #facc15; /* Active item color */
+    color: #facc15;
+    /* Active item color */
     font-weight: bold;
 }
 </style>

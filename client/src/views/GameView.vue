@@ -679,22 +679,8 @@ const onCancelDate = () => {
 const historyGrouped = computed(() => {
     const groups = {};
     
-    // Generate Mock Data for display purposes (scrolling test)
-    const mockHistory = [];
-    const nowTs = Date.now();
-    for (let i = 0; i < 20; i++) {
-        mockHistory.push({
-            timestamp: nowTs - i * 1000 * 60 * 60 * 2, // Every 2 hours
-            bet: 100 * (i + 1),
-            roomName: '体验房',
-            handType: '牛' + (i % 10),
-            score: (i % 2 === 0 ? 50 : -50) * (i + 1),
-            id: 'mock_' + i
-        });
-    }
-
     // Sort history by timestamp desc first
-    let sortedHistory = [...store.history, ...mockHistory].sort((a, b) => b.timestamp - a.timestamp);
+    let sortedHistory = [...store.history].sort((a, b) => b.timestamp - a.timestamp);
     
     // Apply Date Filter
     if (filterType.value !== 'all') {

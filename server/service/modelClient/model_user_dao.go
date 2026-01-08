@@ -165,7 +165,7 @@ type GameSettletruct struct {
 type UserSettingStruct struct {
 	UserId        string
 	ChangeBalance int64
-	Bet           int64
+	ValidBet      int64
 }
 
 func UpdateUserSetting(setting *GameSettletruct) ([]*ModelUser, error) {
@@ -185,7 +185,7 @@ func UpdateUserSetting(setting *GameSettletruct) ([]*ModelUser, error) {
 			user.GameId = ""
 			user.LastPlayed = time.Now()
 			user.TotalGameCount++
-			user.TotalBet += uint64(player.Bet)
+			user.TotalBet += uint64(player.ValidBet)
 			user.TotalNetBalance += player.ChangeBalance
 			_, err = txOrm.Update(&user, "balance", "balance_lock", "game_id",
 				"last_played", "total_game_count", "total_bet", "total_net_balance")

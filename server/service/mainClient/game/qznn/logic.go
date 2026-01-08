@@ -873,9 +873,9 @@ func (r *QZNNRoom) StartGame() {
 		// 庄家赢：底注 * 庄倍 * 闲倍 * 庄家牌型倍数
 		loseAmount := baseBet * bankerMult * p.BetMult * bankerPlayer.CardResult.Mult
 		if isPlayerWin {
-			p.ActiveBet = winAmount
+			p.ValidBet = winAmount
 			//庄家流水和各个闲家的总和
-			bankerPlayer.ActiveBet += winAmount
+			bankerPlayer.ValidBet += winAmount
 			playerWins = append(playerWins, WinRecord{PlayerID: p.ID, Amount: winAmount})
 
 			totalBankerPay += winAmount
@@ -884,15 +884,15 @@ func (r *QZNNRoom) StartGame() {
 			if p.Balance < loseAmount {
 				loseAmount = p.Balance
 			}
-			p.ActiveBet = loseAmount
-			bankerPlayer.ActiveBet += loseAmount
+			p.ValidBet = loseAmount
+			bankerPlayer.ValidBet += loseAmount
 			p.BalanceChange -= loseAmount
 			totalBankerGain += loseAmount
 		}
 	}
 	//计算庄家的有效投注流水
-	if bankerPlayer.Balance < bankerPlayer.ActiveBet {
-		bankerPlayer.ActiveBet = bankerPlayer.Balance
+	if bankerPlayer.Balance < bankerPlayer.ValidBet {
+		bankerPlayer.ValidBet = bankerPlayer.Balance
 	}
 
 	// 2. 计算庄家赔付能力
@@ -908,7 +908,7 @@ func (r *QZNNRoom) StartGame() {
 			if ok {
 				realWin := int64(math.Round(float64(rec.Amount) * ratio))
 				p.BalanceChange += realWin
-				p.ActiveBet = realWin
+				p.ValidBet = realWin
 			}
 		}
 		// 庄家输光所有（余额+赢来的）
@@ -961,6 +961,7 @@ func (r *QZNNRoom) StartGame() {
 		settle.Players = append(settle.Players, modelClient.UserSettingStruct{
 			UserId:        p.ID,
 			ChangeBalance: p.BalanceChange,
+			ValidBet:      p.ValidBet,
 		})
 	}
 	//

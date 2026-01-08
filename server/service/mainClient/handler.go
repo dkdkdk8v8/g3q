@@ -242,6 +242,7 @@ func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) 
 	var end = time.Unix(0, 0)
 	if req.Day != 0 {
 		start = util.AddDateWithoutLock(time.Now(), 0, 0, -req.Day)
+	}
 	if req.Date != "" {
 		//main里面已经设置了location
 		t, err := time.Parse("20060102", req.Date)
@@ -249,7 +250,7 @@ func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) 
 			return nil, comm.ErrClientParam
 		}
 		start = t
-		end = start.Add(24* time.Hour)
+		end = start.Add(24 * time.Hour)
 	}
 
 	var rsp handleGameRecordRsp
@@ -320,7 +321,7 @@ func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) 
 					}
 					for _, player := range qznnRoom.Players {
 						if player.ID == userId {
-							currentSummy.TotalBet += player.ActiveBet
+							currentSummy.TotalBet += player.ValidBet
 						}
 					}
 					nRecord.GameData = gameRecord.GameData

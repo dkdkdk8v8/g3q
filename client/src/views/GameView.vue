@@ -956,7 +956,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
             </div>
 
             <!-- 押注记录弹窗 -->
-            <div v-if="showHistory" class="modal-overlay" style="z-index: 3000;">
+            <div v-if="showHistory" class="modal-overlay" style="z-index: 8000;">
                 <div class="modal-content history-modal">
                     <div class="modal-header">
                         <h3>投注记录</h3>
@@ -1280,7 +1280,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.7);
-    z-index: 2000;
+    z-index: 8000;
     display: flex;
     justify-content: center;
     align-items: center;

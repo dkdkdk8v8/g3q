@@ -20,9 +20,6 @@ export class GameUserEntity {
   @Column({ comment: '游戏ID' })
   game_id: string;
 
-  // @Column({ comment: '游戏次数' })
-  // game_count: number;
-
   @Column({ comment: '昵称' })
   nick_name: string;
 
@@ -55,6 +52,21 @@ export class GameUserEntity {
 
   @Column({ comment: '接受语音' })
   talk: boolean;
+
+  @Column({ comment: '总充值' })
+  total_deposit: number;
+
+  @Column({ comment: '总提现' })
+  total_with_draw: number;
+
+  @Column({ comment: '游戏次数' })
+  total_game_count: number;
+
+  @Column({ comment: '总投注' })
+  total_bet: number;
+
+  @Column({ comment: '净输赢' })
+  total_net_balance: number;
 
   @Column({ comment: '创建时间' })
   create_at: Date;

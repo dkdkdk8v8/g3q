@@ -7,7 +7,8 @@
             <!-- 日期筛选 -->
             <div style="margin-right: 10px">
                 <el-date-picker v-model="dateRange" type="daterange" range-separator="至" start-placeholder="开始日期"
-                    end-placeholder="结束日期" value-format="YYYY-MM-DD" @change="onDateChange" :shortcuts="shortcuts" />
+                    end-placeholder="结束日期" value-format="YYYY-MM-DD" @change="onDateChange"
+                    :shortcuts="dateShortcuts" />
             </div>
 
             <cl-flex1 />
@@ -27,10 +28,7 @@
         <cl-row>
             <cl-table ref="Table">
                 <template #column-gameWin="{ scope }">
-                    <span
-                        :style="{ color: scope.row.gameWin > 0 ? 'var(--el-color-success)' : (scope.row.gameWin < 0 ? 'var(--el-color-danger)' : '') }">
-                        {{ (scope.row.gameWin / 100).toFixed(2) }}
-                    </span>
+                    <format-money :value="scope.row.gameWin" />
                 </template>
             </cl-table>
         </cl-row>
@@ -43,6 +41,8 @@ import { useCool } from "/@/cool";
 import { useDict } from '/$/dict';
 import { reactive, ref } from "vue";
 import dayjs from "dayjs";
+import FormatMoney from "../components/format-money.vue";
+import { dateShortcuts } from "../utils/date-shortcuts";
 
 
 const { dict } = useDict();
@@ -58,71 +58,6 @@ const dateRange = ref([
     dayjs().subtract(29, "day").format("YYYY-MM-DD"),
     dayjs().format("YYYY-MM-DD"),
 ]);
-
-// 日期快捷选项
-const shortcuts = [
-    {
-        text: "当天",
-        value: () => {
-            const end = new Date();
-            const start = new Date();
-            return [start, end];
-        },
-    },
-    {
-        text: "近三天",
-        value: () => {
-            const end = new Date();
-            const start = new Date();
-            start.setTime(start.getTime() - 3600 * 1000 * 24 * 2);
-            return [start, end];
-        },
-    },
-    {
-        text: "近一周",
-        value: () => {
-            const end = new Date();
-            const start = new Date();
-            start.setTime(start.getTime() - 3600 * 1000 * 24 * 6);
-            return [start, end];
-        },
-    },
-    {
-        text: "近一个月",
-        value: () => {
-            const end = new Date();
-            const start = new Date();
-            start.setTime(start.getTime() - 3600 * 1000 * 24 * 29);
-            return [start, end];
-        },
-    },
-    {
-        text: "本周",
-        value: () => {
-            const end = new Date();
-            const now = dayjs();
-            const day = now.day();
-            const start = now.subtract(day === 0 ? 6 : day - 1, 'day').toDate();
-            return [start, end];
-        },
-    },
-    {
-        text: "本月",
-        value: () => {
-            const end = new Date();
-            const start = dayjs().startOf("month").toDate();
-            return [start, end];
-        },
-    },
-    {
-        text: "上个月",
-        value: () => {
-            const start = dayjs().subtract(1, "month").startOf("month").toDate();
-            const end = dayjs().subtract(1, "month").endOf("month").toDate();
-            return [start, end];
-        },
-    },
-];
 
 // 搜索参数
 const searchParams = reactive({

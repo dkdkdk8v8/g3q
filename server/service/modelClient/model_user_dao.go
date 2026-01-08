@@ -214,13 +214,20 @@ func UpdateUserSetting(setting *GameSettletruct) ([]*ModelUser, error) {
 	return ret, nil
 }
 
-func GetUserGameRecords(userId string, limit int, id uint64) ([]*ModelUserRecord, error) {
+func GetUserGameRecords(userId string, limit int, id uint64, start, end time.Time) ([]*ModelUserRecord, error) {
 	var options []ormutil.SelectOption
 	if id != 0 {
 		options = append(options, ormutil.WithRaw("id__lt", id))
 	}
+	options = append(options, ormutil.WithKV("user_id", userId))
+	if !start.IsZero() {
+		options = append(options, ormutil.WithKV("create_at__gte", start))
+	}
+	if !end.IsZero() {
+		options = append(options, ormutil.WithKV("create_at__lt", end))
+	}
+
 	options = append(options,
-		ormutil.WithKV("user_id", userId),
 		ormutil.WithLimitOffset(limit, 0),
 		ormutil.WithOrderBy("-id"))
 	return ormutil.QueryMany[ModelUserRecord](GetDb(), options...)

@@ -158,7 +158,6 @@ type QZNNRoomData struct {
 // Room 代表一个游戏房间
 type QZNNRoom struct {
 	QZNNRoomData
-	//StateLeftSecDuration time.Duration `json:"-"`
 	StateDeadline time.Time            `json:"-"`
 	StateMu       sync.RWMutex         `json:"-"` // 保护 State, Timer
 	Mu            sync.Mutex           `json:"-"` // 保护房间数据并发安全
@@ -173,7 +172,6 @@ type QZNNRoom struct {
 func (r *QZNNRoom) ResetGameData() {
 	r.State = "" //不能给wait，不然set wait，导致不能广播
 	r.StateLeftSec = 0
-	//r.StateLeftSecDuration = 0
 	r.StateDeadline = time.Time{}
 	r.BankerID = ""
 	r.Deck = []int{}

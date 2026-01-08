@@ -226,6 +226,8 @@ func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) 
 	var req struct {
 		Limit  int
 		LastId uint64
+		Day    int    //几天内，包括今天
+		Date   string //20250530
 	}
 	if err := json.Unmarshal(data, &req); err != nil {
 		return nil, comm.ErrClientParam
@@ -236,6 +238,20 @@ func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) 
 	if req.Limit <= 0 {
 		req.Limit = 10
 	}
+	var start = time.Unix(0, 0)
+	var end = time.Unix(0, 0)
+	if req.Day != 0 {
+		start = util.AddDateWithoutLock(time.Now(), 0, 0, -req.Day)
+	if req.Date != "" {
+		//main里面已经设置了location
+		t, err := time.Parse("20060102", req.Date)
+		if err != nil {
+			return nil, comm.ErrClientParam
+		}
+		start = t
+		end = start.Add(24* time.Hour)
+	}
+
 	var rsp handleGameRecordRsp
 
 	var lastTime = time.Unix(0, 0)
@@ -258,7 +274,7 @@ func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) 
 				req.Limit = 200
 			}
 		}
-		records, err := modelClient.GetUserGameRecords(userId, req.Limit, req.LastId)
+		records, err := modelClient.GetUserGameRecords(userId, req.Limit, req.LastId, start, end)
 		if err != nil {
 			return nil, err
 		}

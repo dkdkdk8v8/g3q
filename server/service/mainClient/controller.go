@@ -94,20 +94,20 @@ func WSEntry(c *gin.Context) {
 	connWrap := &ws.WsConnWrap{WsConn: conn}
 	userId := appId + appUserId
 	wsConnectMapMutex.Lock()
-	if existWsWrap, ok := wsConnectMap[userId]; ok {
-		if existWsWrap != nil {
-			existWsWrap.Mu.Lock()
-			// Fix: 直接使用 WsConn.WriteJSON 避免死锁 (WriteJSON 会尝试获取 RLock，但当前已持有 Lock)
-			if existWsWrap.WsConn != nil {
-				_ = existWsWrap.WsConn.WriteJSON(comm.PushData{Cmd: comm.ServerPush, PushType: game.PushOtherConnect})
-				existWsWrap.WsConn.CloseNormal("handler exit")
-			}
-			existWsWrap.Mu.Unlock()
-			logrus.WithField("appId", appId).WithField("appUserId", appUserId).Info("WS-Client-KickOffConnect")
-		}
-	}
+	existWsWrap := wsConnectMap[userId]
 	wsConnectMap[userId] = connWrap
 	wsConnectMapMutex.Unlock()
+
+	if existWsWrap != nil {
+		existWsWrap.Mu.Lock()
+		// Fix: 直接使用 WsConn.WriteJSON 避免死锁 (WriteJSON 会尝试获取 RLock，但当前已持有 Lock)
+		if existWsWrap.WsConn != nil {
+			_ = existWsWrap.WsConn.WriteJSON(comm.PushData{Cmd: comm.ServerPush, PushType: game.PushOtherConnect})
+			existWsWrap.WsConn.CloseNormal("handler exit")
+		}
+		existWsWrap.Mu.Unlock()
+		logrus.WithField("appId", appId).WithField("appUserId", appUserId).Info("WS-Client-KickOffConnect")
+	}
 
 	// 2. 进入消息处理循环
 	handleConnection(connWrap, appId, appUserId)
@@ -150,13 +150,13 @@ func handleConnection(connWrap *ws.WsConnWrap, appId, appUserId string) {
 		if initMain.DefCtx.IsDebug {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 			connWrap.Mu.RLock()
-			if connWrap.WsConn == nil {
-				connWrap.Mu.RUnlock()
+			currentWsConn := connWrap.WsConn
+			connWrap.Mu.RUnlock()
+			if currentWsConn == nil {
 				cancel()
 				break
 			}
-			_, buffer, err1 := connWrap.WsConn.Conn.Read(ctx)
-			connWrap.Mu.RUnlock()
+			_, buffer, err1 := currentWsConn.Conn.Read(ctx)
 			cancel() // 显式调用 cancel，避免在 for 循环中 defer 导致资源泄露
 			if err1 != nil {
 				connWrap.Mu.Lock()

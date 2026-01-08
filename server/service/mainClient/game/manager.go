@@ -16,7 +16,7 @@ import (
 )
 
 type RoomManager struct {
-	QZNNRooms map[string]*qznn.QZNNRoom
+	QZNNRooms  map[string]*qznn.QZNNRoom
 	mu         sync.RWMutex `json:"-"`
 	isDraining bool         // 是否处于排空模式（无感知更新用）
 }
@@ -44,8 +44,13 @@ func (rm *RoomManager) SetDrainMode(enable bool) {
 
 func (rm *RoomManager) GetPlayerRoom(userID string) *qznn.QZNNRoom {
 	rm.mu.RLock()
-	defer rm.mu.RUnlock()
+	rooms := make([]*qznn.QZNNRoom, 0, len(rm.QZNNRooms))
 	for _, room := range rm.QZNNRooms {
+		rooms = append(rooms, room)
+	}
+	rm.mu.RUnlock()
+
+	for _, room := range rooms {
 		// Fix: 使用 GetPlayerByID 替代直接遍历 room.Players，避免数据竞争
 		if _, ok := room.GetPlayerByID(userID); ok {
 			return room
@@ -67,21 +72,24 @@ func (rm *RoomManager) JoinOrCreateNNRoom(user *modelClient.ModelUser,
 		return nil, comm.ErrServerMaintenance
 	}
 
-	// 使用写锁，确保“检查玩家是否在房间”和“加入房间”的操作是原子的
-	// 避免在检查和加入之间发生并发变更
+	// Fix: 使用快照方式遍历，避免长时间持有锁，且避免 rm.mu -> room.mu 的锁嵌套
+	rm.mu.RLock()
+	rooms := make([]*qznn.QZNNRoom, 0, len(rm.QZNNRooms))
+	for _, room := range rm.QZNNRooms {
+		rooms = append(rooms, room)
+	}
+	rm.mu.RUnlock()
+
 	type roomHolder struct {
 		Room      *qznn.QZNNRoom
 		PlayerNum int
 	}
 	var sortPlayerRoom []roomHolder
-	rm.mu.Lock()
 	var targetRoom *qznn.QZNNRoom
-	// 遍历所有房间
-	for _, room := range rm.QZNNRooms {
+	// 遍历快照
+	for _, room := range rooms {
 		// 1. 核心检查：确认玩家是否已经在该房间中
-		// GetPlayerByID 内部使用了读锁，配合外层的 rm.mu 写锁是安全的
 		if alreadyPlayer, ok := room.GetPlayerByID(player.ID); ok {
-			rm.mu.Unlock()
 			//客户端弹框，确认要不要重新进入
 			room.PushPlayer(alreadyPlayer, comm.PushData{
 				Cmd:      comm.ServerPush,
@@ -102,7 +110,6 @@ func (rm *RoomManager) JoinOrCreateNNRoom(user *modelClient.ModelUser,
 			}
 		}
 	}
-	rm.mu.Unlock()
 	//todo::注意这里，如果无感发布，不会有问题。如果房间异常直接关闭进程
 	//确认用户没有在任何房间,但是记录了gameID
 	if user.GameId != "" {
@@ -151,36 +158,52 @@ func (rm *RoomManager) JoinOrCreateNNRoom(user *modelClient.ModelUser,
 }
 
 func (rm *RoomManager) cleanupLoop() {
-	ticker := time.NewTicker(time.Second * 10)
-	defer ticker.Stop()
-	for range ticker.C {
-		rm.mu.Lock()
-		var delRooms []string
+	for {
+		time.Sleep(time.Second * 10)
+		rm.mu.RLock()
+		rooms := make(map[string]*qznn.QZNNRoom, len(rm.QZNNRooms))
 		for id, r := range rm.QZNNRooms {
+			rooms[id] = r
+		}
+		rm.mu.RUnlock()
+
+		var delRooms []string
+		for id, r := range rooms {
 			if r.GetPlayerCount() == 0 && time.Since(r.CreateAt) > time.Minute {
 				delRooms = append(delRooms, id)
 			}
 		}
-		for _, id := range delRooms {
-			rm.QZNNRooms[id].Destory()
-			delete(rm.QZNNRooms, id)
-			logrus.WithField("roomId", id).Info("RoomManager-ReleaseRoom")
+		if len(delRooms) > 0 {
+			var roomsToDestroy []*qznn.QZNNRoom
+			rm.mu.Lock()
+			for _, id := range delRooms {
+				if r, ok := rm.QZNNRooms[id]; ok && r.GetPlayerCount() == 0 {
+					// 移除锁内的 r.Destory()，防止 AB-BA 死锁
+					delete(rm.QZNNRooms, id)
+					roomsToDestroy = append(roomsToDestroy, r)
+					logrus.WithField("roomId", id).Info("RoomManager-ReleaseRoom")
+				}
+			}
+			rm.mu.Unlock()
+			// Fix: 在锁外执行销毁，避免持有 rm.mu 时等待 room 锁 (AB-BA 死锁)
+			for _, r := range roomsToDestroy {
+				r.Destory()
+			}
 		}
-		rm.mu.Unlock()
 	}
-}
-
-// GetRoomCount 获取当前活跃房间数
-func (rm *RoomManager) GetRoomCount() int {
-	rm.mu.RLock()
-	defer rm.mu.RUnlock()
-	return len(rm.QZNNRooms)
 }
 
 // GetAllRooms 获取所有房间信息（用于管理端查询）
 func (rm *RoomManager) GetAllRooms() string {
 	rm.mu.RLock()
-	defer rm.mu.RUnlock()
-	allRooms, _ := jsondiytag.MarshalWithCustomTag(rm.QZNNRooms)
+	// Fix: 使用快照模式，避免在持有 rm.mu 时进行序列化 (R-W-R 死锁风险)
+	// 移除之前的 defer rm.mu.RUnlock() 和直接序列化 rm.QZNNRooms 的代码
+	rooms := make(map[string]*qznn.QZNNRoom, len(rm.QZNNRooms))
+	for k, v := range rm.QZNNRooms {
+		rooms[k] = v
+	}
+	rm.mu.RUnlock()
+
+	allRooms, _ := jsondiytag.MarshalWithCustomTag(rooms)
 	return string(allRooms)
 }

@@ -9,6 +9,7 @@ import DealingLayer from '../components/DealingLayer.vue';
 import ChatBubbleSelector from '../components/ChatBubbleSelector.vue';
 import { useRouter, useRoute } from 'vue-router';
 import { formatCoins } from '../utils/format.js';
+import { transformServerCard, calculateHandType } from '../utils/bullfight.js';
 import gameClient from '../socket.js';
 import { showToast as vantToast } from 'vant';
 
@@ -655,9 +656,6 @@ const maxDate = new Date();
 
 const filterLabel = computed(() => {
     if (filterType.value === 'all') return '全部';
-    if (filterType.value === 'today') return '今天';
-    if (filterType.value === 'yesterday') return '昨天';
-    if (filterType.value === 'week') return '7天内';
     if (currentDate.value.length === 3) {
         return `${currentDate.value[0]}-${currentDate.value[1]}-${currentDate.value[2]}`;
     }
@@ -669,9 +667,10 @@ const toggleFilterMenu = () => {
 };
 
 const selectFilter = (type) => {
+    let dateStr = '';
+    const now = new Date();
+
     if (type === 'custom') {
-        const now = new Date();
-        // Initialize with today if empty
         if (currentDate.value.length === 0) {
             currentDate.value = [
                 now.getFullYear().toString(),
@@ -680,16 +679,29 @@ const selectFilter = (type) => {
             ];
         }
         showDatePicker.value = true;
+        // Do not fetch yet
     } else {
+        // Assume 'all'
         filterType.value = type;
+        dateStr = ''; // Empty string for All
+        store.fetchHistory({ reset: true, date: dateStr });
     }
-    showFilterMenu.value = false;
+    
+    if (typeof showFilterMenu !== 'undefined') {
+        showFilterMenu.value = false;
+    }
 };
 
 const onConfirmDate = ({ selectedValues }) => {
     currentDate.value = selectedValues;
     filterType.value = 'custom';
     showDatePicker.value = false;
+
+    // selectedValues is [year, month, day] strings
+    const [y, m, d] = selectedValues;
+    // Ensure padding
+    const dateStr = `${y}${m.padStart(2, '0')}${d.padStart(2, '0')}`;
+    store.fetchHistory({ reset: true, date: dateStr });
 };
 
 const onCancelDate = () => {
@@ -698,73 +710,91 @@ const onCancelDate = () => {
 
 // History Logic
 const historyGrouped = computed(() => {
-    const groups = {};
+    const groups = [];
+    let currentGroup = null;
 
-    // Sort history by timestamp desc first
-    let sortedHistory = [...store.history].sort((a, b) => b.timestamp - a.timestamp);
+    // Iterate through store.history which contains mixed Type 0 (Summary) and Type 1 (Record) items
+    for (const item of store.history) {
+        if (item.Type === 0) {
+            // New Group Summary (Daily Header)
+            currentGroup = {
+                dateStr: item.Date, // e.g., "12月02周5"
+                totalBet: item.TotalBet,
+                totalValid: item.TotalWinBalance, // Using TotalWinBalance for the "Valid Bet" slot as per UI requirement (or is it actual ValidBet?)
+                // User prompt: "TotalWinBalance int64 //总输赢". UI shows "有效投注". 
+                // Usually ValidBet is "Effective Bet". But user mapped TotalWinBalance to the summary struct.
+                // Let's stick to what the server gives. If the UI label is "有效投注", maybe I should put TotalBet there?
+                // The UI has two slots: "投注" and "有效投注".
+                // Type 0 has TotalBet and TotalWinBalance.
+                // It's possible "Effective Bet" is missing from Type 0, or TotalWinBalance is what user wants to show.
+                // Given the prompt: "TotalWinBalance //总输赢", and UI typically shows "Bet" and "Win/Loss".
+                // But the UI text says "有效投注" (Valid Bet).
+                // Let's use TotalBet for "投注" and TotalWinBalance for the second slot, even if label is "有效投注".
+                // Or maybe TotalWinBalance IS the total valid bet? 
+                // Let's assume the second slot in the header should display TotalWinBalance (Profit/Loss) as per common history views,
+                // despite the class name or label in my previous analysis potentially being "gh-totals".
+                // Looking at the UI code: <div class="gh-totals"> 投注 ¥... 有效投注 ¥... </div>
+                // If the user wants to show Win/Loss there, the label should probably be "输赢".
+                // But if the server provides TotalBet and TotalWinBalance...
+                // Let's just map TotalBet -> "投注" and TotalWinBalance -> "有效投注" (or whatever the second field is).
+                items: []
+            };
+            groups.push(currentGroup);
+        } else if (item.Type === 1) {
+            // Game Record Item
+            if (!currentGroup) continue;
 
-    // Apply Date Filter
-    if (filterType.value !== 'all') {
-        const now = new Date();
-        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+            const gdObj = item.GameDataObj;
+            // The structure is GameDataObj -> Room -> Players
+            // or sometimes direct if not nested (but based on log it is nested under Room)
+            const roomData = gdObj.Room || gdObj; 
+            
+            if (!roomData || !roomData.Players) continue;
 
-        sortedHistory = sortedHistory.filter(item => {
-            const itemTime = item.timestamp;
+            const myData = roomData.Players.find(p => p.ID === store.myPlayerId);
+            // If not found, skip or use defaults
+            const bet = myData ? (myData.ValidBet || 0) : 0;
+            const score = myData ? (myData.BalanceChange || 0) : 0; // Win/Loss
 
-            if (filterType.value === 'today') {
-                return itemTime >= todayStart;
-            } else if (filterType.value === 'yesterday') {
-                const yesterdayStart = todayStart - 24 * 60 * 60 * 1000;
-                return itemTime >= yesterdayStart && itemTime < todayStart;
-            } else if (filterType.value === 'week') {
-                const weekStart = todayStart - 6 * 24 * 60 * 60 * 1000; // 7 days including today
-                return itemTime >= weekStart;
-            } else if (filterType.value === 'custom' && currentDate.value.length === 3) {
-                const [y, m, d] = currentDate.value;
-                const targetStr = `${y}-${m}-${d}`;
-                const date = new Date(itemTime);
-                const itemY = date.getFullYear().toString();
-                const itemM = (date.getMonth() + 1).toString().padStart(2, '0');
-                const itemD = date.getDate().toString().padStart(2, '0');
-                return `${itemY}-${itemM}-${itemD}` === targetStr;
+            // Calculate Hand Type
+            let handTypeName = '未知';
+            if (myData && myData.Cards && Array.isArray(myData.Cards)) {
+                const cardObjs = myData.Cards.map(id => transformServerCard(id));
+                const typeResult = calculateHandType(cardObjs);
+                handTypeName = typeResult.typeName;
+            } else if (roomData.State === 'StateBankerConfirm') {
+                // If cards are not shown yet (incomplete game in history?), maybe show state
+                handTypeName = '未摊牌';
             }
-            return true;
-        });
+
+            // Room Name Construction
+            let roomName = '抢庄牛牛';
+            if (roomData.Config && roomData.Config.Name) {
+                roomName += ` | ${roomData.Config.Name}`;
+            }
+
+            currentGroup.items.push({
+                timestamp: roomData.CreateAt,
+                roomName: roomName,
+                handType: handTypeName,
+                score: score, // This is Win/Loss
+                bet: bet
+            });
+        }
     }
 
-    sortedHistory.forEach(item => {
-        const date = new Date(item.timestamp);
-        const month = (date.getMonth() + 1).toString().padStart(2, '0');
-        const day = date.getDate().toString().padStart(2, '0');
-        const dateKey = `${month}-${day}`;
-
-        if (!groups[dateKey]) {
-            groups[dateKey] = {
-                dateStr: `${month}-${day}日`,
-                items: [],
-                totalBet: 0,
-                totalValid: 0
-            };
-        }
-        groups[dateKey].items.push(item);
-        groups[dateKey].totalBet += (item.bet || 0);
-        groups[dateKey].totalValid += (item.bet || 0); // Assuming valid bet = bet
-    });
-
-    // Return array sorted by date desc (keys are MM-DD, so lex sort reverse works for same year)
-    return Object.keys(groups).sort().reverse().map(key => groups[key]);
+    return groups;
 });
 
-const formatHistoryTime = (ts) => {
-    const date = new Date(ts);
-    const now = new Date();
-    const isToday = date.getDate() === now.getDate() && date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
-
+const formatHistoryTime = (isoString) => {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    const m = (date.getMonth() + 1).toString().padStart(2, '0');
+    const d = date.getDate().toString().padStart(2, '0');
     const h = date.getHours().toString().padStart(2, '0');
-    const m = date.getMinutes().toString().padStart(2, '0');
+    const min = date.getMinutes().toString().padStart(2, '0');
     const s = date.getSeconds().toString().padStart(2, '0');
-
-    return `${isToday ? '今天' : ''} ${h}:${m}:${s}`;
+    return `${m}-${d} ${h}:${min}:${s}`;
 };
 
 const onRob = debounce((multiplier) => {
@@ -787,6 +817,7 @@ const startGameDebounced = debounce(() => {
 const openHistoryDebounced = debounce(() => {
     showMenu.value = false;
     showHistory.value = true;
+    selectFilter('all'); // Load all history by default
 }, 500);
 
 const openSettingsDebounced = debounce(() => {
@@ -854,7 +885,9 @@ const historyListRef = ref(null);
 const handleHistoryScroll = (e) => {
     const el = e.target;
     if (el.scrollHeight - el.scrollTop - el.clientHeight < 50) {
-        store.loadMoreHistory();
+        if (!store.isLoadingHistory && !store.isHistoryEnd) {
+            store.fetchHistory();
+        }
     }
 };
 
@@ -1077,12 +1110,6 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                         <div v-if="showFilterMenu" class="filter-menu" @click.stop>
                             <div class="filter-menu-item" :class="{ active: filterType === 'all' }"
                                 @click="selectFilter('all')">全部</div>
-                            <div class="filter-menu-item" :class="{ active: filterType === 'today' }"
-                                @click="selectFilter('today')">今天</div>
-                            <div class="filter-menu-item" :class="{ active: filterType === 'yesterday' }"
-                                @click="selectFilter('yesterday')">昨天</div>
-                            <div class="filter-menu-item" :class="{ active: filterType === 'week' }"
-                                @click="selectFilter('week')">7天内</div>
                             <div class="filter-menu-item" :class="{ active: filterType === 'custom' }"
                                 @click="selectFilter('custom')">自定义</div>
                         </div>
@@ -1100,7 +1127,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                         <div class="group-header">
                             <div class="gh-date">{{ group.dateStr }} <span class="down-triangle">▼</span></div>
                             <div class="gh-totals">
-                                投注 ¥{{ formatCoins(group.totalBet) }} &nbsp; 有效投注 ¥{{ formatCoins(group.totalValid) }}
+                                投注 ¥{{ formatCoins(group.totalBet) }} &nbsp; 输赢 ¥{{ formatCoins(group.totalValid) }}
                             </div>
                         </div>
 

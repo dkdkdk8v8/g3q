@@ -868,24 +868,31 @@ func (r *QZNNRoom) StartGame() {
 			continue
 		}
 		isPlayerWin := CompareCards(p.CardResult, bankerPlayer.CardResult)
-
+		// 闲家赢：底注 * 庄倍 * 闲倍 * 闲家牌型倍数
+		winAmount := baseBet * bankerMult * p.BetMult * p.CardResult.Mult
+		// 庄家赢：底注 * 庄倍 * 闲倍 * 庄家牌型倍数
+		loseAmount := baseBet * bankerMult * p.BetMult * bankerPlayer.CardResult.Mult
 		if isPlayerWin {
-			// 闲家赢：底注 * 庄倍 * 闲倍 * 闲家牌型倍数
-			winAmount := baseBet * bankerMult * p.BetMult * p.CardResult.Mult
-			p.BalanceBet = winAmount
+			p.ActiveBet = winAmount
+			//庄家流水和各个闲家的总和
+			bankerPlayer.ActiveBet += winAmount
 			playerWins = append(playerWins, WinRecord{PlayerID: p.ID, Amount: winAmount})
+
 			totalBankerPay += winAmount
 		} else {
-			// 庄家赢：底注 * 庄倍 * 闲倍 * 庄家牌型倍数
-			loseAmount := baseBet * bankerMult * p.BetMult * bankerPlayer.CardResult.Mult
-			p.BalanceBet = loseAmount
-			// 输家输的钱不能超过自己的余额
-			if loseAmount > p.Balance {
+			//看闲家够不够,输家输的钱不能超过自己的余额
+			if p.Balance < loseAmount {
 				loseAmount = p.Balance
 			}
+			p.ActiveBet = loseAmount
+			bankerPlayer.ActiveBet += loseAmount
 			p.BalanceChange -= loseAmount
 			totalBankerGain += loseAmount
 		}
+	}
+	//计算庄家的有效投注流水
+	if bankerPlayer.Balance < bankerPlayer.ActiveBet {
+		bankerPlayer.ActiveBet = bankerPlayer.Balance
 	}
 
 	// 2. 计算庄家赔付能力
@@ -901,6 +908,7 @@ func (r *QZNNRoom) StartGame() {
 			if ok {
 				realWin := int64(math.Round(float64(rec.Amount) * ratio))
 				p.BalanceChange += realWin
+				p.ActiveBet = realWin
 			}
 		}
 		// 庄家输光所有（余额+赢来的）

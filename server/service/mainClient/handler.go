@@ -304,7 +304,7 @@ func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) 
 					}
 					for _, player := range qznnRoom.Players {
 						if player.ID == userId {
-							currentSummy.TotalBet += player.BalanceBet
+							currentSummy.TotalBet += player.ActiveBet
 						}
 					}
 					nRecord.GameData = gameRecord.GameData

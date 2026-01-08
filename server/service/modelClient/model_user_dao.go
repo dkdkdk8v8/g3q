@@ -179,7 +179,7 @@ func UpdateUserSetting(setting *GameSettletruct) ([]*ModelUser, error) {
 			if err != nil {
 				return err
 			}
-			oldBalance := user.Balance
+			oldBalance := user.Balance + user.BalanceLock
 			user.Balance += user.BalanceLock + player.ChangeBalance
 			user.BalanceLock = 0
 			user.GameId = ""

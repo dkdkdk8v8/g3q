@@ -774,7 +774,7 @@ const historyGrouped = computed(() => {
             }
 
             currentGroup.items.push({
-                timestamp: roomData.CreateAt,
+                timestamp: item.CreateAt,
                 roomName: roomName,
                 handType: handTypeName,
                 score: score, // This is Win/Loss
@@ -1121,7 +1121,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                 </div>
 
                 <div class="history-list-new" ref="historyListRef" @scroll="handleHistoryScroll">
-                    <div v-if="historyGrouped.length === 0" class="empty-tip">暂无记录</div>
+                    <div v-if="!store.isLoadingHistory && historyGrouped.length === 0" class="empty-tip">暂无记录</div>
 
                     <div v-for="group in historyGrouped" :key="group.dateStr" class="history-group">
                         <div class="group-header">
@@ -1154,6 +1154,9 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
                     <div v-if="store.isLoadingHistory" class="loading-more">
                         <van-loading type="spinner" size="24px" color="#cbd5e1">加载中...</van-loading>
+                    </div>
+                    <div v-if="store.isHistoryEnd && historyGrouped.length > 0" class="loading-more" style="color: #64748b; font-size: 13px;">
+                        没有更多了
                     </div>
                 </div>
 

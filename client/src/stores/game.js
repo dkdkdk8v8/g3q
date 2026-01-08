@@ -98,9 +98,11 @@ export const useGameStore = defineStore('game', () => {
         }
 
         const list = data.List || [];
-        if (list.length === 0) {
+        if (list.length < 10) {
             isHistoryEnd.value = true;
-        } else {
+        }
+
+        if (list.length > 0) {
             // Process list items
             const processedList = list.map(item => {
                 // If it's a record item (Type 1), parse the GameData JSON

@@ -4,9 +4,10 @@ import (
 	"beego/v2/client/orm"
 	"compoment/rds"
 	"encoding/json"
+	"time"
+
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"time"
 )
 
 var RedisCacheNotFind = errors.New("redisKeyNotFind")

@@ -34,21 +34,13 @@ func InsertGameRecord(game *ModelGameRecord) (int64, error) {
 	return WrapInsert(game)
 }
 
-type ModelUserRecordWithGameRecord struct {
-	UserId        string `orm:"user_id"`
-	BalanceBefore int64  `orm:"column(balance_before);default(0)"` // 余额（分）
-	BalanceAfter  int64  `orm:"column(balance_after);default(0)"`  // 余额（分）
-	ModelGameRecord
-}
+var GetGameRecordByIdCache = modelComm.WrapCache[ModelGameRecord](GetGameRecordById,
+	300*time.Second).(func(id uint64) (*ModelGameRecord, error))
 
-var GetGameRecordByIdCache = modelComm.WrapCache[*ModelUserRecordWithGameRecord](GetGameRecordById,
-	300*time.Second).(func(id uint64) (*ModelUserRecordWithGameRecord, error))
-
-func GetGameRecordById(id uint64) ([]*ModelGameRecord, error) {
-	return ormutil.QueryMany[ModelGameRecord](GetDb(), ormutil.WithId(id))
+func GetGameRecordById(id uint64) (*ModelGameRecord, error) {
+	return ormutil.QueryOne[ModelGameRecord](GetDb(), ormutil.WithId(id))
 }
 
 func GetGameRecordByGameId(gameId string) ([]*ModelGameRecord, error) {
 	return ormutil.QueryMany[ModelGameRecord](GetDb(), ormutil.WithKV("game_id", gameId))
 }
-

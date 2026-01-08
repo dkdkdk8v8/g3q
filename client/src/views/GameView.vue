@@ -686,7 +686,7 @@ const selectFilter = (type) => {
         dateStr = ''; // Empty string for All
         store.fetchHistory({ reset: true, date: dateStr });
     }
-    
+
     if (typeof showFilterMenu !== 'undefined') {
         showFilterMenu.value = false;
     }
@@ -747,8 +747,8 @@ const historyGrouped = computed(() => {
             const gdObj = item.GameDataObj;
             // The structure is GameDataObj -> Room -> Players
             // or sometimes direct if not nested (but based on log it is nested under Room)
-            const roomData = gdObj.Room || gdObj; 
-            
+            const roomData = gdObj.Room || gdObj;
+
             if (!roomData || !roomData.Players) continue;
 
             const myData = roomData.Players.find(p => p.ID === store.myPlayerId);
@@ -1155,7 +1155,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                     <div v-if="store.isLoadingHistory" class="loading-more">
                         <van-loading type="spinner" size="24px" color="#cbd5e1">加载中...</van-loading>
                     </div>
-                    <div v-if="store.isHistoryEnd && historyGrouped.length > 0" class="loading-more" style="color: #64748b; font-size: 13px;">
+                    <div v-if="store.isHistoryEnd && historyGrouped.length > 0" class="loading-more"
+                        style="color: #64748b; font-size: 13px;">
                         没有更多了
                     </div>
                 </div>
@@ -2128,7 +2129,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .header-left,
 .header-right {
-    width: 40px;
+
     display: flex;
     align-items: center;
 }

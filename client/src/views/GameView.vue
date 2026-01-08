@@ -627,8 +627,23 @@ onUnmounted(() => {
 // History Logic
 const historyGrouped = computed(() => {
     const groups = {};
+    
+    // Generate Mock Data for display purposes (scrolling test)
+    const mockHistory = [];
+    const now = Date.now();
+    for (let i = 0; i < 20; i++) {
+        mockHistory.push({
+            timestamp: now - i * 1000 * 60 * 60 * 2, // Every 2 hours
+            bet: 100 * (i + 1),
+            roomName: '体验房',
+            handType: '牛' + (i % 10),
+            score: (i % 2 === 0 ? 50 : -50) * (i + 1),
+            id: 'mock_' + i
+        });
+    }
+
     // Sort history by timestamp desc first
-    const sortedHistory = [...store.history].sort((a, b) => b.timestamp - a.timestamp);
+    const sortedHistory = [...store.history, ...mockHistory].sort((a, b) => b.timestamp - a.timestamp);
     
     sortedHistory.forEach(item => {
         const date = new Date(item.timestamp);
@@ -945,16 +960,12 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                 <div class="modal-content history-modal">
                     <div class="modal-header">
                         <h3>投注记录</h3>
+                        <div class="filter-chip">全部 ▼</div>
                         <div class="header-right">
                             <div class="close-icon" @click="closeHistoryDebounced()">×</div>
                         </div>
                     </div>
                     
-                    <!-- Filter Row (Mock) -->
-                    <div class="filter-bar">
-                        <div class="filter-chip">全部 ▼</div>
-                    </div>
-
                     <div class="history-list-new">
                         <div v-if="historyGrouped.length === 0" class="empty-tip">暂无记录</div>
                         
@@ -967,10 +978,6 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                             </div>
                             
                             <div v-for="(item, idx) in group.items" :key="idx" class="history-card">
-                                <div class="hc-icon-wrapper">
-                                    <!-- Use a generic icon or game icon -->
-                                    <div class="game-icon-placeholder">牛</div>
-                                </div>
                                 <div class="hc-content">
                                     <div class="hc-top-row">
                                         <span class="hc-title">抢庄牛牛 | {{ item.roomName }}</span>
@@ -1858,12 +1865,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     color: #9ca3af;
 }
 
-.filter-bar {
-    display: flex;
-    justify-content: flex-end;
-    padding: 12px 16px 8px;
-    background-color: #1e293b;
-}
+/* Filter bar removed */
 
 .filter-chip {
     background-color: #374151;
@@ -1874,13 +1876,15 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     display: flex;
     align-items: center;
     gap: 4px;
+    min-width: 70px;
+    justify-content: center;
 }
 
 .history-list-new {
     flex: 1;
     overflow-y: auto;
     background-color: #1e293b;
-    padding: 0 16px 20px; /* Added horizontal padding */
+    padding: 0 0 20px; /* Removed horizontal padding */
 }
 
 .history-group {
@@ -1891,12 +1895,14 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 12px;
+    padding: 10px 16px; /* Expanded padding */
     font-size: 12px;
-    color: #9ca3af; /* Gray text */
-    background-color: #0f172a; /* Slightly darker header */
-    border-radius: 8px; /* Rounded corners */
-    margin-bottom: 4px;
+    color: #9ca3af; 
+    background-color: #0f172a; 
+    /* border-radius removed */
+    margin-bottom: 8px;
+    width: 100%; /* Full width */
+    box-sizing: border-box;
 }
 
 .gh-date {
@@ -1923,27 +1929,11 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     display: flex;
     align-items: center;
     border-radius: 8px; /* Rounded corners */
-    margin-bottom: 4px;
+    margin: 4px 16px; /* Added margin */
 }
 
-.hc-icon-wrapper {
-    margin-right: 12px;
-}
-
-.game-icon-placeholder {
-    width: 40px;
-    height: 40px;
-    background: linear-gradient(135deg, #f59e0b, #d97706);
-    border-radius: 8px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-weight: bold;
-    color: white;
-    font-size: 18px;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-    border: 1px solid #fbbf24;
-}
+/* Icon wrapper removed */
+/* Game icon placeholder removed */
 
 .hc-content {
     flex: 1;

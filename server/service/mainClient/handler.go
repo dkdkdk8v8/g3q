@@ -10,6 +10,7 @@ import (
 	"service/mainClient/game"
 	"service/mainClient/game/qznn"
 	"service/modelClient"
+	"service/modelComm"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -217,6 +218,9 @@ type handleGameRecordRsp struct {
 	LastId uint64
 	List   []any //里面有 recordSummy recordItem
 }
+
+var handerGameRecordCache = modelComm.WrapCache[*handleGameRecordRsp](handleGameRecord,
+	2*time.Second).(func(userId string, data []byte) (*handleGameRecordRsp, error))
 
 func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) {
 	var req struct {

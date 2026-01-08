@@ -25,7 +25,10 @@ export class GameRobotService extends BaseService {
     }
 
     // 批量创建机器人用户
-    async createRobotBatch(count = 20, app_id = 'main', balanceMin = 100 * 100, balanceMax = 1000 * 100) {
+    async createRobotBatch(count = 20, app_id, balanceMin = 100 * 100, balanceMax = 1000 * 100) {
+        if (!app_id) {
+            throw new Error("APP不能为空");
+        }
         let successCount = 0;
         while (successCount < count) {
             try {

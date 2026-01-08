@@ -29,7 +29,12 @@
 		</cl-row>
 		<cl-row>
 			<!-- 数据表格 -->
-			<cl-table ref="Table" />
+			<cl-table ref="Table">
+				<template #column-enable="{ scope }">
+					<el-tag v-for="(item, index) in DictEnable" :key="index" :type="item.type as any" size="small"
+						v-show="scope.row.enable == item.value">{{ item.label }}</el-tag>
+				</template>
+			</cl-table>
 		</cl-row>
 
 		<cl-row>
@@ -49,21 +54,9 @@ import { useCrud, useTable, useUpsert, useForm } from "@cool-vue/crud";
 import { useCool } from "/@/cool";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { ref } from "vue";
+import { DictEnable } from "../utils/dict";
 
 const { service } = useCool();
-
-const DictEnable = [
-	{
-		label: "启用",
-		value: 1,
-		type: "success",
-	},
-	{
-		label: "禁用",
-		value: 0,
-		type: "danger",
-	},
-];
 
 // 状态
 const enable = ref(1);
@@ -115,7 +108,6 @@ const Table = useTable({
 			prop: "enable",
 			width: 90,
 			fixed: "right",
-			dict: DictEnable,
 		},
 		// { type: "op", buttons: ["edit"], width: 90 },
 	],

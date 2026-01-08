@@ -1903,6 +1903,9 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     margin-bottom: 8px;
     width: 100%; /* Full width */
     box-sizing: border-box;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 .gh-date {

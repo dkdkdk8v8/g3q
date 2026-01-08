@@ -101,7 +101,7 @@ defineExpose({
     width: 100%;
     height: 100%;
     pointer-events: none; /* 穿透点击，不影响游戏操作 */
-    z-index: 9999;
+    z-index: 7000;
 }
 
 .coin {

@@ -266,22 +266,34 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 
 	case qznn.PushPlayerCallBanker:
 		var d qznn.PushPlayerCallBankerStruct
-		json.Unmarshal(data, &d)
+		if err := json.Unmarshal(data, &d); err != nil {
+			logrus.Errorf("机器人 %s 解析 PushPlayerCallBanker 失败: %v", r.Uid, err)
+			return
+		}
 		r.updateRoomInfo(d.Room)
 
 	case qznn.PushPlayerPlaceBet:
 		var d qznn.PushPlayerPlaceBetStruct
-		json.Unmarshal(data, &d)
+		if err := json.Unmarshal(data, &d); err != nil {
+			logrus.Errorf("机器人 %s 解析 PushPlayerPlaceBet 失败: %v", r.Uid, err)
+			return
+		}
 		r.updateRoomInfo(d.Room)
 
 	case qznn.PushPlayerShowCard:
 		var d qznn.PushPlayerShowCardStruct
-		json.Unmarshal(data, &d)
+		if err := json.Unmarshal(data, &d); err != nil {
+			logrus.Errorf("机器人 %s 解析 PushPlayerShowCard 失败: %v", r.Uid, err)
+			return
+		}
 		r.updateRoomInfo(d.Room)
 
 	case qznn.PushRoom:
 		var d qznn.PushRoomStruct
-		json.Unmarshal(data, &d)
+		if err := json.Unmarshal(data, &d); err != nil {
+			logrus.Errorf("机器人 %s 解析 PushRoom 失败: %v", r.Uid, err)
+			return
+		}
 		r.updateRoomInfo(d.Room)
 	}
 }
@@ -308,8 +320,8 @@ func (r *Robot) handleStateChange(state qznn.RoomState) {
 	r.mu.Unlock()
 
 	go func() {
-		// 模拟用户随机等待 1-3 秒
-		time.Sleep(time.Duration(rand.Intn(3)+1) * time.Second)
+		// 模拟用户随机等待 1-2 秒
+		time.Sleep(time.Duration(rand.Intn(2)+1) * time.Second)
 
 		switch state {
 		case qznn.StateBanking:

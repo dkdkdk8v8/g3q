@@ -166,6 +166,7 @@ const allEmojis = [
 
 const showMenu = ref(false);
 const showHistory = ref(false);
+const showHelp = ref(false);
 
 const visibleCounts = ref({});
 const dealingCounts = ref({});
@@ -402,7 +403,7 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
     if (newPhase === 'SETTLEMENT' && tableCenterRef.value && coinLayer.value) {
         // Trigger Win/Loss Animation
         const me = store.players.find(p => p.id === store.myPlayerId);
-        
+
         // Activate Neon Flash for winners
         store.players.forEach(p => {
             if (p.roundScore > 0) {
@@ -462,7 +463,7 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
                 if (seatEl) {
                     const avatarEl = seatEl.querySelector('.avatar-wrapper'); // Target avatar specifically
                     const seatRect = avatarEl ? avatarEl.getBoundingClientRect() : seatEl.getBoundingClientRect();
-                    
+
                     let count = Math.ceil(Math.abs(p.roundScore) / 5); // Increased density: div by 5 instead of 20
                     if (count < 10) count = 10; // Min 10
                     if (count > 50) count = 50; // Max 50
@@ -809,6 +810,15 @@ const closeSettingsDebounced = debounce(() => {
     showSettings.value = false;
 }, 500);
 
+const openHelpDebounced = debounce(() => {
+    showMenu.value = false;
+    showHelp.value = true;
+}, 500);
+
+const closeHelpDebounced = debounce(() => {
+    showHelp.value = false;
+}, 500);
+
 const toggleShowMenu = debounce(() => {
     showMenu.value = !showMenu.value;
 }, 500);
@@ -914,6 +924,10 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                             <van-icon name="setting-o" /> 游戏设置
                         </div>
                         <div class="menu-divider"></div>
+                        <div class="menu-item" @click="openHelpDebounced()">
+                            <van-icon name="question-o" /> 游戏帮助
+                        </div>
+                        <div class="menu-divider"></div>
                         <div class="menu-item danger" @click="quitGameDebounced()">
                             <van-icon name="close" /> 退出游戏
                         </div>
@@ -934,12 +948,11 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                 :class="getOpponentClass(index + 1)">
                 <PlayerSeat v-if="p && p.id" :player="p" :ref="(el) => setSeatRef(el, p.id)"
                     :position="getLayoutType(index + 1)"
-                                        :visible-card-count="visibleCounts[p.id] !== undefined ? visibleCounts[p.id] : 0"
-                                        :is-ready="p.isReady" :is-animating-highlight="p.id === currentlyHighlightedPlayerId"
-                                        :speech="playerSpeech.get(p.id)" 
-                                        :trigger-banker-animation="showBankerConfirmAnim && p.isBanker"
-                                        :is-win="!!winEffects[p.id]" />
-                                    <div v-else class="empty-seat">
+                    :visible-card-count="visibleCounts[p.id] !== undefined ? visibleCounts[p.id] : 0"
+                    :is-ready="p.isReady" :is-animating-highlight="p.id === currentlyHighlightedPlayerId"
+                    :speech="playerSpeech.get(p.id)" :trigger-banker-animation="showBankerConfirmAnim && p.isBanker"
+                    :is-win="!!winEffects[p.id]" />
+                <div v-else class="empty-seat">
                     <div class="empty-seat-avatar">
                         <van-icon name="plus" color="rgba(255,255,255,0.3)" size="20" />
                     </div>
@@ -1037,12 +1050,12 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                 position="bottom"
                 :visible-card-count="(myPlayer && visibleCounts[myPlayer.id] !== undefined) ? visibleCounts[myPlayer.id] : 0"
                 :is-ready="myPlayer && myPlayer.isReady"
-                                    :is-animating-highlight="myPlayer && myPlayer.id === currentlyHighlightedPlayerId"
-                                    :speech="myPlayer ? playerSpeech.get(myPlayer.id) : null"
-                                    :selected-card-indices="selectedCardIndices" @card-click="handleCardClick" 
-                                    :trigger-banker-animation="showBankerConfirmAnim && myPlayer && myPlayer.isBanker" 
-                                    :is-win="myPlayer && !!winEffects[myPlayer.id]"/>
-                            </div>
+                :is-animating-highlight="myPlayer && myPlayer.id === currentlyHighlightedPlayerId"
+                :speech="myPlayer ? playerSpeech.get(myPlayer.id) : null" :selected-card-indices="selectedCardIndices"
+                @card-click="handleCardClick"
+                :trigger-banker-animation="showBankerConfirmAnim && myPlayer && myPlayer.isBanker"
+                :is-win="myPlayer && !!winEffects[myPlayer.id]" />
+        </div>
 
         <!-- 全局点击关闭菜单 -->
         <div v-if="showMenu" class="mask-transparent" @click="toggleShowMenu()"></div>
@@ -1149,6 +1162,72 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                         <van-switch v-model="settingsStore.muteUsers" size="24px" active-color="#13ce66"
                             inactive-color="#ff4949" />
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Help Modal -->
+        <div v-if="showHelp" class="modal-overlay" style="z-index: 8000;">
+            <div class="modal-content help-modal">
+                <div class="modal-header">
+                    <h3>游戏帮助</h3>
+                    <div class="close-icon" @click="closeHelpDebounced()">×</div>
+                </div>
+                <div class="help-content">
+                    <section>
+                        <h4>基本规则</h4>
+                        <p>• <b>抢庄阶段：</b>玩家可以选择“1倍”、“2倍”、“4倍”、“不抢”。抢庄倍数最高的玩家做庄。若多名玩家抢庄最高倍数相同，则携带金币越多的玩家坐庄几率越大，如果所有玩家都不叫分，则系统随机选择一个玩家作为庄家，倍率默认为“1倍”。
+                        </p>
+                        <p>• <b>加倍阶段：</b>确定庄家后，闲家可以选择“5倍”、“10倍”、“15倍”、“20倍”倍率进行加倍。不选则默认以最小的“5倍”进行加倍。</p>
+                        <p>• <b>拼点阶段：</b>发牌之后，玩家可以计算自己的牌型，并选择摊牌。</p>
+                        <p>• <b>比牌阶段：</b>每位闲家分别和庄家比较大小，闲家和闲家之间不进行比较。</p>
+                    </section>
+
+                    <section>
+                        <h4>牌型</h4>
+                        <p>抢庄牛牛游戏中采用一副52张牌，没有大小王。J、Q、K都是10点，其他按照排面的点数计算。</p>
+                        <p>• <b>无牛：</b>没有任意三张牌能加起来成为10的倍数。</p>
+                        <p>• <b>有牛：</b>从牛一到牛九。任意三张牌相加是10的倍数，剩余两张牌相加不是10的倍数，然后取个位数，各位数是几，就是牛几。</p>
+                        <p>• <b>牛牛：</b>任意三张牌相加是10的倍数，剩余2张牌相加也是10的倍数。</p>
+                        <p>• <b>四花牛：</b>五张牌中有四张为花牌（J、Q、K）中的任意牌，且第五张为10。</p>
+                        <p>• <b>四炸：</b>五张牌中有四张一样的牌即为四炸，此时不需要有牛。</p>
+                        <p>• <b>五花牛：</b>手上五张牌全都是J、Q、K组成的特殊牛牛牌型为五花牛。</p>
+                        <p>• <b>五小牛：</b>五张牌点数都小于5，且点数之和小于等于10。</p>
+                    </section>
+
+                    <section>
+                        <h4>牌型比较</h4>
+                        <p>• <b>单张大小：</b>从大到小排序为：K > Q > J > 10 > 9 > 8 > 7 > 6 > 5 > 4 > 3 > 2 > A。</p>
+                        <p>• <b>花色大小：</b>花色由大到小排序为：黑桃 ♠ > 红桃 ♥ > 梅花 ♣ > 方片 ♦。</p>
+                        <p>• <b>牌型大小：</b>从大到小排序为：五小牛 > 五花牛 > 四炸 > 四花牛 > 牛牛 > 有牛 > 无牛。</p>
+                        <p>• <b>有牛大小：</b>当都为有牛时，从大到小排序为：牛九 > 牛八 > 牛七 > 牛六 > 牛五 > 牛四 > 牛三 > 牛二 > 牛一。</p>
+                        <p>• <b>牌型相同：</b>当庄和闲相同牌型时，挑出最大的一张牌进行比较，如果最大牌点数一样，则按花色进行比较。（特例：当有多个四炸时，比较四张相同的牌的点数大小）</p>
+                    </section>
+
+
+                    <section>
+                        <h4>结算说明</h4>
+
+                        <h3>赔率</h3>
+                        <p>• 无牛到牛六：1倍</p>
+                        <p>• 牛七到牛九：2倍</p>
+                        <p>• 牛牛：3倍</p>
+                        <p>• 四炸：4倍</p>
+                        <p>• 五花牛：5倍</p>
+                        <p>• 五小牛：5倍</p>
+
+                        <h3>计算公式</h3>
+                        <p>• <b>庄家胜利：</b>房间底注 × 庄家牌型倍数 × 庄家抢庄倍数 × 闲家下注倍数。</p>
+                        <p>• <b>庄家失败：</b>房间底注 × 闲家牌型倍数 × 庄家抢庄倍数 × 闲家下注倍数。</p>
+                        <p>• <b>闲家胜利：</b>房间底注 × 闲家牌型倍数 × 庄家抢庄倍数 × 闲家下注倍数。</p>
+                        <p>• <b>闲家失败：</b>房间底注 × 庄家牌型倍数 × 庄家抢庄倍数 × 闲家下注倍数。</p>
+
+                        <h3>结算</h3>
+                        <p>• 为了游戏公平，玩家在一局游戏胜利后，赢得的金币总额不会超过身上携带的金币，如某玩家按照游戏规则计算应该赢100金币，但是因为它身上值携带了30金币，所以本局该玩家最多只能赢取30金币，输家按照对应比例相应减少所输的金币。所以如果玩家携带很少的金币进行游戏，很可能会出现赢到的金币低于预期，不够赔付输掉的金币甚至输掉本金的情况，所以强烈建议您携带足够的金币进行游戏。
+                        </p>
+                        <p>• 在每局游戏中获胜后，系统会收取本局总赢钱金额的5%作为税收。</p>
+
+                    </section>
                 </div>
             </div>
         </div>
@@ -2173,6 +2252,63 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 .hc-bet-amt {
     font-size: 12px;
     color: #64748b;
+}
+
+.help-modal {
+    background-color: #1e293b;
+    color: #e5e7eb;
+    max-width: 400px;
+    width: 85%;
+    max-height: 80vh;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+}
+
+.help-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    text-align: left;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.help-content section {
+    margin-bottom: 24px;
+}
+
+.help-content h4 {
+    color: #fbbf24;
+    /* Amber-400 */
+    font-size: 16px;
+    margin-bottom: 12px;
+    text-align: center;
+    /* Center align */
+    position: relative;
+    padding-bottom: 8px;
+}
+
+.help-content h4::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 30px;
+    /* Short divider */
+    height: 2px;
+    background-color: rgba(251, 191, 36, 0.5);
+    border-radius: 1px;
+}
+
+.help-content p {
+    margin-bottom: 8px;
+    color: #cbd5e1;
+}
+
+.help-content b {
+    color: #e2e8f0;
 }
 
 .loading-more {

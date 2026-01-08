@@ -96,6 +96,51 @@ export const useGameStore = defineStore('game', () => {
     };
 
     const history = ref(generateMockHistory()); // 游戏记录
+    const isLoadingHistory = ref(false); // Flag to track if history is currently loading
+
+    // Mock Load More History
+    const loadMoreHistory = async () => {
+        if (isLoadingHistory.value) return; // Prevent multiple requests
+        isLoadingHistory.value = true;
+
+        // Simulate network delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        const now = Date.now();
+        const oneDay = 24 * 60 * 60 * 1000;
+        const currentLength = history.value.length;
+        
+        const newItems = [
+            {
+                timestamp: now - oneDay * (5 + currentLength), // Simulate older dates
+                roomName: '1金币底分房',
+                handType: '牛1',
+                score: -10.00,
+                bet: 10.00,
+                isBanker: false
+            },
+            {
+                timestamp: now - oneDay * (5 + currentLength) - 1000 * 60 * 30,
+                roomName: '5金币底分房',
+                handType: '牛8',
+                score: 80.00,
+                bet: 20.00,
+                isBanker: true
+            },
+            {
+                timestamp: now - oneDay * (6 + currentLength),
+                roomName: '1金币底分房',
+                handType: '无牛',
+                score: -5.00,
+                bet: 5.00,
+                isBanker: false
+            }
+        ];
+
+        history.value = [...history.value, ...newItems];
+        isLoadingHistory.value = false;
+    };
+
     const bankerCandidates = ref([]); // Store IDs of players who are candidates for banker
     const bankerMult = ref([]); // Store banker multiplier options
     const betMult = ref([]); // Store betting multiplier options
@@ -682,6 +727,8 @@ export const useGameStore = defineStore('game', () => {
         playerShowHand,
         bankerId,
         history,
+        isLoadingHistory,
+        loadMoreHistory,
         joinRoom,
         bankerCandidates,
         gameMode,

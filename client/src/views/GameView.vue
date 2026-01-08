@@ -833,6 +833,15 @@ const handleCardClick = ({ card, index }) => {
     }
 };
 
+const historyListRef = ref(null);
+
+const handleHistoryScroll = (e) => {
+    const el = e.target;
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < 50) {
+        store.loadMoreHistory();
+    }
+};
+
 const calculationData = computed(() => {
     const cards = [];
     let sum = 0;
@@ -1058,7 +1067,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                         </div>
                     </div>
                     
-                    <div class="history-list-new">
+                    <div class="history-list-new" ref="historyListRef" @scroll="handleHistoryScroll">
                         <div v-if="historyGrouped.length === 0" class="empty-tip">暂无记录</div>
                         
                         <div v-for="group in historyGrouped" :key="group.dateStr" class="history-group">
@@ -1088,6 +1097,10 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                                     </div>
                                 </div>
                             </div>
+                        </div>
+
+                        <div v-if="store.isLoadingHistory" class="loading-more">
+                            <van-loading type="spinner" size="24px" color="#cbd5e1">加载中...</van-loading>
                         </div>
                     </div>
 
@@ -2132,6 +2145,12 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 .hc-bet-amt {
     font-size: 12px;
     color: #64748b;
+}
+
+.loading-more {
+    display: flex;
+    justify-content: center;
+    padding: 10px;
 }
 </style>
 

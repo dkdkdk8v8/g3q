@@ -250,11 +250,11 @@ func GetUserGameRecordsJoinGameRecord(userId string, limit int, id uint64, start
 		sql += " AND g3q_user_record.id < ?"
 		args = append(args, id)
 	}
-	if !start.IsZero() {
+	if start.Unix() != 0 {
 		sql += " AND g3q_user_record.create_at >= ?"
 		args = append(args, start)
 	}
-	if !end.IsZero() {
+	if end.Unix() != 0 {
 		sql += " AND g3q_user_record.create_at < ?"
 		args = append(args, end)
 	}

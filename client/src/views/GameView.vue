@@ -2174,7 +2174,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 16px 18px;
+    padding: 10px 18px 18px 18px;
     /* Expanded padding, margin-bottom removed */
     font-size: 12px;
     color: #9ca3af;
@@ -2220,7 +2220,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     align-items: center;
     border-radius: 8px;
     /* Rounded corners */
-    margin: 4px 16px;
+    margin: 16px 16px;
     /* Added margin */
 }
 

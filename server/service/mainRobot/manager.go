@@ -205,9 +205,6 @@ func (r *Robot) Close() {
 }
 
 func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
-	// 模拟用户思考时间
-	time.Sleep(time.Millisecond * time.Duration(rand.Intn(500)+500))
-
 	switch pushType {
 	case znet.PushRouter:
 		var d struct {
@@ -234,6 +231,8 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 			var room qznn.QZNNRoom
 			if err := json.Unmarshal(d.Room, &room); err == nil {
 				r.updateRoomInfo(&room)
+				// 修复：进入房间时，如果房间处于活跃状态（如抢庄、下注），需要立即触发状态处理
+				r.handleStateChange(room.State)
 			}
 		}
 

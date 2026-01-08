@@ -1,8 +1,8 @@
 import { IJob, Job } from '@midwayjs/cron';
 import { Inject } from '@midwayjs/decorator';
-import { InjectDataSource, InjectEntityModel } from '@midwayjs/typeorm';
+import { InjectEntityModel } from '@midwayjs/typeorm';
 import { CachingFactory, MidwayCache } from '@midwayjs/cache-manager';
-import { DataSource, MoreThan, Repository } from 'typeorm';
+import { MoreThan, Repository } from 'typeorm';
 import * as moment from 'moment';
 
 import { FORMAT, ILogger, InjectClient } from '@midwayjs/core';
@@ -64,9 +64,6 @@ export class StaPeriodJob implements IJob {
   @InjectEntityModel(StaUserEntity)
   staUserEntity: Repository<StaUserEntity>;
 
-  @InjectDataSource()
-  dataSource: DataSource;
-
   private static isRunning = false;
 
   async getLastId() {
@@ -114,7 +111,8 @@ export class StaPeriodJob implements IJob {
    */
   private async saveStats(statsMap: Map<string, StatsData>) {
     if (statsMap.size === 0) return;
-    await this.dataSource.transaction(async manager => {
+    const dataSource = this.staPeriodEntity.manager.connection;
+    await dataSource.transaction(async manager => {
       for (const stats of statsMap.values()) {
         let entity = await manager.findOne(StaPeriodEntity, {
           where: { timeKey: stats.timeKey, appId: stats.appId },
@@ -132,7 +130,6 @@ export class StaPeriodJob implements IJob {
           entity.firstGameUserCount = 0;
           entity.firstGameUserIds = [];
         }
-
         entity.gameUserCount += stats.gameUserCount;
         entity.gameCount += stats.gameCount;
         entity.betCount += stats.betCount;
@@ -153,7 +150,8 @@ export class StaPeriodJob implements IJob {
    */
   private async saveUserStats(userStatsMap: Map<string, UserStatsData>) {
     if (userStatsMap.size === 0) return;
-    await this.dataSource.transaction(async manager => {
+    const dataSource = this.staUserEntity.manager.connection;
+    await dataSource.transaction(async manager => {
       for (const stats of userStatsMap.values()) {
         let entity = await manager.findOne(StaUserEntity, {
           where: { date: stats.date, userId: stats.userId },
@@ -212,8 +210,7 @@ export class StaPeriodJob implements IJob {
         const involvedApps = new Set<string>();
 
         for (const player of Players) {
-          console.log(player);
-          const { ID, IsOb, BalanceChange, ActiveBet } = player;
+          const { ID, IsOb, BalanceChange, ValidBet } = player;
           if (IsOb) continue;
 
           const user = await this.userEntity.findOne({ where: { user_id: ID } });
@@ -225,7 +222,7 @@ export class StaPeriodJob implements IJob {
           const stats = this.getStats(statsMap, timeKey, app_id);
 
           stats.betCount++;
-          stats.betAmount += Math.abs(ActiveBet);
+          stats.betAmount += Math.abs(ValidBet);
 
           // 平台盈亏 = 用户输赢的负数
           stats.gameWin += -1 * (Number(BalanceChange) || 0);
@@ -257,7 +254,7 @@ export class StaPeriodJob implements IJob {
           }
           const uStats = userStatsMap.get(userKey);
           uStats.betCount++;
-          uStats.betAmount += Math.abs(ActiveBet);
+          uStats.betAmount += Math.abs(ValidBet);
           uStats.betWin += (Number(BalanceChange) || 0);
           if ((Number(BalanceChange) || 0) > 0) {
             uStats.winCount++;
@@ -281,7 +278,7 @@ export class StaPeriodJob implements IJob {
         await this.setLastId(newLastId);
       }
     } catch (e) {
-      console.error(e);
+      this.logger.error(e);
     } finally {
       StaPeriodJob.isRunning = false;
     }

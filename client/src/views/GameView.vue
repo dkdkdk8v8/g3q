@@ -119,6 +119,7 @@ const onEmojiSelected = (emojiUrl, index) => { // Added index parameter
 // Banker selection animation state
 const currentlyHighlightedPlayerId = ref(null);
 const showBankerConfirmAnim = ref(false); // New state for confirmation animation
+const winEffects = ref({}); // Map of playerId -> boolean for win neon effect
 let animationIntervalId = null;
 let candidateIndex = 0;
 
@@ -401,6 +402,18 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
     if (newPhase === 'SETTLEMENT' && tableCenterRef.value && coinLayer.value) {
         // Trigger Win/Loss Animation
         const me = store.players.find(p => p.id === store.myPlayerId);
+        
+        // Activate Neon Flash for winners
+        store.players.forEach(p => {
+            if (p.roundScore > 0) {
+                winEffects.value[p.id] = true;
+            }
+        });
+        // Clear effects after settlement (approx 4s or next phase)
+        setTimeout(() => {
+            winEffects.value = {};
+        }, 5000);
+
         if (me && !me.isObserver) {
             // Determine result (0 is also win/draw, but typically > 0 is win. Logic says >= 0 is win in display)
             const isWin = me.roundScore >= 0;
@@ -433,7 +446,10 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
         let bankerRect = null;
         if (banker) {
             const bankerEl = seatRefs.value[banker.id];
-            if (bankerEl) bankerRect = bankerEl.getBoundingClientRect();
+            if (bankerEl) {
+                const avatarEl = bankerEl.querySelector('.avatar-wrapper'); // Target banker avatar
+                bankerRect = avatarEl ? avatarEl.getBoundingClientRect() : bankerEl.getBoundingClientRect();
+            }
         }
 
         if (!bankerRect) {
@@ -444,7 +460,9 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
             if (!p.isBanker && p.roundScore < 0) {
                 const seatEl = seatRefs.value[p.id];
                 if (seatEl) {
-                    const seatRect = seatEl.getBoundingClientRect();
+                    const avatarEl = seatEl.querySelector('.avatar-wrapper'); // Target avatar specifically
+                    const seatRect = avatarEl ? avatarEl.getBoundingClientRect() : seatEl.getBoundingClientRect();
+                    
                     let count = Math.ceil(Math.abs(p.roundScore) / 5); // Increased density: div by 5 instead of 20
                     if (count < 10) count = 10; // Min 10
                     if (count > 50) count = 50; // Max 50
@@ -462,7 +480,9 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
                 if (!p.isBanker && p.roundScore > 0) {
                     const seatEl = seatRefs.value[p.id];
                     if (seatEl) {
-                        const seatRect = seatEl.getBoundingClientRect();
+                        const avatarEl = seatEl.querySelector('.avatar-wrapper'); // Target avatar specifically
+                        const seatRect = avatarEl ? avatarEl.getBoundingClientRect() : seatEl.getBoundingClientRect();
+
                         let count = Math.ceil(p.roundScore / 5); // Increased density: div by 5 instead of 15
                         if (count < 15) count = 15; // Min 15
                         if (count > 60) count = 60; // Max 60
@@ -914,10 +934,12 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                 :class="getOpponentClass(index + 1)">
                 <PlayerSeat v-if="p && p.id" :player="p" :ref="(el) => setSeatRef(el, p.id)"
                     :position="getLayoutType(index + 1)"
-                    :visible-card-count="visibleCounts[p.id] !== undefined ? visibleCounts[p.id] : 0"
-                    :is-ready="p.isReady" :is-animating-highlight="p.id === currentlyHighlightedPlayerId"
-                    :speech="playerSpeech.get(p.id)" :trigger-banker-animation="showBankerConfirmAnim && p.isBanker" />
-                <div v-else class="empty-seat">
+                                        :visible-card-count="visibleCounts[p.id] !== undefined ? visibleCounts[p.id] : 0"
+                                        :is-ready="p.isReady" :is-animating-highlight="p.id === currentlyHighlightedPlayerId"
+                                        :speech="playerSpeech.get(p.id)" 
+                                        :trigger-banker-animation="showBankerConfirmAnim && p.isBanker"
+                                        :is-win="!!winEffects[p.id]" />
+                                    <div v-else class="empty-seat">
                     <div class="empty-seat-avatar">
                         <van-icon name="plus" color="rgba(255,255,255,0.3)" size="20" />
                     </div>
@@ -1015,11 +1037,12 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                 position="bottom"
                 :visible-card-count="(myPlayer && visibleCounts[myPlayer.id] !== undefined) ? visibleCounts[myPlayer.id] : 0"
                 :is-ready="myPlayer && myPlayer.isReady"
-                :is-animating-highlight="myPlayer && myPlayer.id === currentlyHighlightedPlayerId"
-                :speech="myPlayer ? playerSpeech.get(myPlayer.id) : null" :selected-card-indices="selectedCardIndices"
-                @card-click="handleCardClick"
-                :trigger-banker-animation="showBankerConfirmAnim && myPlayer && myPlayer.isBanker" />
-        </div>
+                                    :is-animating-highlight="myPlayer && myPlayer.id === currentlyHighlightedPlayerId"
+                                    :speech="myPlayer ? playerSpeech.get(myPlayer.id) : null"
+                                    :selected-card-indices="selectedCardIndices" @card-click="handleCardClick" 
+                                    :trigger-banker-animation="showBankerConfirmAnim && myPlayer && myPlayer.isBanker" 
+                                    :is-win="myPlayer && !!winEffects[myPlayer.id]"/>
+                            </div>
 
         <!-- 全局点击关闭菜单 -->
         <div v-if="showMenu" class="mask-transparent" @click="toggleShowMenu()"></div>

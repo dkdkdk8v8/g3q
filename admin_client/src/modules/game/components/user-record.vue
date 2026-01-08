@@ -50,6 +50,7 @@
                                             <span class="name">{{ player.NickName || player.ID }}</span>
                                             <span v-if="player.ID === item.parsedGameData.Room.BankerID"
                                                 class="banker-badge">庄</span>
+                                            <span v-if="player.IsOb" class="watch-badge">看</span>
                                         </div>
                                         <div class="p-cards">
                                             <span v-for="(card, cIndex) in player.Cards" :key="cIndex"
@@ -61,7 +62,8 @@
                                             <span v-if="player.CallMult > 0">抢庄:{{ player.CallMult }}倍</span>
                                             <span v-if="player.BetMult > 0">下注:{{ player.BetMult }}倍</span>
                                         </div>
-                                        <div class="p-balance" :class="player.BalanceChange >= 0 ? 'win' : 'lose'">
+                                        <div class="p-balance" v-show="!player.IsOb"
+                                            :class="player.BalanceChange >= 0 ? 'win' : 'lose'">
                                             {{ player.BalanceChange > 0 ? '+' : '' }}{{ (player.BalanceChange /
                                                 100).toFixed(2) }}
                                         </div>
@@ -296,6 +298,14 @@ defineExpose({
 
                     .banker-badge {
                         background: var(--el-color-danger);
+                        color: var(--el-color-white);
+                        padding: 0 4px;
+                        border-radius: 2px;
+                        font-size: 10px;
+                    }
+
+                    .watch-badge {
+                        background: var(--el-color-success);
                         color: var(--el-color-white);
                         padding: 0 4px;
                         border-radius: 2px;

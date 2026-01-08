@@ -77,10 +77,10 @@
                             {{ player.ID }}
                             <span v-if="player.CallMult >= 0 && player.BetMult === -1"
                               style="color: var(--el-color-danger); font-weight: bold; margin-left: 2px">
-                              {{ player.CallMult }}倍
+                              {{ player.CallMult === 0 ? '不抢' : '抢庄x' + player.CallMult }}
                             </span>
                             <span v-if="player.BetMult >= 0" style="color: var(--el-color-danger); margin-left: 2px">
-                              {{ player.BetMult }}倍
+                              下注x{{ player.BetMult }}
                             </span>
                           </div>
                           <div class="player-id">

@@ -55,62 +55,71 @@ export const useGameStore = defineStore('game', () => {
     const baseBet = ref(0);
     const gameMode = ref(0); // 0: Bukan, 1: Kan3, 2: Kan4
     
-    // Mock History Data
-    const generateMockHistory = () => {
-        const now = Date.now();
-        const oneDay = 24 * 60 * 60 * 1000;
-        const initialItems = [];
+    // History State
+    const history = ref([]);
+    const historyLastId = ref(0);
+    const isLoadingHistory = ref(false);
+    const isHistoryEnd = ref(false);
+    const historyFilterDate = ref('');
 
-        // Generate 20 initial items to ensure scrollability
-        for (let i = 0; i < 20; i++) {
-            const isWin = Math.random() > 0.5;
-            const bet = Math.floor(Math.random() * 5 + 1) * 10;
-            initialItems.push({
-                timestamp: now - (i * 1000 * 60 * 60 * 2), // Every 2 hours backwards
-                roomName: ['1金币底分房', '5金币底分房'][Math.floor(Math.random() * 2)],
-                handType: ['无牛', '牛1', '牛2', '牛3', '牛4', '牛5', '牛6', '牛7', '牛8', '牛9', '牛牛'][Math.floor(Math.random() * 11)],
-                score: isWin ? bet * (Math.random() * 3 + 1).toFixed(1) : -bet,
-                bet: bet,
-                isBanker: Math.random() > 0.8
-            });
+    // Fetch History Action
+    const fetchHistory = ({ reset = false, date = '' } = {}) => {
+        if (reset) {
+            history.value = [];
+            historyLastId.value = 0;
+            isHistoryEnd.value = false;
+            historyFilterDate.value = date;
         }
-        
-        return initialItems;
-    };
 
-    const history = ref(generateMockHistory()); // 游戏记录
-    const isLoadingHistory = ref(false); // Flag to track if history is currently loading
+        if (isLoadingHistory.value || isHistoryEnd.value) return;
 
-    // Mock Load More History
-    const loadMoreHistory = async () => {
-        if (isLoadingHistory.value) return; // Prevent multiple requests
         isLoadingHistory.value = true;
-
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        const now = Date.now();
-        const oneDay = 24 * 60 * 60 * 1000;
-        const currentLength = history.value.length;
         
-        const newItems = [];
-        const randomCount = Math.floor(Math.random() * 11) + 5; // Generate 5 to 15 items
-        for (let i = 0; i < randomCount; i++) {
-            const isWin = Math.random() > 0.5;
-            const bet = Math.floor(Math.random() * 5 + 1) * 10;
-            newItems.push({
-                timestamp: now - oneDay * (2 + Math.floor((currentLength + i) / 5)) - 1000 * 60 * 60 * (i * 2), 
-                roomName: ['1金币底分房', '5金币底分房', '10金币底分房'][Math.floor(Math.random() * 3)],
-                handType: ['无牛', '牛1', '牛2', '牛3', '牛4', '牛5', '牛6', '牛7', '牛8', '牛9', '牛牛'][Math.floor(Math.random() * 11)],
-                score: isWin ? bet * (Math.random() * 3 + 1).toFixed(1) : -bet,
-                bet: bet,
-                isBanker: Math.random() > 0.8
-            });
+        // Send request to server
+        gameClient.send('GameRecord', {
+            Limit: 10,
+            LastId: historyLastId.value,
+            Date: historyFilterDate.value
+        });
+    };
+
+    // Handle GameRecord Response
+    gameClient.on('GameRecord', (msg) => {
+        isLoadingHistory.value = false;
+        
+        if (msg.code !== 0) {
+            console.error('Failed to fetch history:', msg.msg);
+            return;
         }
 
-        history.value = [...history.value, ...newItems];
-        isLoadingHistory.value = false;
-    };
+        const data = msg.data;
+        if (data.LastId !== undefined) {
+            historyLastId.value = data.LastId;
+        }
+
+        const list = data.List || [];
+        if (list.length < 10) {
+            isHistoryEnd.value = true;
+        }
+
+        if (list.length > 0) {
+            // Process list items
+            const processedList = list.map(item => {
+                // If it's a record item (Type 1), parse the GameData JSON
+                if (item.Type === 1 && item.GameData && typeof item.GameData === 'string') {
+                    try {
+                        item.GameDataObj = JSON.parse(item.GameData);
+                    } catch (e) {
+                        console.error('Failed to parse GameData JSON:', e);
+                        item.GameDataObj = {};
+                    }
+                }
+                return item;
+            });
+            
+            history.value.push(...processedList);
+        }
+    });
 
     const bankerCandidates = ref([]); // Store IDs of players who are candidates for banker
     const bankerMult = ref([]); // Store banker multiplier options
@@ -699,7 +708,8 @@ export const useGameStore = defineStore('game', () => {
         bankerId,
         history,
         isLoadingHistory,
-        loadMoreHistory,
+        fetchHistory, // Export real fetch action
+        isHistoryEnd, // Export end flag
         joinRoom,
         bankerCandidates,
         gameMode,

@@ -214,21 +214,56 @@ func UpdateUserSetting(setting *GameSettletruct) ([]*ModelUser, error) {
 	return ret, nil
 }
 
-func GetUserGameRecords(userId string, limit int, id uint64, start, end time.Time) ([]*ModelUserRecord, error) {
-	var options []ormutil.SelectOption
-	if id != 0 {
-		options = append(options, ormutil.WithRaw("id__lt", id))
+type ModelUserRecordJoinGameRecord struct {
+	ModelUserRecord
+	GameRecordId uint64
+	GameName     string
+	GameData     string
+}
+
+func GetUserGameRecordsJoinGameRecord(userId string, limit int, id uint64, start, end time.Time) ([]*ModelUserRecordJoinGameRecord, error) {
+	// var options []ormutil.SelectOption
+	// if id != 0 {
+	// 	options = append(options, ormutil.WithRaw("id__lt", id))
+	// }
+	// options = append(options, ormutil.WithKV("user_id", userId))
+	// if !start.IsZero() {
+	// 	options = append(options, ormutil.WithKV("create_at__gte", start))
+	// }
+	// if !end.IsZero() {
+	// 	options = append(options, ormutil.WithKV("create_at__lt", end))
+	// }
+
+	// options = append(options,
+	// 	ormutil.WithLimitOffset(limit, 0),
+	// 	ormutil.WithOrderBy("-id"))
+	// return ormutil.QueryManyNoDiff[ModelUserRecord](GetDb(), options...)
+	ormDb := GetDb()
+	var records []*ModelUserRecordJoinGameRecord
+	sql := `SELECT g3q_user_record.*, g3q_game_record.game_name, g3q_game_record.game_data
+	FROM g3q_user_record
+	LEFT JOIN g3q_game_record ON g3q_user_record.game_record_id = g3q_game_record.id
+	WHERE g3q_user_record.user_id = ?`
+	var args []interface{}
+	args = append(args, userId)
+	if id > 0 {
+		sql += " AND g3q_user_record.id < ?"
+		args = append(args, id)
 	}
-	options = append(options, ormutil.WithKV("user_id", userId))
 	if !start.IsZero() {
-		options = append(options, ormutil.WithKV("create_at__gte", start))
+		sql += " AND g3q_user_record.create_at >= ?"
+		args = append(args, start)
 	}
 	if !end.IsZero() {
-		options = append(options, ormutil.WithKV("create_at__lt", end))
+		sql += " AND g3q_user_record.create_at < ?"
+		args = append(args, end)
 	}
+	sql += " ORDER BY g3q_user_record.id DESC LIMIT ?"
+	args = append(args, limit)
+	_, err := ormDb.Raw(sql, args...).QueryRows(&records)
+	if err != nil {
+		return nil, err
+	}
+	return records, nil
 
-	options = append(options,
-		ormutil.WithLimitOffset(limit, 0),
-		ormutil.WithOrderBy("-id"))
-	return ormutil.QueryMany[ModelUserRecord](GetDb(), options...)
 }

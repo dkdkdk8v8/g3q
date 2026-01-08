@@ -2167,20 +2167,19 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .history-group {
-    margin-bottom: 12px;
+    /* padding-bottom: 12px; */
 }
 
 .group-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 16px;
-    /* Expanded padding */
+    padding: 10px 16px 18px;
+    /* Expanded padding, margin-bottom removed */
     font-size: 12px;
     color: #9ca3af;
     background-color: #0f172a;
     /* border-radius removed */
-    margin-bottom: 8px;
     width: 100%;
     /* Full width */
     box-sizing: border-box;

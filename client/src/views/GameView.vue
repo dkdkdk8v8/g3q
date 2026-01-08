@@ -2167,7 +2167,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .history-group {
-    /* padding-bottom: 12px; */
+    display: flow-root;
 }
 
 .group-header {

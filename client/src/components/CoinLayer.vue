@@ -13,11 +13,11 @@ const throwCoins = async (startRect, endRect, count = 10) => {
     
     // 桌面中心稍微随机一点，不要全部聚集成一个点
     const centerRandom = 40; 
-    const coinDelayStep = 0.04; // 每个金币间隔 0.04s
+    const coinDelayStep = 0.02; // Faster staggered start: 0.02s
 
     for (let i = 0; i < count; i++) {
         const id = coinIdCounter++;
-        const duration = 0.5 + Math.random() * 0.3; // 0.5s - 0.8s 随机飞行时长
+        const duration = 0.4 + Math.random() * 0.2; // Faster flight: 0.4s - 0.6s
         const delay = i * coinDelayStep + Math.random() * 0.05; // 线性延迟 + 少量随机
         
         // 初始位置 (起点)

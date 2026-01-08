@@ -445,9 +445,9 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
                 const seatEl = seatRefs.value[p.id];
                 if (seatEl) {
                     const seatRect = seatEl.getBoundingClientRect();
-                    let count = Math.ceil(Math.abs(p.roundScore) / 20);
-                    if (count < 5) count = 5;
-                    if (count > 20) count = 20;
+                    let count = Math.ceil(Math.abs(p.roundScore) / 5); // Increased density: div by 5 instead of 20
+                    if (count < 10) count = 10; // Min 10
+                    if (count > 50) count = 50; // Max 50
                     coinLayer.value.throwCoins(seatRect, bankerRect, count);
                     if (settingsStore.soundEnabled) {
                         const audio = new Audio(sendCoinSound);
@@ -463,9 +463,9 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
                     const seatEl = seatRefs.value[p.id];
                     if (seatEl) {
                         const seatRect = seatEl.getBoundingClientRect();
-                        let count = Math.ceil(p.roundScore / 15);
-                        if (count < 8) count = 8;
-                        if (count > 30) count = 30;
+                        let count = Math.ceil(p.roundScore / 5); // Increased density: div by 5 instead of 15
+                        if (count < 15) count = 15; // Min 15
+                        if (count > 60) count = 60; // Max 60
                         coinLayer.value.throwCoins(bankerRect, seatRect, count);
                         if (settingsStore.soundEnabled) {
                             const audio = new Audio(sendCoinSound);

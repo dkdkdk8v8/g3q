@@ -4,6 +4,15 @@ import (
 	"time"
 )
 
+type RecordType int
+
+const (
+	RecordTypeDeposit  RecordType = 0
+	RecordTypeWithDraw RecordType = 1
+	RecordTypeGame     RecordType = 2
+	RecordTypeAdmin    RecordType = 3
+)
+
 type ModelUser struct {
 	Id          uint64    `orm:"column(id);auto" json:"-"`                           // 标识
 	UserId      string    `orm:"column(user_id);size(64)"`                           // 用户标识(带APPID前缀)
@@ -13,6 +22,8 @@ type ModelUser struct {
 	Avatar      string    `orm:"column(avatar);size(256)"`                           // 头像URL
 	Balance     int64     `orm:"column(balance);default(0)"`                         // 余额（分）
 	BalanceLock int64     `orm:"column(balance_lock);default(0)" json:"balanceLock"` // 锁定余额（分）
+	BalanceNet  int64     `orm:"column(balance_net);default(0)" json:"balanceNet"`   // 净输赢（分）
+	GameCount   int       `orm:"column(game_count);default(0)" json:"gameCount"`     // 游戏次数
 	GameId      string    `orm:"column(game_id);size(64)" json:"gameId"`             // 游戏ID
 	Remark      string    `orm:"column(remark);size(256)" json:"-"`                  // 备注
 	LastPlayed  time.Time `orm:"column(last_played);type(datetime);null" json:"-"`   // 最后游戏时间
@@ -42,12 +53,15 @@ func (a *ModelUser) TableIndex() [][]string {
 }
 
 type ModelUserRecord struct {
-	Id            uint64    `orm:"column(id);auto" json:"-"`                      // 标识
-	UserId        string    `orm:"column(user_id);size(64)"`                      // 用户标识(带APPID前缀)
-	BalanceBefore int64     `orm:"column(balance_before);default(0)"`             // 余额（分）
-	BalanceAfter  int64     `orm:"column(balance_after);default(0)"`              // 余额（分）
-	GameRecordId  uint64    `orm:"column(game_record_id);size(64)"`               // 游戏RecordID // join ModelGame的Id 主键
-	CreateAt      time.Time `orm:"column(create_at);type(datetime);auto_now_add"` // 创建时间
+	Id            uint64     `orm:"column(id);auto" json:"-"` // 标识
+	UserId        string     `orm:"column(user_id);size(64)"` // 用户标识(带APPID前缀)
+	RecordType    RecordType `orm:"column(record_type);default(0)"`
+	BalanceBefore int64      `orm:"column(balance_before);default(0)"`             // 余额（分）
+	BalanceAfter  int64      `orm:"column(balance_after);default(0)"`              // 余额（分）
+	GameRecordId  uint64     `orm:"column(game_record_id);size(64)"`               // 游戏RecordID // join ModelGame的Id 主键
+	OrderId       string     `orm:"column(order_id);size(128);null" json:"-"`      // 订单ID
+	OrderState    int        `orm:"column(order_state);default(0)" json:"-"`       // 订单状态
+	CreateAt      time.Time  `orm:"column(create_at);type(datetime);auto_now_add"` // 创建时间
 }
 
 func (a *ModelUserRecord) TableName() string {
@@ -56,7 +70,7 @@ func (a *ModelUserRecord) TableName() string {
 
 func (a *ModelUserRecord) TableUnique() [][]string {
 	return [][]string{
-		{"user_id", "game_record_id"},
+		{"user_id", "game_record_id"}, {"order_id"},
 	}
 }
 

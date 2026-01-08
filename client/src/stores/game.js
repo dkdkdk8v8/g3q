@@ -59,43 +59,59 @@ export const useGameStore = defineStore('game', () => {
     const generateMockHistory = () => {
         const now = Date.now();
         const oneDay = 24 * 60 * 60 * 1000;
-        return [
-            {
-                timestamp: now - 1000 * 60 * 5, // 5 mins ago
-                roomName: '1金币底分房',
-                handType: '无牛',
-                score: -35.00,
-                bet: 35.00,
-                isBanker: false
-            },
-            {
-                timestamp: now - 1000 * 60 * 20, // 20 mins ago
-                roomName: '1金币底分房',
-                handType: '牛7',
-                score: 38.00,
-                bet: 40.00,
-                isBanker: false
-            },
-            {
-                timestamp: now - oneDay * 4, // 4 days ago
-                roomName: '1金币底分房',
-                handType: '无牛',
-                score: -4.75, // Example from image (approx)
-                bet: 5.00,
-                isBanker: false
-            },
-             {
-                timestamp: now - oneDay * 4 - 1000 * 60 * 30, 
-                roomName: '5金币底分房',
-                handType: '牛牛',
-                score: 120.00,
-                bet: 50.00,
-                isBanker: true
-            }
-        ];
+        const initialItems = [];
+
+        // Generate 20 initial items to ensure scrollability
+        for (let i = 0; i < 20; i++) {
+            const isWin = Math.random() > 0.5;
+            const bet = Math.floor(Math.random() * 5 + 1) * 10;
+            initialItems.push({
+                timestamp: now - (i * 1000 * 60 * 60 * 2), // Every 2 hours backwards
+                roomName: ['1金币底分房', '5金币底分房'][Math.floor(Math.random() * 2)],
+                handType: ['无牛', '牛1', '牛2', '牛3', '牛4', '牛5', '牛6', '牛7', '牛8', '牛9', '牛牛'][Math.floor(Math.random() * 11)],
+                score: isWin ? bet * (Math.random() * 3 + 1).toFixed(1) : -bet,
+                bet: bet,
+                isBanker: Math.random() > 0.8
+            });
+        }
+        
+        return initialItems;
     };
 
     const history = ref(generateMockHistory()); // 游戏记录
+    const isLoadingHistory = ref(false); // Flag to track if history is currently loading
+
+    // Mock Load More History
+    const loadMoreHistory = async () => {
+        if (isLoadingHistory.value) return; // Prevent multiple requests
+        isLoadingHistory.value = true;
+
+        // Simulate network delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        const now = Date.now();
+        const oneDay = 24 * 60 * 60 * 1000;
+        const currentLength = history.value.length;
+        
+        const newItems = [];
+        const randomCount = Math.floor(Math.random() * 11) + 5; // Generate 5 to 15 items
+        for (let i = 0; i < randomCount; i++) {
+            const isWin = Math.random() > 0.5;
+            const bet = Math.floor(Math.random() * 5 + 1) * 10;
+            newItems.push({
+                timestamp: now - oneDay * (2 + Math.floor((currentLength + i) / 5)) - 1000 * 60 * 60 * (i * 2), 
+                roomName: ['1金币底分房', '5金币底分房', '10金币底分房'][Math.floor(Math.random() * 3)],
+                handType: ['无牛', '牛1', '牛2', '牛3', '牛4', '牛5', '牛6', '牛7', '牛8', '牛9', '牛牛'][Math.floor(Math.random() * 11)],
+                score: isWin ? bet * (Math.random() * 3 + 1).toFixed(1) : -bet,
+                bet: bet,
+                isBanker: Math.random() > 0.8
+            });
+        }
+
+        history.value = [...history.value, ...newItems];
+        isLoadingHistory.value = false;
+    };
+
     const bankerCandidates = ref([]); // Store IDs of players who are candidates for banker
     const bankerMult = ref([]); // Store banker multiplier options
     const betMult = ref([]); // Store betting multiplier options
@@ -682,6 +698,8 @@ export const useGameStore = defineStore('game', () => {
         playerShowHand,
         bankerId,
         history,
+        isLoadingHistory,
+        loadMoreHistory,
         joinRoom,
         bankerCandidates,
         gameMode,

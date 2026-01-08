@@ -16,8 +16,11 @@ declare module 'vue' {
     ReconnectDialog: typeof import('./src/components/ReconnectDialog.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    VanDatePicker: typeof import('vant/es')['DatePicker']
     VanIcon: typeof import('vant/es')['Icon']
     VanImage: typeof import('vant/es')['Image']
+    VanLoading: typeof import('vant/es')['Loading']
+    VanPopup: typeof import('vant/es')['Popup']
     VanSwitch: typeof import('vant/es')['Switch']
   }
 }

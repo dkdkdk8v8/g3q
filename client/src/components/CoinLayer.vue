@@ -13,11 +13,11 @@ const throwCoins = async (startRect, endRect, count = 10) => {
     
     // 桌面中心稍微随机一点，不要全部聚集成一个点
     const centerRandom = 40; 
-    const coinDelayStep = 0.04; // 每个金币间隔 0.04s
+    const coinDelayStep = 0.02; // Faster staggered start: 0.02s
 
     for (let i = 0; i < count; i++) {
         const id = coinIdCounter++;
-        const duration = 0.5 + Math.random() * 0.3; // 0.5s - 0.8s 随机飞行时长
+        const duration = 0.4 + Math.random() * 0.2; // Faster flight: 0.4s - 0.6s
         const delay = i * coinDelayStep + Math.random() * 0.05; // 线性延迟 + 少量随机
         
         // 初始位置 (起点)
@@ -62,13 +62,26 @@ const throwCoins = async (startRect, endRect, count = 10) => {
                     // 增加 delay 参数
                     transition: `all ${coin.duration}s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${coin.delay}s` 
                 };
+
+                // Add Absorption Effect after flight
+                const flightTimeMs = (coin.delay + coin.duration) * 1000;
+                setTimeout(() => {
+                    const absorbedTarget = coins.value.find(c => c.id === coin.id);
+                    if (absorbedTarget) {
+                        absorbedTarget.style = {
+                            transform: `translate(${coin.endX}px, ${coin.endY}px) scale(0)`, // Shrink to 0
+                            opacity: 0, // Fade out
+                            transition: 'all 0.3s ease-out' // Fast absorption
+                        };
+                    }
+                }, flightTimeMs);
             }
         });
     });
 
     // 动画结束后清理金币 DOM，防止内存泄漏
-    // 计算最大总耗时 = 最大延迟 + 最大飞行时间 (0.8s) + 安全余量
-    const maxTotalTime = (count * coinDelayStep + 0.1) + 0.8 + 0.2; 
+    // 计算最大总耗时 = 最大延迟 + 最大飞行时间 (0.8s) + 吸收时间(0.3s) + 安全余量
+    const maxTotalTime = (count * coinDelayStep + 0.1) + 0.8 + 0.3 + 0.2; 
     
     setTimeout(() => {
         coins.value = coins.value.filter(c => !newCoins.find(nc => nc.id === c.id));
@@ -101,20 +114,20 @@ defineExpose({
     width: 100%;
     height: 100%;
     pointer-events: none; /* 穿透点击，不影响游戏操作 */
-    z-index: 9999;
+    z-index: 7000;
 }
 
 .coin {
     position: absolute;
     top: 0;
     left: 0;
-    width: 20px;
-    height: 20px;
+    width: 28px;
+    height: 28px;
     background: radial-gradient(circle at 30% 30%, #fcd34d 0%, #d97706 100%);
     border: 1px solid #b45309;
     border-radius: 50%;
     color: #92400e;
-    font-size: 14px;
+    font-size: 18px;
     font-weight: bold;
     display: flex;
     justify-content: center;

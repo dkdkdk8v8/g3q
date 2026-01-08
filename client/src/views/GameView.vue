@@ -2295,11 +2295,23 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     bottom: 0;
     left: 50%;
     transform: translateX(-50%);
-    width: 50%;
+    width: 70%;
     /* Short divider */
     height: 2px;
     background-color: rgba(251, 191, 36, 0.5);
     border-radius: 1px;
+}
+
+.help-content h3 {
+    color: #fbbf24;
+    border: 1px solid #fbbf24;
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-top: 16px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 500;
 }
 
 .help-content p {

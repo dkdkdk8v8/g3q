@@ -1,0 +1,272 @@
+<template>
+    <cl-crud ref="Crud">
+        <cl-row>
+            <!-- 刷新按钮 -->
+            <cl-refresh-btn />
+
+            <!-- 日期筛选 -->
+            <div style="margin-right: 10px">
+                <el-date-picker v-model="dateRange" type="daterange" range-separator="至" start-placeholder="开始日期"
+                    end-placeholder="结束日期" value-format="YYYY-MM-DD" @change="onDateChange" :shortcuts="shortcuts" />
+            </div>
+
+            <cl-flex1 />
+
+            <!-- APP筛选 -->
+            <cl-filter label="APP">
+                <cl-select v-model="searchParams.app" :options="options.app_id" @change="refresh" clearable
+                    placeholder="全部APP" style="width: 150px" />
+            </cl-filter>
+            <cl-flex1 />
+            <el-radio-group v-model="searchParams.showType" @change="refresh">
+                <el-radio-button label="date">按日期</el-radio-button>
+                <el-radio-button label="app">按APP</el-radio-button>
+            </el-radio-group>
+        </cl-row>
+
+        <cl-row>
+            <cl-table ref="Table">
+                <template #column-gameWin="{ scope }">
+                    <span
+                        :style="{ color: scope.row.gameWin > 0 ? 'var(--el-color-success)' : (scope.row.gameWin < 0 ? 'var(--el-color-danger)' : '') }">
+                        {{ (scope.row.gameWin / 100).toFixed(2) }}
+                    </span>
+                </template>
+            </cl-table>
+        </cl-row>
+    </cl-crud>
+</template>
+
+<script lang="ts" name="sta-date" setup>
+import { useCrud, useTable } from "@cool-vue/crud";
+import { useCool } from "/@/cool";
+import { useDict } from '/$/dict';
+import { reactive, ref } from "vue";
+import dayjs from "dayjs";
+
+
+const { dict } = useDict();
+const { service } = useCool();
+
+// 字典
+const options = reactive({
+    app_id: dict.get("app_id"),
+});
+
+// 日期范围默认最近30天
+const dateRange = ref([
+    dayjs().subtract(29, "day").format("YYYY-MM-DD"),
+    dayjs().format("YYYY-MM-DD"),
+]);
+
+// 日期快捷选项
+const shortcuts = [
+    {
+        text: "当天",
+        value: () => {
+            const end = new Date();
+            const start = new Date();
+            return [start, end];
+        },
+    },
+    {
+        text: "近三天",
+        value: () => {
+            const end = new Date();
+            const start = new Date();
+            start.setTime(start.getTime() - 3600 * 1000 * 24 * 2);
+            return [start, end];
+        },
+    },
+    {
+        text: "近一周",
+        value: () => {
+            const end = new Date();
+            const start = new Date();
+            start.setTime(start.getTime() - 3600 * 1000 * 24 * 6);
+            return [start, end];
+        },
+    },
+    {
+        text: "近一个月",
+        value: () => {
+            const end = new Date();
+            const start = new Date();
+            start.setTime(start.getTime() - 3600 * 1000 * 24 * 29);
+            return [start, end];
+        },
+    },
+    {
+        text: "本周",
+        value: () => {
+            const end = new Date();
+            const now = dayjs();
+            const day = now.day();
+            const start = now.subtract(day === 0 ? 6 : day - 1, 'day').toDate();
+            return [start, end];
+        },
+    },
+    {
+        text: "本月",
+        value: () => {
+            const end = new Date();
+            const start = dayjs().startOf("month").toDate();
+            return [start, end];
+        },
+    },
+    {
+        text: "上个月",
+        value: () => {
+            const start = dayjs().subtract(1, "month").startOf("month").toDate();
+            const end = dayjs().subtract(1, "month").endOf("month").toDate();
+            return [start, end];
+        },
+    },
+];
+
+// 搜索参数
+const searchParams = reactive({
+    startDate: dateRange.value[0],
+    endDate: dateRange.value[1],
+    app: "",
+    showType: "date",
+});
+
+// 自定义Service
+const crudService = {
+    page: async (params: any) => {
+        const { app, showType, startDate, endDate } = searchParams;
+        const { sort, order } = params;
+
+        const res = await service.game.staPeriod.getDateStats({
+            startDate,
+            endDate,
+            app,
+            showType,
+            sort,
+            order
+        });
+
+        const list = res || [];
+
+        return {
+            list,
+            pagination: {
+                total: list.length,
+                page: 1,
+                size: 10000,
+            },
+        };
+    },
+};
+
+// cl-table
+const Table = useTable({
+    columns: [
+        {
+            label: "标题",
+            prop: "title",
+            minWidth: 100,
+            fixed: "left",
+            sortable: "custom",
+            formatter(row) {
+                return row.title;
+            },
+        },
+        {
+            label: "游戏活跃",
+            prop: "gameUserCount",
+            minWidth: 100,
+            sortable: "custom",
+        },
+        {
+            label: "首次游戏",
+            prop: "firstGameUserCount",
+            minWidth: 100,
+            sortable: "custom",
+        },
+        {
+            label: "游戏局数",
+            prop: "gameCount",
+            minWidth: 100,
+            sortable: "custom",
+        },
+        {
+            label: "投注金额",
+            prop: "betAmount",
+            minWidth: 100,
+            sortable: "custom",
+            formatter(row) {
+                return (row.betAmount / 100).toFixed(2);
+            },
+        },
+        {
+            label: "投注次数",
+            prop: "betCount",
+            minWidth: 100,
+            sortable: "custom",
+        },
+        {
+            label: "人均投注",
+            prop: "avgBetPerUser",
+            minWidth: 100,
+            sortable: "custom",
+            formatter(row) {
+                return (row.avgBetPerUser / 100).toFixed(2);
+            },
+        },
+        {
+            label: "次均投注",
+            prop: "avgBetPerGame",
+            minWidth: 100,
+            sortable: "custom",
+            formatter(row) {
+                return (row.avgBetPerGame / 100).toFixed(2);
+            },
+        },
+        {
+            label: "人均次数",
+            prop: "avgCountPerUser",
+            minWidth: 100,
+            sortable: "custom",
+            formatter(row) {
+                return Number(row.avgCountPerUser).toFixed(2);
+            },
+        },
+        {
+            label: "平台盈亏",
+            prop: "gameWin",
+            minWidth: 100,
+            fixed: "right",
+            sortable: "custom",
+        },
+    ],
+});
+
+// cl-crud
+const Crud = useCrud(
+    {
+        service: crudService,
+    },
+    (app) => {
+        app.refresh();
+    },
+);
+
+// 日期改变
+function onDateChange(val: any) {
+    if (val) {
+        searchParams.startDate = val[0];
+        searchParams.endDate = val[1];
+    } else {
+        searchParams.startDate = "";
+        searchParams.endDate = "";
+    }
+    refresh();
+}
+
+// 刷新
+function refresh() {
+    Crud.value?.refresh();
+}
+</script>

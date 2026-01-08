@@ -38,13 +38,13 @@ export class GameUserService extends BaseService {
             total: number,
         },
     }> {
-        const list = await this.userRecordEntity.find({
-            where: { user_id },
-            order: { create_at: 'DESC' },
-            skip: (page - 1) * size,
-            take: size,
-        });
-        const total = await this.userRecordEntity.count({ where: { user_id } });
+        const [list, total] = await this.userRecordEntity.createQueryBuilder('record')
+            .leftJoinAndMapOne('record.gameRecord', GameRecordEntity, 'game', 'record.game_record_id = game.id')
+            .where('record.user_id = :user_id', { user_id })
+            .orderBy('record.create_at', 'DESC')
+            .skip((page - 1) * size)
+            .take(size)
+            .getManyAndCount();
         return {
             list,
             pagination: {

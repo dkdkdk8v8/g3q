@@ -272,7 +272,7 @@ func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, userId st
 	case qznn.CmdLobbyConfig: // 大厅配置请求
 		rsp.Data = handleLobbyConfig()
 	case znet.CmdGameRecord: //获取游戏记录
-		rsp.Data, errRsp = handleGameRecord(userId, msg.Data)
+		rsp.Data, errRsp = handerGameRecordCache(userId, msg.Data)
 	case qznn.CmdTalk:
 		errRsp = handlerPlayerTalk(userId, msg.Data)
 	case znet.CmdSaveSetting: // 保存用户设置

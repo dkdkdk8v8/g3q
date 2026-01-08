@@ -36,6 +36,10 @@
             <el-tag size="small" :type="scope.row.talk ? 'success' : 'info'">对话</el-tag>
           </el-space>
         </template>
+        <template #column-enable="{ scope }">
+          <el-tag v-for="(item, index) in DictEnable" :key="index" :type="item.type as any" size="small"
+            v-show="scope.row.enable == item.value">{{ item.label }}</el-tag>
+        </template>
       </cl-table>
     </cl-row>
 
@@ -58,21 +62,9 @@ import { useCool } from "/@/cool";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { ref } from "vue";
 import UserRecord from "../components/user-record.vue";
+import { DictEnable } from "../utils/dict";
 
 const { service } = useCool();
-
-const DictEnable = [
-  {
-    label: "启用",
-    value: 1,
-    type: "success",
-  },
-  {
-    label: "禁用",
-    value: 0,
-    type: "danger",
-  },
-];
 
 // 状态
 const enable = ref(1);
@@ -130,14 +122,13 @@ const Table = useTable({
       prop: "enable",
       width: 80,
       fixed: "right",
-      dict: DictEnable,
     },
     {
       type: "op",
       width: 80,
       buttons: [
         {
-          label: "记录",
+          label: "查看",
           onClick({ scope }) {
             UserRecordRef.value?.open(scope.row);
           },

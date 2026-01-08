@@ -20,6 +20,9 @@ export class GameUserEntity {
   @Column({ comment: '游戏ID' })
   game_id: string;
 
+  // @Column({ comment: '游戏次数' })
+  // game_count: number;
+
   @Column({ comment: '昵称' })
   nick_name: string;
 

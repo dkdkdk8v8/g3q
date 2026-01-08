@@ -1,16 +1,73 @@
 <template>
-    <cl-dialog v-model="visible" title="资金记录" width="800px">
+    <cl-dialog v-model="visible" title="资金记录" width="900px">
         <div class="list" v-infinite-scroll="loadMore" :infinite-scroll-disabled="loading || finished">
             <el-timeline>
-                <el-timeline-item v-for="(item, index) in list" :key="index" :timestamp="item.create_at"
-                    placement="top">
-                    <el-card shadow="hover">
-                        <div class="row">
-                            <el-tag :type="item.recordType === 'game' ? 'success' : 'info'" effect="dark">
-                                {{ item.recordType }}
-                            </el-tag>
-                            <div v-if="item.recordType === 'game' && item.game_data" class="game-data">
-                                {{ item.game_data }}
+                <el-timeline-item v-for="(item, index) in list" :key="index" hide-timestamp>
+                    <el-card shadow="hover" class="record-card">
+                        <template #header>
+                            <div class="card-header"
+                                @click="item.record_type === 0 ? item.expanded = !item.expanded : null"
+                                :class="{ 'is-clickable': item.record_type === 0 }">
+                                <div class="left">
+                                    <span class="time">{{ item.create_at }}</span>
+                                    <el-tag :type="item.record_type === 0 ? 'success' : 'info'" effect="dark">
+                                        {{ item.record_type === 0 ? '游戏' : '其他' }}
+                                    </el-tag>
+                                </div>
+                                <div class="right">
+                                    <span class="label">变动:</span>
+                                    <span class="amount" :class="getBalanceChange(item) >= 0 ? 'plus' : 'minus'">
+                                        {{ getBalanceChange(item) > 0 ? '+' : '' }}{{ (getBalanceChange(item) /
+                                            100).toFixed(2) }}
+                                    </span>
+                                    <span class="label">余额:</span>
+                                    <span class="balance">{{ (item.balance_after / 100).toFixed(2) }}</span>
+                                    <el-icon v-if="item.record_type === 0" class="expand-icon"
+                                        :class="{ 'is-expanded': item.expanded }">
+                                        <ArrowRight />
+                                    </el-icon>
+                                </div>
+                            </div>
+                        </template>
+
+                        <div v-show="item.expanded" v-if="item.record_type === 0 && item.parsedGameData"
+                            class="game-detail">
+                            <div class="room-info">
+                                <div class="tags">
+                                    <el-tag size="small" type="danger" effect="plain">{{
+                                        getRoomInfo(item.parsedGameData.Room.ID).level }}</el-tag>
+                                    <el-tag size="small" type="warning" effect="plain">{{
+                                        getRoomInfo(item.parsedGameData.Room.ID).type }}</el-tag>
+                                </div>
+                                <span class="room-id">{{ item.parsedGameData.Room.ID }}</span>
+                            </div>
+
+                            <div class="players-grid">
+                                <div v-for="(player, pIndex) in item.parsedGameData.Room.Players" :key="pIndex"
+                                    class="player-item" :class="{ 'is-me': player && player.ID === item.user_id }">
+                                    <template v-if="player">
+                                        <div class="p-header">
+                                            <span class="name">{{ player.NickName || player.ID }}</span>
+                                            <span v-if="player.ID === item.parsedGameData.Room.BankerID"
+                                                class="banker-badge">庄</span>
+                                        </div>
+                                        <div class="p-cards">
+                                            <span v-for="(card, cIndex) in player.Cards" :key="cIndex"
+                                                :style="{ color: getCardStyle(card).color }">{{ getCardStyle(card).text
+                                                }}</span>
+                                            <span class="card-result">{{ getCardResult(player.Cards) }}</span>
+                                        </div>
+                                        <div class="p-info">
+                                            <span v-if="player.CallMult > 0">抢庄:{{ player.CallMult }}倍</span>
+                                            <span v-if="player.BetMult > 0">下注:{{ player.BetMult }}倍</span>
+                                        </div>
+                                        <div class="p-balance" :class="player.BalanceChange >= 0 ? 'win' : 'lose'">
+                                            {{ player.BalanceChange > 0 ? '+' : '' }}{{ (player.BalanceChange /
+                                                100).toFixed(2) }}
+                                        </div>
+                                    </template>
+                                    <div v-else class="empty-seat">空</div>
+                                </div>
                             </div>
                         </div>
                     </el-card>
@@ -27,6 +84,9 @@
 <script lang="ts" setup>
 import { ref, reactive } from "vue";
 import { useCool } from "/@/cool";
+import { getCardResult, getCardStyle } from "../utils/card";
+import { getRoomInfo } from "../utils/room";
+import { ArrowRight } from "@element-plus/icons-vue";
 
 const { service } = useCool();
 
@@ -43,7 +103,7 @@ const userId = ref<any>(null);
 
 function open(row: any) {
     visible.value = true;
-    userId.value = row.id;
+    userId.value = row.user_id;
     list.value = [];
     pagination.page = 1;
     finished.value = false;
@@ -61,7 +121,18 @@ async function loadMore() {
             user_id: userId.value,
         });
 
-        list.value.push(...res.list);
+        const records = res.list.map((item: any) => {
+            if (item.gameRecord && typeof item.gameRecord.game_data === 'string') {
+                try {
+                    item.parsedGameData = JSON.parse(item.gameRecord.game_data);
+                } catch (e) {
+                    console.error("Parse error", e);
+                }
+            }
+            item.expanded = false;
+            return item;
+        });
+        list.value.push(...records);
         pagination.total = res.pagination.total;
 
         if (list.value.length >= pagination.total) {
@@ -77,6 +148,10 @@ async function loadMore() {
     }
 }
 
+function getBalanceChange(item: any) {
+    return item.balance_after - item.balance_before;
+}
+
 defineExpose({
     open,
 });
@@ -88,14 +163,173 @@ defineExpose({
     overflow-y: auto;
     padding: 10px;
 
-    .row {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        flex-wrap: wrap;
+    .record-card {
+        :deep(.el-card__header) {
+            padding: 10px;
+        }
+
+        :deep(.el-card__body) {
+            padding: 0;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: default;
+
+            &.is-clickable {
+                cursor: pointer;
+            }
+
+            .left {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                font-size: 13px;
+            }
+
+            .right {
+                font-size: 13px;
+
+                .label {
+                    color: var(--el-text-color-regular);
+                    margin-left: 10px;
+                }
+
+                .amount {
+                    font-weight: bold;
+
+                    &.plus {
+                        color: var(--el-color-success);
+                    }
+
+                    &.minus {
+                        color: var(--el-color-danger);
+                    }
+                }
+
+                .balance {
+                    font-weight: bold;
+                    margin-left: 5px;
+                }
+
+                .expand-icon {
+                    margin-left: 10px;
+                    transition: transform 0.3s;
+                    font-size: 14px;
+
+                    &.is-expanded {
+                        transform: rotate(90deg);
+                    }
+                }
+            }
+        }
+
+        .game-detail {
+            padding: 10px;
+        }
+
+        .room-info {
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            .tags {
+                display: flex;
+                gap: 5px;
+            }
+
+            .room-id {
+                font-size: 12px;
+                color: var(--el-text-color-secondary);
+            }
+        }
+
+        .players-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 10px;
+
+            .player-item {
+                background: var(--el-fill-color-light);
+                border-radius: 4px;
+                padding: 8px;
+                font-size: 12px;
+                border: 1px solid transparent;
+
+                &.is-me {
+                    background: var(--el-color-primary-light-9);
+                    border-color: var(--el-color-primary-light-5);
+                }
+
+                .p-header {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 4px;
+
+                    .name {
+                        font-weight: bold;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                    }
+
+                    .banker-badge {
+                        background: var(--el-color-danger);
+                        color: var(--el-color-white);
+                        padding: 0 4px;
+                        border-radius: 2px;
+                        font-size: 10px;
+                    }
+                }
+
+                .p-cards {
+                    margin-bottom: 4px;
+                    white-space: nowrap;
+
+                    span {
+                        margin-right: 2px;
+                        font-weight: bold;
+                    }
+
+                    .card-result {
+                        margin-left: 4px;
+                        color: var(--el-color-primary);
+                    }
+                }
+
+                .p-info {
+                    color: var(--el-text-color-secondary);
+                    margin-bottom: 4px;
+                    display: flex;
+                    gap: 5px;
+                }
+
+                .p-balance {
+                    font-weight: bold;
+                    text-align: right;
+
+                    &.win {
+                        color: var(--el-color-success);
+                    }
+
+                    &.lose {
+                        color: var(--el-color-danger);
+                    }
+                }
+            }
+
+            .empty-seat {
+                text-align: center;
+                color: var(--el-text-color-placeholder);
+                padding: 20px 0;
+            }
+        }
 
         .game-data {
-            color: #666;
+            color: var(--el-text-color-regular);
             font-size: 13px;
             flex: 1;
             word-break: break-all;
@@ -106,7 +340,7 @@ defineExpose({
     .finished {
         text-align: center;
         padding: 10px;
-        color: #999;
+        color: var(--el-text-color-secondary);
         font-size: 12px;
     }
 }

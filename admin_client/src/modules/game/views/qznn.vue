@@ -104,10 +104,10 @@
                           <div class="player-balance-change">
                             <span v-if="player.BalanceChange > 0" class="positive">+{{ (player.BalanceChange /
                               100).toFixed(2)
-                              }}</span>
+                            }}</span>
                             <span v-else-if="player.BalanceChange < 0" class="negative">{{ (player.BalanceChange /
                               100).toFixed(2)
-                              }}</span>
+                            }}</span>
                             <span v-else class="zero">0</span>
                           </div>
                         </div>
@@ -119,7 +119,7 @@
                   <div class="room-footer">
                     <span>{{
                       dayjs(item.CreateAt).format("YYYY-MM-DD HH:mm:ss")
-                      }}</span>
+                    }}</span>
                     <span>{{ dayjs(item.CreateAt).fromNow() }}</span>
                   </div>
                 </div>
@@ -140,6 +140,7 @@ import { Refresh } from "@element-plus/icons-vue";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/zh-cn";
 import { getCardResult, getCardStyle } from "../utils/card";
+import { getRoomInfo, levelMap, typeMap } from "../utils/room";
 
 dayjs.extend(relativeTime);
 dayjs.locale("zh-cn");
@@ -217,31 +218,6 @@ const stateTypeMap: Record<string, string> = {
   StateSettling: "danger",
   StateSettlingDirectPreCard: "info",
 };
-
-const levelMap: Record<string, string> = {
-  "1": "初级场",
-  "2": "中级场",
-  "3": "高级场",
-  "4": "豪华场",
-};
-
-const typeMap: Record<string, string> = {
-  "0": "不看牌",
-  "1": "看三张",
-  "2": "看四张",
-};
-
-function getRoomInfo(id: string) {
-  if (!id) return { level: "", type: "" };
-  const parts = id.split("_");
-  if (parts.length >= 3) {
-    return {
-      level: levelMap[parts[2]] || "未知",
-      type: typeMap[parts[1]] || "未知",
-    };
-  }
-  return { level: "未知", type: "未知" };
-}
 
 const roomCount = computed(() => Object.keys(list.value).length);
 

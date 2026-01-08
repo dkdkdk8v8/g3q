@@ -8,6 +8,9 @@ export class GameRecordEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Column({ comment: '游戏名称' })
+  game_name: string;
+
   @Column({ comment: '游戏记录ID' })
   game_id: string;
 
@@ -17,6 +20,4 @@ export class GameRecordEntity {
   @Column({ comment: '创建时间' })
   create_at: Date;
 
-  @Column({ comment: '更新时间' })
-  update_at: Date;
 }

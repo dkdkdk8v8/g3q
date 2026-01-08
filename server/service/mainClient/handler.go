@@ -2,6 +2,7 @@ package mainClient
 
 import (
 	"compoment/ormutil"
+	"compoment/util"
 	"compoment/ws"
 	"encoding/json"
 	"errors"
@@ -9,8 +10,11 @@ import (
 	"service/mainClient/game"
 	"service/mainClient/game/qznn"
 	"service/modelClient"
+	"service/modelComm"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 type LobbyConfigRsp struct {
@@ -208,70 +212,116 @@ type recordItem struct {
 	BalanceBefore int64
 	BalanceAfter  int64
 	GameName      string
+	GameData      string
 }
 type handleGameRecordRsp struct {
-	List []any //里面有 recordSummy recordItem
+	LastId uint64
+	List   []any //里面有 recordSummy recordItem
 }
 
+var handerGameRecordCache = modelComm.WrapCache[*handleGameRecordRsp](handleGameRecord,
+	2*time.Second).(func(userId string, data []byte) (*handleGameRecordRsp, error))
+
 func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) {
-	// var req struct {
-	// 	Limit  int
-	// 	Offset int
-	// }
-	// if err := json.Unmarshal(data, &req); err != nil {
-	// 	return nil, comm.ErrClientParam
-	// }
-	// if req.Limit > 20 {
-	// 	req.Limit = 20
-	// }
-	// if req.Limit <= 0 {
-	// 	req.Limit = 10
-	// }
-	// var ret handleGameRecordRsp
-	// ret.List = make([]recordSummy, 0)
+	var req struct {
+		Limit  int
+		LastId uint64
+	}
+	if err := json.Unmarshal(data, &req); err != nil {
+		return nil, comm.ErrClientParam
+	}
+	if req.Limit > 20 {
+		req.Limit = 20
+	}
+	if req.Limit <= 0 {
+		req.Limit = 10
+	}
+	var rsp handleGameRecordRsp
 
-	// records, err := modelClient.GetUserGameRecords(userId, req.Limit, req.Offset)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// if len(records) == 0 {
-	// 	return &ret, nil
-	// }
+	var lastTime = time.Unix(0, 0)
+	var currentSummy *recordSummy
+	itemCount := 0
+	loopCount := 0
+	targetCount := req.Limit
 
-	// var currentSummy *recordSummy
-	// for _, userRecoed := range records {
-	// 	wd := int(userRecoed.CreateAt.Weekday())
-	// 	if wd == 0 {
-	// 		wd = 7
-	// 	}
-	// 	dateStr := fmt.Sprintf("%s周%d", userRecoed.CreateAt.Format("01月02"), wd)
+	for {
+		loopCount++
+		if loopCount > 100 { // 保护逻辑：防止死循环
+			logrus.WithField("!", nil).WithField("userId", userId).Error("loopMax")
+			break
+		}
 
-	// 	if currentSummy == nil || currentSummy.Date != dateStr {
-	// 		if currentSummy != nil {
-	// 			ret.List = append(ret.List, *currentSummy)
-	// 		}
-	// 		currentSummy = &recordSummy{
-	// 			Date: dateStr,
-	// 			List: make([]recordItem, 0),
-	// 		}
-	// 	}
+		if itemCount >= targetCount {
+			//加快拉取数据的速度
+			req.Limit = req.Limit * 2
+			if req.Limit > 200 {
+				req.Limit = 200
+			}
+		}
+		records, err := modelClient.GetUserGameRecords(userId, req.Limit, req.LastId)
+		if err != nil {
+			return nil, err
+		}
+		if len(records) == 0 {
+			break
+		}
 
-	// 	gameRecord, err := modelClient.GetGameRecordByIdCache(userRecoed.GameRecordId)
-	// 	if err != nil {
-	// 		continue
-	// 	}
-	// 	currentSummy.TotalWinBalance += (userRecoed.BalanceAfter - userRecoed.BalanceBefore)
-	// 	currentSummy.List = append(currentSummy.List, recordItem{
-	// 		BalanceBefore: userRecoed.BalanceBefore,
-	// 		BalanceAfter:  userRecoed.BalanceAfter,
-	// 		GameName:      gameRecord.GameName,
-	// 	})
-	// }
+		// 更新LastId，防止死循环
+		req.LastId = records[len(records)-1].Id
 
-	// if currentSummy != nil {
-	// 	ret.List = append(ret.List, *currentSummy)
-	// }
+		for _, userRecoed := range records {
+			if lastTime.IsZero() || !util.IsSameDay(lastTime, userRecoed.CreateAt) {
+				if itemCount >= targetCount {
+					//客户端的条件满足了，并且又跨天了，不在需要统计当日的nSummy
+					return &rsp, nil
+				}
+				currentSummy = &recordSummy{
+					Date: userRecoed.CreateAt.Format("01月02") + "周" + GetChineseWeekName(userRecoed.CreateAt.Day()),
+				}
+				rsp.List = append(rsp.List, currentSummy)
+			}
+			lastTime = userRecoed.CreateAt
 
-	// return &ret, nil
-	return nil, nil
+			gameRecord, err := modelClient.GetGameRecordByIdCache(userRecoed.GameRecordId)
+			if err != nil {
+				continue
+			}
+			nRecord := &recordItem{
+				BalanceBefore: userRecoed.BalanceBefore,
+				BalanceAfter:  userRecoed.BalanceAfter,
+				GameName:      gameRecord.GameName}
+
+			if currentSummy != nil {
+				// 优化：统一计算输赢
+				currentSummy.TotalWinBalance += (userRecoed.BalanceAfter - userRecoed.BalanceBefore)
+
+				switch gameRecord.GameName {
+				case qznn.GameName:
+					var qznnRoom qznn.QZNNRoom
+					err = json.Unmarshal([]byte(gameRecord.GameData), &qznnRoom)
+					if err != nil {
+						continue
+					}
+					for _, player := range qznnRoom.Players {
+						if player.ID == userId {
+							currentSummy.TotalBet += player.BalanceBet
+						}
+					}
+					nRecord.GameData = gameRecord.GameData
+				default:
+					// 其他游戏逻辑
+				}
+			}
+
+			if itemCount < targetCount {
+				//满足客户端ui展示的数据，放入返回数据内
+				rsp.List = append(rsp.List, nRecord)
+				//客户端透传数据，方便下次请求的时候直接准确算偏移量
+				rsp.LastId = userRecoed.Id
+				itemCount++
+			}
+		}
+	}
+
+	return &rsp, nil
 }

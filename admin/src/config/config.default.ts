@@ -5,7 +5,7 @@ import { MidwayConfig } from '@midwayjs/core';
 // import { redisStore } from 'cache-manager-ioredis-yet';
 
 export default {
-  keys: 'a0d154c4f510182bcbf52a4e9cb0d123', 
+  keys: 'a0d154c4f510182bcbf52a4e9cb0d123',
   koa: {
     port: 8001,
   },
@@ -36,20 +36,6 @@ export default {
       },
     },
   },
-  // cacheManager: {
-  //   clients: {
-  //     default: {
-  //       store: redisStore,
-  //       options: {
-  //         port: 6379,
-  //         host: '13.250.247.149',
-  //         password: 'asdflkjh12321',
-  //         ttl: 0,
-  //         db: 0,
-  //       },
-  //     },
-  //   },
-  // },
   puppeteer: {
     launchOptions: {
       headless: true,

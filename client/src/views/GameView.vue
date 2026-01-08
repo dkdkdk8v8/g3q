@@ -624,16 +624,64 @@ onUnmounted(() => {
     gameClient.setLatencyCallback(null);
 });
 
+// Date Filter Logic
+const showFilterMenu = ref(false);
+const filterType = ref('all'); // 'all' or 'custom'
+const showDatePicker = ref(false);
+const currentDate = ref([]); // Vant 4 DatePicker uses array of strings
+const minDate = new Date(new Date().getFullYear() - 2, 0, 1);
+const maxDate = new Date();
+
+const filterLabel = computed(() => {
+    if (filterType.value === 'all') return '全部';
+    if (currentDate.value.length === 3) {
+        return `${currentDate.value[0]}-${currentDate.value[1]}-${currentDate.value[2]}`;
+    }
+    return '自定义';
+});
+
+const toggleFilterMenu = () => {
+    showFilterMenu.value = !showFilterMenu.value;
+};
+
+const selectFilter = (type) => {
+    if (type === 'custom') {
+        const now = new Date();
+        // Initialize with today if empty
+        if (currentDate.value.length === 0) {
+            currentDate.value = [
+                now.getFullYear().toString(),
+                (now.getMonth() + 1).toString().padStart(2, '0'),
+                now.getDate().toString().padStart(2, '0')
+            ];
+        }
+        showDatePicker.value = true;
+    } else {
+        filterType.value = 'all';
+    }
+    showFilterMenu.value = false;
+};
+
+const onConfirmDate = ({ selectedValues }) => {
+    currentDate.value = selectedValues;
+    filterType.value = 'custom';
+    showDatePicker.value = false;
+};
+
+const onCancelDate = () => {
+    showDatePicker.value = false;
+};
+
 // History Logic
 const historyGrouped = computed(() => {
     const groups = {};
     
     // Generate Mock Data for display purposes (scrolling test)
     const mockHistory = [];
-    const now = Date.now();
+    const nowTs = Date.now();
     for (let i = 0; i < 20; i++) {
         mockHistory.push({
-            timestamp: now - i * 1000 * 60 * 60 * 2, // Every 2 hours
+            timestamp: nowTs - i * 1000 * 60 * 60 * 2, // Every 2 hours
             bet: 100 * (i + 1),
             roomName: '体验房',
             handType: '牛' + (i % 10),
@@ -643,8 +691,22 @@ const historyGrouped = computed(() => {
     }
 
     // Sort history by timestamp desc first
-    const sortedHistory = [...store.history, ...mockHistory].sort((a, b) => b.timestamp - a.timestamp);
+    let sortedHistory = [...store.history, ...mockHistory].sort((a, b) => b.timestamp - a.timestamp);
     
+    // Apply Date Filter
+    if (filterType.value === 'custom' && currentDate.value.length === 3) {
+        const [y, m, d] = currentDate.value;
+        const targetStr = `${y}-${m}-${d}`;
+        
+        sortedHistory = sortedHistory.filter(item => {
+            const date = new Date(item.timestamp);
+            const itemY = date.getFullYear().toString();
+            const itemM = (date.getMonth() + 1).toString().padStart(2, '0');
+            const itemD = date.getDate().toString().padStart(2, '0');
+            return `${itemY}-${itemM}-${itemD}` === targetStr;
+        });
+    }
+
     sortedHistory.forEach(item => {
         const date = new Date(item.timestamp);
         const month = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -960,7 +1022,16 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                 <div class="modal-content history-modal">
                     <div class="modal-header">
                         <h3>投注记录</h3>
-                        <div class="filter-chip">全部 ▼</div>
+                        <div class="filter-chip" @click.stop="toggleFilterMenu">
+                            {{ filterLabel }} <span class="down-triangle">▼</span>
+                        </div>
+                        
+                        <!-- Filter Menu -->
+                        <div v-if="showFilterMenu" class="filter-menu" @click.stop>
+                            <div class="filter-menu-item" :class="{ active: filterType === 'all' }" @click="selectFilter('all')">全部</div>
+                            <div class="filter-menu-item" :class="{ active: filterType === 'custom' }" @click="selectFilter('custom')">自定义</div>
+                        </div>
+
                         <div class="header-right">
                             <div class="close-icon" @click="closeHistoryDebounced()">×</div>
                         </div>
@@ -998,6 +1069,18 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                             </div>
                         </div>
                     </div>
+
+                    <!-- Date Picker Popup -->
+                    <van-popup v-model:show="showDatePicker" position="bottom" :style="{ height: '40%' }" teleport="body" z-index="9000">
+                        <van-date-picker
+                            v-model="currentDate"
+                            title="选择日期"
+                            :min-date="minDate"
+                            :max-date="maxDate"
+                            @confirm="onConfirmDate"
+                            @cancel="onCancelDate"
+                        />
+                    </van-popup>
                 </div>
             </div>
 
@@ -1878,6 +1961,39 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     gap: 4px;
     min-width: 70px;
     justify-content: center;
+    cursor: pointer;
+    position: relative; /* For popup positioning context if needed, though menu is in header */
+}
+
+.filter-menu {
+    position: absolute;
+    top: 45px; /* Below the header */
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #334155;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    z-index: 20;
+    overflow: hidden;
+    min-width: 100px;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.filter-menu-item {
+    padding: 10px 16px;
+    color: #e5e7eb;
+    font-size: 14px;
+    text-align: center;
+    cursor: pointer;
+}
+
+.filter-menu-item:hover {
+    background-color: #475569;
+}
+
+.filter-menu-item.active {
+    color: #facc15;
+    background-color: #1e293b;
 }
 
 .history-list-new {

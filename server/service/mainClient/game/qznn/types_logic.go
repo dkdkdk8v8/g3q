@@ -60,6 +60,7 @@ type PlayerData struct {
 	CardResult    CardResult `json:"-"`
 	IsOb          bool       // 是否观众
 	BalanceChange int64      // 本局输赢
+	BalanceBet    int64      //投注流水
 	IsRobot       bool       `json:"-" DiyJson:"IsRobot"`
 }
 
@@ -115,6 +116,7 @@ func (p *Player) ResetGameData() {
 	p.CardResult = CardResult{}
 	p.BalanceChange = 0
 	p.IsOb = false
+	p.BalanceBet = 0
 }
 
 // LobbyConfig 大厅配置

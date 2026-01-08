@@ -872,11 +872,13 @@ func (r *QZNNRoom) StartGame() {
 		if isPlayerWin {
 			// 闲家赢：底注 * 庄倍 * 闲倍 * 闲家牌型倍数
 			winAmount := baseBet * bankerMult * p.BetMult * p.CardResult.Mult
+			p.BalanceBet = winAmount
 			playerWins = append(playerWins, WinRecord{PlayerID: p.ID, Amount: winAmount})
 			totalBankerPay += winAmount
 		} else {
 			// 庄家赢：底注 * 庄倍 * 闲倍 * 庄家牌型倍数
 			loseAmount := baseBet * bankerMult * p.BetMult * bankerPlayer.CardResult.Mult
+			p.BalanceBet = loseAmount
 			// 输家输的钱不能超过自己的余额
 			if loseAmount > p.Balance {
 				loseAmount = p.Balance

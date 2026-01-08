@@ -1092,7 +1092,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                     </div>
 
                     <!-- Date Picker Popup -->
-                    <van-popup v-model:show="showDatePicker" position="bottom" :style="{ height: '40%' }" teleport="body" z-index="9000">
+                    <van-popup v-model:show="showDatePicker" position="bottom" :style="{ height: '40%' }" teleport="body" z-index="9000" class="dark-theme-popup">
                         <van-date-picker
                             v-model="currentDate"
                             title="选择日期"
@@ -2132,5 +2132,29 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 .hc-bet-amt {
     font-size: 12px;
     color: #64748b;
+}
+</style>
+
+<style>
+/* Global styles for Vant components in dark mode */
+.dark-theme-popup {
+    --van-popup-background: #1e293b;
+    --van-picker-background: #1e293b;
+    --van-picker-option-text-color: #94a3b8;
+    --van-text-color: #e5e7eb;
+    --van-picker-mask-color: linear-gradient(180deg, rgba(30, 41, 59, 0.9), rgba(30, 41, 59, 0.4)), linear-gradient(0deg, rgba(30, 41, 59, 0.9), rgba(30, 41, 59, 0.4));
+    --van-border-color: rgba(255, 255, 255, 0.1);
+    --van-picker-confirm-action-color: #fbbf24;
+    --van-picker-cancel-action-color: #94a3b8;
+}
+
+.dark-theme-popup .van-picker__title {
+    color: #e5e7eb;
+    font-weight: bold;
+}
+
+.dark-theme-popup .van-picker-column__item--selected {
+    color: #facc15; /* Active item color */
+    font-weight: bold;
 }
 </style>

@@ -152,12 +152,12 @@ function openBatchAdd() {
 			{
 				label: "数量",
 				prop: "count",
-				value: 20,
+				value: 100,
 				component: {
 					name: "el-input-number",
 					props: {
 						min: 1,
-						max: 100,
+						max: 10000,
 					},
 				},
 				required: true,

@@ -7,25 +7,21 @@ import (
 	"compoment/rds"
 	"compoment/uid"
 	"fmt"
-	"math/rand"
 	"net/http"
 	"os"
+	"path/filepath"
 	"runtime"
+	runDebug "runtime/debug"
 	"service/comm"
 	"service/initMain"
 	"service/mainClient"
 	"service/modelClient"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
 
 func cors(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -111,6 +107,13 @@ func (w *mainClientWork) Start(baseCtx *initMain.BaseCtx) error {
 	} else {
 		gin.DefaultWriter = logFile
 		gin.DefaultErrorWriter = logFile
+
+		crashPath := filepath.Join(filepath.Dir(os.Args[0]), "log", logName+".crash")
+		if f, err := os.OpenFile(crashPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0666); err == nil {
+			runDebug.SetCrashOutput(f, runDebug.CrashOptions{})
+		} else {
+			logrus.WithError(err).Error("SetCrashOutput-Fail")
+		}
 	}
 
 	initMain.WritePid(baseCtx, initMain.ProcessWork)

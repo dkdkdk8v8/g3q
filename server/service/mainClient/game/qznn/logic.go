@@ -14,7 +14,6 @@ import (
 	"time"
 
 	errors "github.com/pkg/errors"
-
 	"github.com/sirupsen/logrus"
 )
 
@@ -205,17 +204,17 @@ func (r *QZNNRoom) kickOffByWsDisconnect() ([]string, bool) {
 	}
 
 	var delId []string
-	r.CheckInMultiStatusDo([]RoomState{StateWaiting, StatePrepare}, func() error {
-		r.RoomMu.Lock()
+	r.RoomMu.Lock()
+	if slices.Contains([]RoomState{StateWaiting, StatePrepare}, r.State) {
 		for _, delIndex := range delIndex {
-			if delIndex.id == r.Players[delIndex.index].ID {
+			// 再次检查防止并发修改导致空指针或误删
+			if r.Players[delIndex.index] != nil && delIndex.id == r.Players[delIndex.index].ID {
 				delId = append(delId, r.Players[delIndex.index].ID)
 				r.Players[delIndex.index] = nil
 			}
 		}
-		r.RoomMu.Unlock()
-		return nil
-	})
+	}
+	r.RoomMu.Unlock()
 	return delId, true
 }
 
@@ -335,14 +334,22 @@ func (r *QZNNRoom) PushPlayer(p *Player, msg interface{}) {
 
 func (r *QZNNRoom) BroadcastWithPlayer(getMsg func(*Player) interface{}) {
 	r.RoomMu.RLock()
-	defer r.RoomMu.RUnlock()
+	// 1. 先快照一份玩家列表，避免在持有 RoomMu 锁期间进行回调(可能导致递归锁)和网络IO
+	var players []*Player
 	for _, p := range r.Players {
-		if p == nil {
-			continue
+		if p != nil {
+			players = append(players, p)
 		}
+	}
+	r.RoomMu.RUnlock()
+
+	// 2. 遍历快照发送消息
+	for _, p := range players {
+		// 回调可能需要获取 RoomMu (例如 GetClientRoom)，所以这里不能持有 RoomMu
+		msg := getMsg(p)
+
 		p.Mu.RLock()
 		conn := p.ConnWrap
-		msg := getMsg(p) // 在 player 锁保护下调用 getMsg
 		p.Mu.RUnlock()
 
 		if conn != nil && conn.IsConnected() {

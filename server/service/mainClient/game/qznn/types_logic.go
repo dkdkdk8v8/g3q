@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/sasha-s/go-deadlock"
 	"github.com/sirupsen/logrus"
 )
 
@@ -159,7 +160,7 @@ type QZNNRoomData struct {
 type QZNNRoom struct {
 	QZNNRoomData
 	StateDeadline time.Time            `json:"-"`
-	RoomMu        sync.RWMutex         `json:"-"` // 保护房间数据并发安全
+	RoomMu        deadlock.RWMutex     `json:"-"` // 保护房间数据并发安全
 	Deck          []int                `json:"-"` // 牌堆
 	TargetResults map[string]int       `json:"-"` // 记录每个玩家本局被分配的目标分数 (牛几)
 	TotalBet      int64                `json:"-"` // 本局总下注额，用于更新库存

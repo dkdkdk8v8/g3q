@@ -159,9 +159,7 @@ type QZNNRoomData struct {
 type QZNNRoom struct {
 	QZNNRoomData
 	StateDeadline time.Time            `json:"-"`
-	StateMu       sync.RWMutex         `json:"-"` // 保护 State, Timer
-	Mu            sync.Mutex           `json:"-"` // 保护房间数据并发安全
-	PlayerMu      sync.RWMutex         `json:"-"` // 保护 Players
+	RoomMu        sync.RWMutex         `json:"-"` // 保护房间数据并发安全
 	Deck          []int                `json:"-"` // 牌堆
 	TargetResults map[string]int       `json:"-"` // 记录每个玩家本局被分配的目标分数 (牛几)
 	TotalBet      int64                `json:"-"` // 本局总下注额，用于更新库存
@@ -195,8 +193,8 @@ func (r *QZNNRoom) ResetOb() {
 }
 
 func (r *QZNNRoom) SetBankerId(bankerId string) bool {
-	r.Mu.Lock()
-	defer r.Mu.Unlock()
+	r.RoomMu.Lock()
+	defer r.RoomMu.Unlock()
 	if r.BankerID == bankerId {
 		return true
 	}
@@ -208,8 +206,8 @@ func (r *QZNNRoom) SetBankerId(bankerId string) bool {
 }
 
 func (r *QZNNRoom) UpdateStateLeftSec() {
-	r.StateMu.Lock()
-	defer r.StateMu.Unlock()
+	r.RoomMu.Lock()
+	defer r.RoomMu.Unlock()
 	if r.StateDeadline.IsZero() {
 		return
 	}
@@ -224,26 +222,27 @@ func (r *QZNNRoom) UpdateStateLeftSec() {
 }
 
 func (r *QZNNRoom) GetClientRoom(pushId string) *QZNNRoom {
+	r.RoomMu.RLock()
 	n := &QZNNRoom{
 		QZNNRoomData: r.QZNNRoomData,
 	}
+	r.RoomMu.RUnlock()
+
 	n.Players = make([]*Player, 0, 5) // 清空 Players，重新生成，避免指向原切片
 	preCard := PlayerCardMax
 	bSecret := true
-	r.StateMu.RLock()
-	switch r.State {
+	switch n.State {
 	//只有这3个状态，推牌数据，需要处理预看牌
 	case StatePreCard, StateBanking, StateRandomBank, StateBankerConfirm, StateBetting:
 		preCard = r.Config.GetPreCard()
 	}
 
-	switch r.State {
+	switch n.State {
 	//推牌数据，默认秘密
 	case StateSettling:
 		bSecret = false
 
 	}
-	r.StateMu.RUnlock()
 
 	pushPlayers := r.GetBroadCasePlayers(nil)
 	for _, p := range pushPlayers {

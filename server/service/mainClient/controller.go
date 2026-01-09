@@ -1,6 +1,7 @@
 package mainClient
 
 import (
+	"compoment/alert"
 	"compoment/ws"
 	"context"
 	"encoding/json"
@@ -99,13 +100,8 @@ func WSEntry(c *gin.Context) {
 	wsConnectMapMutex.Unlock()
 
 	if existWsWrap != nil {
-		existWsWrap.Mu.Lock()
-		// Fix: 直接使用 WsConn.WriteJSON 避免死锁 (WriteJSON 会尝试获取 RLock，但当前已持有 Lock)
-		if existWsWrap.WsConn != nil {
-			_ = existWsWrap.WsConn.WriteJSON(comm.PushData{Cmd: comm.ServerPush, PushType: game.PushOtherConnect})
-			existWsWrap.WsConn.CloseNormal("handler exit")
-		}
-		existWsWrap.Mu.Unlock()
+		_ = existWsWrap.WriteJSON(comm.PushData{Cmd: comm.ServerPush, PushType: game.PushOtherConnect})
+		existWsWrap.CloseNormal("handler exit")
 		logrus.WithField("appId", appId).WithField("appUserId", appUserId).Info("WS-Client-KickOffConnect")
 	}
 
@@ -147,41 +143,31 @@ func handleConnection(connWrap *ws.WsConnWrap, appId, appUserId string) {
 		var msg comm.Request
 		var err error
 		// 读取客户端发来的 JSON 消息
+		readTimeout := time.Second * 10
 		if initMain.DefCtx.IsDebug {
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-			connWrap.Mu.RLock()
-			currentWsConn := connWrap.WsConn
-			connWrap.Mu.RUnlock()
-			if currentWsConn == nil {
-				cancel()
-				break
-			}
-			_, buffer, err1 := currentWsConn.Conn.Read(ctx)
-			cancel() // 显式调用 cancel，避免在 for 循环中 defer 导致资源泄露
-			if err1 != nil {
-				connWrap.Mu.Lock()
-				connWrap.WsConn = nil
-				connWrap.Mu.Unlock()
-				logWSCloseErr(userId, err1)
-				break
-			}
-			err = json.Unmarshal(buffer, &msg)
-			if err != nil {
-				connWrap.Mu.Lock()
-				connWrap.WsConn = nil
-				connWrap.Mu.Unlock()
-				logrus.WithField("uid", userId).WithField("buffer", string(buffer)).WithError(err).Info("WS-Client-JsonInvalid")
-				break
-			}
-		} else {
-			err = connWrap.ReadJSON(&msg)
-			if err != nil {
-				logWSCloseErr(userId, err)
-				connWrap.Mu.Lock()
-				connWrap.WsConn = nil
-				connWrap.Mu.Unlock()
-				break
-			}
+			readTimeout = time.Second * 2
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), readTimeout)
+		connWrap.Mu.RLock()
+		currentWsConn := connWrap.WsConn
+		connWrap.Mu.RUnlock()
+		if currentWsConn == nil {
+			cancel()
+			break
+		}
+		_, buffer, err1 := currentWsConn.Conn.Read(ctx)
+		cancel() // 显式调用 cancel，避免在 for 循环中 defer 导致资源泄露
+		if err1 != nil {
+			connWrap.Mu.Lock()
+			connWrap.WsConn = nil
+			connWrap.Mu.Unlock()
+			logWSCloseErr(userId, err1)
+			break
+		}
+		err = json.Unmarshal(buffer, &msg)
+		if err != nil {
+			logrus.WithField("!", alert.Limit10Hit10M).WithField("uid", userId).WithField("buffer", string(buffer)).WithError(err).Info("WS-Client-JsonInvalid")
+			continue
 		}
 		// 频率限制：同一用户同一Cmd 100ms内只能请求一次
 		if lastTime, ok := lastCmdTime[msg.Cmd]; ok {

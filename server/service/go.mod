@@ -21,6 +21,11 @@ require (
 )
 
 require (
+	github.com/petermattis/goid v0.0.0-20250813065127-a731cc31b4fe // indirect
+	github.com/sasha-s/go-deadlock v0.3.6 // indirect
+)
+
+require (
 	github.com/bytedance/sonic v1.9.1 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
 	github.com/coder/websocket v1.8.14 // indirect

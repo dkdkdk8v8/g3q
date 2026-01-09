@@ -24,8 +24,8 @@ func HandlerPlayerLeave(r *QZNNRoom, userID string) error {
 			return comm.NewMyError("离开房间失败")
 		}
 	} else {
-		err := r.CheckInMultiStatusDo([]RoomState{StateWaiting, StatePrepare}, func() error {
-			if !r.Leave(userID) {
+		err := r.CheckInMultiStatusDoLock([]RoomState{StateWaiting, StatePrepare}, func() error {
+			if !r.leave(userID) {
 				//todo log
 				return comm.NewMyError("离开房间失败")
 			}
@@ -40,12 +40,14 @@ func HandlerPlayerLeave(r *QZNNRoom, userID string) error {
 		}
 	}
 
-	r.Broadcast(comm.PushData{
-		Cmd:      comm.ServerPush,
-		PushType: PushPlayLeave,
-		Data: PushPlayerLeaveStruct{
-			Room:    r,
-			UserIds: []string{userID}}})
+	r.BroadcastWithPlayer(func(p *Player) interface{} {
+		return comm.PushData{
+			Cmd:      comm.ServerPush,
+			PushType: PushPlayLeave,
+			Data: PushPlayerLeaveStruct{
+				Room:    r.GetClientRoom(p.ID),
+				UserIds: []string{userID}}}
+	})
 	r.logicTick()
 	return nil
 }
@@ -56,7 +58,7 @@ func HandleCallBanker(r *QZNNRoom, userID string, mult int64) error {
 	}
 
 	err := r.CheckStatusDo(StateBanking, func() error {
-		p, ok := r.GetPlayerByID(userID)
+		p, ok := r.getPlayerByID(userID)
 		if !ok {
 			return comm.NewMyError("无效用户")
 		}
@@ -98,11 +100,11 @@ func HandlePlaceBet(r *QZNNRoom, userID string, mult int64) error {
 	}
 
 	err := r.CheckStatusDo(StateBetting, func() error {
-		if r.CheckIsBanker(userID) {
+		if r.checkIsBanker(userID) {
 			logrus.WithField("roomId", r.ID).WithField("userId", userID).Error("HandlePlaceBet_BanerCannotBet")
 			return comm.NewMyError("庄家无法投注")
 		}
-		p, ok := r.GetPlayerByID(userID)
+		p, ok := r.getPlayerByID(userID)
 		// 修正：这里应该是检查是否未下注(BetMult == -1)，原代码 != 0 在初始为-1时会直接返回
 		if !ok || p == nil {
 			return comm.NewMyError("无效用户")
@@ -147,7 +149,7 @@ func HandleShowCards(r *QZNNRoom, userID string) error {
 	}
 
 	err := r.CheckStatusDo(StateShowCard, func() error {
-		p, ok := r.GetPlayerByID(userID)
+		p, ok := r.getPlayerByID(userID)
 		if !ok {
 			return comm.NewMyError("无效用户")
 		}

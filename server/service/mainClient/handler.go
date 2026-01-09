@@ -76,14 +76,17 @@ func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []b
 		return err
 	}
 
-	room.Broadcast(comm.PushData{
-		Cmd:      comm.ServerPush,
-		PushType: qznn.PushPlayJoin,
-		Data: qznn.PushPlayerJoinStruct{
-			Room:   room,
-			UserId: userId,
-		},
-	})
+	room.BroadcastWithPlayer(
+		func(p *qznn.Player) interface{} {
+			return comm.PushData{
+				Cmd:      comm.ServerPush,
+				PushType: qznn.PushPlayJoin,
+				Data: qznn.PushPlayerJoinStruct{
+					Room:   room.GetClientRoom(p.ID),
+					UserId: userId,
+				},
+			}
+		})
 
 	return err
 }
@@ -177,13 +180,16 @@ func handlerPlayerTalk(userId string, data []byte) error {
 
 	room := game.GetMgr().GetRoomByRoomId(req.RoomId)
 	if room != nil {
-		room.Broadcast(comm.PushData{
-			Cmd:      comm.ServerPush,
-			PushType: qznn.PushTalk,
-			Data: qznn.PushTalkStruct{
-				UserId: userId,
-				Type:   req.Type,
-				Index:  req.Index}})
+		room.BroadcastWithPlayer(
+			func(p *qznn.Player) interface{} {
+				return comm.PushData{
+					Cmd:      comm.ServerPush,
+					PushType: qznn.PushTalk,
+					Data: qznn.PushTalkStruct{
+						UserId: userId,
+						Type:   req.Type,
+						Index:  req.Index}}
+			})
 	}
 
 	return nil

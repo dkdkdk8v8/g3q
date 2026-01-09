@@ -35,7 +35,7 @@ var (
 )
 
 func manageRobots() {
-	ticker := time.NewTicker(time.Second * 10)
+	ticker := time.NewTicker(time.Second * 20)
 	defer ticker.Stop()
 
 	for {
@@ -43,6 +43,7 @@ func manageRobots() {
 		if err != nil {
 			logrus.Errorf("获取所有机器人失败: %v", err)
 		} else {
+			logrus.Infof("获取到机器人数量: %d", len(users))
 			activeRobotsMu.Lock()
 			// 找出需要删除的机器人
 			existUsers := make(map[string]bool)
@@ -76,11 +77,11 @@ func runRobot(user *modelClient.ModelUser, ctx context.Context) {
 		activeRobotsMu.Unlock()
 	}()
 
-	minutes := rand.Intn(MINUTE_WAIT_MAX)
+	seconds := rand.Intn(SECONDS_WAIT_MAX)
 	select {
 	case <-ctx.Done():
 		return
-	case <-time.After(time.Minute * time.Duration(minutes)):
+	case <-time.After(time.Second * time.Duration(seconds)):
 	}
 
 	robot := &Robot{Uid: user.UserId, AppId: user.AppId, AppUserId: user.AppUserId, Balance: user.Balance}
@@ -351,9 +352,9 @@ func (r *Robot) handleStateChange(state qznn.RoomState) {
 		case qznn.StateSettling:
 			r.mu.Lock()
 			r.gamesPlayed++
-			played := r.gamesPlayed
+			// played := r.gamesPlayed
 			r.mu.Unlock()
-			logrus.Infof("机器人 %s 本局结束，已玩局数: %d", r.Uid, played)
+			// logrus.Infof("机器人 %s 本局结束，已玩局数: %d", r.Uid, played)
 			r.checkLeave()
 		}
 	}()
@@ -374,7 +375,7 @@ func (r *Robot) checkLeave() {
 			return
 		}
 		if gamesPlayed < MIN_GAMES {
-			logrus.Infof("机器人 %s 局数不足(当前%d/目标%d)，继续游戏", r.Uid, gamesPlayed, MIN_GAMES)
+			// logrus.Infof("机器人 %s 局数不足(当前%d/目标%d)，继续游戏", r.Uid, gamesPlayed, MIN_GAMES)
 			return
 		}
 		count := 0

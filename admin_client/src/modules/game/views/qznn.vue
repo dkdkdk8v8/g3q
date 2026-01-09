@@ -34,13 +34,13 @@
       </div>
     </div>
 
-    <div class="room-list">
+    <div class="room-list" v-infinite-scroll="loadMore" :infinite-scroll-distance="200">
       <el-empty v-if="errorMessage" :description="errorMessage" />
 
       <el-empty v-else-if="Object.keys(list).length === 0" description="暂时没有房间数据" />
 
       <div v-else>
-        <div v-for="group in groupedList" :key="group.title" class="level-group">
+        <div v-for="group in displayedGroups" :key="group.title" class="level-group">
           <div class="group-header">{{ group.title }} <span class="count">({{ group.rooms.length }})</span></div>
           <el-row :gutter="10">
             <el-col v-for="item in group.rooms" :key="item.ID" :xs="24" :sm="12" :md="12" :lg="8" :xl="6">
@@ -49,8 +49,17 @@
                   <div class="card-header">
                     <div class="header-left">
                       <div class="tags">
-                        <el-tag size="small" type="danger" effect="plain">{{ getRoomInfo(item.ID).level }}
-                        </el-tag>
+                        <el-tooltip placement="top">
+                          <template #content>
+                            <span>{{ item.GameID }}</span>
+                            <el-icon style="margin-left: 5px; cursor: pointer; vertical-align: middle;"
+                              @click="copyGameID(item.GameID)">
+                              <CopyDocument />
+                            </el-icon>
+                          </template>
+                          <el-tag size="small" type="danger" effect="plain" style="cursor: pointer">{{
+                            getRoomInfo(item.ID).level }}</el-tag>
+                        </el-tooltip>
                         <el-tag size="small" type="warning" effect="plain">{{ getRoomInfo(item.ID).type }}
                         </el-tag>
                       </div>
@@ -104,10 +113,10 @@
                           <div class="player-balance-change">
                             <span v-if="player.BalanceChange > 0" class="positive">+{{ (player.BalanceChange /
                               100).toFixed(2)
-                            }}</span>
+                              }}</span>
                             <span v-else-if="player.BalanceChange < 0" class="negative">{{ (player.BalanceChange /
                               100).toFixed(2)
-                            }}</span>
+                              }}</span>
                             <span v-else class="zero">0</span>
                           </div>
                         </div>
@@ -117,10 +126,10 @@
                   </div>
 
                   <div class="room-footer">
-                    <span>{{
-                      dayjs(item.CreateAt).format("YYYY-MM-DD HH:mm:ss")
-                    }}</span>
-                    <span>{{ dayjs(item.CreateAt).fromNow() }}</span>
+                    <div class="time-info">
+                      <span>{{ dayjs(item.CreateAt).format("YYYY-MM-DD HH:mm:ss") }}</span>
+                      <span>{{ dayjs(item.CreateAt).fromNow() }}</span>
+                    </div>
                   </div>
                 </div>
               </el-card>
@@ -134,9 +143,10 @@
 
 <script lang="ts" name="game-room-qznn" setup>
 import { useCool } from "/@/cool";
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { ElMessage } from "element-plus";
 import dayjs from "dayjs";
-import { Refresh } from "@element-plus/icons-vue";
+import { Refresh, CopyDocument } from "@element-plus/icons-vue";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/zh-cn";
 import { getCardResult, getCardStyle } from "../utils/card";
@@ -187,6 +197,35 @@ const groupedList = computed(() => {
     groups.push({ title: name, rooms: temp[name] });
   });
   return groups;
+});
+
+// 懒加载控制：当前显示的房间总数限制
+const displayedRoomsCount = ref(20);
+
+// 根据限制计算当前需要渲染的分组数据
+const displayedGroups = computed(() => {
+  const limit = displayedRoomsCount.value;
+  let count = 0;
+  const result: { title: string; rooms: any[] }[] = [];
+
+  for (const group of groupedList.value) {
+    if (count >= limit) break;
+
+    const remaining = limit - count;
+    // 如果当前组的房间数未超过剩余配额，全部放入
+    if (group.rooms.length <= remaining) {
+      result.push(group);
+      count += group.rooms.length;
+    } else {
+      // 否则只截取部分房间
+      result.push({
+        ...group,
+        rooms: group.rooms.slice(0, remaining)
+      });
+      count += remaining;
+    }
+  }
+  return result;
 });
 
 const stateMap: Record<string, string> = {
@@ -253,6 +292,21 @@ const statsData = computed(() => {
   return { levels, types };
 });
 
+const copyGameID = (id: any) => {
+  navigator.clipboard.writeText(String(id));
+  ElMessage.success("GameID 已复制");
+};
+
+const loadMore = () => {
+  // 每次滚动到底部增加显示 20 个房间
+  displayedRoomsCount.value += 20;
+};
+
+// 当筛选条件变化时，重置显示数量，避免数据错乱或停留在底部
+watch([filterLevel, filterType], () => {
+  displayedRoomsCount.value = 20;
+});
+
 let reqId = 0;
 
 async function refresh() {
@@ -270,17 +324,25 @@ async function refresh() {
 }
 
 let timer: any = null;
+let isActive = false;
+
+const loop = async () => {
+  if (!isActive) return;
+  await refresh();
+  if (isActive) {
+    timer = setTimeout(loop, 1000);
+  }
+};
 
 onMounted(() => {
-  refresh();
-  timer = setInterval(() => {
-    refresh();
-  }, 1000);
+  isActive = true;
+  loop();
 });
 
 onUnmounted(() => {
+  isActive = false;
   if (timer) {
-    clearInterval(timer);
+    clearTimeout(timer);
     timer = null;
   }
 });
@@ -528,13 +590,16 @@ onUnmounted(() => {
 
       .room-footer {
         margin-top: 6px;
-        display: flex;
-        justify-content: space-between;
         color: var(--el-text-color-secondary);
         font-size: 12px;
         padding: 0 4px;
         border-top: 1px solid var(--el-border-color-lighter);
         padding-top: 6px;
+
+        .time-info {
+          display: flex;
+          justify-content: space-between;
+        }
       }
     }
   }

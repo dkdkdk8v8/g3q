@@ -1,6 +1,6 @@
 module main_robot
 
-go 1.24
+go 1.25
 
 replace (
 	beego/v2 => ../../thirdcode/beego/v2@v2.1.0

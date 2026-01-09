@@ -100,8 +100,31 @@ function generateCharts(data: any) {
     const el = document.documentElement;
     const getVar = (name: string) => getComputedStyle(el).getPropertyValue(name).trim();
 
+    const getRgba = (color: string, opacity: number) => {
+        let r = 0, g = 0, b = 0;
+        if (color.startsWith('#')) {
+            const hex = color.slice(1);
+            if (hex.length === 3) {
+                r = parseInt(hex[0] + hex[0], 16);
+                g = parseInt(hex[1] + hex[1], 16);
+                b = parseInt(hex[2] + hex[2], 16);
+            } else if (hex.length === 6) {
+                r = parseInt(hex.slice(0, 2), 16);
+                g = parseInt(hex.slice(2, 4), 16);
+                b = parseInt(hex.slice(4, 6), 16);
+            }
+        } else if (color.startsWith('rgb')) {
+            const match = color.match(/\d+/g);
+            if (match) {
+                r = parseInt(match[0]);
+                g = parseInt(match[1]);
+                b = parseInt(match[2]);
+            }
+        }
+        return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    };
+
     const primary = getVar('--el-color-primary') || '#5099f5';
-    const info = getVar('--el-color-info') || '#909399';
     const warning = getVar('--el-color-warning') || '#e6a23c';
     const textColor = getVar('--el-text-color-primary');
     const borderColor = getVar('--el-border-color-lighter');
@@ -126,7 +149,7 @@ function generateCharts(data: any) {
                     return res;
                 }
             },
-            color: [primary, info, warning],
+            color: [primary, getRgba(primary, 0.5), getRgba(warning, 0.5)],
             legend: {
                 data: ['当天', '前一天', '上周同期'],
                 textStyle: { color: textColor }
@@ -153,19 +176,25 @@ function generateCharts(data: any) {
                 {
                     name: '当天',
                     type: 'line',
+                    smooth: true,
+                    symbol: 'none',
                     areaStyle: {
-                        opacity: 0.2
+                        color: getRgba(primary, 0.3)
                     },
                     data: data.current.map((e: any) => getValue(e[m.key], m.isMoney)),
                 },
                 {
                     name: '前一天',
                     type: 'line',
+                    smooth: true,
+                    symbol: 'none',
                     data: data.yesterday.map((e: any) => getValue(e[m.key], m.isMoney)),
                 },
                 {
                     name: '上周同期',
                     type: 'line',
+                    smooth: true,
+                    symbol: 'none',
                     data: data.lastWeek.map((e: any) => getValue(e[m.key], m.isMoney)),
                 },
             ],

@@ -1,6 +1,6 @@
 module service
 
-go 1.24
+go 1.25
 
 replace compoment => ../compoment
 
@@ -16,14 +16,12 @@ require (
 	github.com/ip2location/ip2location-go/v9 v9.6.1
 	github.com/mitchellh/go-ps v1.0.0
 	github.com/pkg/errors v0.9.1
+	github.com/sasha-s/go-deadlock v0.3.6
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/viper v1.15.0
 )
 
-require (
-	github.com/petermattis/goid v0.0.0-20250813065127-a731cc31b4fe // indirect
-	github.com/sasha-s/go-deadlock v0.3.6 // indirect
-)
+require github.com/petermattis/goid v0.0.0-20250813065127-a731cc31b4fe // indirect
 
 require (
 	github.com/bytedance/sonic v1.9.1 // indirect

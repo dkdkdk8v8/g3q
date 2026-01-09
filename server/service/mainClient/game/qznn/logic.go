@@ -67,6 +67,16 @@ func (r *QZNNRoom) CheckInMultiStatusDo(state []RoomState, fn func() error) erro
 	}
 }
 
+func (r *QZNNRoom) CheckInMultiStatusDoLock(state []RoomState, fn func() error) error {
+	r.RoomMu.Lock()
+	defer r.RoomMu.Unlock()
+	if slices.Contains(state, r.State) {
+		return fn()
+	} else {
+		return errors.Wrap(errorStateNotMatch, fmt.Sprintf("%v", state))
+	}
+}
+
 func (r *QZNNRoom) SetStatus(oldStates []RoomState, newState RoomState, stateLeftSec int) bool {
 	r.RoomMu.Lock()
 	if r.State == newState {
@@ -138,8 +148,11 @@ func (r *QZNNRoom) CheckPlayerIsOb() bool {
 }
 
 func (r *QZNNRoom) CheckIsBanker(bankerID string) bool {
-	r.RoomMu.Lock()
-	defer r.RoomMu.Unlock()
+	r.RoomMu.RLock()
+	defer r.RoomMu.RUnlock()
+	return r.checkIsBanker(bankerID)
+}
+func (r *QZNNRoom) checkIsBanker(bankerID string) bool {
 	return r.BankerID == bankerID
 }
 
@@ -242,6 +255,9 @@ func (r *QZNNRoom) GetStartGamePlayerCount(includeOb bool) int {
 func (r *QZNNRoom) GetPlayerByID(userID string) (*Player, bool) {
 	r.RoomMu.RLock()
 	defer r.RoomMu.RUnlock()
+	return r.getPlayerByID(userID)
+}
+func (r *QZNNRoom) getPlayerByID(userID string) (*Player, bool) {
 	for _, p := range r.Players {
 		if p != nil && p.ID == userID {
 			return p, true
@@ -392,16 +408,18 @@ func (r *QZNNRoom) WaitStateLeftTicker() {
 
 // Leave 玩家离开房间
 func (r *QZNNRoom) Leave(userId string) bool {
-
 	r.RoomMu.Lock()
+	defer r.RoomMu.Unlock()
+	return r.leave(userId)
+}
+
+func (r *QZNNRoom) leave(userId string) bool {
 	for i, pl := range r.Players {
 		if pl != nil && pl.ID == userId {
 			r.Players[i] = nil
-			r.RoomMu.Unlock()
 			return true
 		}
 	}
-	r.RoomMu.Unlock()
 	return false
 }
 

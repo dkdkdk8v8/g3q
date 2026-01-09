@@ -63,12 +63,19 @@
 import { useCrud, useTable, useUpsert } from "@cool-vue/crud";
 import { useCool } from "/@/cool";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { ref } from "vue";
+import { reactive, ref } from "vue";
 import UserRecord from "../components/user-record.vue";
 import { DictEnable } from "../utils/dict";
 import FormatMoney from "../components/format-money.vue";
+import { useDict } from '/$/dict';
 
+const { dict } = useDict();
 const { service } = useCool();
+
+// 字典
+const options = reactive({
+  app_id: dict.get("app_id"),
+});
 
 // 状态
 const enable = ref(1);
@@ -80,8 +87,8 @@ const UserRecordRef = ref();
 const Table = useTable({
   columns: [
     { type: "selection" },
-    { label: "APP", prop: "app_id", dict: [], dictColor: true },
-    { label: "用户ID", prop: "user_id", minWidth: 120 },
+    { label: "APP", prop: "app_id", dict: options.app_id, dictColor: true, minWidth: 100, fixed: "left" },
+    { label: "用户ID", prop: "user_id", minWidth: 120, fixed: "left" },
     {
       label: "头像",
       prop: "avatar",

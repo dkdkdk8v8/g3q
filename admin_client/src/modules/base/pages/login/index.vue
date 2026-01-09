@@ -9,46 +9,28 @@
 				<span>{{ app.info.name }}</span>
 			</div>
 
-			<p class="desc">{{ $t('快速开发后台权限管理系统') }}</p>
+			<p class="desc">{{ $t('后台管理系统') }}</p>
 
 			<div class="form">
 				<el-form label-position="top" class="form" :disabled="saving">
 					<el-form-item :label="$t('用户名')">
-						<el-input
-							v-model="form.username"
-							:placeholder="$t('请输入用户名')"
-							maxlength="20"
-						/>
+						<el-input v-model="form.username" :placeholder="$t('请输入用户名')" maxlength="20" />
 					</el-form-item>
 
 					<el-form-item :label="$t('密码')">
-						<el-input
-							v-model="form.password"
-							type="password"
-							:placeholder="$t('请输入密码')"
-							maxlength="20"
-							show-password
-							autocomplete="new-password"
-						/>
+						<el-input v-model="form.password" type="password" :placeholder="$t('请输入密码')" maxlength="20"
+							show-password autocomplete="new-password" />
 					</el-form-item>
 
 					<el-form-item :label="$t('验证码')">
-						<el-input
-							v-model="form.verifyCode"
-							:placeholder="$t('验证码')"
-							maxlength="4"
-							@keyup.enter="toLogin"
-						>
+						<el-input v-model="form.verifyCode" :placeholder="$t('验证码')" maxlength="4"
+							@keyup.enter="toLogin">
 							<template #suffix>
-								<pic-captcha
-									:ref="setRefs('picCaptcha')"
-									v-model="form.captchaId"
-									@change="
-										() => {
-											form.verifyCode = '';
-										}
-									"
-								/>
+								<pic-captcha :ref="setRefs('picCaptcha')" v-model="form.captchaId" @change="
+									() => {
+										form.verifyCode = '';
+									}
+								" />
 							</template>
 						</el-input>
 					</el-form-item>

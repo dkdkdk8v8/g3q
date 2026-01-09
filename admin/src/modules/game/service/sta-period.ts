@@ -83,6 +83,7 @@ export class StaPeriodService extends BaseService {
             item.avgBetPerUser = item.gameUserCount > 0 ? item.betAmount / item.gameUserCount : 0;
             item.avgBetPerGame = item.betCount > 0 ? item.betAmount / item.betCount : 0;
             item.avgCountPerUser = item.gameUserCount > 0 ? item.betCount / item.gameUserCount : 0;
+            item.rakeRatio = item.betAmount > 0 ? item.gameWin / item.betAmount : 0;
         }
 
         // 计算汇总数据
@@ -112,6 +113,7 @@ export class StaPeriodService extends BaseService {
         summary.avgBetPerUser = summary.gameUserCount > 0 ? summary.betAmount / summary.gameUserCount : 0;
         summary.avgBetPerGame = summary.betCount > 0 ? summary.betAmount / summary.betCount : 0;
         summary.avgCountPerUser = summary.gameUserCount > 0 ? summary.betCount / summary.gameUserCount : 0;
+        summary.rakeRatio = summary.betAmount > 0 ? summary.gameWin / summary.betAmount : 0;
 
         // 排序逻辑（仅对数据行排序）
         if (sort && order) {

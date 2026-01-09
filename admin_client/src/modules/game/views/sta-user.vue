@@ -120,7 +120,7 @@ const crudService = {
 // cl-table
 const Table = useTable({
     columns: [
-        { label: "APP", prop: "appId", minWidth: 90, sortable: "custom", fixed: "left" },
+        { label: "APP", prop: "appId", minWidth: 100, sortable: "custom", fixed: "left", dict: options.app_id, dictColor: true },
         { label: "用户ID", prop: "userId", minWidth: 110, fixed: "left", showOverflowTooltip: true },
         // { label: "昵称", prop: "nickName", minWidth: 100 },
         { label: "用户盈利", prop: "betWin", minWidth: 90, sortable: "desc" },

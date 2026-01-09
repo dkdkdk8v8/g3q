@@ -105,6 +105,9 @@ const Table = useTable({
             fixed: "left",
             sortable: "custom",
             formatter(row) {
+                if (searchParams.showType === "app") {
+                    return options.app_id.find(i => row.title === i.value)?.label || row.title;
+                }
                 return row.title;
             },
         },
@@ -166,6 +169,15 @@ const Table = useTable({
             sortable: "custom",
             formatter(row) {
                 return Number(row.avgCountPerUser).toFixed(2);
+            },
+        },
+        {
+            label: "抽水比例",
+            prop: "rakeRatio",
+            minWidth: 100,
+            sortable: "custom",
+            formatter(row) {
+                return (row.rakeRatio * 100).toFixed(2) + "%";
             },
         },
         {

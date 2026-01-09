@@ -36,7 +36,7 @@
 <script lang="ts" setup name="sta-trend">
 import { useCool } from "/@/cool";
 import { useDict } from '/$/dict';
-import { reactive, ref, onMounted } from "vue";
+import { reactive, ref, onMounted, onUnmounted, watch } from "vue";
 import dayjs from "dayjs";
 
 const { service } = useCool();
@@ -52,6 +52,8 @@ const appId = ref("");
 const duration = ref(10);
 
 const chartList = ref<any[]>([]);
+const lastData = ref<any>(null);
+const isDark = ref(false);
 
 // 指标定义
 const metrics = [
@@ -79,6 +81,7 @@ async function refresh() {
             app: appId.value,
             duration: duration.value
         });
+        lastData.value = res;
         generateCharts(res);
     } catch (e) {
         console.error(e);
@@ -94,13 +97,26 @@ function generateCharts(data: any) {
         return isMoney ? Number((val / 100).toFixed(2)) : val;
     };
 
+    const el = document.documentElement;
+    const getVar = (name: string) => getComputedStyle(el).getPropertyValue(name).trim();
+
+    const primary = getVar('--el-color-primary') || '#5099f5';
+    const info = getVar('--el-color-info') || '#909399';
+    const warning = getVar('--el-color-warning') || '#e6a23c';
+    const textColor = getVar('--el-text-color-primary');
+    const borderColor = getVar('--el-border-color-lighter');
+
     metrics.forEach((m, i) => {
         const option = {
             title: {
                 text: m.title,
+                textStyle: { color: textColor }
             },
             tooltip: {
                 trigger: 'axis',
+                backgroundColor: isDark.value ? 'rgba(0,0,0,0.7)' : '#fff',
+                borderColor: borderColor,
+                textStyle: { color: isDark.value ? '#fff' : '#333' },
                 formatter: (params: any[]) => {
                     let res = `${params[0].axisValueLabel}<br/>`;
                     params.forEach(item => {
@@ -110,9 +126,10 @@ function generateCharts(data: any) {
                     return res;
                 }
             },
-            color: ['#5099f5', '#5099f550', '#aa04'],
+            color: [primary, info, warning],
             legend: {
                 data: ['当天', '前一天', '上周同期'],
+                textStyle: { color: textColor }
             },
             grid: {
                 left: '3%',
@@ -124,16 +141,20 @@ function generateCharts(data: any) {
                 type: 'category',
                 boundaryGap: true,
                 data: hours,
+                axisLabel: { color: textColor },
+                axisLine: { lineStyle: { color: borderColor } }
             },
             yAxis: {
                 type: 'value',
+                axisLabel: { color: textColor },
+                splitLine: { lineStyle: { color: borderColor, type: 'dashed' } }
             },
             series: [
                 {
                     name: '当天',
                     type: 'line',
                     areaStyle: {
-                        color: 'rgba(80,153,245,0.3)',
+                        opacity: 0.2
                     },
                     data: data.current.map((e: any) => getValue(e[m.key], m.isMoney)),
                 },
@@ -157,8 +178,26 @@ function generateCharts(data: any) {
     });
 }
 
+let observer: MutationObserver | null = null;
+
 onMounted(() => {
     refresh();
+
+    isDark.value = document.documentElement.classList.contains('dark');
+    observer = new MutationObserver(() => {
+        isDark.value = document.documentElement.classList.contains('dark');
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+});
+
+onUnmounted(() => {
+    if (observer) observer.disconnect();
+});
+
+watch(isDark, () => {
+    if (lastData.value) {
+        generateCharts(lastData.value);
+    }
 });
 </script>
 

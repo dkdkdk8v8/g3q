@@ -24,7 +24,7 @@ export function useRender() {
 			return d;
 		});
 
-		return orderBy(arr, "orderNum", "asc")
+		return orderBy(arr, "orderNum", "desc")
 			.map((item, index) => {
 				if (item.hidden) {
 					return null;

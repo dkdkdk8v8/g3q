@@ -972,14 +972,19 @@ declare namespace Eps {
 		getUserStats(data?: any): Promise<any>;
 
 		/**
+		 * 获取当日趋势对比
+		 */
+		getDayTrend(data?: any): Promise<any>;
+
+		/**
 		 * 权限标识
 		 */
-		permission: { getDateStats: string; getUserStats: string };
+		permission: { getDateStats: string; getUserStats: string; getDayTrend: string };
 
 		/**
 		 * 权限状态
 		 */
-		_permission: { getDateStats: boolean; getUserStats: boolean };
+		_permission: { getDateStats: boolean; getUserStats: boolean; getDayTrend: boolean };
 
 		request: Request;
 	}

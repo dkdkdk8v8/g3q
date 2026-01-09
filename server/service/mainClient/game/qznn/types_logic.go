@@ -79,12 +79,13 @@ func NewPlayer() *Player {
 }
 
 func (p *Player) GetClientPlayer(preNum int, secret bool) *Player {
+	p.Mu.RLock()
+	defer p.Mu.RUnlock()
 	// 1. 仅拷贝数据部分，避免拷贝 Mutex 导致的 go vet 警告
 	// 2. 嵌入结构体的值拷贝依然能确保所有数据字段（如 NickName）被复制
 	n := &Player{
 		PlayerData: p.PlayerData,
 	}
-	// n.Mu 默认为零值（未加锁），n.ConnWrap 默认为 nil，无需手动重置
 
 	n.Cards = make([]int, 0, PlayerCardMax) // 初始化切片
 
@@ -110,6 +111,8 @@ func (p *Player) GetClientPlayer(preNum int, secret bool) *Player {
 }
 
 func (p *Player) ResetGameData() {
+	p.Mu.Lock()
+	defer p.Mu.Unlock()
 	p.Cards = make([]int, 0, PlayerCardMax)
 	p.CallMult = -1
 	p.BetMult = -1
@@ -228,7 +231,6 @@ func (r *QZNNRoom) GetClientRoom(pushId string) *QZNNRoom {
 		QZNNRoomData: r.QZNNRoomData,
 	}
 	r.RoomMu.RUnlock()
-
 	n.Players = make([]*Player, 0, 5) // 清空 Players，重新生成，避免指向原切片
 	preCard := PlayerCardMax
 	bSecret := true
@@ -237,14 +239,11 @@ func (r *QZNNRoom) GetClientRoom(pushId string) *QZNNRoom {
 	case StatePreCard, StateBanking, StateRandomBank, StateBankerConfirm, StateBetting:
 		preCard = r.Config.GetPreCard()
 	}
-
 	switch n.State {
 	//推牌数据，默认秘密
 	case StateSettling:
 		bSecret = false
-
 	}
-
 	pushPlayers := r.GetBroadCasePlayers(nil)
 	for _, p := range pushPlayers {
 		n.Players = append(n.Players, p.GetClientPlayer(preCard, bSecret && !p.IsShow && p.ID != pushId))

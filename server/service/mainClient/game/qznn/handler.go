@@ -40,12 +40,14 @@ func HandlerPlayerLeave(r *QZNNRoom, userID string) error {
 		}
 	}
 
-	r.Broadcast(comm.PushData{
-		Cmd:      comm.ServerPush,
-		PushType: PushPlayLeave,
-		Data: PushPlayerLeaveStruct{
-			Room:    r,
-			UserIds: []string{userID}}})
+	r.BroadcastWithPlayer(func(p *Player) interface{} {
+		return comm.PushData{
+			Cmd:      comm.ServerPush,
+			PushType: PushPlayLeave,
+			Data: PushPlayerLeaveStruct{
+				Room:    r.GetClientRoom(p.ID),
+				UserIds: []string{userID}}}
+	})
 	r.logicTick()
 	return nil
 }

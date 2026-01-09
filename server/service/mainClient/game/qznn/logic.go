@@ -287,12 +287,14 @@ func (r *QZNNRoom) AddPlayer(p *Player) (int, error) {
 	r.Players[emptySeat] = p
 	r.RoomMu.Unlock()
 
-	r.Broadcast(comm.PushData{
-		Cmd:      comm.ServerPush,
-		PushType: PushPlayJoin,
-		Data: PushPlayerJoinStruct{
-			Room:   r,
-			UserId: p.ID}})
+	r.BroadcastWithPlayer(func(p *Player) interface{} {
+		return comm.PushData{
+			Cmd:      comm.ServerPush,
+			PushType: PushPlayJoin,
+			Data: PushPlayerJoinStruct{
+				Room:   r.GetClientRoom(p.ID),
+				UserId: p.ID}}
+	})
 	r.logicTick()
 	return emptySeat, nil
 }
@@ -305,16 +307,6 @@ func (r *QZNNRoom) SetWsWrap(userId string, wrap *ws.WsConnWrap) {
 	p.Mu.Lock()
 	p.ConnWrap = wrap
 	p.Mu.Unlock()
-}
-
-func (r *QZNNRoom) Broadcast(msg interface{}) {
-	r.RoomMu.RLock()
-	defer r.RoomMu.RUnlock()
-	for _, p := range r.Players {
-		if p != nil {
-			r.PushPlayer(p, msg)
-		}
-	}
 }
 
 func (r *QZNNRoom) PushPlayer(p *Player, msg interface{}) {
@@ -354,16 +346,6 @@ func (r *QZNNRoom) BroadcastWithPlayer(getMsg func(*Player) interface{}) {
 
 		if conn != nil && conn.IsConnected() {
 			_ = conn.WriteJSON(msg)
-		}
-	}
-}
-
-func (r *QZNNRoom) BroadcastExclude(msg interface{}, excludeId string) {
-	r.RoomMu.RLock()
-	defer r.RoomMu.RUnlock()
-	for _, p := range r.Players {
-		if p != nil && p.ID != excludeId {
-			r.PushPlayer(p, msg)
 		}
 	}
 }
@@ -552,10 +534,13 @@ func (r *QZNNRoom) tickWaiting() {
 	}
 	if len(leaveIds) > 0 {
 		leaveIds = util.RemoveDuplicatesString(leaveIds)
-		r.Broadcast(comm.PushData{
-			Cmd:      comm.ServerPush,
-			PushType: PushPlayLeave,
-			Data:     PushPlayerLeaveStruct{UserIds: leaveIds, Room: r}})
+		r.BroadcastWithPlayer(
+			func(p *Player) interface{} {
+				return comm.PushData{
+					Cmd:      comm.ServerPush,
+					PushType: PushPlayLeave,
+					Data:     PushPlayerLeaveStruct{UserIds: leaveIds, Room: r.GetClientRoom(p.ID)}}
+			})
 
 	}
 
@@ -567,10 +552,12 @@ func (r *QZNNRoom) tickWaiting() {
 
 func (r *QZNNRoom) tickPrepare() {
 	if leaveIds, isLeave := r.kickOffByWsDisconnect(); isLeave {
-		r.Broadcast(comm.PushData{
-			Cmd:      comm.ServerPush,
-			PushType: PushPlayLeave,
-			Data:     PushPlayerLeaveStruct{UserIds: leaveIds, Room: r}})
+		r.BroadcastWithPlayer(func(p *Player) interface{} {
+			return comm.PushData{
+				Cmd:      comm.ServerPush,
+				PushType: PushPlayLeave,
+				Data:     PushPlayerLeaveStruct{UserIds: leaveIds, Room: r.GetClientRoom(p.ID)}}
+		})
 	}
 	// 倒计时等待开始
 	countExistPlayerNum := r.GetPlayerCount()

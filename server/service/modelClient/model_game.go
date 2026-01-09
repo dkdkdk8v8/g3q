@@ -41,6 +41,11 @@ func GetGameRecordById(id uint64) (*ModelGameRecord, error) {
 	return ormutil.QueryOne[ModelGameRecord](GetDb(), ormutil.WithId(id))
 }
 
+func GetGameRecordByIds(ids []uint64) ([]*ModelGameRecord, error) {
+	return ormutil.QueryMany[ModelGameRecord](GetDb(), ormutil.WithIds(ids))
+}
+
+
 func GetGameRecordByGameId(gameId string) ([]*ModelGameRecord, error) {
 	return ormutil.QueryMany[ModelGameRecord](GetDb(), ormutil.WithKV("game_id", gameId))
 }

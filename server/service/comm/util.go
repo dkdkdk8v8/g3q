@@ -1,18 +1,17 @@
 package comm
 
 import (
-	"bytes"
 	"compoment/alert"
 	"compoment/crypto"
 	"compoment/util"
 	"compoment/util/funcline"
 	"encoding/json"
 	"errors"
-	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
-	"io"
 	"net/http"
 	"runtime"
+
+	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 type MyHandlerFunc func(ctx *gin.Context) (interface{}, error)
@@ -68,10 +67,6 @@ func IsProto(ctx *gin.Context) bool {
 	return false
 }
 
-//func Abort(ctx *gin.Context, err error) {
-//	ctx.AbortWithStatusJSON(http.StatusOK, GetErrRsp(err))
-//}
-
 func rspNormalJson(httpCode int, rsp CommRsp, ctx *gin.Context, logT *logrus.Entry, start util.UsageTimer) {
 	rspBuf, err := json.Marshal(rsp)
 	if err != nil {
@@ -117,42 +112,10 @@ func rspAesJson(httpCode int, rsp CommRsp, ctx *gin.Context, logT *logrus.Entry,
 	}
 }
 
-func HandlerLogWrap(fn MyHandlerFunc) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		start := util.NewUsageTimer()
-		logT := logrus.WithField("url", ctx.Request.RequestURI).WithField("remoteIp", ctx.ClientIP())
-		if CfgLogSysHttpIn.Load() {
-			buf, err := io.ReadAll(ctx.Request.Body)
-			if err == nil {
-				logT.WithField("z-content", string(buf)).Info("httpHandler-IN")
-				ctx.Request.Body = io.NopCloser(bytes.NewBuffer(buf))
-			}
-		}
-
-		data, err := fn(ctx)
-		if err != nil {
-			logT.WithField("!", nil).WithError(err).WithField("usage", start.UsageMs()).Error("httpHandler-fail")
-			ctx.AbortWithStatusJSON(http.StatusInternalServerError, err.Error())
-			ctx.Abort()
-			return
-		}
-		ctx.JSON(http.StatusOK, data)
-		ctx.Abort()
-		return
-	}
-}
-
 func HandlerAdminWrap(fn MyHandlerFunc) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		start := util.NewUsageTimer()
 		logT := logrus.WithField("url", ctx.Request.RequestURI).WithField("remoteIp", ctx.ClientIP())
-		if CfgLogSysHttpIn.Load() {
-			buf, err := io.ReadAll(ctx.Request.Body)
-			if err == nil {
-				logT.WithField("z-content", util.TruncateUTF8StringEfficient(string(buf), 1024)).Info("httpHandler-IN")
-				ctx.Request.Body = io.NopCloser(bytes.NewBuffer(buf))
-			}
-		}
 		var rsp CommRsp
 		if data, err := fn(ctx); err != nil {
 			logT = logT.WithError(err)
@@ -168,59 +131,13 @@ func HandlerAdminWrap(fn MyHandlerFunc) gin.HandlerFunc {
 			return
 		}
 		HttpCorsHeaderSet(ctx.Writer)
-		ctx.Data(http.StatusOK, "text/plain;charset=utf-8", rspPlain)
+		ctx.Data(http.StatusOK, "application/json", rspPlain)
 		if CfgLogSysHttpOut.Load() {
 			smallLen := len(rspPlain)
 			if smallLen > 512 {
 				smallLen = 512
 			}
 			logT.WithField("usage", start.UsageMs()).WithField("z-content", util.TruncateUTF8StringEfficient(string(rspPlain), smallLen)).Info("httpHandler-OK")
-		}
-		ctx.Abort()
-	}
-}
-
-func HandlerWrap(fn MyHandlerFunc) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		start := util.NewUsageTimer()
-		//did := ctx.GetString(PostDid)
-		plat := ctx.GetInt(PostPlat)
-		userId := ctx.GetString(TokenId)
-		ver := ctx.GetString(PostVer)
-		logT := logrus.WithField(
-			"url", ctx.Request.RequestURI).WithField(
-			"remoteIp", ctx.ClientIP()).WithField(
-			"plat", plat).WithField(
-			"ver", ver)
-		//if did != "" {
-		//	logT = logT.WithField("did", did)
-		//}
-		if userId != "" {
-			logT = logT.WithField("uid", userId)
-		}
-		if CfgLogSysHttpIn.Load() {
-			buf, err := io.ReadAll(ctx.Request.Body)
-			if err == nil {
-				logT.WithField("z-content", string(buf)).WithField("$", funcline.GetLineByFuncForPerformance(func() {})).Info("httpHandler-IN")
-				ctx.Request.Body = io.NopCloser(bytes.NewBuffer(buf))
-			}
-		}
-		var rsp CommRsp
-		if data, err := fn(ctx); err != nil {
-			logT.WithError(err).WithField(
-				"!", alert.Limit30Hit1M).WithField(
-				"usage", start.UsageMs()).WithField(
-				"$", funcline.GetLineByFuncForPerformance(func() {})).Error(
-				"httpHandler-fail")
-			rsp = GetErrRsp(err)
-		} else {
-			//ctx.JSON(http.StatusOK, CommRsp{Data: data})
-			rsp = CommRsp{Data: data}
-		}
-		if IsProto(ctx) {
-			rspNormalJson(http.StatusOK, rsp, ctx, logT, start)
-		} else {
-			rspAesJson(http.StatusOK, rsp, ctx, logT, start)
 		}
 		ctx.Abort()
 	}

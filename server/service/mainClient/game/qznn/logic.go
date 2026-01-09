@@ -174,7 +174,11 @@ func (r *QZNNRoom) GetPlayerCount() int {
 
 // todo::StateSettlingDirectPreCard 这个 也要判断kickoff
 func (r *QZNNRoom) kickOffByWsDisconnect() ([]string, bool) {
-	var delIndex []int
+	type delHolder struct {
+		index int
+		id    string
+	}
+	var delIndex []delHolder
 	r.PlayerMu.RLock()
 
 	for i, p := range r.Players {
@@ -184,15 +188,13 @@ func (r *QZNNRoom) kickOffByWsDisconnect() ([]string, bool) {
 		if p.IsOb {
 			continue
 		}
-		if p.IsRobot {
-			continue
-		}
+
 		// 安全地检查连接状态
 		p.Mu.RLock()
 		conn := p.ConnWrap
 		p.Mu.RUnlock()
 		if conn == nil || !conn.IsConnected() {
-			delIndex = append(delIndex, i)
+			delIndex = append(delIndex, delHolder{index: i, id: p.ID})
 		}
 	}
 
@@ -206,8 +208,10 @@ func (r *QZNNRoom) kickOffByWsDisconnect() ([]string, bool) {
 	r.CheckInMultiStatusDo([]RoomState{StateWaiting, StatePrepare}, func() error {
 		r.PlayerMu.Lock()
 		for _, delIndex := range delIndex {
-			delId = append(delId, r.Players[delIndex].ID)
-			r.Players[delIndex] = nil
+			if delIndex.id == r.Players[delIndex.index].ID {
+				delId = append(delId, r.Players[delIndex.index].ID)
+				r.Players[delIndex.index] = nil
+			}
 		}
 		r.PlayerMu.Unlock()
 		return nil

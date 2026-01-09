@@ -203,11 +203,19 @@ func handleLobbyConfig() *LobbyConfigRsp {
 
 func RpcQZNNData(c *gin.Context) {
 	rooms := game.GetMgr().GetAllRooms()
-	c.JSON(200, gin.H{
+	resp := gin.H{
 		"code": 0,
 		"msg":  "success",
 		"data": rooms,
-	})
+	}
+	data, err := util.MarshalJsonAndGzip(resp)
+	if err != nil {
+		logrus.WithError(err).Error("RpcQZNNData-Gzip-Fail")
+		c.JSON(500, gin.H{"code": -1, "msg": "server error"})
+		return
+	}
+	c.Header("Content-Encoding", "gzip")
+	c.Data(200, "application/json; charset=utf-8", data)
 }
 
 type recordSummery struct {

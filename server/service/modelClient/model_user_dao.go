@@ -57,7 +57,7 @@ func GetUserByUserId(userId string) (*ModelUser, error) {
 // GetAllRobots 获取所有机器人
 func GetAllRobots() ([]*ModelUser, error) {
 	var robots []*ModelUser
-	_, err := GetDb().QueryTable(new(ModelUser)).Filter("is_robot", true).Filter("enable", true).All(&robots)
+	_, err := GetDb().Raw("SELECT * FROM g3q_user WHERE is_robot = 1 AND enable = 1 AND (balance + balance_lock) >= 6").QueryRows(&robots)
 	return robots, err
 }
 

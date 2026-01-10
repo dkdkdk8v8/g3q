@@ -1289,7 +1289,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                                 <div v-if="shouldShowRobMult" class="status-content">
                                     <span v-if="myPlayer.robMultiplier > 0" class="status-text">抢{{
                                         myPlayer.robMultiplier
-                                    }}倍</span>
+                                        }}倍</span>
                                     <span v-else class="status-text">不抢</span>
                                 </div>
                             </Transition>
@@ -1389,11 +1389,6 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
         <!-- 全局点击关闭菜单 -->
         <div v-if="showMenu" class="mask-transparent" @click="toggleShowMenu()"></div>
 
-        <!-- 评论/表情按钮 -->
-        <div class="chat-toggle-btn" @click="toggleShowChatSelector()">
-            <van-icon name="comment" size="24" color="white" />
-        </div>
-
         <!-- 押注记录弹窗 -->
         <div v-if="showHistory" class="modal-overlay" style="z-index: 8000;">
             <div class="modal-content history-modal">
@@ -1452,7 +1447,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                                 <div class="hc-bet-amt">
                                     投注: <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{
                                         formatCoins(item.bet)
-                                        }}</span>
+                                    }}</span>
                                 </div>
                             </div>
                         </div>
@@ -2268,8 +2263,6 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     flex-direction: row;
     /* Horizontal layout for avatar and info-box */
     align-items: center;
-    justify-content: center;
-    /* Center avatar and info-box within its own area */
     width: auto;
     /* Let it shrink to content */
 }
@@ -2526,7 +2519,6 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .chat-toggle-btn {
-    position: absolute;
     bottom: 20px;
     right: 20px;
     width: 50px;

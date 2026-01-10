@@ -54,6 +54,17 @@ import niuSihuaImg from '@/assets/niu/niu_sihua.png';
 import niuWuhuaImg from '@/assets/niu/niu_wuhua.png';
 import niuWuxiaoImg from '@/assets/niu/niu_wuxiao.png';
 
+// Multiplier images
+import beishuBuqiangImg from '@/assets/beishu/beishu_buqiang.png';
+import beishu1Img from '@/assets/beishu/beishu_1.png';
+import beishu2Img from '@/assets/beishu/beishu_2.png';
+import beishu3Img from '@/assets/beishu/beishu_3.png';
+import beishu4Img from '@/assets/beishu/beishu_4.png';
+import beishu5Img from '@/assets/beishu/beishu_5.png';
+import beishu10Img from '@/assets/beishu/beishu_10.png';
+import beishu15Img from '@/assets/beishu/beishu_15.png';
+import beishu20Img from '@/assets/beishu/beishu_20.png';
+
 const handTypeImageMap = {
     '牛1': niu1Img,
     '牛2': niu2Img,
@@ -74,6 +85,22 @@ const handTypeImageMap = {
 
 const getHandTypeImageUrl = (handTypeName) => {
     return handTypeImageMap[handTypeName] || null; // Return null if no image found
+};
+
+const multiplierImageMap = {
+    0: beishuBuqiangImg, // For '不抢'
+    1: beishu1Img,
+    2: beishu2Img,
+    3: beishu3Img,
+    4: beishu4Img,
+    5: beishu5Img,
+    10: beishu10Img,
+    15: beishu15Img,
+    20: beishu20Img,
+};
+
+const getMultiplierImageUrl = (multiplier) => {
+    return multiplierImageMap[multiplier] || null;
 };
 
 const phraseSounds = [
@@ -1016,7 +1043,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
             <div class="room-info-box">
                 <div>房间ID: {{ store.roomId }}</div>
                 <div>房间名: {{ store.roomName }}</div>
-                <div>底分: <img :src="goldImg" class="coin-icon-text" />{{ formatCoins(store.baseBet) }}</div>
+                <div>底分: <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{ formatCoins(store.baseBet) }}</span></div>
                 <div>玩法: {{ modeName }}</div>
             </div>
         </div>
@@ -1076,15 +1103,17 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                 <div v-if="store.currentPhase === 'ROB_BANKER' && !myPlayer.isObserver && myPlayer.robMultiplier === -1"
                     class="btn-group-column">
                     <div class="btn-row">
-                        <div class="game-btn blue" @click="onRob(0)">不抢</div>
+                        <div class="game-btn blue" @click="onRob(0)">
+                            <img :src="getMultiplierImageUrl(0)" alt="不抢" class="multiplier-btn-img" />
+                        </div>
                         <div v-if="robMultipliers.length > 0" class="game-btn orange" @click="onRob(robMultipliers[0])">
-                            {{ robMultipliers[0] }}倍
+                            <img :src="getMultiplierImageUrl(robMultipliers[0])" :alt="`${robMultipliers[0]}倍`" class="multiplier-btn-img" />
                         </div>
                     </div>
                     <div class="btn-row">
                         <div v-for="mult in robMultipliers.slice(1)" :key="mult" class="game-btn orange"
                             @click="onRob(mult)">
-                            {{ mult }}倍
+                            <img :src="getMultiplierImageUrl(mult)" :alt="`${mult}倍`" class="multiplier-btn-img" />
                         </div>
                     </div>
                 </div>
@@ -1094,13 +1123,13 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                     <div class="btn-row">
                         <div v-for="mult in betMultipliers.slice(0, 2)" :key="mult" class="game-btn orange"
                             @click="onBet(mult)">
-                            {{ mult }}倍
+                            <img :src="getMultiplierImageUrl(mult)" :alt="`${mult}倍`" class="multiplier-btn-img" />
                         </div>
                     </div>
                     <div class="btn-row">
                         <div v-for="mult in betMultipliers.slice(2)" :key="mult" class="game-btn orange"
                             @click="onBet(mult)">
-                            {{ mult }}倍
+                            <img :src="getMultiplierImageUrl(mult)" :alt="`${mult}倍`" class="multiplier-btn-img" />
                         </div>
                     </div>
                 </div>
@@ -1188,8 +1217,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                         <div class="group-header">
                             <div class="gh-date">{{ group.dateStr }} <span class="down-triangle">▼</span></div>
                             <div class="gh-totals">
-                                投注 <img :src="goldImg" class="coin-icon-text" />{{ formatCoins(group.totalBet) }} &nbsp;
-                                输赢 <img :src="goldImg" class="coin-icon-text" />{{ formatCoins(group.totalValid) }}
+                                投注 <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{ formatCoins(group.totalBet) }}</span> &nbsp;
+                                输赢 <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{ formatCoins(group.totalValid) }}</span>
                             </div>
                         </div>
 
@@ -1212,7 +1241,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                                     {{ item.score > 0 ? '+' : '' }}{{ formatCoins(item.score) }}
                                 </div>
                                 <div class="hc-bet-amt">
-                                    投注: <img :src="goldImg" class="coin-icon-text" />{{ formatCoins(item.bet) }}
+                                    投注: <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{ formatCoins(item.bet) }}</span>
                                 </div>
                             </div>
                         </div>
@@ -1939,6 +1968,10 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     margin: 0 1px;
 }
 
+.coin-amount-text {
+    color: #fbbf24;
+}
+
 .my-area {
     margin-top: auto;
     padding-bottom: 20px;
@@ -1997,14 +2030,22 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     box-shadow: none;
 }
 
+.multiplier-btn-img {
+    height: 100%; /* Make image fill the button height */
+    width: auto; /* Maintain aspect ratio */
+    object-fit: contain;
+}
+
 .game-btn.orange {
-    background: linear-gradient(to bottom, #fbbf24, #d97706);
-    border: 1px solid #f59e0b;
+    /* Removed background */
+    border: none; /* Remove border */
+    box-shadow: none; /* Remove shadow */
 }
 
 .game-btn.blue {
-    background: linear-gradient(to bottom, #60a5fa, #2563eb);
-    border: 1px solid #3b82f6;
+    /* Removed background */
+    border: none; /* Remove border */
+    box-shadow: none; /* Remove shadow */
 }
 
 .waiting-text {

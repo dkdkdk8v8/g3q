@@ -1418,9 +1418,9 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                         <div class="group-header">
                             <div class="gh-date">{{ group.dateStr }} <span class="down-triangle">▼</span></div>
                             <div class="gh-totals">
-                                投注 <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{
+                                投注 <span class="coin-amount-text">{{
                                     formatCoins(group.totalBet) }}</span> &nbsp;
-                                输赢 <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{
+                                输赢 <span class="coin-amount-text">{{
                                     formatCoins(group.totalValid) }}</span>
                             </div>
                         </div>
@@ -1430,10 +1430,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                                 <div class="hc-top-row">
                                     <span class="hc-title">抢庄牛牛 | {{ item.roomName }}</span>
                                     <span class="hc-hand">
-                                        <img v-if="getHandTypeImageUrl(item.handType)"
-                                            :src="getHandTypeImageUrl(item.handType)" alt="手牌类型"
-                                            class="hand-type-img" />
-                                        <template v-else>{{ item.handType }}</template>
+                                        {{ item.handType }}
                                     </span>
                                 </div>
                                 <div class="hc-bottom-row">

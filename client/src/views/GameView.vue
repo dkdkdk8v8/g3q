@@ -270,8 +270,8 @@ const opponentSeats = computed(() => {
 const getLayoutType = (clientSeatNum) => {
     // clientSeatNum: 1=Middle-Left, 2=Top-Left, 3=Top-Right, 4=Middle-Right
     if (clientSeatNum === 1) return 'left';        // Middle-Left
-    if (clientSeatNum === 2) return 'top';         // Top-Left
-    if (clientSeatNum === 3) return 'top';         // Top-Right
+    if (clientSeatNum === 2) return 'top-left';    // Top-Left
+    if (clientSeatNum === 3) return 'top-right';   // Top-Right
     if (clientSeatNum === 4) return 'right';       // Middle-Right
     return 'top'; // Fallback
 };

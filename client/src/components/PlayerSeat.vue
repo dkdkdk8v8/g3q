@@ -225,12 +225,12 @@ const displayName = computed(() => {
     <!-- ... (keep avatar area) -->
     <div class="avatar-area">
       <div class="avatar-wrapper">
-          <div class="avatar-frame" :class="{ 'banker-candidate-highlight': isAnimatingHighlight, 'banker-confirm-anim': triggerBankerAnimation, 'is-banker': player.isBanker, 'win-neon-flash': isWin }">
+          <div class="avatar-frame" :class="{ 'banker-candidate-highlight': isAnimatingHighlight, 'banker-confirm-anim': triggerBankerAnimation, 'is-banker': player.isBanker, 'win-neon-flash': isWin, 'is-opponent': !isMe }">
               <van-image
-                round
+                :round="isMe"
                 :src="player.avatar"
                 class="avatar"
-                :class="{ 'avatar-gray': player.isObserver }"
+                :class="{ 'avatar-gray': player.isObserver, 'opponent-avatar': !isMe }"
               />
           </div>
           
@@ -319,14 +319,20 @@ const displayName = computed(() => {
 .seat-top { flex-direction: column; }
 .seat-bottom { flex-direction: column-reverse; width: 100%; } /* 自己 */
 /* 左侧和右侧现在也改为垂直布局：头像在上，牌在下 */
-.seat-left { flex-direction: column; width: 100px; } 
-.seat-right { flex-direction: column; width: 100px; }
+.seat-left, .seat-top-left { flex-direction: column; } 
+.seat-right, .seat-top-right { flex-direction: column; }
+
+/* Allow opponents to have auto width to fit side-by-side info */
+.seat-top, .seat-left, .seat-right, .seat-top-left, .seat-top-right {
+    width: auto;
+    min-width: 100px; /* Ensure minimum width for hand */
+}
 
 /* 头像区域微调 */
 .seat-bottom .avatar-area { margin-top: 10px; margin-bottom: 0; }
 .seat-top .avatar-area { margin-bottom: 4px; }
-.seat-left .avatar-area { margin-bottom: 4px; }
-.seat-right .avatar-area { margin-bottom: 4px; }
+.seat-left .avatar-area, .seat-top-left .avatar-area { margin-bottom: 4px; }
+.seat-right .avatar-area, .seat-top-right .avatar-area { margin-bottom: 4px; }
 
 .avatar-area {
     position: relative; /* Ensure absolute positioning of children is relative to this parent */
@@ -336,10 +342,26 @@ const displayName = computed(() => {
     width: 100%;
 }
 
+/* Opponent Avatar Area: Row Layout */
+/* Left side: Avatar Left, Info Right */
+.seat-left .avatar-area, .seat-top-left .avatar-area {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Right side: Info Left, Avatar Right */
+.seat-right .avatar-area, .seat-top-right .avatar-area {
+    flex-direction: row-reverse;
+    align-items: center;
+    justify-content: center;
+}
+
 .avatar-wrapper {
     position: relative;
     width: 52px;
     height: 52px;
+    flex-shrink: 0; /* Prevent avatar shrinking */
 }
 
 .ready-badge {
@@ -376,7 +398,7 @@ const displayName = computed(() => {
     width: 100%;
     height: 100%;
     background: rgba(0,0,0,0.3);
-    border-radius: 50%;
+    border-radius: 50%; /* Default round for Me */
     border: 4px solid transparent; /* Increased width, transparent default */
     box-sizing: border-box; /* Ensure border doesn't expand size */
     box-shadow: 0 0 0 1px rgba(255,255,255,0.2);
@@ -385,6 +407,11 @@ const displayName = computed(() => {
     justify-content: center;
     align-items: center;
     transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
+}
+
+/* Opponent Avatar Frame: Rounded Square */
+.avatar-frame.is-opponent {
+    border-radius: 8px;
 }
 
 .avatar-frame.banker-candidate-highlight {
@@ -430,6 +457,11 @@ const displayName = computed(() => {
 .avatar-frame .van-image {
     width: 100%;
     height: 100%;
+}
+
+.van-image.opponent-avatar {
+    border-radius: 8px !important;
+    overflow: hidden;
 }
 
 .avatar {
@@ -606,6 +638,32 @@ const displayName = computed(() => {
   align-items: center;
 }
 
+/* Opponent Info Box: Left aligned, margin left */
+.seat-top .info-box, /* Keep for fallback */
+.seat-left .info-box,
+.seat-top-left .info-box {
+    align-items: flex-start;
+    margin-top: 0;
+    margin-left: 8px;
+    width: auto; /* Let it shrink/grow */
+}
+
+/* Right/Top-Right Opponent Info Box: Right aligned, margin right */
+.seat-right .info-box,
+.seat-top-right .info-box {
+    align-items: flex-end;
+    margin-top: 0;
+    margin-right: 8px;
+    margin-left: 0; /* Override left margin if applied */
+    width: auto; /* Let it shrink/grow */
+}
+
+/* Ensure Me player keeps centered layout */
+.seat-bottom .info-box {
+    align-items: center;
+    margin-top: 2px;
+}
+
 .info-box.is-observer {
     filter: grayscale(100%);
     opacity: 0.6;
@@ -652,14 +710,23 @@ const displayName = computed(() => {
     transform: translateX(10px); /* 稍微向右偏移 */
 }
 
-/* 右侧玩家的状态浮层显示在左侧 */
-.seat-right .status-float {
-    left: auto;
-    right: 100%;
-    transform: translateX(-10px);
-    text-align: right;
-    align-items: flex-end;
+/* Status Float Position for Opponents (Above Avatar) */
+/* Targets any seat that is NOT seat-bottom (Me) */
+:not(.seat-bottom) .status-float {
+    top: auto;
+    bottom: 100%; /* Place above the avatar wrapper */
+    left: 50%;
+    transform: translateX(-50%); /* Center horizontally relative to avatar wrapper */
+    right: auto;
+    margin-bottom: 5px; /* Spacing above avatar */
+    width: max-content;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
+
+/* 右侧玩家的状态浮层显示在左侧 - Removed as overridden by generic opponent rule */
+/* .seat-right .status-float was here */
 
 
 .art-text {

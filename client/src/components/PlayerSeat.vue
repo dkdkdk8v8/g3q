@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { useGameStore } from '../stores/game.js';
 import PokerCard from './PokerCard.vue';
 import { formatCoins } from '../utils/format.js';
+import goldImg from '@/assets/common/gold.png';
 
 const props = defineProps({
   player: Object,
@@ -206,7 +207,7 @@ const shouldShowRobMult = computed(() => {
 });
 
 const slideTransitionName = computed(() => {
-    return props.position === 'right' ? 'slide-from-right' : 'slide-from-left';
+    return 'pop-up';
 });
 
 const displayName = computed(() => {
@@ -224,12 +225,17 @@ const displayName = computed(() => {
     <!-- ... (keep avatar area) -->
     <div class="avatar-area">
       <div class="avatar-wrapper">
-          <div class="avatar-frame" :class="{ 'banker-candidate-highlight': isAnimatingHighlight, 'banker-confirm-anim': triggerBankerAnimation, 'is-banker': player.isBanker, 'win-neon-flash': isWin }">
+          <div class="avatar-frame" :class="{ 
+              'banker-candidate-highlight': isAnimatingHighlight, 
+              'banker-confirm-anim': triggerBankerAnimation, 
+              'is-banker': player.isBanker && !['SETTLEMENT', 'GAME_OVER'].includes(store.currentPhase), 
+              'win-neon-flash': isWin, 
+              'is-opponent': true 
+          }">
               <van-image
-                round
                 :src="player.avatar"
                 class="avatar"
-                :class="{ 'avatar-gray': player.isObserver }"
+                :class="{ 'avatar-gray': player.isObserver, 'opponent-avatar': true }"
               />
           </div>
           
@@ -267,7 +273,7 @@ const displayName = computed(() => {
       <div class="info-box" :class="{ 'is-observer': player.isObserver }">
         <div class="name van-ellipsis">{{ displayName }}</div>
         <div class="coins-pill">
-            <span class="coin-symbol">🟡</span>
+            <img :src="goldImg" class="coin-icon-seat" />
             {{ formatCoins(player.coins) }}
         </div>
       </div>
@@ -275,7 +281,7 @@ const displayName = computed(() => {
     
     <!-- ... (keep score float) -->
     <div v-if="player.roundScore !== 0 && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)" class="score-float" :class="player.roundScore > 0 ? 'win' : 'lose'">
-        {{ player.roundScore > 0 ? '+' : '' }}{{ formatCoins(player.roundScore) }}
+        {{ player.roundScore > 0 ? '+' : '' }}<img :src="goldImg" class="coin-icon-float" />{{ formatCoins(player.roundScore) }}
     </div>
 
     <!-- 手牌区域 (始终渲染以占位) -->
@@ -318,14 +324,20 @@ const displayName = computed(() => {
 .seat-top { flex-direction: column; }
 .seat-bottom { flex-direction: column-reverse; width: 100%; } /* 自己 */
 /* 左侧和右侧现在也改为垂直布局：头像在上，牌在下 */
-.seat-left { flex-direction: column; width: 100px; } 
-.seat-right { flex-direction: column; width: 100px; }
+.seat-left, .seat-top-left { flex-direction: column; } 
+.seat-right, .seat-top-right { flex-direction: column; }
+
+/* Allow opponents to have auto width to fit side-by-side info */
+.seat-top, .seat-left, .seat-right, .seat-top-left, .seat-top-right {
+    width: auto;
+    min-width: 100px; /* Ensure minimum width for hand */
+}
 
 /* 头像区域微调 */
 .seat-bottom .avatar-area { margin-top: 10px; margin-bottom: 0; }
 .seat-top .avatar-area { margin-bottom: 4px; }
-.seat-left .avatar-area { margin-bottom: 4px; }
-.seat-right .avatar-area { margin-bottom: 4px; }
+.seat-left .avatar-area, .seat-top-left .avatar-area { margin-bottom: 4px; }
+.seat-right .avatar-area, .seat-top-right .avatar-area { margin-bottom: 4px; }
 
 .avatar-area {
     position: relative; /* Ensure absolute positioning of children is relative to this parent */
@@ -335,10 +347,31 @@ const displayName = computed(() => {
     width: 100%;
 }
 
+/* Opponent Avatar Area: Row Layout (Now includes seat-bottom based on user request) */
+.seat-top .avatar-area,
+.seat-left .avatar-area,
+.seat-right .avatar-area,
+.seat-bottom .avatar-area {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Specific override for Right side to reverse */
+.seat-right .avatar-area, .seat-top-right .avatar-area {
+    flex-direction: row-reverse;
+}
+
+/* Left side (and now Top/Bottom) use standard row */
+.seat-left .avatar-area, .seat-top-left .avatar-area, .seat-bottom .avatar-area {
+    flex-direction: row;
+}
+
 .avatar-wrapper {
     position: relative;
     width: 52px;
     height: 52px;
+    flex-shrink: 0; /* Prevent avatar shrinking */
 }
 
 .ready-badge {
@@ -375,7 +408,7 @@ const displayName = computed(() => {
     width: 100%;
     height: 100%;
     background: rgba(0,0,0,0.3);
-    border-radius: 50%;
+    border-radius: 50%; /* Default round for Me */
     border: 4px solid transparent; /* Increased width, transparent default */
     box-sizing: border-box; /* Ensure border doesn't expand size */
     box-shadow: 0 0 0 1px rgba(255,255,255,0.2);
@@ -384,6 +417,17 @@ const displayName = computed(() => {
     justify-content: center;
     align-items: center;
     transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
+}
+
+/* Avatar Frame: Rounded Square for ALL */
+.avatar-frame.is-opponent {
+    border-radius: 8px;
+}
+
+/* Also ensure Van Image has border radius */
+.van-image.opponent-avatar {
+    border-radius: 8px !important;
+    overflow: hidden;
 }
 
 .avatar-frame.banker-candidate-highlight {
@@ -429,6 +473,11 @@ const displayName = computed(() => {
 .avatar-frame .van-image {
     width: 100%;
     height: 100%;
+}
+
+.van-image.opponent-avatar {
+    border-radius: 8px !important;
+    overflow: hidden;
 }
 
 .avatar {
@@ -605,6 +654,34 @@ const displayName = computed(() => {
   align-items: center;
 }
 
+/* Opponent Info Box: Left aligned, margin left */
+.seat-top .info-box, /* Keep for fallback */
+.seat-left .info-box,
+.seat-top-left .info-box {
+    align-items: flex-start;
+    margin-top: 0;
+    margin-left: 8px;
+    width: auto; /* Let it shrink/grow */
+}
+
+/* Right/Top-Right Opponent Info Box: Right aligned, margin right */
+.seat-right .info-box,
+.seat-top-right .info-box {
+    align-items: flex-end;
+    margin-top: 0;
+    margin-right: 8px;
+    margin-left: 0; /* Override left margin if applied */
+    width: auto; /* Let it shrink/grow */
+}
+
+/* Ensure Me player (seat-bottom) uses left alignment now */
+.seat-bottom .info-box {
+    align-items: flex-start;
+    margin-top: 0;
+    margin-left: 8px;
+    width: auto;
+}
+
 .info-box.is-observer {
     filter: grayscale(100%);
     opacity: 0.6;
@@ -629,26 +706,38 @@ const displayName = computed(() => {
   border: 1px solid rgba(255,255,255,0.1);
 }
 
-.coin-symbol {
-    font-size: 10px;
+.coin-icon-seat {
+    width: 12px;
+    height: 12px;
+    object-fit: contain;
 }
 
+.coin-icon-float {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    vertical-align: middle;
+    margin: 0 2px;
+}
+
+/* Status Float Position: Above Avatar for ALL players */
 .status-float {
     position: absolute;
-    top: 0;
-    left: 100%; /* 浮动在 info-box 旁边 */
+    top: auto;
+    bottom: 100%; /* Place above the avatar wrapper */
+    left: 50%;
+    transform: translateX(-50%); /* Center horizontally relative to avatar wrapper */
+    right: auto;
     z-index: 8;
-    transform: translateX(10px); /* 稍微向右偏移 */
+    margin-bottom: 5px; /* Spacing above avatar */
+    width: max-content;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
-/* 右侧玩家的状态浮层显示在左侧 */
-.seat-right .status-float {
-    left: auto;
-    right: 100%;
-    transform: translateX(-10px);
-    text-align: right;
-    align-items: flex-end;
-}
+/* 右侧玩家的状态浮层显示在左侧 - Removed as overridden by generic opponent rule */
+/* .seat-right .status-float was here */
 
 
 .art-text {
@@ -736,6 +825,24 @@ const displayName = computed(() => {
 .slide-from-right-enter-from {
     opacity: 0;
     transform: translateX(30px);
+}
+
+/* Pop Up Animation for Opponents (Above Avatar) */
+.pop-up-enter-active,
+.pop-up-leave-active {
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transform-origin: bottom center; /* Grow from bottom */
+}
+
+.pop-up-enter-from {
+    opacity: 0;
+    /* Start from below (inside avatar) and small */
+    transform: translateX(-50%) translateY(20px) scale(0.2); 
+}
+
+.pop-up-leave-to {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.5);
 }
 
 .hand-card.bull-card-overlay {

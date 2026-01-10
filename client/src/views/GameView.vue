@@ -36,6 +36,7 @@ import randomBankSound from '@/assets/sounds/random_bank.mp3';
 import sendCoinSound from '@/assets/sounds/send_coin.mp3';
 import countdownSound from '@/assets/sounds/countdown.mp3';
 import countdownAlertSound from '@/assets/sounds/countdown_alert.mp3';
+import goldImg from '@/assets/common/gold.png';
 
 const phraseSounds = [
     talk0, talk1, talk2, talk3, talk4, talk5, talk6, talk7, talk8, talk9, talk10
@@ -269,8 +270,8 @@ const opponentSeats = computed(() => {
 const getLayoutType = (clientSeatNum) => {
     // clientSeatNum: 1=Middle-Left, 2=Top-Left, 3=Top-Right, 4=Middle-Right
     if (clientSeatNum === 1) return 'left';        // Middle-Left
-    if (clientSeatNum === 2) return 'top';         // Top-Left
-    if (clientSeatNum === 3) return 'top';         // Top-Right
+    if (clientSeatNum === 2) return 'top-left';    // Top-Left
+    if (clientSeatNum === 3) return 'top-right';   // Top-Right
     if (clientSeatNum === 4) return 'right';       // Middle-Right
     return 'top'; // Fallback
 };
@@ -411,10 +412,10 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
                 winEffects.value[p.id] = true;
             }
         });
-        // Clear effects after settlement (approx 4s or next phase)
+        // Clear effects after settlement (adjusted to 3.5s)
         setTimeout(() => {
             winEffects.value = {};
-        }, 5000);
+        }, 3500);
 
         if (me && !me.isObserver) {
             // Determine result (0 is also win/draw, but typically > 0 is win. Logic says >= 0 is win in display)
@@ -971,7 +972,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
             <div class="room-info-box">
                 <div>房间ID: {{ store.roomId }}</div>
                 <div>房间名: {{ store.roomName }}</div>
-                <div>底分: {{ formatCoins(store.baseBet) }}</div>
+                <div>底分: <img :src="goldImg" class="coin-icon-text" />{{ formatCoins(store.baseBet) }}</div>
                 <div>玩法: {{ modeName }}</div>
             </div>
         </div>
@@ -1127,7 +1128,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                         <div class="group-header">
                             <div class="gh-date">{{ group.dateStr }} <span class="down-triangle">▼</span></div>
                             <div class="gh-totals">
-                                投注 ¥{{ formatCoins(group.totalBet) }} &nbsp; 输赢 ¥{{ formatCoins(group.totalValid) }}
+                                投注 <img :src="goldImg" class="coin-icon-text" />{{ formatCoins(group.totalBet) }} &nbsp;
+                                输赢 <img :src="goldImg" class="coin-icon-text" />{{ formatCoins(group.totalValid) }}
                             </div>
                         </div>
 
@@ -1146,7 +1148,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                                     {{ item.score > 0 ? '+' : '' }}{{ formatCoins(item.score) }}
                                 </div>
                                 <div class="hc-bet-amt">
-                                    投注: ¥{{ formatCoins(item.bet) }}
+                                    投注: <img :src="goldImg" class="coin-icon-text" />{{ formatCoins(item.bet) }}
                                 </div>
                             </div>
                         </div>
@@ -1313,7 +1315,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 .game-table {
     width: 100vw;
     height: 100vh;
-    background: radial-gradient(circle at center, #0d9488 0%, #115e59 100%);
+    background: url('@/assets/common/game_bg.jpg') no-repeat center center;
+    background-size: cover;
     position: relative;
     display: flex;
     flex-direction: column;
@@ -1862,6 +1865,14 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     padding: 4px 12px;
     border-radius: 20px;
     font-size: 14px;
+}
+
+.coin-icon-text {
+    width: 14px;
+    height: 14px;
+    object-fit: contain;
+    vertical-align: text-bottom;
+    margin: 0 1px;
 }
 
 .my-area {

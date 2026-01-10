@@ -195,8 +195,8 @@ defineExpose({
 .card-back {
   width: 100%;
   height: 100%;
-  background: #3b5bdb;
-  border: 2px solid white;
+  background: url('@/assets/common/card_back.png') no-repeat center center;
+  background-size: 100% 100%;
   border-radius: 4px;
   box-shadow: 0 4px 6px rgba(0,0,0,0.3);
   position: relative; /* Ensure child absolute positioning works if needed */
@@ -204,27 +204,6 @@ defineExpose({
 }
 
 .back-pattern {
-  width: 100%;
-  height: 100%;
-  background-image: repeating-linear-gradient(
-    45deg,
-    #60a5fa 25%,
-    transparent 25%,
-    transparent 75%,
-    #60a5fa 75%,
-    #60a5fa
-  ),
-  repeating-linear-gradient(
-    45deg,
-    #60a5fa 25%,
-    #3b5bdb 25%,
-    #3b5bdb 75%,
-    #60a5fa 75%,
-    #60a5fa
-  );
-  background-position: 0 0, 10px 10px;
-  background-size: 20px 20px;
-  opacity: 0.5;
-  border-radius: 2px; /* Slightly smaller than parent to fit */
+  display: none;
 }
 </style>

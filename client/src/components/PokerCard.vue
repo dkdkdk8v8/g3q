@@ -131,9 +131,15 @@ const suitSymbol = computed(() => {
 }
 
 .card-back-face {
-    background: #3b5bdb; /* 蓝色背景 */
-    border: 2px solid white;
+    background: url('@/assets/common/card_back.png') no-repeat center center;
+    background-size: 100% 100%; /* Stretch to fit */
+    border-radius: 6px; /* Match parent radius */
     transform: rotateY(180deg); /* 初始旋转180度，使其背面朝外 */
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1); /* Optional: subtle border */
+}
+
+.back-pattern {
+  display: none; /* Hide old pattern */
 }
 
 /* 现有卡面样式调整 */
@@ -196,30 +202,5 @@ const suitSymbol = computed(() => {
 }
 .is-small .card-center {
   font-size: 20px;
-}
-
-.back-pattern {
-  width: 100%;
-  height: 100%;
-  background-image: repeating-linear-gradient(
-    45deg,
-    #60a5fa 25%,
-    transparent 25%,
-    transparent 75%,
-    #60a5fa 75%,
-    #60a5fa
-  ),
-  repeating-linear-gradient(
-    45deg,
-    #60a5fa 25%,
-    #3b5bdb 25%,
-    #3b5bdb 75%,
-    #60a5fa 75%,
-    #60a5fa
-  );
-  background-position: 0 0, 10px 10px;
-  background-size: 20px 20px;
-  opacity: 0.5;
-  border-radius: 4px;
 }
 </style>

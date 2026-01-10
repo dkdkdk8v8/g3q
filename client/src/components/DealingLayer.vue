@@ -18,13 +18,13 @@ const dealToPlayer = async (targets, callback, forceBulkAnimation = false) => {
 
     // 批量发牌时，"最左侧"位置作为跳水目标
     // 注意：这里的 targets[0] 是这批牌里的第一张
-    const jumpTargetX = targets[0].x - (targets[0].isMe ? 30 : 20); // 居中修正 (width/2)
-    const jumpTargetY = targets[0].y - (targets[0].isMe ? 42 : 28); // 居中修正 (height/2)
+    const jumpTargetX = targets[0].x - (targets[0].isMe ? 30 : 24); // 居中修正 (width/2)
+    const jumpTargetY = targets[0].y - (targets[0].isMe ? 44 : 35); // 居中修正 (height/2)
 
     // 创建这组卡片
     const newCards = targets.map((t, index) => {
-        const targetWidth = t.isMe ? 60 : 40;
-        const targetHeight = t.isMe ? 84 : 56;
+        const targetWidth = t.isMe ? 60 : 48;
+        const targetHeight = t.isMe ? 88 : 70;
         const finalScale = t.scale || 1; // 获取目标缩放比例
         
         return {

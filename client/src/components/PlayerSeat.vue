@@ -902,7 +902,7 @@ const displayName = computed(() => {
 .hand-area {
     position: relative;
     /* 占位高度，防止发牌时抖动 */
-    height: 60px;
+    height: 75px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -913,7 +913,7 @@ const displayName = computed(() => {
 .seat-left .hand-area,
 .seat-right .hand-area,
 .seat-top .hand-area {
-    margin-top: 15px;
+    margin-top: 25px;
 }
 
 .seat-bottom .hand-area {

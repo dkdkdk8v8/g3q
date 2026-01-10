@@ -342,6 +342,28 @@ export class StaPeriodService extends BaseService {
             }
         }
 
+        // 处理当日数据：当前时间之前的数据若为null置为0，之后保留null
+        if (targetDate.isSame(moment(), 'day')) {
+            const now = moment();
+            const currentSlot = Math.floor((now.hour() * 60 + now.minute()) / (duration || 10));
+
+            dataMap.current.forEach((item, index) => {
+                if (index <= currentSlot) {
+                    item.gameUserCount = item.gameUserCount ?? 0;
+                    item.firstGameUserCount = item.firstGameUserCount ?? 0;
+                    item.betCount = item.betCount ?? 0;
+                    item.betAmount = item.betAmount ?? 0;
+                    item.gameWin = item.gameWin ?? 0;
+                } else {
+                    item.gameUserCount = null;
+                    item.firstGameUserCount = null;
+                    item.betCount = null;
+                    item.betAmount = null;
+                    item.gameWin = null;
+                }
+            });
+        }
+
         result.current = dataMap.current;
         result.yesterday = dataMap.yesterday;
         result.lastWeek = dataMap.lastWeek;

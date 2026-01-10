@@ -581,7 +581,7 @@ const quitGame = () => {
 }
 
 .seat-right {
-    top: 45%; /* 向上调整位置 */
+    top: 40%; /* 向上调整位置 */
     right: 10px;
     transform: translateY(-50%) scale(0.85);
 }
@@ -597,7 +597,7 @@ const quitGame = () => {
 }
 
 .seat-left {
-    top: 45%; /* 向上调整位置 */
+    top: 40%; /* 向上调整位置 */
     left: 10px;
     transform: translateY(-50%) scale(0.85);
 }

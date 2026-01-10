@@ -5,6 +5,44 @@ import PokerCard from './PokerCard.vue';
 import { formatCoins } from '../utils/format.js';
 import goldImg from '@/assets/common/gold.png';
 
+// Niu hand type images
+import niu1Img from '@/assets/niu/niu_1.png';
+import niu2Img from '@/assets/niu/niu_2.png';
+import niu3Img from '@/assets/niu/niu_3.png';
+import niu4Img from '@/assets/niu/niu_4.png';
+import niu5Img from '@/assets/niu/niu_5.png';
+import niu6Img from '@/assets/niu/niu_6.png';
+import niu7Img from '@/assets/niu/niu_7.png';
+import niu8Img from '@/assets/niu/niu_8.png';
+import niu9Img from '@/assets/niu/niu_9.png';
+import niuNiuImg from '@/assets/niu/niu_niu.png';
+import niuBoomImg from '@/assets/niu/niu_boom.png';
+import niuSihuaImg from '@/assets/niu/niu_sihua.png';
+import niuWuhuaImg from '@/assets/niu/niu_wuhua.png';
+import niuWuxiaoImg from '@/assets/niu/niu_wuxiao.png';
+
+const handTypeImageMap = {
+    '牛1': niu1Img,
+    '牛2': niu2Img,
+    '牛3': niu3Img,
+    '牛4': niu4Img,
+    '牛5': niu5Img,
+    '牛6': niu6Img,
+    '牛7': niu7Img,
+    '牛8': niu8Img,
+    '牛9': niu9Img,
+    '牛牛': niuNiuImg,
+    '炸弹': niuBoomImg,
+    '四花牛': niuSihuaImg,
+    '五花牛': niuWuhuaImg,
+    '五小牛': niuWuxiaoImg,
+    // '没牛' will be handled as text or fallback
+};
+
+const getHandTypeImageUrl = (handTypeName) => {
+    return handTypeImageMap[handTypeName] || null; // Return null if no image found
+};
+
 const props = defineProps({
     player: Object,
     isMe: Boolean,
@@ -300,7 +338,9 @@ const displayName = computed(() => {
             </div>
             <!-- ... (keep hand result) -->
             <div v-if="shouldShowBadge" class="hand-result-badge">
-                {{ player.handResult.typeName }} (x{{ player.handResult.multiplier }})
+                <img v-if="getHandTypeImageUrl(player.handResult.typeName)" :src="getHandTypeImageUrl(player.handResult.typeName)"
+                    alt="手牌类型" class="hand-type-img" />
+                <template v-else>{{ player.handResult.typeName }}</template>
             </div>
         </div>
     </div>
@@ -938,20 +978,26 @@ const displayName = computed(() => {
 .hand-result-badge {
     position: absolute;
     top: 90%;
-    /* 移到下方，避免遮挡牌面 */
     left: 50%;
     transform: translate(-50%, -50%);
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.9));
-    color: #fbbf24;
-    padding: 4px 12px;
-    border-radius: 4px;
-    font-size: 14px;
-    font-weight: bold;
+    /* Remove background, border, padding, gap */
+    color: #fbbf24; /* Keep text color for fallback */
+    font-size: 14px; /* Keep text size for fallback */
+    font-weight: bold; /* Keep text weight for fallback */
     white-space: nowrap;
     z-index: 10;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-    border: 1px solid #fbbf24;
+    /* Remove box-shadow */
+    display: flex;
+    align-items: center;
+    justify-content: center; /* Center content horizontally */
 }
+
+.hand-type-img {
+    height: 40px; /* Scaled up by 2x from 20px */
+    object-fit: contain;
+    vertical-align: middle;
+}
+
 
 .score-float {
     position: absolute;

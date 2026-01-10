@@ -38,8 +38,46 @@ import countdownSound from '@/assets/sounds/countdown.mp3';
 import countdownAlertSound from '@/assets/sounds/countdown_alert.mp3';
 import goldImg from '@/assets/common/gold.png';
 
+// Niu hand type images
+import niu1Img from '@/assets/niu/niu_1.png';
+import niu2Img from '@/assets/niu/niu_2.png';
+import niu3Img from '@/assets/niu/niu_3.png';
+import niu4Img from '@/assets/niu/niu_4.png';
+import niu5Img from '@/assets/niu/niu_5.png';
+import niu6Img from '@/assets/niu/niu_6.png';
+import niu7Img from '@/assets/niu/niu_7.png';
+import niu8Img from '@/assets/niu/niu_8.png';
+import niu9Img from '@/assets/niu/niu_9.png';
+import niuNiuImg from '@/assets/niu/niu_niu.png';
+import niuBoomImg from '@/assets/niu/niu_boom.png';
+import niuSihuaImg from '@/assets/niu/niu_sihua.png';
+import niuWuhuaImg from '@/assets/niu/niu_wuhua.png';
+import niuWuxiaoImg from '@/assets/niu/niu_wuxiao.png';
+
+const handTypeImageMap = {
+    '牛1': niu1Img,
+    '牛2': niu2Img,
+    '牛3': niu3Img,
+    '牛4': niu4Img,
+    '牛5': niu5Img,
+    '牛6': niu6Img,
+    '牛7': niu7Img,
+    '牛8': niu8Img,
+    '牛9': niu9Img,
+    '牛牛': niuNiuImg,
+    '炸弹': niuBoomImg,
+    '四花牛': niuSihuaImg, // Added after modifying bullfight.js
+    '五花牛': niuWuhuaImg,
+    '五小牛': niuWuxiaoImg,
+    // '没牛' and '未知' will be handled as text or fallback
+};
+
+const getHandTypeImageUrl = (handTypeName) => {
+    return handTypeImageMap[handTypeName] || null; // Return null if no image found
+};
+
 const phraseSounds = [
-    talk0, talk1, talk2, talk3, talk4, talk5, talk6, talk7, talk8, talk9, talk10
+    talk0, talk1, talk2, talk3, talk3, talk4, talk5, talk6, talk7, talk8, talk9, talk10
 ];
 
 const playPhraseSound = (index) => {
@@ -1159,7 +1197,11 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                             <div class="hc-content">
                                 <div class="hc-top-row">
                                     <span class="hc-title">抢庄牛牛 | {{ item.roomName }}</span>
-                                    <span class="hc-hand">{{ item.handType }}</span>
+                                    <span class="hc-hand">
+                                    <img v-if="getHandTypeImageUrl(item.handType)" :src="getHandTypeImageUrl(item.handType)"
+                                        alt="手牌类型" class="hand-type-img" />
+                                    <template v-else>{{ item.handType }}</template>
+                                </span>
                                 </div>
                                 <div class="hc-bottom-row">
                                     <span class="hc-time">{{ formatHistoryTime(item.timestamp) }}</span>
@@ -2325,9 +2367,18 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .hc-hand {
-    font-size: 12px;
-    color: #64748b;
-    /* Gray */
+    font-size: 14px;
+    color: #facc15; /* Keep text color for fallback */
+    font-weight: bold; /* Keep text weight for fallback */
+    display: flex;
+    align-items: center;
+    /* Remove any background/border properties if they were here */
+}
+
+.hand-type-img {
+    height: 96px; /* Scaled up by 4x from 24px */
+    object-fit: contain;
+    vertical-align: middle;
 }
 
 .hc-bottom-row {

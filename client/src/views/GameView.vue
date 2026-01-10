@@ -1043,7 +1043,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
             <div class="room-info-box">
                 <div>房间ID: {{ store.roomId }}</div>
                 <div>房间名: {{ store.roomName }}</div>
-                <div>底分: <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{ formatCoins(store.baseBet) }}</span></div>
+                <div>底分: <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{
+                        formatCoins(store.baseBet) }}</span></div>
                 <div>玩法: {{ modeName }}</div>
             </div>
         </div>
@@ -1107,7 +1108,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                             <img :src="getMultiplierImageUrl(0)" alt="不抢" class="multiplier-btn-img" />
                         </div>
                         <div v-if="robMultipliers.length > 0" class="game-btn orange" @click="onRob(robMultipliers[0])">
-                            <img :src="getMultiplierImageUrl(robMultipliers[0])" :alt="`${robMultipliers[0]}倍`" class="multiplier-btn-img" />
+                            <img :src="getMultiplierImageUrl(robMultipliers[0])" :alt="`${robMultipliers[0]}倍`"
+                                class="multiplier-btn-img" />
                         </div>
                     </div>
                     <div class="btn-row">
@@ -1217,8 +1219,10 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                         <div class="group-header">
                             <div class="gh-date">{{ group.dateStr }} <span class="down-triangle">▼</span></div>
                             <div class="gh-totals">
-                                投注 <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{ formatCoins(group.totalBet) }}</span> &nbsp;
-                                输赢 <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{ formatCoins(group.totalValid) }}</span>
+                                投注 <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{
+                                    formatCoins(group.totalBet) }}</span> &nbsp;
+                                输赢 <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{
+                                    formatCoins(group.totalValid) }}</span>
                             </div>
                         </div>
 
@@ -1227,10 +1231,11 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                                 <div class="hc-top-row">
                                     <span class="hc-title">抢庄牛牛 | {{ item.roomName }}</span>
                                     <span class="hc-hand">
-                                    <img v-if="getHandTypeImageUrl(item.handType)" :src="getHandTypeImageUrl(item.handType)"
-                                        alt="手牌类型" class="hand-type-img" />
-                                    <template v-else>{{ item.handType }}</template>
-                                </span>
+                                        <img v-if="getHandTypeImageUrl(item.handType)"
+                                            :src="getHandTypeImageUrl(item.handType)" alt="手牌类型"
+                                            class="hand-type-img" />
+                                        <template v-else>{{ item.handType }}</template>
+                                    </span>
                                 </div>
                                 <div class="hc-bottom-row">
                                     <span class="hc-time">{{ formatHistoryTime(item.timestamp) }}</span>
@@ -1241,7 +1246,9 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                                     {{ item.score > 0 ? '+' : '' }}{{ formatCoins(item.score) }}
                                 </div>
                                 <div class="hc-bet-amt">
-                                    投注: <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{ formatCoins(item.bet) }}</span>
+                                    投注: <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{
+                                        formatCoins(item.bet)
+                                        }}</span>
                                 </div>
                             </div>
                         </div>
@@ -2031,21 +2038,27 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .multiplier-btn-img {
-    height: 100%; /* Make image fill the button height */
-    width: auto; /* Maintain aspect ratio */
+    height: 100%;
+    /* Make image fill the button height */
+    width: auto;
+    /* Maintain aspect ratio */
     object-fit: contain;
 }
 
 .game-btn.orange {
     /* Removed background */
-    border: none; /* Remove border */
-    box-shadow: none; /* Remove shadow */
+    border: none;
+    /* Remove border */
+    box-shadow: none;
+    /* Remove shadow */
 }
 
 .game-btn.blue {
     /* Removed background */
-    border: none; /* Remove border */
-    box-shadow: none; /* Remove shadow */
+    border: none;
+    /* Remove border */
+    box-shadow: none;
+    /* Remove shadow */
 }
 
 .waiting-text {
@@ -2409,15 +2422,18 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .hc-hand {
     font-size: 14px;
-    color: #facc15; /* Keep text color for fallback */
-    font-weight: bold; /* Keep text weight for fallback */
+    color: #facc15;
+    /* Keep text color for fallback */
+    font-weight: bold;
+    /* Keep text weight for fallback */
     display: flex;
     align-items: center;
     /* Remove any background/border properties if they were here */
 }
 
 .hand-type-img {
-    height: 96px; /* Scaled up by 4x from 24px */
+    height: 96px;
+    /* Scaled up by 4x from 24px */
     object-fit: contain;
     vertical-align: middle;
 }

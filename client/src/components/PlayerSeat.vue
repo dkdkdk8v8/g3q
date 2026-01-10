@@ -983,7 +983,7 @@ const displayName = computed(() => {
     height: 90px;
     /* 自己的牌比较大 */
     margin-top: 0;
-    margin-bottom: 10px;
+    margin-bottom: 30px; /* Increased to move hand cards further up */
 }
 
 .cards {

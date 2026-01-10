@@ -207,7 +207,10 @@ const shouldShowRobMult = computed(() => {
 });
 
 const slideTransitionName = computed(() => {
-    return props.position === 'right' ? 'slide-from-right' : 'slide-from-left';
+    // For opponents (all handle the same way now: float is above avatar)
+    if (!props.isMe) return 'pop-up';
+    // For Me (float is to the right)
+    return 'pop-right';
 });
 
 const displayName = computed(() => {
@@ -814,6 +817,47 @@ const displayName = computed(() => {
 .slide-from-right-enter-from {
     opacity: 0;
     transform: translateX(30px);
+}
+
+/* Pop Right Animation for Me (Beside Avatar) */
+.pop-right-enter-active,
+.pop-right-leave-active {
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transform-origin: center left; 
+}
+
+/* Final state is translateX(10px). 
+   Start state: center of avatar. 
+   Avatar wrapper width 52px. Float at left: 100% (52px).
+   Center is at 26px. Delta X = 26 - 52 = -26px.
+   Top is 0. Center is 26px. Delta Y = 26px.
+*/
+.pop-right-enter-from {
+    opacity: 0;
+    transform: translateX(-26px) translateY(26px) scale(0.2); 
+}
+
+.pop-right-leave-to {
+    opacity: 0;
+    transform: translateX(10px) scale(0.5);
+}
+
+/* Pop Up Animation for Opponents (Above Avatar) */
+.pop-up-enter-active,
+.pop-up-leave-active {
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transform-origin: bottom center; /* Grow from bottom */
+}
+
+.pop-up-enter-from {
+    opacity: 0;
+    /* Start from below (inside avatar) and small */
+    transform: translateX(-50%) translateY(20px) scale(0.2); 
+}
+
+.pop-up-leave-to {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.5);
 }
 
 .hand-card.bull-card-overlay {

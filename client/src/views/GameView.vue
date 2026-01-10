@@ -3,7 +3,7 @@ import { onMounted, computed, onUnmounted, ref, watch } from 'vue';
 import { debounce } from '../utils/debounce.js';
 import { useGameStore } from '../stores/game.js';
 import { useSettingsStore } from '../stores/settings.js';
-import PlayerSeat from '../components/PlayerSeat.vue';
+
 import CoinLayer from '../components/CoinLayer.vue';
 import DealingLayer from '../components/DealingLayer.vue';
 import ChatBubbleSelector from '../components/ChatBubbleSelector.vue';
@@ -12,6 +12,7 @@ import { formatCoins } from '../utils/format.js';
 import { transformServerCard, calculateHandType } from '../utils/bullfight.js';
 import gameClient from '../socket.js';
 import { showToast as vantToast } from 'vant';
+import PokerCard from '../components/PokerCard.vue';
 
 import talk0 from '@/assets/sounds/talk_0.mp3';
 import talk1 from '@/assets/sounds/talk_1.mp3';
@@ -264,6 +265,120 @@ const setSeatRef = (el, playerId) => {
 const myPlayer = computed(() => store.players.find(p => p.id === store.myPlayerId));
 
 
+
+// PlayerSeat logic for myPlayer (extracted)
+const showCards = computed(() => {
+    return myPlayer.value && myPlayer.value.hand && myPlayer.value.hand.length > 0;
+});
+
+const isDealingProcessing = ref(false);
+watch(() => store.currentPhase, (val) => {
+    if (val === 'DEALING') {
+        isDealingProcessing.value = true;
+    } else if (val === 'SHOWDOWN') {
+        setTimeout(() => {
+            isDealingProcessing.value = false;
+        }, 1200);
+    } else {
+        isDealingProcessing.value = false;
+    }
+}, { immediate: true });
+
+const shouldShowCardFace = computed(() => {
+    if (myPlayer.value && myPlayer.value.id === store.myPlayerId) return true; // Always show self cards
+    if (store.currentPhase === 'SETTLEMENT') return true;
+    if (store.currentPhase === 'SHOWDOWN' && myPlayer.value && myPlayer.value.isShowHand) return true;
+    return false;
+});
+
+const enableHighlight = ref(false); // Used by isBullPart
+watch(shouldShowCardFace, (val) => {
+    if (val) {
+        // For 'me' player, no delay needed
+        enableHighlight.value = true;
+    } else {
+        enableHighlight.value = false;
+    }
+}, { immediate: true });
+
+const isBullPart = (index) => {
+    if (!shouldShowCardFace.value) return false;
+    if (!myPlayer.value || !myPlayer.value.handResult) return false;
+
+    // If I clicked show hand OR it's settlement
+    if (!myPlayer.value.isShowHand && store.currentPhase !== 'SETTLEMENT') {
+        return false;
+    }
+
+    if (!enableHighlight.value) return false;
+
+    if (store.currentPhase === 'DEALING' || (!myPlayer.value.isShowHand && isDealingProcessing.value)) return false;
+
+    const type = myPlayer.value.handResult.type;
+    if (type.startsWith('BULL_') && type !== 'NO_BULL') {
+        const indices = myPlayer.value.handResult.bullIndices;
+        if (indices && indices.includes(index)) {
+            return true;
+        }
+        return false;
+    }
+    return false;
+};
+
+const shouldShowBadge = ref(false);
+let badgeTimer = null;
+
+const badgeTriggerCondition = computed(() => {
+    if (!myPlayer.value || !myPlayer.value.handResult) return false;
+    // Hide badge during IDLE, READY_COUNTDOWN and GAME_OVER phases
+    if (['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)) return false;
+
+    // Unified logic: Show if player has shown hand OR if it is settlement
+    return myPlayer.value.isShowHand || store.currentPhase === 'SETTLEMENT';
+});
+
+watch(badgeTriggerCondition, (val) => {
+    if (badgeTimer) {
+        clearTimeout(badgeTimer);
+        badgeTimer = null;
+    }
+
+    if (val) {
+        shouldShowBadge.value = true;
+    } else {
+        shouldShowBadge.value = false;
+    }
+}, { immediate: true });
+
+const shouldShowRobMult = computed(() => {
+    if (!myPlayer.value) return false;
+    // Hide in IDLE or READY phases (new game)
+    if (['IDLE', 'READY_COUNTDOWN'].includes(store.currentPhase)) return false;
+
+    // Phase: Robbing Banker or Selection (Show for everyone who has acted)
+    if (['ROB_BANKER', 'BANKER_SELECTION_ANIMATION', 'BANKER_CONFIRMED'].includes(store.currentPhase)) {
+        return myPlayer.value.robMultiplier > -1;
+    }
+
+    // Phase: After Banking (Show only for Banker)
+    if (myPlayer.value.isBanker) {
+        return true;
+    }
+
+    return false;
+});
+
+const shouldShowBetMult = computed(() => {
+    if (!myPlayer.value) return false;
+    // Hide in IDLE or READY phases
+    if (['IDLE', 'READY_COUNTDOWN', 'ROB_BANKER', 'BANKER_SELECTION_ANIMATION', 'BANKER_CONFIRMED'].includes(store.currentPhase)) return false;
+
+    // Only show for Non-Banker
+    if (myPlayer.value.isBanker) return false;
+
+    // Show if bet is placed
+    return myPlayer.value.betMultiplier > 0;
+});
 
 watch(() => [...store.playerSpeechQueue], (newQueue) => { // Watch a copy to trigger on push
     if (newQueue.length > 0) {
@@ -1095,6 +1210,98 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
         <!-- 自己区域 -->
 
         <div class="my-area" v-if="myPlayer">
+            <!-- 1. Calculation Formula Area -->
+            <div v-if="store.currentPhase === 'SHOWDOWN' && !myPlayer.isShowHand && store.countdown > 0 && !myPlayer.isObserver"
+                class="showdown-wrapper">
+
+                <div class="game-btn orange showdown-btn" @click="playerShowHandDebounced(myPlayer.id)">
+                    摊牌
+                </div>
+
+                <!-- Calculation Formula -->
+                <div class="calc-container">
+                    <div class="calc-box">{{ calculationData.labels[0] || '' }}</div>
+                    <div class="calc-symbol">+</div>
+                    <div class="calc-box">{{ calculationData.labels[1] || '' }}</div>
+                    <div class="calc-symbol">+</div>
+                    <div class="calc-box">{{ calculationData.labels[2] || '' }}</div>
+                    <div class="calc-symbol">=</div>
+                    <div class="calc-box result">{{ calculationData.isFull ? calculationData.sum : '' }}</div>
+                </div>
+            </div>
+
+            <!-- 2. My Hand Cards Area -->
+            <div class="my-hand-cards-area">
+                <div class="hand-area">
+                    <div class="cards">
+                        <PokerCard v-for="(card, idx) in myPlayer.hand" :key="idx"
+                            :card="(shouldShowCardFace && (visibleCounts[myPlayer.id] === undefined || idx < visibleCounts[myPlayer.id])) ? card : null"
+                            :is-small="false"
+                            :class="{ 'hand-card': true, 'bull-card-overlay': isBullPart(idx), 'selected': selectedCardIndices.includes(idx) }"
+                            :style="{
+                                marginLeft: idx === 0 ? '0' : '1px', /* for myPlayer */
+                            }" @click="handleCardClick({ card, index: idx })" />
+                    </div>
+                    <!-- Hand Result Badge - adapted from PlayerSeat -->
+                    <div v-if="myPlayer.handResult && myPlayer.handResult.typeName && shouldShowBadge" class="hand-result-badge">
+                        <img v-if="getHandTypeImageUrl(myPlayer.handResult.typeName)"
+                            :src="getHandTypeImageUrl(myPlayer.handResult.typeName)" alt="手牌类型" class="hand-type-img" />
+                        <template v-else>{{ myPlayer.handResult.typeName }}</template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. My Personal Info + Chat Button -->
+            <div class="my-player-info-row">
+                <!-- Avatar and Info Box - adapted from PlayerSeat -->
+                <div class="avatar-area my-player-avatar-info">
+                    <div class="avatar-wrapper">
+                        <div class="avatar-frame" :class="{
+                            'banker-candidate-highlight': myPlayer.id === currentlyHighlightedPlayerId,
+                            'banker-confirm-anim': showBankerConfirmAnim && myPlayer.isBanker,
+                            'is-banker': myPlayer.isBanker && !['SETTLEMENT', 'GAME_OVER'].includes(store.currentPhase),
+                            'win-neon-flash': !!winEffects[myPlayer.id]
+                        }">
+                            <van-image :src="myPlayer.avatar" class="avatar" :class="{ 'avatar-gray': myPlayer.isObserver }" />
+                        </div>
+                        <!-- Status float (rob/bet multiplier status) -->
+                        <div class="status-float">
+                            <Transition name="pop-up">
+                                <div v-if="shouldShowRobMult" class="status-content">
+                                    <span v-if="myPlayer.robMultiplier > 0" class="status-text">抢{{ myPlayer.robMultiplier
+                                    }}倍</span>
+                                    <span v-else class="status-text">不抢</span>
+                                </div>
+                            </Transition>
+
+                            <Transition name="pop-up">
+                                <div v-if="shouldShowBetMult" class="status-content">
+                                    <span class="status-text">押{{ myPlayer.betMultiplier }}倍</span>
+                                </div>
+                            </Transition>
+                        </div>
+
+                        <!-- Banker Badge -->
+                        <div v-if="myPlayer.isBanker && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)"
+                            class="banker-badge">庄</div>
+                    </div>
+
+                    <div class="info-box" :class="{ 'is-observer': myPlayer.isObserver }">
+                        <div class="name van-ellipsis">{{ myPlayer.name }}</div>
+                        <div class="coins-pill">
+                            <img :src="goldImg" class="coin-icon-seat" />
+                            {{ formatCoins(myPlayer.coins) }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat button -->
+                <div class="chat-toggle-btn" @click="toggleShowChatSelector()">
+                    <van-icon name="comment" size="24" color="white" />
+                </div>
+            </div>
+
+            <!-- 4. Multiplier Options (controls-container) -->
             <div class="controls-container">
                 <!-- Auto Join Banner -->
                 <transition name="fade">
@@ -1103,7 +1310,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                     </div>
                 </transition>
 
-
+                <!-- Rob Banker Multipliers -->
                 <div v-if="store.currentPhase === 'ROB_BANKER' && !myPlayer.isObserver && myPlayer.robMultiplier === -1"
                     class="btn-group-column">
                     <div class="btn-row">
@@ -1122,6 +1329,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                     </div>
                 </div>
 
+                <!-- Betting Multipliers -->
                 <div v-if="store.currentPhase === 'BETTING' && !myPlayer.isBanker && myPlayer.betMultiplier === 0 && !myPlayer.isObserver"
                     class="btn-group-column">
                     <div class="btn-row">
@@ -1147,41 +1355,11 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                     已下注，等待开牌...
                 </div>
 
-                <!-- 摊牌按钮 -->
-                <div v-if="store.currentPhase === 'SHOWDOWN' && !myPlayer.isShowHand && store.countdown > 0 && !myPlayer.isObserver"
-                    class="showdown-wrapper">
-
-                    <div class="game-btn orange showdown-btn" @click="playerShowHandDebounced(myPlayer.id)">
-                        摊牌
-                    </div>
-
-                    <!-- Calculation Formula -->
-                    <div class="calc-container">
-                        <div class="calc-box">{{ calculationData.labels[0] || '' }}</div>
-                        <div class="calc-symbol">+</div>
-                        <div class="calc-box">{{ calculationData.labels[1] || '' }}</div>
-                        <div class="calc-symbol">+</div>
-                        <div class="calc-box">{{ calculationData.labels[2] || '' }}</div>
-                        <div class="calc-symbol">=</div>
-                        <div class="calc-box result">{{ calculationData.isFull ? calculationData.sum : '' }}</div>
-                    </div>
-                </div>
-
-                <!-- Observer Waiting Text for Me -->
+                <!-- Observer Waiting Text -->
                 <div v-if="myPlayer.isObserver" class="observer-waiting-banner">
                     请耐心等待下一局<span class="loading-dots"></span>
                 </div>
             </div>
-
-            <PlayerSeat :player="myPlayer" :is-me="true" :ref="(el) => myPlayer && setSeatRef(el, myPlayer.id)"
-                position="bottom"
-                :visible-card-count="(myPlayer && visibleCounts[myPlayer.id] !== undefined) ? visibleCounts[myPlayer.id] : 0"
-                :is-ready="myPlayer && myPlayer.isReady"
-                :is-animating-highlight="myPlayer && myPlayer.id === currentlyHighlightedPlayerId"
-                :speech="myPlayer ? playerSpeech.get(myPlayer.id) : null" :selected-card-indices="selectedCardIndices"
-                @card-click="handleCardClick"
-                :trigger-banker-animation="showBankerConfirmAnim && myPlayer && myPlayer.isBanker"
-                :is-win="myPlayer && !!winEffects[myPlayer.id]" />
         </div>
 
         <!-- 全局点击关闭菜单 -->
@@ -1983,12 +2161,225 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .my-area {
     margin-top: auto;
-    padding-bottom: 20px;
+    padding-bottom: 60px;
     display: flex;
     flex-direction: column;
     align-items: center;
     background: linear-gradient(to top, rgba(0, 0, 0, 0.6) 0%, transparent 100%);
     width: 100%;
+}
+
+/* GameView.vue specific styles for myPlayer components */
+/* GameView.vue specific styles for myPlayer components */
+.my-hand-cards-area {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    margin-top: 10px; /* Adjust spacing from element above */
+}
+
+/* Hand area styles (adapted from PlayerSeat.vue for myPlayer) */
+.my-hand-cards-area .hand-area {
+    height: 90px; /* For myPlayer cards */
+    margin-top: 0;
+    margin-bottom: 30px; /* Increased to move hand cards further up */
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+.my-hand-cards-area .cards {
+    display: flex;
+    justify-content: center;
+}
+
+.my-hand-cards-area .hand-card.selected {
+    transform: translateY(-20px);
+}
+
+.my-hand-cards-area .hand-result-badge {
+    position: absolute;
+    top: 90%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #fbbf24;
+    font-size: 14px;
+    font-weight: bold;
+    white-space: nowrap;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.my-hand-cards-area .hand-type-img {
+    height: 40px;
+    object-fit: contain;
+    vertical-align: middle;
+}
+
+.my-player-info-row {
+    display: flex;
+    justify-content: space-between; /* To push info left and chat right */
+    align-items: center;
+    width: 100%;
+    padding: 0 10px; /* Padding for spacing from screen edges */
+    margin-top: 10px; /* Adjust spacing from element above */
+    margin-bottom: 10px; /* Adjust spacing from element below */
+}
+
+/* Player Info (avatar, name, coins) styles (adapted from PlayerSeat.vue for myPlayer) */
+.my-player-info-row .avatar-area {
+    position: relative;
+    display: flex;
+    flex-direction: row; /* Horizontal layout for avatar and info-box */
+    align-items: center;
+    justify-content: center; /* Center avatar and info-box within its own area */
+    width: auto; /* Let it shrink to content */
+}
+
+.my-player-info-row .avatar-wrapper {
+    position: relative;
+    width: 52px;
+    height: 52px;
+    flex-shrink: 0;
+}
+
+.my-player-info-row .avatar-frame {
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px; /* Rounded square for myPlayer avatar */
+    border: 4px solid transparent;
+    box-sizing: border-box;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2);
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
+}
+
+.my-player-info-row .avatar-frame.banker-candidate-highlight {
+    box-shadow: 0 0 15px 5px #facc15, 0 0 8px 2px #d97706;
+    border-color: #facc15;
+    animation: pulse-border-glow 1s infinite alternate;
+}
+
+.my-player-info-row .avatar-frame.is-banker {
+    border-color: #fbbf24;
+    box-shadow: 0 0 6px #fbbf24;
+}
+
+.my-player-info-row .avatar-frame.banker-confirm-anim {
+    position: relative;
+    z-index: 50;
+    animation: bankerConfirmPop 1.2s ease-out forwards;
+}
+
+.my-player-info-row .avatar-frame.win-neon-flash {
+    animation: neon-flash 0.5s infinite alternate;
+    border-color: #ffd700;
+}
+
+.my-player-info-row .avatar-frame .van-image {
+    width: 100%;
+    height: 100%;
+}
+
+.my-player-info-row .avatar {
+    border: none;
+}
+
+.my-player-info-row .avatar-gray {
+    filter: grayscale(100%);
+    opacity: 0.7;
+}
+
+.my-player-info-row .banker-badge {
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: radial-gradient(circle at 30% 30%, #fcd34d 0%, #d97706 100%);
+    color: #78350f;
+    font-size: 14px;
+    border-radius: 50%;
+    font-weight: bold;
+    z-index: 100;
+    border: 1px solid #fff;
+    box-shadow: 0 0 10px #fbbf24;
+    animation: shine 2s infinite;
+    transform: translate(50%, -50%);
+}
+
+.my-player-info-row .info-box {
+    margin-left: 8px; /* Gap between avatar and info */
+    position: relative;
+    z-index: 5;
+    width: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start; /* Align name and coins to the left */
+}
+
+.my-player-info-row .info-box.is-observer {
+    filter: grayscale(100%);
+    opacity: 0.6;
+}
+
+.my-player-info-row .name {
+    font-size: 16px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 0 1px 2px black;
+    margin-bottom: 2px;
+}
+
+.my-player-info-row .coins-pill {
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 20px;
+    padding: 4px 6px;
+    font-size: 13px;
+    font-weight: bold;
+    color: #fbbf24;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.my-player-info-row .coin-icon-seat {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+}
+
+.my-player-info-row .status-float {
+    position: absolute;
+    top: auto;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    right: auto;
+    z-index: 8;
+    margin-bottom: 5px;
+    width: max-content;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Ensure chat button pushes to the right within my-player-info-row */
+.my-player-info-row .chat-toggle-btn {
+    margin-left: auto; /* Push to the right */
 }
 
 .controls-container {

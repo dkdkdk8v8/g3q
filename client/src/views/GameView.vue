@@ -1289,7 +1289,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                                 <div v-if="shouldShowRobMult" class="status-content">
                                     <span v-if="myPlayer.robMultiplier > 0" class="status-text">抢{{
                                         myPlayer.robMultiplier
-                                        }}倍</span>
+                                    }}倍</span>
                                     <span v-else class="status-text">不抢</span>
                                 </div>
                             </Transition>
@@ -1447,7 +1447,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                                 <div class="hc-bet-amt">
                                     投注: <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{
                                         formatCoins(item.bet)
-                                    }}</span>
+                                        }}</span>
                                 </div>
                             </div>
                         </div>
@@ -2243,17 +2243,25 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .my-player-info-row {
+
     display: flex;
+
     justify-content: space-between;
     /* To push info left and chat right */
+
     align-items: center;
-    width: 100%;
-    padding: 0 10px;
+
+    width: 95%;
+
+    padding: 0 20px;
     /* Padding for spacing from screen edges */
+
     margin-top: 10px;
     /* Adjust spacing from element above */
+
     margin-bottom: 10px;
     /* Adjust spacing from element below */
+
 }
 
 /* Player Info (avatar, name, coins) styles (adapted from PlayerSeat.vue for myPlayer) */
@@ -2269,8 +2277,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .my-player-info-row .avatar-wrapper {
     position: relative;
-    width: 52px;
-    height: 52px;
+    width: 62px;
+    height: 62px;
     flex-shrink: 0;
 }
 

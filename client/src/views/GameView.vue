@@ -2200,7 +2200,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     height: 90px;
     /* For myPlayer cards */
     margin-top: 0;
-    margin-bottom: 30px;
+    margin-bottom: 18px;
     /* Increased to move hand cards further up */
     position: relative;
     display: flex;
@@ -2514,7 +2514,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     background: rgba(0, 0, 0, 0.5);
     padding: 4px 12px;
     border-radius: 12px;
-    align-self: center; /* Prevent stretching in flex container */
+    align-self: center;
+    /* Prevent stretching in flex container */
 }
 
 .restart-btn {

@@ -291,7 +291,7 @@ const displayName = computed(() => {
                     <Transition :name="slideTransitionName">
                         <div v-if="shouldShowRobMult" class="status-content">
                             <span v-if="player.robMultiplier > 0" class="status-text">抢{{ player.robMultiplier
-                            }}倍</span>
+                                }}倍</span>
                             <span v-else class="status-text">不抢</span>
                         </div>
                     </Transition>
@@ -796,7 +796,8 @@ const displayName = computed(() => {
 .banker-badge-img {
     width: 100%;
     height: 100%;
-    object-fit: contain; /* Ensure the entire image is visible within the bounds */
+    object-fit: contain;
+    /* Ensure the entire image is visible within the bounds */
 }
 
 @keyframes shine {
@@ -981,16 +982,12 @@ const displayName = computed(() => {
     margin-top: 25px;
 }
 
-.seat-left .hand-area,
-.seat-right .hand-area {
-    margin-top: 10px;
-}
-
 .seat-bottom .hand-area {
     height: 90px;
     /* 自己的牌比较大 */
     margin-top: 0;
-    margin-bottom: 30px; /* Increased to move hand cards further up */
+    margin-bottom: 30px;
+    /* Increased to move hand cards further up */
 }
 
 .cards {

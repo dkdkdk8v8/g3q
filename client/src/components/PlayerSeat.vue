@@ -4,6 +4,7 @@ import { useGameStore } from '../stores/game.js';
 import PokerCard from './PokerCard.vue';
 import { formatCoins } from '../utils/format.js';
 import goldImg from '@/assets/common/gold.png';
+import zhuangImg from '@/assets/common/zhuang.png';
 
 // Niu hand type images
 import niu1Img from '@/assets/niu/niu_1.png';
@@ -304,7 +305,7 @@ const displayName = computed(() => {
 
                 <!-- 庄家徽章，现在移动到 avatar-area 内部 -->
                 <div v-if="player.isBanker && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)"
-                    class="banker-badge">庄</div>
+                    class="banker-badge"><img :src="zhuangImg" alt="庄" class="banker-badge-img" /></div>
                 <!-- Ready Badge -->
                 <div v-if="player.isReady && store.currentPhase === 'READY_COUNTDOWN'" class="ready-badge">✔ 准备</div>
 
@@ -771,7 +772,7 @@ const displayName = computed(() => {
 
 .banker-badge {
     position: absolute;
-    top: 0px;
+    bottom: 0px;
     right: 0px;
     width: 24px;
     height: 24px;
@@ -788,8 +789,14 @@ const displayName = computed(() => {
     border: 1px solid #fff;
     box-shadow: 0 0 10px #fbbf24;
     animation: shine 2s infinite;
-    transform: translate(50%, -50%);
+    transform: translate(50%, 50%);
     /* 移动自身宽度的一半和高度的一半 */
+}
+
+.banker-badge-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* Ensure the entire image is visible within the bounds */
 }
 
 @keyframes shine {

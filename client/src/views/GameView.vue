@@ -2341,7 +2341,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .my-player-info-row .banker-badge {
     position: absolute;
-    top: 0px;
+    bottom: 0px;
     right: 0px;
     width: 24px;
     height: 24px;
@@ -2357,7 +2357,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     border: 1px solid #fff;
     box-shadow: 0 0 10px #fbbf24;
     animation: shine 2s infinite;
-    transform: translate(50%, -50%);
+    transform: translate(50%, 50%);
 }
 
 .banker-badge-img {

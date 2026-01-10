@@ -38,6 +38,7 @@ import sendCoinSound from '@/assets/sounds/send_coin.mp3';
 import countdownSound from '@/assets/sounds/countdown.mp3';
 import countdownAlertSound from '@/assets/sounds/countdown_alert.mp3';
 import goldImg from '@/assets/common/gold.png';
+import zhuangImg from '@/assets/common/zhuang.png';
 
 // Niu hand type images
 import niu1Img from '@/assets/niu/niu_1.png';
@@ -1301,7 +1302,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
                         <!-- Banker Badge -->
                         <div v-if="myPlayer.isBanker && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)"
-                            class="banker-badge">庄</div>
+                            class="banker-badge"><img :src="zhuangImg" alt="庄" class="banker-badge-img" /></div>
                     </div>
 
                     <div class="info-box" :class="{ 'is-observer': myPlayer.isObserver }">
@@ -2357,6 +2358,12 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     box-shadow: 0 0 10px #fbbf24;
     animation: shine 2s infinite;
     transform: translate(50%, -50%);
+}
+
+.banker-badge-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* Ensure the entire image is visible within the bounds */
 }
 
 .my-player-info-row .info-box {

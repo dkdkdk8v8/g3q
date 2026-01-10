@@ -1946,7 +1946,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     border-radius: 24px;
     font-size: 16px;
     font-weight: bold;
-    margin-top: 10px;
+    margin-top: 30px;
     border: 1px solid rgba(251, 191, 36, 0.4);
     border-bottom: 3px solid rgba(180, 83, 9, 0.8);
     /* Distinct bottom frame/border */

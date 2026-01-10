@@ -118,11 +118,14 @@ const playPhraseSound = (index) => {
 };
 
 const store = useGameStore();
-const robMultipliers = computed(() => {
-    return (store.bankerMult || []).filter(m => m > 0).sort((a, b) => a - b);
-});
+
 const betMultipliers = computed(() => {
     return (store.betMult || []).sort((a, b) => a - b);
+});
+
+const allRobOptions = computed(() => {
+    const options = [0, ...(store.bankerMult || [])].filter((value, index, self) => self.indexOf(value) === index).sort((a, b) => a - b);
+    return options;
 });
 const settingsStore = useSettingsStore();
 const router = useRouter();
@@ -1104,19 +1107,17 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                 <div v-if="store.currentPhase === 'ROB_BANKER' && !myPlayer.isObserver && myPlayer.robMultiplier === -1"
                     class="btn-group-column">
                     <div class="btn-row">
-                        <div class="multiplier-option-btn" @click="onRob(0)">
-                            <img :src="getMultiplierImageUrl(0)" alt="不抢" class="multiplier-btn-img" />
-                        </div>
-                        <div v-if="robMultipliers.length > 0" class="multiplier-option-btn"
-                            @click="onRob(robMultipliers[0])">
-                            <img :src="getMultiplierImageUrl(robMultipliers[0])" :alt="`${robMultipliers[0]}倍`"
+                        <div v-for="mult in allRobOptions.slice(0, 2)" :key="mult" class="multiplier-option-btn"
+                            @click="onRob(mult)">
+                            <img :src="getMultiplierImageUrl(mult)" :alt="mult === 0 ? '不抢' : `${mult}倍`"
                                 class="multiplier-btn-img" />
                         </div>
                     </div>
                     <div class="btn-row">
-                        <div v-for="mult in robMultipliers.slice(1)" :key="mult" class="multiplier-option-btn"
+                        <div v-for="mult in allRobOptions.slice(2)" :key="mult" class="multiplier-option-btn"
                             @click="onRob(mult)">
-                            <img :src="getMultiplierImageUrl(mult)" :alt="`${mult}倍`" class="multiplier-btn-img" />
+                            <img :src="getMultiplierImageUrl(mult)" :alt="mult === 0 ? '不抢' : `${mult}倍`"
+                                class="multiplier-btn-img" />
                         </div>
                     </div>
                 </div>
@@ -2008,7 +2009,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 50px;
+    gap: 20px;
     /* Increased vertical gap between btn-rows */
     /* Removed width: 100%; to allow it to shrink to content */
 }
@@ -2020,7 +2021,10 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     justify-content: center;
 }
 
-.multiplier-option-btn {}
+.multiplier-option-btn {
+    width: 23vw;
+    height: auto;
+}
 
 .game-btn {
     /* Re-added generic game-btn for other buttons that still use it */
@@ -2044,10 +2048,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .multiplier-btn-img {
-    height: 60px;
-    /* Set to match parent button height */
-    width: 200px;
-    /* Set to match parent button width */
+    height: auto;
+    width: 100%;
     object-fit: contain;
 }
 

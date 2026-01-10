@@ -161,13 +161,13 @@ const suitSymbol = computed(() => {
 }
 
 .corner-bottom-right {
-  bottom: 4px;
-  right: 4px;
+  bottom: 2px;
+  right: 2px;
   /* transform: rotate(180deg); Removed per request */
 }
 
 .is-small .corner-top-left { top: 2px; left: 2px; }
-.is-small .corner-bottom-right { bottom: 2px; right: 2px; }
+.is-small .corner-bottom-right { bottom: 1px; right: 1px; }
 
 .rank {
   font-weight: 800;
@@ -179,13 +179,13 @@ const suitSymbol = computed(() => {
 }
 
 .suit {
-  font-size: 18px;
+  font-size: 22px;
   font-weight: bold;
-  margin-top: 3px;
+  margin-top: -2px;
 }
 .is-small .suit {
-  font-size: 14px;
-  margin-top: 2px;
+  font-size: 16px;
+  margin-top: -1px;
 }
 
 .corner-bottom-right {
@@ -193,11 +193,11 @@ const suitSymbol = computed(() => {
 }
 
 .corner-suit {
-  font-size: 40px;
+  font-size: 50px;
   font-weight: bold;
   line-height: 1;
 }
 .is-small .corner-suit {
-  font-size: 26px;
+  font-size: 32px;
 }
 </style>

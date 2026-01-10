@@ -79,8 +79,8 @@ export class StaPeriodJob implements IJob {
   /**
    * 获取时间分片Key
    */
-  private getTimeKey(record: GameRecordEntity): Date {
-    const recordTime = moment(record.create_at);
+  private getTimeKey(date: Date): Date {
+    const recordTime = moment(date);
     recordTime.minute(Math.floor(recordTime.minute() / 10) * 10).second(0).millisecond(0);
     return recordTime.toDate();
   }
@@ -114,6 +114,7 @@ export class StaPeriodJob implements IJob {
     const dataSource = this.staPeriodEntity.manager.connection;
     await dataSource.transaction(async manager => {
       for (const stats of statsMap.values()) {
+        this.logger.info(stats.timeKey, stats.appId, stats.gameCount);
         let entity = await manager.findOne(StaPeriodEntity, {
           where: { timeKey: stats.timeKey, appId: stats.appId },
           lock: { mode: 'pessimistic_write' },
@@ -190,7 +191,7 @@ export class StaPeriodJob implements IJob {
       const records = await this.recordEntity.find({
         where: { id: MoreThan(lastId) },
         order: { id: 'ASC' },
-        take: 10,
+        take: 200,
       });
       this.logger.info(`开始处理id大于${lastId}的数据，共${records.length}条`);
       const statsMap = new Map<string, StatsData>();
@@ -203,7 +204,7 @@ export class StaPeriodJob implements IJob {
         let { Players = [] } = Room;
         const { BankerID } = Room;
 
-        const timeKey = this.getTimeKey(record);
+        const timeKey = this.getTimeKey(record.create_at);
         const dateKey = moment(record.create_at).startOf('day').toDate();
 
         Players = Players.filter(Boolean);

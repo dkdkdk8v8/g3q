@@ -1314,7 +1314,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 .game-table {
     width: 100vw;
     height: 100vh;
-    background: radial-gradient(circle at center, #0d9488 0%, #115e59 100%);
+    background: url('@/assets/common/game_bg.jpg') no-repeat center center;
+    background-size: cover;
     position: relative;
     display: flex;
     flex-direction: column;

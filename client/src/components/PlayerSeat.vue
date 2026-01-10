@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { useGameStore } from '../stores/game.js';
 import PokerCard from './PokerCard.vue';
 import { formatCoins } from '../utils/format.js';
+import goldImg from '@/assets/common/gold.png';
 
 const props = defineProps({
   player: Object,
@@ -267,7 +268,7 @@ const displayName = computed(() => {
       <div class="info-box" :class="{ 'is-observer': player.isObserver }">
         <div class="name van-ellipsis">{{ displayName }}</div>
         <div class="coins-pill">
-            <span class="coin-symbol">🟡</span>
+            <img :src="goldImg" class="coin-icon-seat" />
             {{ formatCoins(player.coins) }}
         </div>
       </div>
@@ -275,7 +276,7 @@ const displayName = computed(() => {
     
     <!-- ... (keep score float) -->
     <div v-if="player.roundScore !== 0 && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)" class="score-float" :class="player.roundScore > 0 ? 'win' : 'lose'">
-        {{ player.roundScore > 0 ? '+' : '' }}{{ formatCoins(player.roundScore) }}
+        {{ player.roundScore > 0 ? '+' : '' }}<img :src="goldImg" class="coin-icon-float" />{{ formatCoins(player.roundScore) }}
     </div>
 
     <!-- 手牌区域 (始终渲染以占位) -->
@@ -629,8 +630,18 @@ const displayName = computed(() => {
   border: 1px solid rgba(255,255,255,0.1);
 }
 
-.coin-symbol {
-    font-size: 10px;
+.coin-icon-seat {
+    width: 12px;
+    height: 12px;
+    object-fit: contain;
+}
+
+.coin-icon-float {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    vertical-align: middle;
+    margin: 0 2px;
 }
 
 .status-float {

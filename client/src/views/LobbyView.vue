@@ -9,6 +9,7 @@ import { useSettingsStore } from '../stores/settings.js';
 import gameClient from '../socket.js';
 import defaultAvatar from '@/assets/common/default_avatar.png'; // Import avatar directly
 import lobbyBgSound from '@/assets/sounds/lobby_bg.mp3'; // Import background music
+import goldImg from '@/assets/common/gold.png';
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -159,7 +160,7 @@ onUnmounted(() => {
             </div>
             <div class="user-assets">
                 <div class="coin-display">
-                    <span class="coin-icon">🟡</span>
+                    <img :src="goldImg" class="coin-icon-img" />
                     <span class="coin-text">{{ userInfo.coins }}</span>
                     <div class="add-btn">+</div>
                 </div>
@@ -186,7 +187,7 @@ onUnmounted(() => {
                 </div>
                 <div class="room-footer">
                     <div class="entry-limit">
-                        <span class="coin-icon">🟡</span> {{ room.min }}
+                        <img :src="goldImg" class="coin-icon-img-small" /> {{ room.min }}
                     </div>
                     <div class="online-count">
                         👤 {{ room.players }}
@@ -274,8 +275,18 @@ onUnmounted(() => {
     gap: 6px;
 }
 
-.coin-icon {
-    font-size: 14px;
+.coin-icon-img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+}
+
+.coin-icon-img-small {
+    width: 14px;
+    height: 14px;
+    object-fit: contain;
+    vertical-align: middle;
+    margin-right: 2px;
 }
 
 .coin-text {

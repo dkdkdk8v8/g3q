@@ -1,5 +1,6 @@
 <script setup>
 import { ref, nextTick } from 'vue';
+import goldImg from '@/assets/common/gold.png';
 
 const coins = ref([]);
 let coinIdCounter = 0;
@@ -95,14 +96,13 @@ defineExpose({
 
 <template>
     <div class="coin-layer">
-        <div 
+        <img
             v-for="coin in coins" 
             :key="coin.id" 
             class="coin" 
             :style="coin.style"
-        >
-            $
-        </div>
+            :src="goldImg"
+        />
     </div>
 </template>
 
@@ -123,16 +123,9 @@ defineExpose({
     left: 0;
     width: 28px;
     height: 28px;
-    background: radial-gradient(circle at 30% 30%, #fcd34d 0%, #d97706 100%);
-    border: 1px solid #b45309;
-    border-radius: 50%;
-    color: #92400e;
-    font-size: 18px;
-    font-weight: bold;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    box-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+    display: block;
+    box-shadow: none; /* Images usually don't need box-shadow unless specified, remove if looks weird */
     will-change: transform, opacity;
+    /* Remove text styles and background */
 }
 </style>

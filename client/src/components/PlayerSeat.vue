@@ -413,8 +413,8 @@ const displayName = computed(() => {
 
 /* Increase avatar size for opponents */
 :not(.seat-bottom) .avatar-wrapper {
-    width: 60px;
-    height: 60px;
+    width: 70px;
+    height: 70px;
 }
 
 .ready-badge {

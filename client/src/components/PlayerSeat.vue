@@ -21,17 +21,6 @@ import niuSihuaImg from '@/assets/niu/niu_sihua.png';
 import niuWuhuaImg from '@/assets/niu/niu_wuhua.png';
 import niuWuxiaoImg from '@/assets/niu/niu_wuxiao.png';
 
-// Multiplier images
-import beishuBuqiangImg from '@/assets/beishu/beishu_buqiang.png';
-import beishu1Img from '@/assets/beishu/beishu_1.png';
-import beishu2Img from '@/assets/beishu/beishu_2.png';
-import beishu3Img from '@/assets/beishu/beishu_3.png';
-import beishu4Img from '@/assets/beishu/beishu_4.png';
-import beishu5Img from '@/assets/beishu/beishu_5.png';
-import beishu10Img from '@/assets/beishu/beishu_10.png';
-import beishu15Img from '@/assets/beishu/beishu_15.png';
-import beishu20Img from '@/assets/beishu/beishu_20.png';
-
 
 
 const handTypeImageMap = {
@@ -54,22 +43,6 @@ const handTypeImageMap = {
 
 const getHandTypeImageUrl = (handTypeName) => {
     return handTypeImageMap[handTypeName] || null; // Return null if no image found
-};
-
-const multiplierImageMap = {
-    0: beishuBuqiangImg, // For '不抢'
-    1: beishu1Img,
-    2: beishu2Img,
-    3: beishu3Img,
-    4: beishu4Img,
-    5: beishu5Img,
-    10: beishu10Img,
-    15: beishu15Img,
-    20: beishu20Img,
-};
-
-const getMultiplierImageUrl = (multiplier) => {
-    return multiplierImageMap[multiplier] || null;
 };
 
 
@@ -316,14 +289,15 @@ const displayName = computed(() => {
                 <div class="status-float" v-if="!['IDLE', 'READY_COUNTDOWN'].includes(store.currentPhase)">
                     <Transition :name="slideTransitionName">
                         <div v-if="shouldShowRobMult" class="status-content">
-                                                        <img v-if="player.robMultiplier > 0" :src="getMultiplierImageUrl(player.robMultiplier)" :alt="`抢${player.robMultiplier}倍`" class="multiplier-icon" />
-                                                        <img v-else :src="getMultiplierImageUrl(0)" alt="不抢" class="multiplier-icon" />
+                            <span v-if="player.robMultiplier > 0" class="status-text">抢{{ player.robMultiplier
+                            }}倍</span>
+                            <span v-else class="status-text">不抢</span>
                         </div>
                     </Transition>
 
                     <Transition :name="slideTransitionName">
                         <div v-if="shouldShowBetMult" class="status-content">
-                            <img :src="getMultiplierImageUrl(player.betMultiplier)" :alt="`下${player.betMultiplier}倍`" class="multiplier-icon" />
+                            <span class="status-text">押{{ player.betMultiplier }}倍</span>
                         </div>
                     </Transition>
                 </div>
@@ -970,10 +944,19 @@ const displayName = computed(() => {
     -webkit-text-stroke: 1px #475569;
 }
 
-.multiplier-icon {
-    height: 45px; /* Enlarge by 1.5 times (was 30px) */
-    width: auto;
-    object-fit: contain;
+.status-text {
+    font-size: 16px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+    white-space: nowrap;
+    /* Prevent text from wrapping */
+    height: 45px;
+    /* Adjust height to give space for larger text */
+    display: flex;
+    /* Use flexbox to vertically center the text */
+    align-items: center;
+    /* Vertically center the text */
 }
 
 .hand-area {

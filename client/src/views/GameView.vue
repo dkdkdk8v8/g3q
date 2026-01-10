@@ -1044,7 +1044,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                 <div>房间ID: {{ store.roomId }}</div>
                 <div>房间名: {{ store.roomName }}</div>
                 <div>底分: <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{
-                        formatCoins(store.baseBet) }}</span></div>
+                    formatCoins(store.baseBet) }}</span></div>
                 <div>玩法: {{ modeName }}</div>
             </div>
         </div>
@@ -1248,7 +1248,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                                 <div class="hc-bet-amt">
                                     投注: <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{
                                         formatCoins(item.bet)
-                                        }}</span>
+                                    }}</span>
                                 </div>
                             </div>
                         </div>
@@ -2038,7 +2038,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .multiplier-btn-img {
-    height: 100%;
+    height: 150%;
     /* Make image fill the button height */
     width: auto;
     /* Maintain aspect ratio */

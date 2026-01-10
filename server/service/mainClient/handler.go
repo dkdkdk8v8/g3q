@@ -10,6 +10,7 @@ import (
 	"service/comm"
 	"service/mainClient/game"
 	"service/mainClient/game/qznn"
+	"service/modelAdmin"
 	"service/modelClient"
 	"service/modelComm"
 	"strconv"
@@ -262,7 +263,7 @@ func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) 
 	var end = time.Now()
 
 	if req.Date != "" {
-		//main里面已经设置了location
+
 		t, err := time.ParseInLocation("20060102", req.Date, util.LocShanghai)
 		if err != nil {
 			return nil, comm.ErrClientParam
@@ -273,95 +274,52 @@ func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) 
 
 	var rsp handleGameRecordRsp
 
-	var lastTime = time.Unix(0, 0)
+	var lastTime = time.Unix(req.LastTimestamp, 0)
 
 	var currentSummy *recordSummery
-	itemCount := 0
-	loopCount := 0
-	targetCount := req.Limit
 
-	for {
-		loopCount++
-		if loopCount > 100 { // 保护逻辑：防止死循环
-			logrus.WithField("!", nil).WithField("userId", userId).Error("loopMax")
-			break
-		}
+	records, err := modelClient.GetUserGameRecordsJoinGameRecord(userId, req.Limit, req.LastId, start, end)
+	if err != nil {
+		return nil, err
+	}
+	if len(records) == 0 {
+		return &rsp, nil
+	}
 
-		if itemCount >= targetCount {
-			//加快拉取数据的速度
-			req.Limit = req.Limit * 2
-			if req.Limit > 1000 {
-				req.Limit = 1000
+	// 更新LastId，防止死循环
+	req.LastId = records[len(records)-1].Id
+
+	for _, userRecoed := range records {
+		if lastTime.IsZero() || !util.IsSameDay(lastTime, userRecoed.CreateAt) {
+			currentSummy = &recordSummery{
+				Type: 0,
+				Date: userRecoed.CreateAt.Format("01月02") + "周" +
+					GetChineseWeekName(int(userRecoed.CreateAt.Weekday())),
 			}
-		}
-		records, err := modelClient.GetUserGameRecordsJoinGameRecord(userId, req.Limit, req.LastId, start, end)
-		if err != nil {
-			return nil, err
-		}
-		if len(records) == 0 {
-			break
-		}
-
-		// 更新LastId，防止死循环
-		req.LastId = records[len(records)-1].Id
-
-		for _, userRecoed := range records {
-			if lastTime.IsZero() || !util.IsSameDay(lastTime, userRecoed.CreateAt) {
-				if itemCount >= targetCount {
-					//客户端的条件满足了，并且又跨天了，不在需要统计当日的nSummy
-					return &rsp, nil
-				}
-				currentSummy = &recordSummery{
-					Type: 0,
-					Date: userRecoed.CreateAt.Format("01月02") + "周" +
-						GetChineseWeekName(int(userRecoed.CreateAt.Weekday())),
-				}
-				rsp.List = append(rsp.List, currentSummy)
+			staUser, err := modelAdmin.GetStaUser(userId, userRecoed.CreateAt)
+			if err != nil {
+				return nil, err
 			}
-			lastTime = userRecoed.CreateAt
+			currentSummy.TotalBet = staUser.BetAmount
+			currentSummy.TotalWinBalance = staUser.BetWin
+			rsp.List = append(rsp.List, currentSummy)
+		}
+		lastTime = userRecoed.CreateAt
 
-			// gameRecord, err := modelClient.GetGameRecordByIdCache(userRecoed.GameRecordId)
-			// if err != nil {
-			// 	logrus.WithField("!", nil).WithField("userId", userId).WithError(err).Error("GetGameRecordByIdCache-Fail")
-			// 	continue
-			// }
-			nRecord := &recordItem{
-				Type:          1,
-				BalanceBefore: userRecoed.BalanceBefore,
-				BalanceAfter:  userRecoed.BalanceAfter,
-				GameName:      userRecoed.GameName,
-				CreateAt:      userRecoed.CreateAt}
+		nRecord := &recordItem{
+			Type:          1,
+			BalanceBefore: userRecoed.BalanceBefore,
+			BalanceAfter:  userRecoed.BalanceAfter,
+			GameName:      userRecoed.GameName,
+			CreateAt:      userRecoed.CreateAt}
 
-			if currentSummy != nil {
-				// 优化：统一计算输赢
-				currentSummy.TotalWinBalance += (userRecoed.BalanceAfter - userRecoed.BalanceBefore)
-
-				switch userRecoed.GameName {
-				case qznn.GameName:
-					var qznnRoom qznn.QZNNRoom
-					err = json.Unmarshal([]byte(userRecoed.GameData), &qznnRoom)
-					if err != nil {
-						continue
-					}
-					for _, player := range qznnRoom.Players {
-						if player.ID == userId {
-							currentSummy.TotalBet += player.ValidBet
-						}
-					}
-					nRecord.GameData = userRecoed.GameData
-				default:
-					// 其他游戏逻辑
-				}
-			}
-
-			if itemCount < targetCount {
-				//满足客户端ui展示的数据，放入返回数据内
-				rsp.List = append(rsp.List, nRecord)
-				//客户端透传数据，方便下次请求的时候直接准确算偏移量
-				rsp.LastId = userRecoed.Id
-				rsp.LastTimestamp = userRecoed.CreateAt.Unix()
-				itemCount++
-			}
+		rsp.List = append(rsp.List, nRecord)
+		//客户端透传数据，方便下次请求的时候直接准确算偏移量
+		rsp.LastId = userRecoed.Id
+		//客户端透传数据，方便下次请求的时候直接判断是否跨天
+		rsp.LastTimestamp = userRecoed.CreateAt.Unix()
+		if len(rsp.List) >= req.Limit {
+			return &rsp, nil
 		}
 	}
 

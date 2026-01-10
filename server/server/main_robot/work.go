@@ -45,20 +45,22 @@ func midPanicHttp(c *gin.Context, err any) {
 }
 
 type workCfg struct {
-	WorkId       int
-	HttpHost     string
-	HttpPort     string
-	ShutDownWait int
-	LogLevel     string
-	MysqlHost    string
-	MysqlPort    string
-	MysqlUser    string
-	MysqlPwd     string
-	MysqlConn    int
-	MysqlIdle    int
-	RedisAddr    string
-	RedisPwd     string
-	RedisTunnel  struct {
+	WorkId        int
+	HttpHost      string
+	HttpPort      string
+	ShutDownWait  int
+	LogLevel      string
+	MysqlHost     string
+	MysqlPort     string
+	MysqlReadHost string
+	MysqlReadPort string
+	MysqlUser     string
+	MysqlPwd      string
+	MysqlConn     int
+	MysqlIdle     int
+	RedisAddr     string
+	RedisPwd      string
+	RedisTunnel   struct {
 		Host   string
 		User   string
 		Rsa    string
@@ -121,6 +123,7 @@ func (w *mainClientWork) Start(baseCtx *initMain.BaseCtx) error {
 	logrus.Info("regModel")
 	ormutil.RegOrmModel(modelClient.RegModels, modelClient.ServerDB, modelClient.ServerDB,
 		w.cfg.MysqlHost, w.cfg.MysqlPort,
+		w.cfg.MysqlReadHost, w.cfg.MysqlReadPort,
 		w.cfg.MysqlUser, w.cfg.MysqlPwd,
 		w.cfg.MysqlConn, w.cfg.MysqlIdle)
 

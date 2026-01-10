@@ -393,6 +393,9 @@ const isControlsContentVisible = computed(() => {
     if (myPlayer.value.betMultiplier > 0 && store.currentPhase === 'BETTING' && !myPlayer.value.isBanker && !myPlayer.value.isObserver) return true;
     // Observer Waiting Text
     if (myPlayer.value.isObserver) return true;
+    // Showdown Button
+    if (store.currentPhase === 'SHOWDOWN' && !myPlayer.value.isShowHand && store.countdown > 0 && !myPlayer.value.isObserver) return true;
+
 
     return false;
 });
@@ -1230,11 +1233,6 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
             <!-- 1. Calculation Formula Area -->
             <div v-show="store.currentPhase === 'SHOWDOWN' && !myPlayer.isShowHand && store.countdown > 0 && !myPlayer.isObserver"
                 class="showdown-wrapper">
-
-                <div class="game-btn orange showdown-btn" @click="playerShowHandDebounced(myPlayer.id)">
-                    摊牌
-                </div>
-
                 <!-- Calculation Formula -->
                 <div class="calc-container">
                     <div class="calc-box">{{ calculationData.labels[0] || '' }}</div>
@@ -1380,7 +1378,13 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                     请耐心等待下一局<span class="loading-dots"></span>
                 </div>
 
-                <!-- NEW: Placeholder to ensure space is always reserved -->
+                <!-- NEW: Showdown Button -->
+                <div v-show="store.currentPhase === 'SHOWDOWN' && !myPlayer.isShowHand && store.countdown > 0 && !myPlayer.isObserver"
+                    class="game-btn orange showdown-btn" @click="playerShowHandDebounced(myPlayer.id)">
+                    摊牌
+                </div>
+
+                <!-- Placeholder -->
                 <div v-show="!isControlsContentVisible" class="controls-placeholder">
                 </div>
             </div>
@@ -2641,7 +2645,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     gap: 15px;
     /* Space between button and calculation */
     margin-bottom: 10px;
-    min-height: 95px;
+    min-height: 50px;
 }
 
 .calc-container {

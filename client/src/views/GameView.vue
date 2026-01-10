@@ -53,6 +53,12 @@ const playPhraseSound = (index) => {
 };
 
 const store = useGameStore();
+const robMultipliers = computed(() => {
+    return (store.bankerMult || []).filter(m => m > 0).sort((a, b) => a - b);
+});
+const betMultipliers = computed(() => {
+    return (store.betMult || []).sort((a, b) => a - b);
+});
 const settingsStore = useSettingsStore();
 const router = useRouter();
 const route = useRoute();
@@ -382,7 +388,7 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
                     const audio = new Audio(randomBankSound);
                     audio.play().catch(() => { });
                 }
-            }, 100);
+            }, 200);
         }
     }
 
@@ -1030,18 +1036,34 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 
                 <div v-if="store.currentPhase === 'ROB_BANKER' && !myPlayer.isObserver && myPlayer.robMultiplier === -1"
-                    class="btn-group">
-                    <div class="game-btn blue" @click="onRob(0)">不抢</div>
-                    <div v-for="mult in store.bankerMult.filter(m => m > 0)" :key="mult" class="game-btn orange"
-                        @click="onRob(mult)">
-                        {{ mult }}倍
+                    class="btn-group-column">
+                    <div class="btn-row">
+                        <div class="game-btn blue" @click="onRob(0)">不抢</div>
+                        <div v-if="robMultipliers.length > 0" class="game-btn orange" @click="onRob(robMultipliers[0])">
+                            {{ robMultipliers[0] }}倍
+                        </div>
+                    </div>
+                    <div class="btn-row">
+                        <div v-for="mult in robMultipliers.slice(1)" :key="mult" class="game-btn orange"
+                            @click="onRob(mult)">
+                            {{ mult }}倍
+                        </div>
                     </div>
                 </div>
 
                 <div v-if="store.currentPhase === 'BETTING' && !myPlayer.isBanker && myPlayer.betMultiplier === 0 && !myPlayer.isObserver"
-                    class="btn-group">
-                    <div v-for="mult in store.betMult" :key="mult" class="game-btn orange" @click="onBet(mult)">
-                        {{ mult }}倍
+                    class="btn-group-column">
+                    <div class="btn-row">
+                        <div v-for="mult in betMultipliers.slice(0, 2)" :key="mult" class="game-btn orange"
+                            @click="onBet(mult)">
+                            {{ mult }}倍
+                        </div>
+                    </div>
+                    <div class="btn-row">
+                        <div v-for="mult in betMultipliers.slice(2)" :key="mult" class="game-btn orange"
+                            @click="onBet(mult)">
+                            {{ mult }}倍
+                        </div>
                     </div>
                 </div>
 
@@ -1897,6 +1919,20 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 .btn-group {
     display: flex;
     gap: 12px;
+}
+
+.btn-group-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+}
+
+.btn-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
 }
 
 .game-btn {

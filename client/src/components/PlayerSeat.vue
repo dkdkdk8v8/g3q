@@ -294,7 +294,7 @@ const displayName = computed(() => {
                     :is-small="!isMe"
                     :class="{ 'hand-card': true, 'bull-card-overlay': isBullPart(idx), 'selected': selectedCardIndices.includes(idx) }"
                     :style="{
-                        marginLeft: idx === 0 ? '0' : '-20px',
+                        marginLeft: idx === 0 ? '0' : (isMe ? '-5px' : '-20px'),
                         opacity: (visibleCardCount === -1 || idx < visibleCardCount) ? 1 : 0,
                     }" @click="props.isMe ? emit('card-click', { card, index: idx }) : null" />
             </div>

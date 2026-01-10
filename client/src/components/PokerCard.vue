@@ -64,15 +64,9 @@ const suitSymbol = computed(() => {
                     <span class="suit">{{ suitSymbol }}</span>
                 </div>
                 
-                <!-- 中间大花色 -->
-                <div class="card-center">
-                    {{ suitSymbol }}
-                </div>
-                
                 <!-- 右下角标 (旋转180度) -->
                 <div class="corner-bottom-right">
-                    <span class="rank">{{ card.label }}</span>
-                    <span class="suit">{{ suitSymbol }}</span>
+                    <span class="corner-suit">{{ suitSymbol }}</span>
                 </div>
             </template>
         </div>
@@ -86,7 +80,7 @@ const suitSymbol = computed(() => {
 <style scoped>
 .poker-card {
   width: 60px;
-  height: 84px;
+  height: 88px;
   border-radius: 6px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
   position: relative;
@@ -98,7 +92,7 @@ const suitSymbol = computed(() => {
 
 .poker-card.is-small {
   width: 40px;
-  height: 56px;
+  height: 60px;
   font-size: 0.8em;
 }
 
@@ -158,7 +152,7 @@ const suitSymbol = computed(() => {
   flex-direction: column;
   align-items: center;
   line-height: 1;
-  width: 15px; /* 限制宽度防止溢出 */
+  width: 24px; /* 限制宽度防止溢出 */
 }
 
 .corner-top-left {
@@ -169,38 +163,41 @@ const suitSymbol = computed(() => {
 .corner-bottom-right {
   bottom: 4px;
   right: 4px;
-  transform: rotate(180deg);
+  /* transform: rotate(180deg); Removed per request */
 }
 
 .is-small .corner-top-left { top: 2px; left: 2px; }
 .is-small .corner-bottom-right { bottom: 2px; right: 2px; }
 
 .rank {
-  font-weight: bold;
-  font-size: 16px;
-  letter-spacing: -1px;
+  font-weight: 800;
+  font-size: 26px;
+  letter-spacing: -2px;
 }
 .is-small .rank {
-  font-size: 12px;
+  font-size: 18px;
 }
 
 .suit {
+  font-size: 18px;
+  font-weight: bold;
+  margin-top: 3px;
+}
+.is-small .suit {
   font-size: 14px;
   margin-top: 2px;
 }
-.is-small .suit {
-  font-size: 10px;
-  margin-top: 0;
+
+.corner-bottom-right {
+  width: auto;
 }
 
-.card-center {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 32px; /* 更大的中间花色 */
+.corner-suit {
+  font-size: 40px;
+  font-weight: bold;
+  line-height: 1;
 }
-.is-small .card-center {
-  font-size: 20px;
+.is-small .corner-suit {
+  font-size: 26px;
 }
 </style>

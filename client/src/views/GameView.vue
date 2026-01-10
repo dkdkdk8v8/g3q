@@ -1288,7 +1288,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                                 <div v-if="shouldShowRobMult" class="status-content">
                                     <span v-if="myPlayer.robMultiplier > 0" class="status-text">抢{{
                                         myPlayer.robMultiplier
-                                    }}倍</span>
+                                        }}倍</span>
                                     <span v-else class="status-text">不抢</span>
                                 </div>
                             </Transition>
@@ -1369,11 +1369,6 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                     等待闲家下注...
                 </div>
 
-                <div v-show="myPlayer.betMultiplier > 0 && store.currentPhase === 'BETTING' && !myPlayer.isBanker && !myPlayer.isObserver"
-                    class="waiting-text">
-                    已下注，等待开牌...
-                </div>
-
                 <!-- Observer Waiting Text -->
                 <div v-show="myPlayer.isObserver" class="observer-waiting-banner">
                     请耐心等待下一局<span class="loading-dots"></span>
@@ -1452,7 +1447,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                                 <div class="hc-bet-amt">
                                     投注: <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{
                                         formatCoins(item.bet)
-                                        }}</span>
+                                    }}</span>
                                 </div>
                             </div>
                         </div>
@@ -2363,7 +2358,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 .banker-badge-img {
     width: 100%;
     height: 100%;
-    object-fit: contain; /* Ensure the entire image is visible within the bounds */
+    object-fit: contain;
+    /* Ensure the entire image is visible within the bounds */
 }
 
 .my-player-info-row .info-box {
@@ -2521,6 +2517,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     background: rgba(0, 0, 0, 0.5);
     padding: 4px 12px;
     border-radius: 12px;
+    align-self: center; /* Prevent stretching in flex container */
 }
 
 .restart-btn {

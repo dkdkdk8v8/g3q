@@ -1104,16 +1104,17 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                 <div v-if="store.currentPhase === 'ROB_BANKER' && !myPlayer.isObserver && myPlayer.robMultiplier === -1"
                     class="btn-group-column">
                     <div class="btn-row">
-                        <div class="game-btn blue" @click="onRob(0)">
+                        <div class="multiplier-option-btn" @click="onRob(0)">
                             <img :src="getMultiplierImageUrl(0)" alt="不抢" class="multiplier-btn-img" />
                         </div>
-                        <div v-if="robMultipliers.length > 0" class="game-btn orange" @click="onRob(robMultipliers[0])">
+                        <div v-if="robMultipliers.length > 0" class="multiplier-option-btn"
+                            @click="onRob(robMultipliers[0])">
                             <img :src="getMultiplierImageUrl(robMultipliers[0])" :alt="`${robMultipliers[0]}倍`"
                                 class="multiplier-btn-img" />
                         </div>
                     </div>
                     <div class="btn-row">
-                        <div v-for="mult in robMultipliers.slice(1)" :key="mult" class="game-btn orange"
+                        <div v-for="mult in robMultipliers.slice(1)" :key="mult" class="multiplier-option-btn"
                             @click="onRob(mult)">
                             <img :src="getMultiplierImageUrl(mult)" :alt="`${mult}倍`" class="multiplier-btn-img" />
                         </div>
@@ -1123,13 +1124,13 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                 <div v-if="store.currentPhase === 'BETTING' && !myPlayer.isBanker && myPlayer.betMultiplier === 0 && !myPlayer.isObserver"
                     class="btn-group-column">
                     <div class="btn-row">
-                        <div v-for="mult in betMultipliers.slice(0, 2)" :key="mult" class="game-btn orange"
+                        <div v-for="mult in betMultipliers.slice(0, 2)" :key="mult" class="multiplier-option-btn"
                             @click="onBet(mult)">
                             <img :src="getMultiplierImageUrl(mult)" :alt="`${mult}倍`" class="multiplier-btn-img" />
                         </div>
                     </div>
                     <div class="btn-row">
-                        <div v-for="mult in betMultipliers.slice(2)" :key="mult" class="game-btn orange"
+                        <div v-for="mult in betMultipliers.slice(2)" :key="mult" class="multiplier-option-btn"
                             @click="onBet(mult)">
                             <img :src="getMultiplierImageUrl(mult)" :alt="`${mult}倍`" class="multiplier-btn-img" />
                         </div>
@@ -2007,17 +2008,22 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
-    width: 100%;
+    gap: 50px;
+    /* Increased vertical gap between btn-rows */
+    /* Removed width: 100%; to allow it to shrink to content */
 }
 
 .btn-row {
     display: flex;
-    gap: 12px;
+    gap: 10px;
+    /* Reduced gap between game-buttons within a row */
     justify-content: center;
 }
 
+.multiplier-option-btn {}
+
 .game-btn {
+    /* Re-added generic game-btn for other buttons that still use it */
     width: 70px;
     height: 36px;
     border-radius: 6px;
@@ -2038,10 +2044,10 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .multiplier-btn-img {
-    height: 120%;
-    /* Make image fill the button height */
-    width: auto;
-    /* Maintain aspect ratio */
+    height: 60px;
+    /* Set to match parent button height */
+    width: 200px;
+    /* Set to match parent button width */
     object-fit: contain;
 }
 
@@ -2241,17 +2247,20 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 .showdown-btn {
     /* Removed absolute positioning */
     width: 100px;
-    background: linear-gradient(to bottom, #facc15, #d97706); /* Orange gradient */
+    background: linear-gradient(to bottom, #facc15, #d97706);
+    /* Orange gradient */
     border: 2px solid #fbbf24;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
     color: white;
     font-weight: bold;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
     /* Inherit basic game-btn properties if they exist */
-    display: flex; /* Ensure flex properties for centering text */
+    display: flex;
+    /* Ensure flex properties for centering text */
     justify-content: center;
     align-items: center;
-    /* transition: transform 0.1s; */ /* Already in game-btn */
+    /* transition: transform 0.1s; */
+    /* Already in game-btn */
 }
 
 /* History Modal New Styles */

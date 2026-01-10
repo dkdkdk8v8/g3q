@@ -6,11 +6,13 @@ import (
 	"compoment/ws"
 	"encoding/json"
 	"errors"
+	"math"
 	"service/comm"
 	"service/mainClient/game"
 	"service/mainClient/game/qznn"
 	"service/modelClient"
 	"service/modelComm"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -74,14 +76,17 @@ func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []b
 		return err
 	}
 
-	room.Broadcast(comm.PushData{
-		Cmd:      comm.ServerPush,
-		PushType: qznn.PushPlayJoin,
-		Data: qznn.PushPlayerJoinStruct{
-			Room:   room,
-			UserId: userId,
-		},
-	})
+	room.BroadcastWithPlayer(
+		func(p *qznn.Player) interface{} {
+			return comm.PushData{
+				Cmd:      comm.ServerPush,
+				PushType: qznn.PushPlayJoin,
+				Data: qznn.PushPlayerJoinStruct{
+					Room:   room.GetClientRoom(p.ID),
+					UserId: userId,
+				},
+			}
+		})
 
 	return err
 }
@@ -175,13 +180,16 @@ func handlerPlayerTalk(userId string, data []byte) error {
 
 	room := game.GetMgr().GetRoomByRoomId(req.RoomId)
 	if room != nil {
-		room.Broadcast(comm.PushData{
-			Cmd:      comm.ServerPush,
-			PushType: qznn.PushTalk,
-			Data: qznn.PushTalkStruct{
-				UserId: userId,
-				Type:   req.Type,
-				Index:  req.Index}})
+		room.BroadcastWithPlayer(
+			func(p *qznn.Player) interface{} {
+				return comm.PushData{
+					Cmd:      comm.ServerPush,
+					PushType: qznn.PushTalk,
+					Data: qznn.PushTalkStruct{
+						UserId: userId,
+						Type:   req.Type,
+						Index:  req.Index}}
+			})
 	}
 
 	return nil
@@ -195,11 +203,19 @@ func handleLobbyConfig() *LobbyConfigRsp {
 
 func RpcQZNNData(c *gin.Context) {
 	rooms := game.GetMgr().GetAllRooms()
-	c.JSON(200, gin.H{
+	resp := gin.H{
 		"code": 0,
 		"msg":  "success",
 		"data": rooms,
-	})
+	}
+	data, err := util.MarshalJsonAndGzip(resp)
+	if err != nil {
+		logrus.WithError(err).Error("RpcQZNNData-Gzip-Fail")
+		c.JSON(500, gin.H{"code": -1, "msg": "server error"})
+		return
+	}
+	c.Header("Content-Encoding", "gzip")
+	c.Data(200, "application/json; charset=utf-8", data)
 }
 
 type recordSummery struct {
@@ -215,10 +231,12 @@ type recordItem struct {
 	BalanceAfter  int64
 	GameName      string
 	GameData      string
+	CreateAt      time.Time
 }
 type handleGameRecordRsp struct {
-	LastId uint64
-	List   []any //里面有 recordSummery recordItem
+	LastId        uint64
+	LastTimestamp int64
+	List          []any //里面有 recordSummery recordItem
 }
 
 var handerGameRecordCache = modelComm.WrapCache[*handleGameRecordRsp](handleGameRecord,
@@ -226,9 +244,10 @@ var handerGameRecordCache = modelComm.WrapCache[*handleGameRecordRsp](handleGame
 
 func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) {
 	var req struct {
-		Limit  int
-		LastId uint64
-		Date   string //20250530
+		Limit         int
+		LastId        uint64
+		Date          string //20250530
+		LastTimestamp int64
 	}
 	if err := json.Unmarshal(data, &req); err != nil {
 		return nil, comm.ErrClientParam
@@ -240,11 +259,11 @@ func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) 
 		req.Limit = 10
 	}
 	var start = time.Unix(0, 0)
-	var end = time.Unix(0, 0)
+	var end = time.Now()
 
 	if req.Date != "" {
 		//main里面已经设置了location
-		t, err := time.Parse("20060102", req.Date)
+		t, err := time.ParseInLocation("20060102", req.Date, util.LocShanghai)
 		if err != nil {
 			return nil, comm.ErrClientParam
 		}
@@ -255,6 +274,7 @@ func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) 
 	var rsp handleGameRecordRsp
 
 	var lastTime = time.Unix(0, 0)
+
 	var currentSummy *recordSummery
 	itemCount := 0
 	loopCount := 0
@@ -270,11 +290,11 @@ func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) 
 		if itemCount >= targetCount {
 			//加快拉取数据的速度
 			req.Limit = req.Limit * 2
-			if req.Limit > 200 {
-				req.Limit = 200
+			if req.Limit > 1000 {
+				req.Limit = 1000
 			}
 		}
-		records, err := modelClient.GetUserGameRecords(userId, req.Limit, req.LastId, start, end)
+		records, err := modelClient.GetUserGameRecordsJoinGameRecord(userId, req.Limit, req.LastId, start, end)
 		if err != nil {
 			return nil, err
 		}
@@ -293,31 +313,33 @@ func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) 
 				}
 				currentSummy = &recordSummery{
 					Type: 0,
-					Date: userRecoed.CreateAt.Format("01月02") + "周" + GetChineseWeekName(userRecoed.CreateAt.Day()),
+					Date: userRecoed.CreateAt.Format("01月02") + "周" +
+						GetChineseWeekName(int(userRecoed.CreateAt.Weekday())),
 				}
 				rsp.List = append(rsp.List, currentSummy)
 			}
 			lastTime = userRecoed.CreateAt
 
-			gameRecord, err := modelClient.GetGameRecordByIdCache(userRecoed.GameRecordId)
-			if err != nil {
-				logrus.WithField("!", nil).WithField("userId", userId).WithError(err).Error("GetGameRecordByIdCache-Fail")
-				continue
-			}
+			// gameRecord, err := modelClient.GetGameRecordByIdCache(userRecoed.GameRecordId)
+			// if err != nil {
+			// 	logrus.WithField("!", nil).WithField("userId", userId).WithError(err).Error("GetGameRecordByIdCache-Fail")
+			// 	continue
+			// }
 			nRecord := &recordItem{
 				Type:          1,
 				BalanceBefore: userRecoed.BalanceBefore,
 				BalanceAfter:  userRecoed.BalanceAfter,
-				GameName:      gameRecord.GameName}
+				GameName:      userRecoed.GameName,
+				CreateAt:      userRecoed.CreateAt}
 
 			if currentSummy != nil {
 				// 优化：统一计算输赢
 				currentSummy.TotalWinBalance += (userRecoed.BalanceAfter - userRecoed.BalanceBefore)
 
-				switch gameRecord.GameName {
+				switch userRecoed.GameName {
 				case qznn.GameName:
 					var qznnRoom qznn.QZNNRoom
-					err = json.Unmarshal([]byte(gameRecord.GameData), &qznnRoom)
+					err = json.Unmarshal([]byte(userRecoed.GameData), &qznnRoom)
 					if err != nil {
 						continue
 					}
@@ -326,7 +348,7 @@ func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) 
 							currentSummy.TotalBet += player.ValidBet
 						}
 					}
-					nRecord.GameData = gameRecord.GameData
+					nRecord.GameData = userRecoed.GameData
 				default:
 					// 其他游戏逻辑
 				}
@@ -337,6 +359,7 @@ func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) 
 				rsp.List = append(rsp.List, nRecord)
 				//客户端透传数据，方便下次请求的时候直接准确算偏移量
 				rsp.LastId = userRecoed.Id
+				rsp.LastTimestamp = userRecoed.CreateAt.Unix()
 				itemCount++
 			}
 		}
@@ -350,30 +373,45 @@ type PingRsp struct {
 	ServerTimestamp int64
 }
 
-func Ping(c *gin.Context) {
-	c.JSON(200, PingRsp{
+func Ping(c *gin.Context) (interface{}, error) {
+	return PingRsp{
 		Code:            0,
 		ServerTimestamp: time.Now().Unix(),
-	})
+	}, nil
 }
 
 type DepositRsp struct {
 	Code int
 }
 
-func Deposit(c *gin.Context) {
-	// uid := c.GetString("uid")
-	// orderID := c.GetString("orderid")
-	// credit := c.GetString("credit")
-	// ccy := c.GetString("ccy")
+func Deposit(c *gin.Context) (interface{}, error) {
+	//uid := c.GetString("uid")
+	orderID := c.GetString("orderid")
+	creditStr := c.GetString("credit")
+	ccy := c.GetString("ccy")
 
-	// if ccy != "CNY" {
+	if ccy != "CNY" {
+		return nil, ErrInvalidCcy
+	}
+	if ccy == "" {
+		ccy = "CNY"
+	}
+	if orderID == "" {
+		return nil, ErrInvalidOrderId
+	}
+	if len(orderID) <= 6 || len(orderID) > 128 {
+		return nil, ErrInvalidOrderId
+	}
+	//最多俩位小数,参考其他平台
+	credit, err := strconv.ParseFloat(creditStr, 64)
+	if err != nil {
+		return nil, ErrInvalidCredit
+	}
+	credit = math.Round(credit)
 
-	// 	return ErrInvalidCcy
-	// }
-
+	return nil, nil
 }
 
-func Withdraw(c *gin.Context) {
-
+func Withdraw(c *gin.Context) (interface{}, error) {
+	return nil, nil
 }

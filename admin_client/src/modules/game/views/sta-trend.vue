@@ -1,0 +1,270 @@
+<template>
+    <div class="view-sta-period">
+        <el-card shadow="never" class="mb-10">
+            <div class="filter-row">
+                <span class="label">日期：</span>
+                <el-date-picker v-model="date" type="date" placeholder="选择日期" value-format="YYYY-MM-DD"
+                    @change="refresh" :clearable="false" />
+
+                <span class="label ml-20">时间粒度：</span>
+                <cl-select v-model="duration" :options="options.sta_duration" placeholder="请选择" :clearable="false"
+                    @change="refresh" style="width: 120px" />
+
+                <span class="label ml-20">APP：</span>
+                <cl-select v-model="appId" :options="options.app_id" placeholder="全部APP" clearable @change="refresh"
+                    style="width: 200px" />
+
+                <el-button type="primary" @click="refresh" class="ml-20">刷新</el-button>
+            </div>
+        </el-card>
+
+        <div class="chart-container">
+            <el-row :gutter="15">
+                <el-col :xs="24" :sm="24" :md="12" :lg="12" :xl="8" v-for="(item, index) in chartList" :key="index"
+                    class="mb-15">
+                    <el-card shadow="hover">
+                        <div class="chart-box">
+                            <v-chart :option="item.option" :loading="item.loading" autoresize />
+                        </div>
+                    </el-card>
+                </el-col>
+            </el-row>
+        </div>
+    </div>
+</template>
+
+<script lang="ts" setup name="sta-trend">
+import { useCool } from "/@/cool";
+import { useDict } from '/$/dict';
+import { reactive, ref, onMounted, onUnmounted, watch } from "vue";
+import dayjs from "dayjs";
+
+const { service } = useCool();
+const { dict } = useDict();
+
+const options = reactive({
+    app_id: dict.get("app_id"),
+    sta_duration: dict.get("sta_duration"),
+});
+
+const date = ref(dayjs().format("YYYY-MM-DD"));
+const appId = ref("");
+const duration = ref(10);
+
+const chartList = ref<any[]>([]);
+const lastData = ref<any>(null);
+const isDark = ref(false);
+
+// 指标定义
+const metrics = [
+    { key: 'gameUserCount', title: '游戏人数', isMoney: false },
+    { key: 'firstGameUserCount', title: '首次游戏人数', isMoney: false },
+    { key: 'betCount', title: '投注次数', isMoney: false },
+    { key: 'betAmount', title: '投注金额', isMoney: true },
+    { key: 'gameWin', title: '平台盈亏', isMoney: true },
+];
+
+async function refresh() {
+    if (chartList.value.length === 0) {
+        chartList.value = metrics.map(m => ({
+            title: m.title,
+            loading: true,
+            option: {}
+        }));
+    } else {
+        chartList.value.forEach(e => e.loading = true);
+    }
+
+    try {
+        const res = await service.game.staPeriod.getDayTrend({
+            date: date.value,
+            app: appId.value,
+            duration: duration.value
+        });
+        lastData.value = res;
+        generateCharts(res);
+    } catch (e) {
+        console.error(e);
+        chartList.value.forEach(e => e.loading = false);
+    }
+}
+
+function generateCharts(data: any) {
+    const hours = data.hours || [];
+
+    const getValue = (val: any, isMoney: boolean) => {
+        if (val === null || val === undefined) return null;
+        return isMoney ? Number((val / 100).toFixed(2)) : val;
+    };
+
+    const el = document.documentElement;
+    const getVar = (name: string) => getComputedStyle(el).getPropertyValue(name).trim();
+
+    const getRgba = (color: string, opacity: number) => {
+        let r = 0, g = 0, b = 0;
+        if (color.startsWith('#')) {
+            const hex = color.slice(1);
+            if (hex.length === 3) {
+                r = parseInt(hex[0] + hex[0], 16);
+                g = parseInt(hex[1] + hex[1], 16);
+                b = parseInt(hex[2] + hex[2], 16);
+            } else if (hex.length === 6) {
+                r = parseInt(hex.slice(0, 2), 16);
+                g = parseInt(hex.slice(2, 4), 16);
+                b = parseInt(hex.slice(4, 6), 16);
+            }
+        } else if (color.startsWith('rgb')) {
+            const match = color.match(/\d+/g);
+            if (match) {
+                r = parseInt(match[0]);
+                g = parseInt(match[1]);
+                b = parseInt(match[2]);
+            }
+        }
+        return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    };
+
+    const primary = getVar('--el-color-primary') || '#5099f5';
+    const warning = getVar('--el-color-warning') || '#e6a23c';
+    const textColor = getVar('--el-text-color-primary');
+    const borderColor = getVar('--el-border-color-lighter');
+
+    metrics.forEach((m, i) => {
+        const option = {
+            title: {
+                text: m.title,
+                textStyle: { color: textColor }
+            },
+            tooltip: {
+                trigger: 'axis',
+                backgroundColor: isDark.value ? 'rgba(0,0,0,0.7)' : '#fff',
+                borderColor: borderColor,
+                textStyle: { color: isDark.value ? '#fff' : '#333' },
+                formatter: (params: any[]) => {
+                    let res = `${params[0].axisValueLabel}<br/>`;
+                    params.forEach(item => {
+                        const val = (item.value === null || item.value === undefined) ? '-' : item.value;
+                        res += `${item.marker} ${item.seriesName}: ${val}<br/>`;
+                    });
+                    return res;
+                }
+            },
+            color: [primary, getRgba(primary, 0.5), getRgba(warning, 0.5)],
+            legend: {
+                data: ['当天', '前一天', '上周同期'],
+                textStyle: { color: textColor }
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '3%',
+                containLabel: true,
+            },
+            xAxis: {
+                type: 'category',
+                boundaryGap: true,
+                data: hours,
+                axisLabel: { color: textColor },
+                axisLine: { lineStyle: { color: borderColor } }
+            },
+            yAxis: {
+                type: 'value',
+                axisLabel: { color: textColor },
+                splitLine: { lineStyle: { color: borderColor, type: 'dashed' } }
+            },
+            series: [
+                {
+                    name: '当天',
+                    type: 'line',
+                    smooth: true,
+                    symbol: 'none',
+                    areaStyle: {
+                        color: getRgba(primary, 0.3)
+                    },
+                    data: data.current.map((e: any) => getValue(e[m.key], m.isMoney)),
+                },
+                {
+                    name: '前一天',
+                    type: 'line',
+                    smooth: true,
+                    symbol: 'none',
+                    data: data.yesterday.map((e: any) => getValue(e[m.key], m.isMoney)),
+                },
+                {
+                    name: '上周同期',
+                    type: 'line',
+                    smooth: true,
+                    symbol: 'none',
+                    data: data.lastWeek.map((e: any) => getValue(e[m.key], m.isMoney)),
+                },
+            ],
+        };
+
+        if (chartList.value[i]) {
+            chartList.value[i].option = option;
+            chartList.value[i].loading = false;
+        }
+    });
+}
+
+let observer: MutationObserver | null = null;
+
+onMounted(() => {
+    refresh();
+
+    isDark.value = document.documentElement.classList.contains('dark');
+    observer = new MutationObserver(() => {
+        isDark.value = document.documentElement.classList.contains('dark');
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+});
+
+onUnmounted(() => {
+    if (observer) observer.disconnect();
+});
+
+watch(isDark, () => {
+    if (lastData.value) {
+        generateCharts(lastData.value);
+    }
+});
+</script>
+
+<style lang="scss" scoped>
+.view-sta-period {
+    padding: 10px;
+    height: 100%;
+    overflow-y: auto;
+    box-sizing: border-box;
+
+    .filter-row {
+        display: flex;
+        align-items: center;
+
+        .label {
+            font-size: 14px;
+            color: #606266;
+        }
+
+        .ml-20 {
+            margin-left: 20px;
+        }
+    }
+
+    .mb-10 {
+        margin-bottom: 10px;
+    }
+
+    .mb-15 {
+        margin-bottom: 15px;
+    }
+
+    .chart-box {
+        height: 300px;
+    }
+
+    .chart-container {
+        min-height: 400px;
+    }
+}
+</style>

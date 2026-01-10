@@ -2,6 +2,7 @@ package mainClient
 
 import (
 	"compoment/util/limiter"
+	"net/http/pprof"
 	"service/comm"
 	"time"
 
@@ -29,9 +30,27 @@ func InitAdminWebHandler(engine *gin.Engine) error {
 	baseGroup := engine.Use(comm.MidOptionCors)
 	baseGroup.GET("/rpc/ws", WSEntry)
 	baseGroup.GET("/rpc/qznn-data", RpcQZNNData)
-	baseGroup.GET("/ping", Ping)
-	baseGroup.GET("/deposit", Deposit)
-	baseGroup.GET("/withdraw", Withdraw)
-	
+	baseGroup.GET("/ping", comm.HandlerAdminWrap(Ping))
+	baseGroup.GET("/deposit", comm.HandlerAdminWrap(Deposit))
+	baseGroup.GET("/withdraw", comm.HandlerAdminWrap(Withdraw))
+
+	// 增加 Basic Auth 验证，防止 pprof 信息泄露
+	pprofGroup := engine.Group("/debug/pprof", gin.BasicAuth(gin.Accounts{
+		"g3p": "asdflkjh@zzz",
+	}))
+	{
+		pprofGroup.GET("/", gin.WrapF(pprof.Index))
+		pprofGroup.GET("/cmdline", gin.WrapF(pprof.Cmdline))
+		pprofGroup.GET("/profile", gin.WrapF(pprof.Profile))
+		pprofGroup.GET("/symbol", gin.WrapF(pprof.Symbol))
+		pprofGroup.GET("/trace", gin.WrapF(pprof.Trace))
+		pprofGroup.GET("/allocs", gin.WrapH(pprof.Handler("allocs")))
+		pprofGroup.GET("/block", gin.WrapH(pprof.Handler("block")))
+		pprofGroup.GET("/goroutine", gin.WrapH(pprof.Handler("goroutine")))
+		pprofGroup.GET("/heap", gin.WrapH(pprof.Handler("heap")))
+		pprofGroup.GET("/mutex", gin.WrapH(pprof.Handler("mutex")))
+		pprofGroup.GET("/threadcreate", gin.WrapH(pprof.Handler("threadcreate")))
+	}
+
 	return nil
 }

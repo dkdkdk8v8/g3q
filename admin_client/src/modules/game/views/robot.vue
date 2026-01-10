@@ -53,10 +53,17 @@
 import { useCrud, useTable, useUpsert, useForm } from "@cool-vue/crud";
 import { useCool } from "/@/cool";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { ref } from "vue";
+import { reactive, ref } from "vue";
 import { DictEnable } from "../utils/dict";
+import { useDict } from '/$/dict';
 
+const { dict } = useDict();
 const { service } = useCool();
+
+// 字典
+const options = reactive({
+	app_id: dict.get("app_id"),
+});
 
 // 状态
 const enable = ref(1);
@@ -65,8 +72,8 @@ const enable = ref(1);
 const Table = useTable({
 	columns: [
 		{ type: "selection" },
-		{ label: "APP", prop: "app_id", dict: [], dictColor: true },
-		{ label: "用户ID", prop: "user_id", minWidth: 120 },
+		{ label: "APP", prop: "app_id", dict: options.app_id, dictColor: true, minWidth: 100, fixed: "left" },
+		{ label: "用户ID", prop: "user_id", minWidth: 120, fixed: "left" },
 		{
 			label: "头像",
 			prop: "avatar",
@@ -145,12 +152,12 @@ function openBatchAdd() {
 			{
 				label: "数量",
 				prop: "count",
-				value: 20,
+				value: 100,
 				component: {
 					name: "el-input-number",
 					props: {
 						min: 1,
-						max: 100,
+						max: 10000,
 					},
 				},
 				required: true,

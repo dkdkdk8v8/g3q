@@ -57,6 +57,11 @@
                 </template>
             </cl-table>
         </cl-row>
+
+        <cl-row>
+            <cl-flex1 />
+            <cl-pagination />
+        </cl-row>
     </cl-crud>
 </template>
 
@@ -94,7 +99,7 @@ const searchParams = reactive({
 const crudService = {
     page: async (params: any) => {
         const { app, startDate, endDate } = searchParams;
-        const { sort, order } = params;
+        const { sort, order, page, size } = params;
 
         const res = await service.game.staPeriod.getUserStats({
             startDate,
@@ -104,14 +109,17 @@ const crudService = {
             order
         });
 
-        const list = res || [];
+        const allList = res || [];
+        const list = allList.slice((page - 1) * size, page * size).map((item: any, index: number) => {
+            return { ...item, ranking: (page - 1) * size + index + 1 };
+        });
 
         return {
             list,
             pagination: {
-                total: list.length,
-                page: 1,
-                size: 10000,
+                total: allList.length,
+                page: page,
+                size: size,
             },
         };
     },
@@ -120,7 +128,8 @@ const crudService = {
 // cl-table
 const Table = useTable({
     columns: [
-        { label: "APP", prop: "appId", minWidth: 90, sortable: "custom", fixed: "left" },
+        { label: "排名", prop: "ranking", width: 60, fixed: "left", align: "center" },
+        { label: "APP", prop: "appId", minWidth: 100, sortable: "custom", fixed: "left", dict: options.app_id, dictColor: true },
         { label: "用户ID", prop: "userId", minWidth: 110, fixed: "left", showOverflowTooltip: true },
         // { label: "昵称", prop: "nickName", minWidth: 100 },
         { label: "用户盈利", prop: "betWin", minWidth: 90, sortable: "desc" },

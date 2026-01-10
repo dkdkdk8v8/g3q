@@ -83,6 +83,7 @@ export class StaPeriodService extends BaseService {
             item.avgBetPerUser = item.gameUserCount > 0 ? item.betAmount / item.gameUserCount : 0;
             item.avgBetPerGame = item.betCount > 0 ? item.betAmount / item.betCount : 0;
             item.avgCountPerUser = item.gameUserCount > 0 ? item.betCount / item.gameUserCount : 0;
+            item.rakeRatio = item.betAmount > 0 ? item.gameWin / item.betAmount : 0;
         }
 
         // 计算汇总数据
@@ -112,6 +113,7 @@ export class StaPeriodService extends BaseService {
         summary.avgBetPerUser = summary.gameUserCount > 0 ? summary.betAmount / summary.gameUserCount : 0;
         summary.avgBetPerGame = summary.betCount > 0 ? summary.betAmount / summary.betCount : 0;
         summary.avgCountPerUser = summary.gameUserCount > 0 ? summary.betCount / summary.gameUserCount : 0;
+        summary.rakeRatio = summary.betAmount > 0 ? summary.gameWin / summary.betAmount : 0;
 
         // 排序逻辑（仅对数据行排序）
         if (sort && order) {
@@ -258,6 +260,91 @@ export class StaPeriodService extends BaseService {
             // 默认排序：按投注金额倒序
             result.sort((a, b) => (a.betAmount > b.betAmount ? -1 : 1));
         }
+
+        return result;
+    }
+
+    /**
+     * 获取当日趋势对比（当日、昨日、上周同期）
+     */
+    async getDayTrend(date: string, app: string, duration: number = 10) {
+        const targetDate = moment(date);
+        // 构造三个时间段：当日、昨日、上周同期
+        const dates = [
+            {
+                key: 'current',
+                start: targetDate.clone().startOf('day').toDate(),
+                end: targetDate.clone().endOf('day').toDate()
+            },
+            {
+                key: 'yesterday',
+                start: targetDate.clone().subtract(1, 'days').startOf('day').toDate(),
+                end: targetDate.clone().subtract(1, 'days').endOf('day').toDate()
+            },
+            {
+                key: 'lastWeek',
+                start: targetDate.clone().subtract(7, 'days').startOf('day').toDate(),
+                end: targetDate.clone().subtract(7, 'days').endOf('day').toDate()
+            }
+        ];
+
+        // 计算分片数量
+        const totalMinutes = 24 * 60;
+        const slotCount = Math.ceil(totalMinutes / (duration || 10));
+
+        const result: any = {
+            hours: [],
+            current: [],
+            yesterday: [],
+            lastWeek: []
+        };
+
+        for (let i = 0; i < slotCount; i++) {
+            result.hours.push(moment().startOf('day').add(i * (duration || 10), 'minutes').format('HH:mm'));
+        }
+
+        // 初始化数据容器
+        const initData = () => Array.from({ length: slotCount }, () => ({
+            gameUserCount: null as any,
+            firstGameUserCount: null as any,
+            betCount: null as any,
+            betAmount: null as any,
+            gameWin: null as any
+        }));
+
+        const dataMap = {
+            current: initData(),
+            yesterday: initData(),
+            lastWeek: initData()
+        };
+
+        for (const d of dates) {
+            const where: any = {
+                timeKey: Between(d.start, d.end)
+            };
+            if (app) {
+                where.appId = app;
+            }
+
+            const list = await this.staPeriodEntity.find({ where });
+
+            for (const item of list) {
+                const m = moment(item.timeKey);
+                const index = Math.floor((m.hour() * 60 + m.minute()) / (duration || 10));
+                const target = dataMap[d.key][index];
+                if (target) {
+                    target.gameUserCount += item.gameUserCount || 0;
+                    target.firstGameUserCount += item.firstGameUserCount || 0;
+                    target.betCount += item.betCount || 0;
+                    target.betAmount += Number(item.betAmount) || 0;
+                    target.gameWin += Number(item.gameWin) || 0;
+                }
+            }
+        }
+
+        result.current = dataMap.current;
+        result.yesterday = dataMap.yesterday;
+        result.lastWeek = dataMap.lastWeek;
 
         return result;
     }

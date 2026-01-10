@@ -36,7 +36,7 @@ interface UserStatsData {
 }
 
 @Job({
-  cronTime: FORMAT.CRONTAB.EVERY_PER_5_SECOND,
+  cronTime: FORMAT.CRONTAB.EVERY_SECOND,
   runOnInit: false,
   start: ['production'].includes(process.env.NODE_ENV),
 })

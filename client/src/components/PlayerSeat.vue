@@ -207,10 +207,7 @@ const shouldShowRobMult = computed(() => {
 });
 
 const slideTransitionName = computed(() => {
-    // For opponents (all handle the same way now: float is above avatar)
-    if (!props.isMe) return 'pop-up';
-    // For Me (float is to the right)
-    return 'pop-right';
+    return 'pop-up';
 });
 
 const displayName = computed(() => {
@@ -228,7 +225,13 @@ const displayName = computed(() => {
     <!-- ... (keep avatar area) -->
     <div class="avatar-area">
       <div class="avatar-wrapper">
-          <div class="avatar-frame" :class="{ 'banker-candidate-highlight': isAnimatingHighlight, 'banker-confirm-anim': triggerBankerAnimation, 'is-banker': player.isBanker, 'win-neon-flash': isWin, 'is-opponent': !isMe }">
+          <div class="avatar-frame" :class="{ 
+              'banker-candidate-highlight': isAnimatingHighlight, 
+              'banker-confirm-anim': triggerBankerAnimation, 
+              'is-banker': player.isBanker && !['SETTLEMENT', 'GAME_OVER'].includes(store.currentPhase), 
+              'win-neon-flash': isWin, 
+              'is-opponent': !isMe 
+          }">
               <van-image
                 :round="isMe"
                 :src="player.avatar"
@@ -705,22 +708,15 @@ const displayName = computed(() => {
     margin: 0 2px;
 }
 
+/* Status Float Position: Above Avatar for ALL players */
 .status-float {
     position: absolute;
-    top: 0;
-    left: 100%; /* 浮动在 info-box 旁边 */
-    z-index: 8;
-    transform: translateX(10px); /* 稍微向右偏移 */
-}
-
-/* Status Float Position for Opponents (Above Avatar) */
-/* Targets any seat that is NOT seat-bottom (Me) */
-:not(.seat-bottom) .status-float {
     top: auto;
     bottom: 100%; /* Place above the avatar wrapper */
     left: 50%;
     transform: translateX(-50%); /* Center horizontally relative to avatar wrapper */
     right: auto;
+    z-index: 8;
     margin-bottom: 5px; /* Spacing above avatar */
     width: max-content;
     display: flex;
@@ -817,29 +813,6 @@ const displayName = computed(() => {
 .slide-from-right-enter-from {
     opacity: 0;
     transform: translateX(30px);
-}
-
-/* Pop Right Animation for Me (Beside Avatar) */
-.pop-right-enter-active,
-.pop-right-leave-active {
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    transform-origin: center left; 
-}
-
-/* Final state is translateX(10px). 
-   Start state: center of avatar. 
-   Avatar wrapper width 52px. Float at left: 100% (52px).
-   Center is at 26px. Delta X = 26 - 52 = -26px.
-   Top is 0. Center is 26px. Delta Y = 26px.
-*/
-.pop-right-enter-from {
-    opacity: 0;
-    transform: translateX(-26px) translateY(26px) scale(0.2); 
-}
-
-.pop-right-leave-to {
-    opacity: 0;
-    transform: translateX(10px) scale(0.5);
 }
 
 /* Pop Up Animation for Opponents (Above Avatar) */

@@ -412,10 +412,10 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
                 winEffects.value[p.id] = true;
             }
         });
-        // Clear effects after settlement (approx 4s or next phase)
+        // Clear effects after settlement (adjusted to 3.5s)
         setTimeout(() => {
             winEffects.value = {};
-        }, 5000);
+        }, 3500);
 
         if (me && !me.isObserver) {
             // Determine result (0 is also win/draw, but typically > 0 is win. Logic says >= 0 is win in display)

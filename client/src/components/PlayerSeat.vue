@@ -983,11 +983,15 @@ const displayName = computed(() => {
 }
 
 .seat-bottom .hand-area {
+
     height: 90px;
+
     /* 自己的牌比较大 */
+
     margin-top: 0;
-    margin-bottom: 30px;
-    /* Increased to move hand cards further up */
+
+    margin-bottom: 10px; /* Increased to move hand cards further up */
+
 }
 
 .cards {

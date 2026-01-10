@@ -380,6 +380,23 @@ const shouldShowBetMult = computed(() => {
     return myPlayer.value.betMultiplier > 0;
 });
 
+const isControlsContentVisible = computed(() => {
+    if (!myPlayer.value) return false; // Ensure myPlayer is available
+
+    // Rob Banker Multipliers
+    if (store.currentPhase === 'ROB_BANKER' && !myPlayer.value.isObserver && myPlayer.value.robMultiplier === -1) return true;
+    // Betting Multipliers
+    if (store.currentPhase === 'BETTING' && !myPlayer.value.isBanker && myPlayer.value.betMultiplier === 0 && !myPlayer.value.isObserver) return true;
+    // Banker Waiting Text
+    if (store.currentPhase === 'BETTING' && myPlayer.value.isBanker) return true;
+    // Player Bet Confirmed Waiting Text
+    if (myPlayer.value.betMultiplier > 0 && store.currentPhase === 'BETTING' && !myPlayer.value.isBanker && !myPlayer.value.isObserver) return true;
+    // Observer Waiting Text
+    if (myPlayer.value.isObserver) return true;
+
+    return false;
+});
+
 watch(() => [...store.playerSpeechQueue], (newQueue) => { // Watch a copy to trigger on push
     if (newQueue.length > 0) {
         const speechEvent = newQueue[0]; // Process the first event in the queue
@@ -1211,7 +1228,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
         <div class="my-area" v-if="myPlayer">
             <!-- 1. Calculation Formula Area -->
-            <div v-if="store.currentPhase === 'SHOWDOWN' && !myPlayer.isShowHand && store.countdown > 0 && !myPlayer.isObserver"
+            <div v-show="store.currentPhase === 'SHOWDOWN' && !myPlayer.isShowHand && store.countdown > 0 && !myPlayer.isObserver"
                 class="showdown-wrapper">
 
                 <div class="game-btn orange showdown-btn" @click="playerShowHandDebounced(myPlayer.id)">
@@ -1243,7 +1260,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                             }" @click="handleCardClick({ card, index: idx })" />
                     </div>
                     <!-- Hand Result Badge - adapted from PlayerSeat -->
-                    <div v-if="myPlayer.handResult && myPlayer.handResult.typeName && shouldShowBadge" class="hand-result-badge">
+                    <div v-if="myPlayer.handResult && myPlayer.handResult.typeName && shouldShowBadge"
+                        class="hand-result-badge">
                         <img v-if="getHandTypeImageUrl(myPlayer.handResult.typeName)"
                             :src="getHandTypeImageUrl(myPlayer.handResult.typeName)" alt="手牌类型" class="hand-type-img" />
                         <template v-else>{{ myPlayer.handResult.typeName }}</template>
@@ -1262,13 +1280,15 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                             'is-banker': myPlayer.isBanker && !['SETTLEMENT', 'GAME_OVER'].includes(store.currentPhase),
                             'win-neon-flash': !!winEffects[myPlayer.id]
                         }">
-                            <van-image :src="myPlayer.avatar" class="avatar" :class="{ 'avatar-gray': myPlayer.isObserver }" />
+                            <van-image :src="myPlayer.avatar" class="avatar"
+                                :class="{ 'avatar-gray': myPlayer.isObserver }" />
                         </div>
                         <!-- Status float (rob/bet multiplier status) -->
                         <div class="status-float">
                             <Transition name="pop-up">
                                 <div v-if="shouldShowRobMult" class="status-content">
-                                    <span v-if="myPlayer.robMultiplier > 0" class="status-text">抢{{ myPlayer.robMultiplier
+                                    <span v-if="myPlayer.robMultiplier > 0" class="status-text">抢{{
+                                        myPlayer.robMultiplier
                                     }}倍</span>
                                     <span v-else class="status-text">不抢</span>
                                 </div>
@@ -1311,7 +1331,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                 </transition>
 
                 <!-- Rob Banker Multipliers -->
-                <div v-if="store.currentPhase === 'ROB_BANKER' && !myPlayer.isObserver && myPlayer.robMultiplier === -1"
+                <div v-show="store.currentPhase === 'ROB_BANKER' && !myPlayer.isObserver && myPlayer.robMultiplier === -1"
                     class="btn-group-column">
                     <div class="btn-row">
                         <div v-for="mult in allRobOptions.slice(0, 2)" :key="mult" class="multiplier-option-btn"
@@ -1330,7 +1350,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                 </div>
 
                 <!-- Betting Multipliers -->
-                <div v-if="store.currentPhase === 'BETTING' && !myPlayer.isBanker && myPlayer.betMultiplier === 0 && !myPlayer.isObserver"
+                <div v-show="store.currentPhase === 'BETTING' && !myPlayer.isBanker && myPlayer.betMultiplier === 0 && !myPlayer.isObserver"
                     class="btn-group-column">
                     <div class="btn-row">
                         <div v-for="mult in betMultipliers.slice(0, 2)" :key="mult" class="multiplier-option-btn"
@@ -1346,18 +1366,22 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                     </div>
                 </div>
 
-                <div v-if="store.currentPhase === 'BETTING' && myPlayer.isBanker" class="waiting-text">
+                <div v-show="store.currentPhase === 'BETTING' && myPlayer.isBanker" class="waiting-text">
                     等待闲家下注...
                 </div>
 
-                <div v-if="myPlayer.betMultiplier > 0 && store.currentPhase === 'BETTING' && !myPlayer.isBanker && !myPlayer.isObserver"
+                <div v-show="myPlayer.betMultiplier > 0 && store.currentPhase === 'BETTING' && !myPlayer.isBanker && !myPlayer.isObserver"
                     class="waiting-text">
                     已下注，等待开牌...
                 </div>
 
                 <!-- Observer Waiting Text -->
-                <div v-if="myPlayer.isObserver" class="observer-waiting-banner">
+                <div v-show="myPlayer.isObserver" class="observer-waiting-banner">
                     请耐心等待下一局<span class="loading-dots"></span>
+                </div>
+
+                <!-- NEW: Placeholder to ensure space is always reserved -->
+                <div v-show="!isControlsContentVisible" class="controls-placeholder">
                 </div>
             </div>
         </div>
@@ -2161,7 +2185,6 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .my-area {
     margin-top: auto;
-    padding-bottom: 60px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -2176,14 +2199,17 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     justify-content: center;
     align-items: center;
     width: 100%;
-    margin-top: 10px; /* Adjust spacing from element above */
+    margin-top: 10px;
+    /* Adjust spacing from element above */
 }
 
 /* Hand area styles (adapted from PlayerSeat.vue for myPlayer) */
 .my-hand-cards-area .hand-area {
-    height: 90px; /* For myPlayer cards */
+    height: 90px;
+    /* For myPlayer cards */
     margin-top: 0;
-    margin-bottom: 30px; /* Increased to move hand cards further up */
+    margin-bottom: 30px;
+    /* Increased to move hand cards further up */
     position: relative;
     display: flex;
     justify-content: center;
@@ -2223,22 +2249,29 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .my-player-info-row {
     display: flex;
-    justify-content: space-between; /* To push info left and chat right */
+    justify-content: space-between;
+    /* To push info left and chat right */
     align-items: center;
     width: 100%;
-    padding: 0 10px; /* Padding for spacing from screen edges */
-    margin-top: 10px; /* Adjust spacing from element above */
-    margin-bottom: 10px; /* Adjust spacing from element below */
+    padding: 0 10px;
+    /* Padding for spacing from screen edges */
+    margin-top: 10px;
+    /* Adjust spacing from element above */
+    margin-bottom: 10px;
+    /* Adjust spacing from element below */
 }
 
 /* Player Info (avatar, name, coins) styles (adapted from PlayerSeat.vue for myPlayer) */
 .my-player-info-row .avatar-area {
     position: relative;
     display: flex;
-    flex-direction: row; /* Horizontal layout for avatar and info-box */
+    flex-direction: row;
+    /* Horizontal layout for avatar and info-box */
     align-items: center;
-    justify-content: center; /* Center avatar and info-box within its own area */
-    width: auto; /* Let it shrink to content */
+    justify-content: center;
+    /* Center avatar and info-box within its own area */
+    width: auto;
+    /* Let it shrink to content */
 }
 
 .my-player-info-row .avatar-wrapper {
@@ -2252,7 +2285,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.3);
-    border-radius: 8px; /* Rounded square for myPlayer avatar */
+    border-radius: 8px;
+    /* Rounded square for myPlayer avatar */
     border: 4px solid transparent;
     box-sizing: border-box;
     box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2);
@@ -2321,13 +2355,15 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .my-player-info-row .info-box {
-    margin-left: 8px; /* Gap between avatar and info */
+    margin-left: 8px;
+    /* Gap between avatar and info */
     position: relative;
     z-index: 5;
     width: auto;
     display: flex;
     flex-direction: column;
-    align-items: flex-start; /* Align name and coins to the left */
+    align-items: flex-start;
+    /* Align name and coins to the left */
 }
 
 .my-player-info-row .info-box.is-observer {
@@ -2379,15 +2415,22 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 /* Ensure chat button pushes to the right within my-player-info-row */
 .my-player-info-row .chat-toggle-btn {
-    margin-left: auto; /* Push to the right */
+    margin-left: auto;
+    /* Push to the right */
 }
 
 .controls-container {
     margin-bottom: 20px;
-    /* min-height: 50px; */
-    /* Removed to fix waiting-text height */
+    min-height: 120px;
+    /* Reserve space for multiplier options */
     display: flex;
     justify-content: center;
+    width: 100%;
+}
+
+.controls-placeholder {
+    height: 120px;
+    /* Explicitly take the reserved height */
     width: 100%;
 }
 
@@ -2400,7 +2443,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 20px;
+    /* gap: 20px; */
     /* Increased vertical gap between btn-rows */
     /* Removed width: 100%; to allow it to shrink to content */
 }
@@ -2598,6 +2641,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     gap: 15px;
     /* Space between button and calculation */
     margin-bottom: 10px;
+    min-height: 95px;
 }
 
 .calc-container {

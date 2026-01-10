@@ -1760,12 +1760,12 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .seat-right-top {
     top: 15%;
-    right: 15%;
+    right: 8%;
 }
 
 .seat-left-top {
     top: 15%;
-    left: 15%;
+    left: 8%;
 }
 
 .seat-left {

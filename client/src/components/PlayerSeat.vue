@@ -910,10 +910,13 @@ const displayName = computed(() => {
 }
 
 /* 机器人手牌下移，避免遮挡信息 */
-.seat-left .hand-area,
-.seat-right .hand-area,
 .seat-top .hand-area {
     margin-top: 25px;
+}
+
+.seat-left .hand-area,
+.seat-right .hand-area {
+    margin-top: 10px;
 }
 
 .seat-bottom .hand-area {

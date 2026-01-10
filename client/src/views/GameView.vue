@@ -1128,7 +1128,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                         <div class="group-header">
                             <div class="gh-date">{{ group.dateStr }} <span class="down-triangle">▼</span></div>
                             <div class="gh-totals">
-                                投注 <img :src="goldImg" class="coin-icon-text" />{{ formatCoins(group.totalBet) }} &nbsp; 输赢 <img :src="goldImg" class="coin-icon-text" />{{ formatCoins(group.totalValid) }}
+                                投注 <img :src="goldImg" class="coin-icon-text" />{{ formatCoins(group.totalBet) }} &nbsp;
+                                输赢 <img :src="goldImg" class="coin-icon-text" />{{ formatCoins(group.totalValid) }}
                             </div>
                         </div>
 

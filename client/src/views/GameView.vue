@@ -2241,6 +2241,17 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 .showdown-btn {
     /* Removed absolute positioning */
     width: 100px;
+    background: linear-gradient(to bottom, #facc15, #d97706); /* Orange gradient */
+    border: 2px solid #fbbf24;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+    color: white;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    /* Inherit basic game-btn properties if they exist */
+    display: flex; /* Ensure flex properties for centering text */
+    justify-content: center;
+    align-items: center;
+    /* transition: transform 0.1s; */ /* Already in game-btn */
 }
 
 /* History Modal New Styles */

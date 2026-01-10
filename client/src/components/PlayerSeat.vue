@@ -230,13 +230,12 @@ const displayName = computed(() => {
               'banker-confirm-anim': triggerBankerAnimation, 
               'is-banker': player.isBanker && !['SETTLEMENT', 'GAME_OVER'].includes(store.currentPhase), 
               'win-neon-flash': isWin, 
-              'is-opponent': !isMe 
+              'is-opponent': true 
           }">
               <van-image
-                :round="isMe"
                 :src="player.avatar"
                 class="avatar"
-                :class="{ 'avatar-gray': player.isObserver, 'opponent-avatar': !isMe }"
+                :class="{ 'avatar-gray': player.isObserver, 'opponent-avatar': true }"
               />
           </div>
           
@@ -348,19 +347,24 @@ const displayName = computed(() => {
     width: 100%;
 }
 
-/* Opponent Avatar Area: Row Layout */
-/* Left side: Avatar Left, Info Right */
-.seat-left .avatar-area, .seat-top-left .avatar-area {
+/* Opponent Avatar Area: Row Layout (Now includes seat-bottom based on user request) */
+.seat-top .avatar-area,
+.seat-left .avatar-area,
+.seat-right .avatar-area,
+.seat-bottom .avatar-area {
     flex-direction: row;
     align-items: center;
     justify-content: center;
 }
 
-/* Right side: Info Left, Avatar Right */
+/* Specific override for Right side to reverse */
 .seat-right .avatar-area, .seat-top-right .avatar-area {
     flex-direction: row-reverse;
-    align-items: center;
-    justify-content: center;
+}
+
+/* Left side (and now Top/Bottom) use standard row */
+.seat-left .avatar-area, .seat-top-left .avatar-area, .seat-bottom .avatar-area {
+    flex-direction: row;
 }
 
 .avatar-wrapper {
@@ -415,9 +419,15 @@ const displayName = computed(() => {
     transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
 }
 
-/* Opponent Avatar Frame: Rounded Square */
+/* Avatar Frame: Rounded Square for ALL */
 .avatar-frame.is-opponent {
     border-radius: 8px;
+}
+
+/* Also ensure Van Image has border radius */
+.van-image.opponent-avatar {
+    border-radius: 8px !important;
+    overflow: hidden;
 }
 
 .avatar-frame.banker-candidate-highlight {
@@ -664,10 +674,12 @@ const displayName = computed(() => {
     width: auto; /* Let it shrink/grow */
 }
 
-/* Ensure Me player keeps centered layout */
+/* Ensure Me player (seat-bottom) uses left alignment now */
 .seat-bottom .info-box {
-    align-items: center;
-    margin-top: 2px;
+    align-items: flex-start;
+    margin-top: 0;
+    margin-left: 8px;
+    width: auto;
 }
 
 .info-box.is-observer {

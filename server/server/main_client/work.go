@@ -15,6 +15,7 @@ import (
 	"service/comm"
 	"service/initMain"
 	"service/mainClient"
+	"service/modelAdmin"
 	"service/modelClient"
 
 	"github.com/gin-gonic/gin"
@@ -43,22 +44,24 @@ func midPanicHttp(c *gin.Context, err any) {
 }
 
 type workCfg struct {
-	WorkId       int
-	HttpHost     string
-	HttpPort     string
-	AdminHost    string
-	AdminPort    string
-	ShutDownWait int
-	LogLevel     string
-	MysqlHost    string
-	MysqlPort    string
-	MysqlUser    string
-	MysqlPwd     string
-	MysqlConn    int
-	MysqlIdle    int
-	RedisAddr    string
-	RedisPwd     string
-	IsSsl        bool
+	WorkId        int
+	HttpHost      string
+	HttpPort      string
+	AdminHost     string
+	AdminPort     string
+	ShutDownWait  int
+	LogLevel      string
+	MysqlHost     string
+	MysqlPort     string
+	MysqlReadHost string
+	MysqlReadPort string
+	MysqlUser     string
+	MysqlPwd      string
+	MysqlConn     int
+	MysqlIdle     int
+	RedisAddr     string
+	RedisPwd      string
+	IsSsl         bool
 }
 
 type mainClientWork struct {
@@ -149,6 +152,13 @@ func (w *mainClientWork) Start(baseCtx *initMain.BaseCtx) error {
 	logrus.Info("regModel")
 	ormutil.RegOrmModel(modelClient.RegModels, modelClient.ServerDB, modelClient.ServerDB,
 		w.cfg.MysqlHost, w.cfg.MysqlPort,
+		w.cfg.MysqlReadHost, w.cfg.MysqlReadPort,
+		w.cfg.MysqlUser, w.cfg.MysqlPwd,
+		w.cfg.MysqlConn, w.cfg.MysqlIdle)
+
+	ormutil.RegOrmModel(modelAdmin.RegModels, modelAdmin.ServerDB, modelAdmin.ServerDB,
+		w.cfg.MysqlHost, w.cfg.MysqlPort,
+		w.cfg.MysqlReadHost, w.cfg.MysqlReadPort,
 		w.cfg.MysqlUser, w.cfg.MysqlPwd,
 		w.cfg.MysqlConn, w.cfg.MysqlIdle)
 

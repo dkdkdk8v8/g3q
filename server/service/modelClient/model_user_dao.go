@@ -83,13 +83,6 @@ func InsertUserRecord(user *ModelUserRecord) (int64, error) {
 // 	 ormutil.UpdateFields[ModelUser](GetDb(), model, fields)
 // }
 
-func GetRandomRobots(limit int) ([]*ModelUser, error) {
-	var robots []*ModelUser
-	// OrderBy("?") 是 MySQL 的随机排序
-	_, err := GetDb().Raw("SELECT * FROM g3q_user WHERE is_robot = 1 AND enable = 1 ORDER BY RAND() LIMIT ?", limit).QueryRows(&robots)
-	return robots, err
-}
-
 // RecoveryGameId
 func RecoveryGameId(userId string, gameId string) (*ModelUser, error) {
 	ormDb := GetDb()
@@ -222,23 +215,7 @@ type ModelUserRecordJoinGameRecord struct {
 }
 
 func GetUserGameRecordsJoinGameRecord(userId string, limit int, id uint64, start, end time.Time) ([]*ModelUserRecordJoinGameRecord, error) {
-	// var options []ormutil.SelectOption
-	// if id != 0 {
-	// 	options = append(options, ormutil.WithRaw("id__lt", id))
-	// }
-	// options = append(options, ormutil.WithKV("user_id", userId))
-	// if !start.IsZero() {
-	// 	options = append(options, ormutil.WithKV("create_at__gte", start))
-	// }
-	// if !end.IsZero() {
-	// 	options = append(options, ormutil.WithKV("create_at__lt", end))
-	// }
-
-	// options = append(options,
-	// 	ormutil.WithLimitOffset(limit, 0),
-	// 	ormutil.WithOrderBy("-id"))
-	// return ormutil.QueryManyNoDiff[ModelUserRecord](GetDb(), options...)
-	ormDb := GetDb()
+	ormDb := GetReadOrm()
 	var records []*ModelUserRecordJoinGameRecord
 	sql := `SELECT g3q_user_record.*, g3q_game_record.game_name, g3q_game_record.game_data
 	FROM g3q_user_record

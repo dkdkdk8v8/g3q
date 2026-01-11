@@ -43,7 +43,7 @@ interface UserStatsData {
 @Job({
   cronTime: FORMAT.CRONTAB.EVERY_SECOND,
   runOnInit: false,
-  start: ['production', 'local'].includes(process.env.NODE_ENV),
+  start: ['production'].includes(process.env.NODE_ENV),
 })
 export class StaPeriodJob implements IJob {
 

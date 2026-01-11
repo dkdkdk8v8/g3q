@@ -1011,9 +1011,9 @@ const displayName = computed(() => {
 
 /* Bet */
 .bet-text {
-    color: #4ade80; /* Green-400 */
+    color: #ffffff; /* White */
     text-shadow:
-        -2px -2px 0 #000000, /* Black for high contrast */
+        -2px -2px 0 #000000, /* Black */
          2px -2px 0 #000000,
         -2px  2px 0 #000000,
          2px  2px 0 #000000,

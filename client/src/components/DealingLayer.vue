@@ -203,8 +203,8 @@ defineExpose({
   height: 100%;
   background: url('@/assets/common/card_back.png') no-repeat center center;
   background-size: 100% 100%;
-  border-radius: 4px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  border-radius: 6px; /* Match PokerCard radius */
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1), 0 2px 6px rgba(0,0,0,0.2); /* Match PokerCard inset border + drop shadow */
   position: relative; /* Ensure child absolute positioning works if needed */
   box-sizing: border-box;
 }

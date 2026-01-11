@@ -231,7 +231,7 @@ onUnmounted(() => {
 .avatar-wrapper {
     width: 50px;
     height: 50px;
-    border-radius: 50%;
+    border-radius: 8px;
     border: 2px solid #fff;
     overflow: hidden;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);

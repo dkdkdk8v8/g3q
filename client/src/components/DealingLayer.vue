@@ -18,13 +18,13 @@ const dealToPlayer = async (targets, callback, forceBulkAnimation = false) => {
 
     // 批量发牌时，"最左侧"位置作为跳水目标
     // 注意：这里的 targets[0] 是这批牌里的第一张
-    const jumpTargetX = targets[0].x - (targets[0].isMe ? 30 : 20); // 居中修正 (width/2)
-    const jumpTargetY = targets[0].y - (targets[0].isMe ? 42 : 28); // 居中修正 (height/2)
+    const jumpTargetX = targets[0].x - (targets[0].isMe ? 30 : 24); // 居中修正 (width/2)
+    const jumpTargetY = targets[0].y - (targets[0].isMe ? 44 : 35); // 居中修正 (height/2)
 
     // 创建这组卡片
     const newCards = targets.map((t, index) => {
-        const targetWidth = t.isMe ? 60 : 40;
-        const targetHeight = t.isMe ? 84 : 56;
+        const targetWidth = t.isMe ? 60 : 48;
+        const targetHeight = t.isMe ? 88 : 70;
         const finalScale = t.scale || 1; // 获取目标缩放比例
         
         return {
@@ -139,11 +139,17 @@ const dealToPlayer = async (targets, callback, forceBulkAnimation = false) => {
     }
 
     // 清理
-    await new Promise(r => setTimeout(r, 200));
+    // await new Promise(r => setTimeout(r, 200)); // Remove this delay
+    
+    // 1. 先触发回调，让真实手牌显示出来 (此时真实手牌是不透明度1，背面)
+    if (callback) callback();
+    
+    // 2. 等待一帧，确保 Vue 更新了真实手牌的 DOM
+    await nextTick();
+    
+    // 3. 移除飞行的卡片 (此时真实手牌已经在下面了)
     const removeIds = reactiveCards.map(c => c.id);
     flyingCards.value = flyingCards.value.filter(c => !removeIds.includes(c.id));
-    
-    if (callback) callback();
 };
 
 defineExpose({

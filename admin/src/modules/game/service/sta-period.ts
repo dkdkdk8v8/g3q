@@ -31,7 +31,7 @@ export class StaPeriodService extends BaseService {
     /**
      * 获取对应时间内的统计数据
      */
-    async getDateStats(startDate: string, endDate: string, app: string, showType: 'app' | 'date', sort: string, order: string) {
+    async getDateStats(startDate: string, endDate: string, app: string, showType: 'app' | 'date' | 'game', sort: string, order: string, gameName?: string, userType?: string) {
         const start = moment(startDate).startOf('day').toDate();
         const end = moment(endDate).endOf('day').toDate();
 
@@ -40,6 +40,14 @@ export class StaPeriodService extends BaseService {
         };
         if (app) {
             where.appId = app;
+        }
+        if (gameName) {
+            where.gameName = gameName;
+        }
+        if (userType === 'real') {
+            where.isRobot = false;
+        } else if (userType === 'robot') {
+            where.isRobot = true;
         }
 
         const list = await this.staPeriodEntity.find({
@@ -51,7 +59,9 @@ export class StaPeriodService extends BaseService {
         for (const item of list) {
             let key = '';
             if (showType === 'app') {
-                key = item.appId || 'Unknown';
+                key = item.appId || '';
+            } else if (showType === 'game') {
+                key = item.gameName || '';
             } else {
                 key = moment(item.timeKey).format('YYYY-MM-DD');
             }
@@ -169,7 +179,7 @@ export class StaPeriodService extends BaseService {
         return false;
     }
 
-    async getUserStats(startDate: string, endDate: string, app: string, sort: string, order: string) {
+    async getUserStats(startDate: string, endDate: string, app: string, sort: string, order: string, userType?: string) {
         const start = moment(startDate).startOf('day').toDate();
         const end = moment(endDate).endOf('day').toDate();
 
@@ -215,16 +225,24 @@ export class StaPeriodService extends BaseService {
             data.betWin += Number(item.betWin) || 0;
         }
 
-        const result = Array.from(map.values());
+        let result = Array.from(map.values());
 
         // 关联用户表信息
         if (result.length > 0) {
             const userIds = result.map(e => e.userId);
+            const userWhere: any = { user_id: In(userIds) };
+            if (userType === 'real') {
+                userWhere.is_robot = false;
+            } else if (userType === 'robot') {
+                userWhere.is_robot = true;
+            }
+
             const users = await this.gameUserEntity.find({
-                where: { user_id: In(userIds) },
+                where: userWhere,
                 select: ['user_id', 'nick_name', 'total_deposit', 'total_with_draw', 'total_game_count', 'total_bet', 'total_net_balance']
             });
             const userMap = new Map(users.map(u => [u.user_id, u]));
+            const validItems = [];
             for (const item of result) {
                 const u = userMap.get(item.userId);
                 if (u) {
@@ -234,8 +252,14 @@ export class StaPeriodService extends BaseService {
                     item.totalGameCount = u.total_game_count;
                     item.totalBet = u.total_bet;
                     item.totalNetBalance = u.total_net_balance;
+                    validItems.push(item);
+                } else {
+                    if (!userType || userType === 'all') {
+                        validItems.push(item);
+                    }
                 }
             }
+            result = validItems;
         }
 
         // 计算衍生指标
@@ -267,7 +291,7 @@ export class StaPeriodService extends BaseService {
     /**
      * 获取当日趋势对比（当日、昨日、上周同期）
      */
-    async getDayTrend(date: string, app: string, duration: number = 10) {
+    async getDayTrend(date: string, app: string, duration: number = 10, userType?: string) {
         const targetDate = moment(date);
         // 构造三个时间段：当日、昨日、上周同期
         const dates = [
@@ -325,6 +349,11 @@ export class StaPeriodService extends BaseService {
             if (app) {
                 where.appId = app;
             }
+            if (userType === 'real') {
+                where.isRobot = false;
+            } else if (userType === 'robot') {
+                where.isRobot = true;
+            }
 
             const list = await this.staPeriodEntity.find({ where });
 
@@ -342,9 +371,69 @@ export class StaPeriodService extends BaseService {
             }
         }
 
+        // 处理当日数据：当前时间之前的数据若为null置为0，之后保留null
+        if (targetDate.isSame(moment(), 'day')) {
+            const now = moment();
+            const currentSlot = Math.floor((now.hour() * 60 + now.minute()) / (duration || 10));
+
+            dataMap.current.forEach((item, index) => {
+                if (index <= currentSlot) {
+                    item.gameUserCount = item.gameUserCount ?? 0;
+                    item.firstGameUserCount = item.firstGameUserCount ?? 0;
+                    item.betCount = item.betCount ?? 0;
+                    item.betAmount = item.betAmount ?? 0;
+                    item.gameWin = item.gameWin ?? 0;
+                } else {
+                    item.gameUserCount = null;
+                    item.firstGameUserCount = null;
+                    item.betCount = null;
+                    item.betAmount = null;
+                    item.gameWin = null;
+                }
+            });
+        }
+
         result.current = dataMap.current;
         result.yesterday = dataMap.yesterday;
         result.lastWeek = dataMap.lastWeek;
+
+        return result;
+    }
+
+    /**
+     * 获取牌型结果统计
+     */
+    async getCardResultStats(date: string, app: string, userType?: string) {
+        const start = moment(date).startOf('day').toDate();
+        const end = moment(date).endOf('day').toDate();
+
+        const where: any = {
+            timeKey: Between(start, end),
+        };
+        if (app) {
+            where.appId = app;
+        }
+        if (userType === 'real') {
+            where.isRobot = false;
+        } else if (userType === 'robot') {
+            where.isRobot = true;
+        }
+
+        const list = await this.staPeriodEntity.find({
+            where,
+            select: ['timeKey', 'cardResult']
+        });
+
+        // 0-23 hours
+        const result = Array.from({ length: 24 }, () => ({}));
+
+        for (const item of list) {
+            const hour = moment(item.timeKey).hour();
+            const cardResult = item.cardResult || {};
+            for (const key in cardResult) {
+                result[hour][key] = (result[hour][key] || 0) + Number(cardResult[key]);
+            }
+        }
 
         return result;
     }

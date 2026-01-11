@@ -104,9 +104,11 @@ export const useGameStore = defineStore('game', () => {
 
         if (list.length > 0) {
             // Process list items
-            const processedList = list.map(item => {
+            const processedList = list
+                .filter(item => item && item.Type === 1) // Only process Type 1 items
+                .map(item => {
                 // If it's a record item (Type 1), parse the GameData JSON
-                if (item.Type === 1 && item.GameData && typeof item.GameData === 'string') {
+                if (item.GameData && typeof item.GameData === 'string') { // Type 1 already filtered
                     try {
                         item.GameDataObj = JSON.parse(item.GameData);
                     } catch (e) {

@@ -21,6 +21,14 @@
         </cl-row>
 
         <cl-row>
+            <el-radio-group v-model="searchParams.userType" @change="refresh">
+                <el-radio-button label="all">全部用户</el-radio-button>
+                <el-radio-button label="real">真实用户</el-radio-button>
+                <el-radio-button label="robot">机器人</el-radio-button>
+            </el-radio-group>
+        </cl-row>
+
+        <cl-row>
             <cl-table ref="Table" :default-sort="{ prop: 'betAmount', order: 'descending' }">
                 <template #column-depositAmount="{ scope }">
                     <format-money :value="scope.row.depositAmount" />
@@ -93,18 +101,20 @@ const searchParams = reactive({
     startDate: dateRange.value[0],
     endDate: dateRange.value[1],
     app: "",
+    userType: "all",
 });
 
 // 自定义Service
 const crudService = {
     page: async (params: any) => {
-        const { app, startDate, endDate } = searchParams;
+        const { app, startDate, endDate, userType } = searchParams;
         const { sort, order, page, size } = params;
 
         const res = await service.game.staPeriod.getUserStats({
             startDate,
             endDate,
             app,
+            userType,
             sort,
             order
         });
@@ -141,7 +151,7 @@ const Table = useTable({
         { label: "胜率", prop: "winRate", minWidth: 90, sortable: "custom" },
         { label: "返奖率", prop: "returnRate", minWidth: 90, sortable: "custom" },
         { label: "胜利次数", prop: "winCount", minWidth: 90, sortable: "custom" },
-        { label: "当庄次数", prop: "bankerCount", minWidth: 90, sortable: "custom" },
+        // { label: "当庄次数", prop: "bankerCount", minWidth: 90, sortable: "custom" },
         { label: "总充值", prop: "totalDeposit", minWidth: 90, sortable: "custom" },
         { label: "总提现", prop: "totalWithdraw", minWidth: 90, sortable: "custom" },
         { label: "总游戏数", prop: "totalGameCount", minWidth: 90, sortable: "custom" },

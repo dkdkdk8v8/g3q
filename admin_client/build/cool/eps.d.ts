@@ -887,6 +887,11 @@ declare namespace Eps {
 
 	interface GameStaPeriod {
 		/**
+		 * getCardResultStats
+		 */
+		getCardResultStats(data?: any): Promise<any>;
+
+		/**
 		 * getDateStats
 		 */
 		getDateStats(data?: any): Promise<any>;
@@ -904,12 +909,22 @@ declare namespace Eps {
 		/**
 		 * 权限标识
 		 */
-		permission: { getDateStats: string; getUserStats: string; getDayTrend: string };
+		permission: {
+			getCardResultStats: string;
+			getDateStats: string;
+			getUserStats: string;
+			getDayTrend: string;
+		};
 
 		/**
 		 * 权限状态
 		 */
-		_permission: { getDateStats: boolean; getUserStats: boolean; getDayTrend: boolean };
+		_permission: {
+			getCardResultStats: boolean;
+			getDateStats: boolean;
+			getUserStats: boolean;
+			getDayTrend: boolean;
+		};
 
 		request: Request;
 	}

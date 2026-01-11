@@ -386,7 +386,7 @@ const quitGame = () => {
             </div>
             <div class="history-list">
                 <div v-if="store.history.length === 0" class="empty-tip">暂无记录</div>
-                <div v-for="(item, idx) in store.history" :key="idx" class="history-item">
+                <div v-for="(item, idx) in store.history" :key="idx" v-if="item && item.ID" class="history-item">
                     <div class="h-row top">
                         <span class="h-time">{{ new Date(item.timestamp).toLocaleTimeString() }}</span>
                         <span class="h-role" :class="{ banker: item.isBanker }">{{ item.isBanker ? '庄' : '闲' }}</span>
@@ -525,6 +525,10 @@ const quitGame = () => {
 .h-score.win { color: #facc15; }
 .h-score.lose { color: #ef4444; }
 
+.h-hand {
+    color: #94a3b8; /* Change hand type to gray */
+}
+
 .h-result { font-weight: bold; margin-right: 6px; }
 .h-result.win { color: #facc15; }
 .h-result.lose { color: #ef4444; }
@@ -577,7 +581,7 @@ const quitGame = () => {
 }
 
 .seat-right {
-    top: 45%; /* 向上调整位置 */
+    top: 40%; /* 向上调整位置 */
     right: 10px;
     transform: translateY(-50%) scale(0.85);
 }
@@ -593,7 +597,7 @@ const quitGame = () => {
 }
 
 .seat-left {
-    top: 45%; /* 向上调整位置 */
+    top: 40%; /* 向上调整位置 */
     left: 10px;
     transform: translateY(-50%) scale(0.85);
 }

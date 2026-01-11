@@ -95,7 +95,17 @@ export function calculateHandType(cards) {
     return { type: 'FIVE_FLOWER', typeName: '五花牛', multiplier: 5, sortedCards: cards };
   }
 
-  // 2. 检查炸弹 (四张点数一样)
+  // 2. 检查四花牛 (四张 J Q K, 一张 10)
+  const jqKCards = cards.filter(c => c.rank >= 11 && c.rank <= 13); // J, Q, K
+  const tenCards = cards.filter(c => c.rank === 10); // 牌面是 10 的牌
+  const isFourFlower = (jqKCards.length === 4 && tenCards.length === 1);
+  if (isFourFlower) {
+    // 排序：四张花牌在前，10在后
+    const sorted = [...jqKCards, ...tenCards];
+    return { type: 'FOUR_FLOWER', typeName: '四花牛', multiplier: 4, sortedCards: sorted };
+  }
+
+  // 3. 检查炸弹 (四张点数一样)
   const rankCounts = {};
   cards.forEach(c => rankCounts[c.rank] = (rankCounts[c.rank] || 0) + 1);
   if (Object.values(rankCounts).includes(4)) {

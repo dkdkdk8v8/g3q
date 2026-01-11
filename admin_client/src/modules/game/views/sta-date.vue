@@ -18,10 +18,25 @@
                 <cl-select v-model="searchParams.app" :options="options.app_id" @change="refresh" clearable
                     placeholder="全部APP" style="width: 150px" />
             </cl-filter>
-            <cl-flex1 />
+
+            <!-- 游戏筛选 -->
+            <cl-filter label="游戏">
+                <cl-select v-model="searchParams.gameName" :options="options.game_name" @change="refresh" clearable
+                    placeholder="全部游戏" style="width: 150px" />
+            </cl-filter>
+        </cl-row>
+
+        <cl-row>
             <el-radio-group v-model="searchParams.showType" @change="refresh">
                 <el-radio-button label="date">按日期</el-radio-button>
                 <el-radio-button label="app">按APP</el-radio-button>
+                <el-radio-button label="game">按游戏</el-radio-button>
+            </el-radio-group>
+            <cl-flex1 />
+            <el-radio-group v-model="searchParams.userType" @change="refresh">
+                <el-radio-button label="all">全部用户</el-radio-button>
+                <el-radio-button label="real">真实用户</el-radio-button>
+                <el-radio-button label="robot">机器人</el-radio-button>
             </el-radio-group>
         </cl-row>
 
@@ -51,6 +66,7 @@ const { service } = useCool();
 // 字典
 const options = reactive({
     app_id: dict.get("app_id"),
+    game_name: dict.get("game_name"),
 });
 
 // 日期范围默认最近30天
@@ -64,20 +80,24 @@ const searchParams = reactive({
     startDate: dateRange.value[0],
     endDate: dateRange.value[1],
     app: "",
+    gameName: "",
     showType: "date",
+    userType: "all",
 });
 
 // 自定义Service
 const crudService = {
     page: async (params: any) => {
-        const { app, showType, startDate, endDate } = searchParams;
+        const { app, showType, startDate, endDate, gameName, userType } = searchParams;
         const { sort, order } = params;
 
         const res = await service.game.staPeriod.getDateStats({
             startDate,
             endDate,
             app,
+            gameName,
             showType,
+            userType,
             sort,
             order
         });
@@ -106,7 +126,10 @@ const Table = useTable({
             sortable: "custom",
             formatter(row) {
                 if (searchParams.showType === "app") {
-                    return options.app_id.find(i => row.title === i.value)?.label || row.title;
+                    return options.app_id.find(i => row.title === i.value)?.label || row.title || '未知';
+                }
+                if (searchParams.showType === "game") {
+                    return options.game_name.find(i => row.title === i.value)?.label || row.title || '未知';
                 }
                 return row.title;
             },

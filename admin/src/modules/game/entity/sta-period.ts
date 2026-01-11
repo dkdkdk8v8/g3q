@@ -14,6 +14,14 @@ export class StaPeriodEntity extends BaseEntity {
   @Column({ comment: '应用ID', default: '' })
   appId: string;
 
+  @Index()
+  @Column({ comment: '游戏名称', default: '' })
+  gameName: string;
+
+  @Index()
+  @Column({ comment: '是否机器人的数据', default: false })
+  isRobot: boolean;
+
   @Column({ comment: '游戏人数', default: 0 })
   gameUserCount: number;
 
@@ -34,4 +42,8 @@ export class StaPeriodEntity extends BaseEntity {
 
   @Column({ comment: '首次游戏用户ID', type: 'json' })
   firstGameUserIds: string[];
+
+  @Column({ comment: '牌型结果', type: 'json' })
+  cardResult: any;
+
 }

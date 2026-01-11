@@ -1,10 +1,13 @@
 module main_tunnel
 
-go 1.24
+go 1.25
 
 replace compoment => ./../../compoment
 
-require compoment v0.0.0-00010101000000-000000000000
+require (
+	compoment v0.0.0-00010101000000-000000000000
+	gopkg.in/yaml.v2 v2.4.0
+)
 
 require (
 	github.com/jmcvetta/randutil v0.0.0-20150817122601-2bb1b664bcff // indirect

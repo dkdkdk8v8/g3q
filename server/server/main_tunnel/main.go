@@ -7,33 +7,52 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"gopkg.in/yaml.v2"
 )
 
-func main() {
+type Config struct {
+	Tunnels []struct {
+		SSHUser       string        `yaml:"ssh_user"`
+		SSHKeyPath    string        `yaml:"ssh_key_path"`
+		SSHHost       string        `yaml:"ssh_host"`
+		LocalAddress  string        `yaml:"local_address"`
+		RemoteAddress string        `yaml:"remote_address"`
+		AutoReconnect bool          `yaml:"auto_reconnect"`
+		KeepAlive     bool          `yaml:"keep_alive"`
+		RetryInterval time.Duration `yaml:"retry_interval"`
+		Mode          string        `yaml:"mode"`
+	} `yaml:"tunnels"`
+}
 
-	tunnels := []*util.SSHTunnel{
-		{
-			//redis
-			SSHUser:       "ec2-user",
-			SSHKeyPath:    "/Users/admin/Documents/ssh/rsa-3q.pem",
-			SSHHost:       "43.198.8.247:22",
-			LocalAddress:  "127.0.0.1:16379",
-			RemoteAddress: "127.0.0.1:6379",
-			AutoReconnect: true,
-			KeepAlive:     true,
-			RetryInterval: time.Second * 5,
-		},
-		{
-			//mysql serverless
-			SSHUser:       "ec2-user",
-			SSHKeyPath:    "/Users/admin/Documents/ssh/rsa-3q.pem",
-			SSHHost:       "43.198.8.247:22",
-			LocalAddress:  "127.0.0.1:13306",
-			RemoteAddress: "database-g3q-instance-1.c1y06igkstt7.ap-east-1.rds.amazonaws.com:3306",
-			AutoReconnect: true,
-			KeepAlive:     true,
-			RetryInterval: time.Second * 5,
-		},
+func main() {
+	// 读取配置文件
+	data, err := os.ReadFile("cfg/server.yaml")
+	if err != nil {
+		log.Fatalf("failed to read config file: %v", err)
+	}
+
+	var cfg Config
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		log.Fatalf("failed to unmarshal config: %v", err)
+	}
+
+	var tunnels []*util.SSHTunnel
+	for _, t := range cfg.Tunnels {
+		// 默认使用 LocalForward，如果需要支持其他模式，可以在这里添加判断逻辑
+		mode := util.ModeLocalForward
+
+		tunnels = append(tunnels, &util.SSHTunnel{
+			SSHUser:       t.SSHUser,
+			SSHKeyPath:    t.SSHKeyPath,
+			SSHHost:       t.SSHHost,
+			LocalAddress:  t.LocalAddress,
+			RemoteAddress: t.RemoteAddress,
+			AutoReconnect: t.AutoReconnect,
+			KeepAlive:     t.KeepAlive,
+			RetryInterval: t.RetryInterval,
+			Mode:          mode,
+		})
 	}
 
 	for _, t := range tunnels {

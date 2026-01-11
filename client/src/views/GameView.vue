@@ -2858,11 +2858,10 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     display: flex;
     align-items: center;
     gap: 8px;
-    background: rgba(0, 0, 0, 0.5);
-    padding: 8px 16px;
-    border-radius: 12px;
-    /* Removed transform: translateY */
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    background: url('@/assets/common/couniu.png') no-repeat center center;
+    background-size: 100% 100%;
+    padding: 15px 30px;
+    /* Removed border-radius and box-shadow to let image dictate shape */
 }
 
 .calc-box {

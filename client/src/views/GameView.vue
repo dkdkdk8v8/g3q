@@ -578,15 +578,20 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
                 startDealingAnimation(true);
             }, 100);
         }
-    } else if (['DEALING', 'SHOWDOWN', 'SETTLEMENT'].includes(newPhase)) { // Changed from SHOWDOWN to DEALING for animation
-        // Prevent flash: initialize visibleCounts to 0 for current players immediately
+    } else if (newPhase === 'DEALING') {
+        // Initial Deal: Reset visibleCounts to 0 to prevent flash and start fresh
         store.players.forEach(p => {
              if (p.hand && p.hand.length > 0) {
                  visibleCounts.value[p.id] = 0;
              }
         });
         setTimeout(() => {
-            startDealingAnimation(true);
+            startDealingAnimation(false); // isSupplemental = false
+        }, 100);
+    } else if (['SHOWDOWN', 'SETTLEMENT'].includes(newPhase)) {
+         // Supplemental Deal: Do NOT reset visibleCounts, just trigger animation for new cards
+        setTimeout(() => {
+            startDealingAnimation(true); // isSupplemental = true
         }, 100);
     } else if (newPhase === 'BANKER_SELECTION_ANIMATION') {
         const candidates = [...store.bankerCandidates];

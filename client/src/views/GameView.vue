@@ -1717,7 +1717,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     display: flex;
     align-items: center;
-    align-self: center; /* Prevent stretching */
+    align-self: center;
+    /* Prevent stretching */
     justify-content: center;
     backdrop-filter: blur(4px);
     margin-bottom: 10px;
@@ -2867,21 +2868,20 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 .calc-box {
     width: 30px;
     height: 30px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 2px solid rgba(255, 255, 255, 0.4);
+    border: 2px solid rgba(197, 160, 123, 1);
     border-radius: 6px;
     display: flex;
     justify-content: center;
     align-items: center;
-    color: white;
+    color: rgb(236, 180, 124);
     font-weight: bold;
-    font-size: 16px;
+    font-size: 18px;
 }
 
 .calc-box.result {
-    background: rgba(251, 191, 36, 0.2);
-    border-color: #fbbf24;
-    color: #fbbf24;
+    font-weight: bold;
+    border-color: rgba(197, 160, 123, 1);
+    color: rgb(236, 180, 124);
 }
 
 .calc-symbol {

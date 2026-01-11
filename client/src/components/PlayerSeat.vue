@@ -1006,6 +1006,7 @@ const displayName = computed(() => {
 
 .hand-card {
     transition: transform 0.2s;
+    flex-shrink: 0;
 }
 
 .hand-result-badge {

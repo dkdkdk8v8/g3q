@@ -139,11 +139,17 @@ const dealToPlayer = async (targets, callback, forceBulkAnimation = false) => {
     }
 
     // 清理
-    await new Promise(r => setTimeout(r, 200));
+    // await new Promise(r => setTimeout(r, 200)); // Remove this delay
+    
+    // 1. 先触发回调，让真实手牌显示出来 (此时真实手牌是不透明度1，背面)
+    if (callback) callback();
+    
+    // 2. 等待一帧，确保 Vue 更新了真实手牌的 DOM
+    await nextTick();
+    
+    // 3. 移除飞行的卡片 (此时真实手牌已经在下面了)
     const removeIds = reactiveCards.map(c => c.id);
     flyingCards.value = flyingCards.value.filter(c => !removeIds.includes(c.id));
-    
-    if (callback) callback();
 };
 
 defineExpose({

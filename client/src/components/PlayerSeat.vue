@@ -21,8 +21,9 @@ import niuBoomImg from '@/assets/niu/niu_boom.png';
 import niuSihuaImg from '@/assets/niu/niu_sihua.png';
 import niuWuhuaImg from '@/assets/niu/niu_wuhua.png';
 import niuWuxiaoImg from '@/assets/niu/niu_wuxiao.png';
+import niuMeiImg from '@/assets/niu/niu_mei.png';
 
-
+const NO_BULL_TYPE_NAME = '没牛'; // New constant
 
 const handTypeImageMap = {
     '牛1': niu1Img,
@@ -39,11 +40,13 @@ const handTypeImageMap = {
     '四花牛': niuSihuaImg,
     '五花牛': niuWuhuaImg,
     '五小牛': niuWuxiaoImg,
-    // '没牛' will be handled as text or fallback
+    [NO_BULL_TYPE_NAME]: niuMeiImg, // Use constant here
 };
 
 const getHandTypeImageUrl = (handTypeName) => {
-    return handTypeImageMap[handTypeName] || null; // Return null if no image found
+    // Normalize handTypeName for lookup
+    const normalizedHandTypeName = handTypeName ? handTypeName.trim() : ''; // Add trim for robustness
+    return handTypeImageMap[normalizedHandTypeName] || null; // Return null if no image found
 };
 
 

@@ -1297,6 +1297,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                             :class="{ 'hand-card': true, 'bull-card-overlay': isBullPart(idx), 'selected': selectedCardIndices.includes(idx) }"
                             :style="{
                                 marginLeft: idx === 0 ? '0' : '1px', /* for myPlayer */
+                                opacity: (visibleCounts[myPlayer.id] !== undefined && idx < visibleCounts[myPlayer.id]) ? 1 : 0
                             }" @click="handleCardClick({ card, index: idx })" />
                     </div>
                     <!-- Hand Result Badge - adapted from PlayerSeat -->

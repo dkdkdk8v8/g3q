@@ -166,7 +166,10 @@ function openBatchAdd() {
 				label: "APP",
 				prop: "app_id",
 				component: {
-					name: "el-input",
+					name: "cl-select",
+					props: {
+						options: options.app_id
+					}
 				},
 				required: true,
 			},

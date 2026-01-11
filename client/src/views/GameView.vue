@@ -804,12 +804,12 @@ const startDealingAnimation = (isSupplemental = false) => {
         const cardTargets = [];
         // Scale adjustment: Opponent seats have transform: scale(0.85) in CSS, so we must match that.
         const scale = t.isMe ? 1 : 0.85;
-        
+
         // Spacing calculation:
         // Me: 60px width + 1px margin = 61px (Scale 1)
         // Opponent: (48px width - 20px overlap) * 0.85 scale = 23.8px
         const spacing = t.isMe ? 61 : 23.8;
-        
+
         const totalWidth = (t.total - 1) * spacing;
         const startX = t.x - (totalWidth / 2);
 
@@ -1373,7 +1373,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                     </div>
 
                     <div class="info-box" :class="{ 'is-observer': myPlayer.isObserver }">
-                        <div class="name van-ellipsis">{{ myPlayer.name.length > 12 ? myPlayer.name.slice(0, 4) + '...' +
+                        <div class="name van-ellipsis">{{ myPlayer.name.length > 12 ? myPlayer.name.slice(0, 4) + '...'
+                            +
                             myPlayer.name.slice(-4) : myPlayer.name }}</div>
                         <div class="coins-pill">
                             <img :src="goldImg" class="coin-icon-seat" />
@@ -1730,7 +1731,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 /* Auto Join Banner Style */
 .auto-join-banner {
     position: absolute;
-    top: 62%;
+    top: 52%;
     left: 50%;
     transform: translate(-50%, -50%);
     background: linear-gradient(135deg, #fcd34d 0%, #d97706 100%);
@@ -2316,7 +2317,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .table-center {
     position: absolute;
-    top: 50%;
+    top: 36%;
     left: 50%;
     transform: translate(-50%, -50%);
     text-align: center;
@@ -2450,7 +2451,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .my-player-info-row {
-    position: relative; /* Anchor for status float */
+    position: relative;
+    /* Anchor for status float */
     display: flex;
 
     justify-content: space-between;
@@ -2807,13 +2809,14 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 .pop-up-enter-active,
 .pop-up-leave-active {
     transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-    transform-origin: center left; /* Origin from the left side (avatar side) */
+    transform-origin: center left;
+    /* Origin from the left side (avatar side) */
 }
 
 .pop-up-enter-from {
     opacity: 0;
     /* Start slightly to the left (towards avatar) and small */
-    transform: translateX(-30px) scale(0.2); 
+    transform: translateX(-30px) scale(0.2);
 }
 
 .pop-up-leave-to {
@@ -3243,74 +3246,80 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     /* Default shadow */
     text-shadow:
         -1px -1px 0 #000,
-         1px -1px 0 #000,
-        -1px  1px 0 #000,
-         1px  1px 0 #000,
-         0 3px 5px rgba(0,0,0,0.5);
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000,
+        0 3px 5px rgba(0, 0, 0, 0.5);
 }
 
 .rob-text {
     color: #fcd34d;
     text-shadow:
         -2px -2px 0 #b45309,
-         2px -2px 0 #b45309,
-        -2px  2px 0 #b45309,
-         2px  2px 0 #b45309,
-         0 3px 5px rgba(0,0,0,0.5);
+        2px -2px 0 #b45309,
+        -2px 2px 0 #b45309,
+        2px 2px 0 #b45309,
+        0 3px 5px rgba(0, 0, 0, 0.5);
     font-size: 18px;
 }
 
 .no-rob-text {
-    color: #fcd34d; /* Updated to match rob-text */
+    color: #fcd34d;
+    /* Updated to match rob-text */
     text-shadow:
         -2px -2px 0 #b45309,
-         2px -2px 0 #b45309,
-        -2px  2px 0 #b45309,
-         2px  2px 0 #b45309,
-         0 3px 5px rgba(0,0,0,0.5);
-    font-size: 18px; /* Updated to match rob-text */
+        2px -2px 0 #b45309,
+        -2px 2px 0 #b45309,
+        2px 2px 0 #b45309,
+        0 3px 5px rgba(0, 0, 0, 0.5);
+    font-size: 18px;
+    /* Updated to match rob-text */
 }
 
 .bet-text {
-    color: #ffffff; /* White */
+    color: #ffffff;
+    /* White */
     text-shadow:
-        -2px -2px 0 #166534, /* Green-800 */
-         2px -2px 0 #166534,
-        -2px  2px 0 #166534,
-         2px  2px 0 #166534,
-         0 3px 5px rgba(0,0,0,0.5);
+        -2px -2px 0 #166534,
+        /* Green-800 */
+        2px -2px 0 #166534,
+        -2px 2px 0 #166534,
+        2px 2px 0 #166534,
+        0 3px 5px rgba(0, 0, 0, 0.5);
     font-size: 18px;
 }
 
 /* Large Size for Self */
 .text-large {
-    font-size: 22px !important; /* Reduced from 26px */
+    font-size: 22px !important;
+    /* Reduced from 26px */
     height: 40px;
     text-shadow:
         -2px -2px 0 #000,
-         2px -2px 0 #000,
-        -2px  2px 0 #000,
-         2px  2px 0 #000,
-         0 4px 8px rgba(0,0,0,0.6);
+        2px -2px 0 #000,
+        -2px 2px 0 #000,
+        2px 2px 0 #000,
+        0 4px 8px rgba(0, 0, 0, 0.6);
 }
 
 .rob-text.text-large,
 .no-rob-text.text-large {
     text-shadow:
         -2px -2px 0 #b45309,
-         2px -2px 0 #b45309,
-        -2px  2px 0 #b45309,
-         2px  2px 0 #b45309,
-         0 4px 8px rgba(0,0,0,0.6);
+        2px -2px 0 #b45309,
+        -2px 2px 0 #b45309,
+        2px 2px 0 #b45309,
+        0 4px 8px rgba(0, 0, 0, 0.6);
 }
 
 .bet-text.text-large {
     text-shadow:
-        -2px -2px 0 #166534, /* Green-800 */
-         2px -2px 0 #166534,
-        -2px  2px 0 #166534,
-         2px  2px 0 #166534,
-         0 4px 8px rgba(0,0,0,0.6);
+        -2px -2px 0 #166534,
+        /* Green-800 */
+        2px -2px 0 #166534,
+        -2px 2px 0 #166534,
+        2px 2px 0 #166534,
+        0 4px 8px rgba(0, 0, 0, 0.6);
 }
 </style>
 

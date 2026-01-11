@@ -579,6 +579,12 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
             }, 100);
         }
     } else if (['DEALING', 'SHOWDOWN', 'SETTLEMENT'].includes(newPhase)) { // Changed from SHOWDOWN to DEALING for animation
+        // Prevent flash: initialize visibleCounts to 0 for current players immediately
+        store.players.forEach(p => {
+             if (p.hand && p.hand.length > 0) {
+                 visibleCounts.value[p.id] = 0;
+             }
+        });
         setTimeout(() => {
             startDealingAnimation(true);
         }, 100);
@@ -725,6 +731,11 @@ const startDealingAnimation = (isSupplemental = false) => {
 
     if (!isSupplemental) {
         visibleCounts.value = {}; // Reset visible counts ONLY if not supplemental
+        store.players.forEach(p => {
+             if (p.hand && p.hand.length > 0) {
+                 visibleCounts.value[p.id] = 0;
+             }
+        });
         dealingCounts.value = {}; // Reset dealing counts too
     }
 
@@ -743,7 +754,12 @@ const startDealingAnimation = (isSupplemental = false) => {
     store.players.forEach(p => {
         if (!p.hand || p.hand.length === 0) return;
 
-        const currentVisible = visibleCounts.value[p.id] || 0;
+        // Ensure visibleCounts is initialized to 0 if missing, so cards are hidden for animation
+        if (visibleCounts.value[p.id] === undefined) {
+            visibleCounts.value[p.id] = 0;
+        }
+
+        const currentVisible = visibleCounts.value[p.id];
         const currentDealing = dealingCounts.value[p.id] || 0; // Cards currently flying
         const total = p.hand.length;
         const toDeal = total - currentVisible - currentDealing; // Subtract flying cards
@@ -1301,7 +1317,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                             :class="{ 'hand-card': true, 'bull-card-overlay': isBullPart(idx), 'selected': selectedCardIndices.includes(idx) }"
                             :style="{
                                 marginLeft: idx === 0 ? '0' : '1px', /* for myPlayer */
-                                opacity: (visibleCounts[myPlayer.id] !== undefined && idx < visibleCounts[myPlayer.id]) ? 1 : 0
+                                opacity: (visibleCounts[myPlayer.id] === undefined || idx < visibleCounts[myPlayer.id]) ? 1 : 0
                             }" @click="handleCardClick({ card, index: idx })" />
                     </div>
                     <!-- Hand Result Badge - adapted from PlayerSeat -->

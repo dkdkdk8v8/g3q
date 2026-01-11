@@ -3272,10 +3272,10 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 .bet-text {
     color: #ffffff; /* White */
     text-shadow:
-        -2px -2px 0 #000000, /* Black */
-         2px -2px 0 #000000,
-        -2px  2px 0 #000000,
-         2px  2px 0 #000000,
+        -2px -2px 0 #166534, /* Green-800 */
+         2px -2px 0 #166534,
+        -2px  2px 0 #166534,
+         2px  2px 0 #166534,
          0 3px 5px rgba(0,0,0,0.5);
     font-size: 18px;
 }
@@ -3304,10 +3304,10 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .bet-text.text-large {
     text-shadow:
-        -2px -2px 0 #000000, /* Black */
-         2px -2px 0 #000000,
-        -2px  2px 0 #000000,
-         2px  2px 0 #000000,
+        -2px -2px 0 #166534, /* Green-800 */
+         2px -2px 0 #166534,
+        -2px  2px 0 #166534,
+         2px  2px 0 #166534,
          0 4px 8px rgba(0,0,0,0.6);
 }
 </style>

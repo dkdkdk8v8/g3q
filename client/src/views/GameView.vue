@@ -2803,18 +2803,19 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 /* Status Float Pop-up Animation */
 .pop-up-enter-active,
 .pop-up-leave-active {
-    transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform-origin: center left; /* Origin from the left side (avatar side) */
 }
 
 .pop-up-enter-from {
     opacity: 0;
-    /* Move from left (approx avatar center) to right */
-    transform: translate(-140px, -50%) scale(0.1); 
+    /* Start slightly to the left (towards avatar) and small */
+    transform: translateX(-30px) scale(0.2); 
 }
 
 .pop-up-leave-to {
     opacity: 0;
-    transform: translateY(-50%) scale(0.5);
+    transform: scale(0.5);
 }
 
 .game-start-icon {
@@ -3253,7 +3254,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
         -2px  2px 0 #b45309,
          2px  2px 0 #b45309,
          0 3px 5px rgba(0,0,0,0.5);
-    font-size: 20px;
+    font-size: 18px;
 }
 
 .no-rob-text {
@@ -3264,7 +3265,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
         -2px  2px 0 #475569,
          2px  2px 0 #475569,
          0 3px 5px rgba(0,0,0,0.5);
-    font-size: 18px;
+    font-size: 16px;
 }
 
 .bet-text {
@@ -3275,37 +3276,37 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
         -2px  2px 0 #15803d,
          2px  2px 0 #15803d,
          0 3px 5px rgba(0,0,0,0.5);
-    font-size: 20px;
+    font-size: 18px;
 }
 
 /* Large Size for Self */
 .text-large {
-    font-size: 36px !important; /* Force override if needed */
-    height: 50px;
+    font-size: 22px !important; /* Reduced from 26px */
+    height: 40px;
     text-shadow:
-        -3px -3px 0 #000,
-         3px -3px 0 #000,
-        -3px  3px 0 #000,
-         3px  3px 0 #000,
-         0 5px 10px rgba(0,0,0,0.6);
+        -2px -2px 0 #000,
+         2px -2px 0 #000,
+        -2px  2px 0 #000,
+         2px  2px 0 #000,
+         0 4px 8px rgba(0,0,0,0.6);
 }
 
 .rob-text.text-large {
     text-shadow:
-        -3px -3px 0 #b45309,
-         3px -3px 0 #b45309,
-        -3px  3px 0 #b45309,
-         3px  3px 0 #b45309,
-         0 5px 10px rgba(0,0,0,0.6);
+        -2px -2px 0 #b45309,
+         2px -2px 0 #b45309,
+        -2px  2px 0 #b45309,
+         2px  2px 0 #b45309,
+         0 4px 8px rgba(0,0,0,0.6);
 }
 
 .bet-text.text-large {
     text-shadow:
-        -3px -3px 0 #15803d,
-         3px -3px 0 #15803d,
-        -3px  3px 0 #15803d,
-         3px  3px 0 #15803d,
-         0 5px 10px rgba(0,0,0,0.6);
+        -2px -2px 0 #15803d,
+         2px -2px 0 #15803d,
+        -2px  2px 0 #15803d,
+         2px  2px 0 #15803d,
+         0 4px 8px rgba(0,0,0,0.6);
 }
 </style>
 

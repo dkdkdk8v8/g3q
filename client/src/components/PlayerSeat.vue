@@ -989,7 +989,7 @@ const displayName = computed(() => {
         -2px  2px 0 #b45309,
          2px  2px 0 #b45309,
          0 3px 5px rgba(0,0,0,0.5);
-    font-size: 20px;
+    font-size: 18px;
 }
 
 /* No Rob */
@@ -1001,7 +1001,7 @@ const displayName = computed(() => {
         -2px  2px 0 #475569,
          2px  2px 0 #475569,
          0 3px 5px rgba(0,0,0,0.5);
-    font-size: 18px;
+    font-size: 16px;
 }
 
 /* Bet */
@@ -1013,38 +1013,38 @@ const displayName = computed(() => {
         -2px  2px 0 #15803d,
          2px  2px 0 #15803d,
          0 3px 5px rgba(0,0,0,0.5);
-    font-size: 20px;
+    font-size: 18px;
 }
 
 /* Large Size for Self */
 .status-text.text-large {
-    font-size: 36px; /* Significantly larger */
-    height: 50px;
+    font-size: 22px; /* Reduced from 26px */
+    height: 40px;
     text-shadow:
-        -3px -3px 0 #000,
-         3px -3px 0 #000,
-        -3px  3px 0 #000,
-         3px  3px 0 #000,
-         0 5px 10px rgba(0,0,0,0.6);
+        -2px -2px 0 #000,
+         2px -2px 0 #000,
+        -2px  2px 0 #000,
+         2px  2px 0 #000,
+         0 4px 8px rgba(0,0,0,0.6);
 }
 
 /* Specific stroke colors for Large size */
 .rob-text.text-large {
     text-shadow:
-        -3px -3px 0 #b45309,
-         3px -3px 0 #b45309,
-        -3px  3px 0 #b45309,
-         3px  3px 0 #b45309,
-         0 5px 10px rgba(0,0,0,0.6);
+        -2px -2px 0 #b45309,
+         2px -2px 0 #b45309,
+        -2px  2px 0 #b45309,
+         2px  2px 0 #b45309,
+         0 4px 8px rgba(0,0,0,0.6);
 }
 
 .bet-text.text-large {
     text-shadow:
-        -3px -3px 0 #15803d,
-         3px -3px 0 #15803d,
-        -3px  3px 0 #15803d,
-         3px  3px 0 #15803d,
-         0 5px 10px rgba(0,0,0,0.6);
+        -2px -2px 0 #15803d,
+         2px -2px 0 #15803d,
+        -2px  2px 0 #15803d,
+         2px  2px 0 #15803d,
+         0 4px 8px rgba(0,0,0,0.6);
 }
 
 .hand-area {
@@ -1158,12 +1158,14 @@ const displayName = computed(() => {
 .pop-up-enter-from {
     opacity: 0;
     /* Start from below (inside avatar) and small */
-    transform: translateX(-50%) translateY(20px) scale(0.2);
+    /* REMOVED translateX(-50%) to fix centering issue */
+    transform: translateY(20px) scale(0.2);
 }
 
 .pop-up-leave-to {
     opacity: 0;
-    transform: translateX(-50%) scale(0.5);
+    /* REMOVED translateX(-50%) to fix centering issue */
+    transform: scale(0.5);
 }
 
 .hand-card.bull-card-overlay {

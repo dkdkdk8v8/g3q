@@ -1013,10 +1013,10 @@ const displayName = computed(() => {
 .bet-text {
     color: #4ade80; /* Green-400 */
     text-shadow:
-        -2px -2px 0 #15803d,
-         2px -2px 0 #15803d,
-        -2px  2px 0 #15803d,
-         2px  2px 0 #15803d,
+        -2px -2px 0 #000000, /* Black for high contrast */
+         2px -2px 0 #000000,
+        -2px  2px 0 #000000,
+         2px  2px 0 #000000,
          0 3px 5px rgba(0,0,0,0.5);
     font-size: 18px;
 }
@@ -1046,10 +1046,10 @@ const displayName = computed(() => {
 
 .bet-text.text-large {
     text-shadow:
-        -2px -2px 0 #15803d,
-         2px -2px 0 #15803d,
-        -2px  2px 0 #15803d,
-         2px  2px 0 #15803d,
+        -2px -2px 0 #000000, /* Black */
+         2px -2px 0 #000000,
+        -2px  2px 0 #000000,
+         2px  2px 0 #000000,
          0 4px 8px rgba(0,0,0,0.6);
 }
 

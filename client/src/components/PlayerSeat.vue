@@ -997,16 +997,16 @@ const displayName = computed(() => {
     font-size: 18px;
 }
 
-/* No Rob */
+/* No Rob - Updated to match Rob style */
 .no-rob-text {
-    color: #e2e8f0; /* Slate-200 */
+    color: #fcd34d; /* Match rob-text */
     text-shadow:
-        -2px -2px 0 #475569,
-         2px -2px 0 #475569,
-        -2px  2px 0 #475569,
-         2px  2px 0 #475569,
+        -2px -2px 0 #b45309,
+         2px -2px 0 #b45309,
+        -2px  2px 0 #b45309,
+         2px  2px 0 #b45309,
          0 3px 5px rgba(0,0,0,0.5);
-    font-size: 16px;
+    font-size: 18px; /* Match rob-text */
 }
 
 /* Bet */
@@ -1034,7 +1034,8 @@ const displayName = computed(() => {
 }
 
 /* Specific stroke colors for Large size */
-.rob-text.text-large {
+.rob-text.text-large,
+.no-rob-text.text-large {
     text-shadow:
         -2px -2px 0 #b45309,
          2px -2px 0 #b45309,

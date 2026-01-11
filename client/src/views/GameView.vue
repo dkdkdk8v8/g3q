@@ -3259,14 +3259,14 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .no-rob-text {
-    color: #e2e8f0;
+    color: #fcd34d; /* Updated to match rob-text */
     text-shadow:
-        -2px -2px 0 #475569,
-         2px -2px 0 #475569,
-        -2px  2px 0 #475569,
-         2px  2px 0 #475569,
+        -2px -2px 0 #b45309,
+         2px -2px 0 #b45309,
+        -2px  2px 0 #b45309,
+         2px  2px 0 #b45309,
          0 3px 5px rgba(0,0,0,0.5);
-    font-size: 16px;
+    font-size: 18px; /* Updated to match rob-text */
 }
 
 .bet-text {
@@ -3292,7 +3292,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
          0 4px 8px rgba(0,0,0,0.6);
 }
 
-.rob-text.text-large {
+.rob-text.text-large,
+.no-rob-text.text-large {
     text-shadow:
         -2px -2px 0 #b45309,
          2px -2px 0 #b45309,

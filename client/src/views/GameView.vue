@@ -55,8 +55,11 @@ import niuBoomImg from '@/assets/niu/niu_boom.png';
 import niuSihuaImg from '@/assets/niu/niu_sihua.png';
 import niuWuhuaImg from '@/assets/niu/niu_wuhua.png';
 import niuWuxiaoImg from '@/assets/niu/niu_wuxiao.png';
+import niuMeiImg from '@/assets/niu/niu_mei.png'; // Add this import
 
 // Multiplier images
+
+const NO_BULL_TYPE_NAME = '没牛'; // New constant
 import beishuBuqiangImg from '@/assets/beishu/beishu_buqiang.png';
 import beishu1Img from '@/assets/beishu/beishu_1.png';
 import beishu2Img from '@/assets/beishu/beishu_2.png';
@@ -82,11 +85,14 @@ const handTypeImageMap = {
     '四花牛': niuSihuaImg, // Added after modifying bullfight.js
     '五花牛': niuWuhuaImg,
     '五小牛': niuWuxiaoImg,
+    [NO_BULL_TYPE_NAME]: niuMeiImg, // Use constant here
     // '没牛' and '未知' will be handled as text or fallback
 };
 
 const getHandTypeImageUrl = (handTypeName) => {
-    return handTypeImageMap[handTypeName] || null; // Return null if no image found
+    // Normalize handTypeName for lookup
+    const normalizedHandTypeName = handTypeName ? handTypeName.trim() : ''; // Add trim for robustness
+    return handTypeImageMap[normalizedHandTypeName] || null; // Return null if no image found
 };
 
 const multiplierImageMap = {
@@ -1263,7 +1269,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                         class="hand-result-badge">
                         <img v-if="getHandTypeImageUrl(myPlayer.handResult.typeName)"
                             :src="getHandTypeImageUrl(myPlayer.handResult.typeName)" alt="手牌类型" class="hand-type-img" />
-                        <template v-else>{{ myPlayer.handResult.typeName }}</template>
+                        <template v-else>TypeName: "{{ myPlayer.handResult.typeName }}" - URL Debug: {{ getHandTypeImageUrl(myPlayer.handResult.typeName) || 'null' }}</template>
                     </div>
                 </div>
             </div>

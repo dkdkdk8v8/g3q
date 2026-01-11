@@ -1365,24 +1365,6 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                                 :src="getSpeech(myPlayer.id).content" class="speech-emoji" />
                         </div>
 
-                        <!-- Status float (rob/bet multiplier status) -->
-                        <div class="status-float">
-                            <Transition name="pop-up">
-                                <div v-if="shouldShowRobMult" class="status-content">
-                                    <span v-if="myPlayer.robMultiplier > 0" class="status-text">抢{{
-                                        myPlayer.robMultiplier
-                                    }}倍</span>
-                                    <span v-else class="status-text">不抢</span>
-                                </div>
-                            </Transition>
-
-                            <Transition name="pop-up">
-                                <div v-if="shouldShowBetMult" class="status-content">
-                                    <span class="status-text">押{{ myPlayer.betMultiplier }}倍</span>
-                                </div>
-                            </Transition>
-                        </div>
-
                         <!-- Banker Badge -->
                         <div v-if="myPlayer.isBanker && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)"
                             class="banker-badge"><img :src="zhuangImg" alt="庄" class="banker-badge-img" /></div>
@@ -1394,6 +1376,24 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                             <img :src="goldImg" class="coin-icon-seat" />
                             {{ formatCoins(myPlayer.coins) }}
                         </div>
+                    </div>
+
+                    <!-- Status float (rob/bet multiplier status) -->
+                    <div class="status-float">
+                        <Transition name="pop-up">
+                            <div v-if="shouldShowRobMult" class="status-content">
+                                <span v-if="myPlayer.robMultiplier > 0" class="status-text">抢{{
+                                    myPlayer.robMultiplier
+                                    }}倍</span>
+                                <span v-else class="status-text">不抢</span>
+                            </div>
+                        </Transition>
+
+                        <Transition name="pop-up">
+                            <div v-if="shouldShowBetMult" class="status-content">
+                                <span class="status-text">押{{ myPlayer.betMultiplier }}倍</span>
+                            </div>
+                        </Transition>
                     </div>
                 </div>
 
@@ -2447,7 +2447,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .my-player-info-row {
-
+    position: relative; /* Anchor for status float */
     display: flex;
 
     justify-content: space-between;
@@ -2612,17 +2612,15 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .my-player-info-row .status-float {
     position: absolute;
-    top: auto;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    right: auto;
+    top: 50%;
+    left: 100%;
+    transform: translateY(-50%);
     z-index: 8;
-    margin-bottom: 5px;
+    margin-left: 12px;
     width: max-content;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
 }
 
 /* Ensure chat button pushes to the right within my-player-info-row */
@@ -2800,6 +2798,23 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 .toast-fade-enter-from,
 .toast-fade-leave-to {
     opacity: 0;
+}
+
+/* Status Float Pop-up Animation */
+.pop-up-enter-active,
+.pop-up-leave-active {
+    transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.pop-up-enter-from {
+    opacity: 0;
+    /* Move from left (approx avatar center) to right */
+    transform: translate(-140px, -50%) scale(0.1); 
+}
+
+.pop-up-leave-to {
+    opacity: 0;
+    transform: translateY(-50%) scale(0.5);
 }
 
 .game-start-icon {

@@ -2860,13 +2860,13 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     gap: 8px;
     background: url('@/assets/common/couniu.png') no-repeat center center;
     background-size: 100% 100%;
-    padding: 15px 30px;
+    padding: 8px 30px;
     /* Removed border-radius and box-shadow to let image dictate shape */
 }
 
 .calc-box {
-    width: 40px;
-    height: 40px;
+    width: 30px;
+    height: 30px;
     background: rgba(255, 255, 255, 0.1);
     border: 2px solid rgba(255, 255, 255, 0.4);
     border-radius: 6px;
@@ -2875,7 +2875,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     align-items: center;
     color: white;
     font-weight: bold;
-    font-size: 20px;
+    font-size: 16px;
 }
 
 .calc-box.result {
@@ -2887,7 +2887,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 .calc-symbol {
     color: white;
     font-weight: bold;
-    font-size: 24px;
+    font-size: 20px;
 }
 
 .showdown-btn {

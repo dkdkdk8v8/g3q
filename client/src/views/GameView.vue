@@ -779,8 +779,12 @@ const startDealingAnimation = (isSupplemental = false) => {
 
     targets.forEach((t, pIndex) => {
         const cardTargets = [];
-        const scale = t.isMe ? 1 : 0.85;
-        const spacing = (t.isMe ? 40 : 20) * scale;
+        // Scale should be 1 because DealingLayer handles the base size (48px for opponent, 60px for me)
+        const scale = 1;
+        // Spacing calculation based on CSS:
+        // Opponent: 48px width - 20px overlap = 28px
+        // Me: 60px width + 1px margin = 61px
+        const spacing = t.isMe ? 61 : 28;
         const totalWidth = (t.total - 1) * spacing;
         const startX = t.x - (totalWidth / 2);
 

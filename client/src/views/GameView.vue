@@ -37,8 +37,10 @@ import randomBankSound from '@/assets/sounds/random_bank.mp3';
 import sendCoinSound from '@/assets/sounds/send_coin.mp3';
 import countdownSound from '@/assets/sounds/countdown.mp3';
 import countdownAlertSound from '@/assets/sounds/countdown_alert.mp3';
+import btnClickSound from '@/assets/sounds/btn_click.mp3';
 import goldImg from '@/assets/common/gold.png';
 import zhuangImg from '@/assets/common/zhuang.png';
+import tanpaiImg from '@/assets/common/tanpai.png';
 
 // Niu hand type images
 import niu1Img from '@/assets/niu/niu_1.png';
@@ -55,8 +57,11 @@ import niuBoomImg from '@/assets/niu/niu_boom.png';
 import niuSihuaImg from '@/assets/niu/niu_sihua.png';
 import niuWuhuaImg from '@/assets/niu/niu_wuhua.png';
 import niuWuxiaoImg from '@/assets/niu/niu_wuxiao.png';
+import niuMeiImg from '@/assets/niu/niu_mei.png'; // Add this import
 
 // Multiplier images
+
+const NO_BULL_TYPE_NAME = '没牛'; // New constant
 import beishuBuqiangImg from '@/assets/beishu/beishu_buqiang.png';
 import beishu1Img from '@/assets/beishu/beishu_1.png';
 import beishu2Img from '@/assets/beishu/beishu_2.png';
@@ -82,11 +87,14 @@ const handTypeImageMap = {
     '四花牛': niuSihuaImg, // Added after modifying bullfight.js
     '五花牛': niuWuhuaImg,
     '五小牛': niuWuxiaoImg,
+    [NO_BULL_TYPE_NAME]: niuMeiImg, // Use constant here
     // '没牛' and '未知' will be handled as text or fallback
 };
 
 const getHandTypeImageUrl = (handTypeName) => {
-    return handTypeImageMap[handTypeName] || null; // Return null if no image found
+    // Normalize handTypeName for lookup
+    const normalizedHandTypeName = handTypeName ? handTypeName.trim() : ''; // Add trim for robustness
+    return handTypeImageMap[normalizedHandTypeName] || null; // Return null if no image found
 };
 
 const multiplierImageMap = {
@@ -106,7 +114,7 @@ const getMultiplierImageUrl = (multiplier) => {
 };
 
 const phraseSounds = [
-    talk0, talk1, talk2, talk3, talk3, talk4, talk5, talk6, talk7, talk8, talk9, talk10
+    talk0, talk1, talk2, talk3, talk4, talk5, talk6, talk7, talk8, talk9, talk10
 ];
 
 const playPhraseSound = (index) => {
@@ -572,9 +580,20 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
                 startDealingAnimation(true);
             }, 100);
         }
-    } else if (['DEALING', 'SHOWDOWN', 'SETTLEMENT'].includes(newPhase)) { // Changed from SHOWDOWN to DEALING for animation
+    } else if (newPhase === 'DEALING') {
+        // Initial Deal: Reset visibleCounts to 0 to prevent flash and start fresh
+        store.players.forEach(p => {
+             if (p.hand && p.hand.length > 0) {
+                 visibleCounts.value[p.id] = 0;
+             }
+        });
         setTimeout(() => {
-            startDealingAnimation(true);
+            startDealingAnimation(false); // isSupplemental = false
+        }, 100);
+    } else if (['SHOWDOWN', 'SETTLEMENT'].includes(newPhase)) {
+         // Supplemental Deal: Do NOT reset visibleCounts, just trigger animation for new cards
+        setTimeout(() => {
+            startDealingAnimation(true); // isSupplemental = true
         }, 100);
     } else if (newPhase === 'BANKER_SELECTION_ANIMATION') {
         const candidates = [...store.bankerCandidates];
@@ -719,6 +738,11 @@ const startDealingAnimation = (isSupplemental = false) => {
 
     if (!isSupplemental) {
         visibleCounts.value = {}; // Reset visible counts ONLY if not supplemental
+        store.players.forEach(p => {
+             if (p.hand && p.hand.length > 0) {
+                 visibleCounts.value[p.id] = 0;
+             }
+        });
         dealingCounts.value = {}; // Reset dealing counts too
     }
 
@@ -737,7 +761,12 @@ const startDealingAnimation = (isSupplemental = false) => {
     store.players.forEach(p => {
         if (!p.hand || p.hand.length === 0) return;
 
-        const currentVisible = visibleCounts.value[p.id] || 0;
+        // Ensure visibleCounts is initialized to 0 if missing, so cards are hidden for animation
+        if (visibleCounts.value[p.id] === undefined) {
+            visibleCounts.value[p.id] = 0;
+        }
+
+        const currentVisible = visibleCounts.value[p.id];
         const currentDealing = dealingCounts.value[p.id] || 0; // Cards currently flying
         const total = p.hand.length;
         const toDeal = total - currentVisible - currentDealing; // Subtract flying cards
@@ -773,8 +802,12 @@ const startDealingAnimation = (isSupplemental = false) => {
 
     targets.forEach((t, pIndex) => {
         const cardTargets = [];
-        const scale = t.isMe ? 1 : 0.85;
-        const spacing = (t.isMe ? 40 : 20) * scale;
+        // Scale should be 1 because DealingLayer handles the base size (48px for opponent, 60px for me)
+        const scale = 1;
+        // Spacing calculation based on CSS:
+        // Opponent: 48px width - 20px overlap = 28px
+        // Me: 60px width + 1px margin = 61px
+        const spacing = t.isMe ? 61 : 28;
         const totalWidth = (t.total - 1) * spacing;
         const startX = t.x - (totalWidth / 2);
 
@@ -1009,10 +1042,12 @@ const formatHistoryTime = (isoString) => {
 };
 
 const onRob = debounce((multiplier) => {
+    new Audio(btnClickSound).play().catch(() => { });
     store.playerRob(multiplier);
 }, 500);
 
 const onBet = debounce((multiplier) => {
+    new Audio(btnClickSound).play().catch(() => { });
     store.playerBet(multiplier);
 }, 500);
 
@@ -1074,6 +1109,41 @@ const networkStatusClass = computed(() => {
 });
 
 // Card Calculation Logic
+// Speech Bubble Helpers
+const getSpeech = (playerId) => playerSpeech.value.get(playerId);
+
+const showSpeechBubble = (playerId) => {
+    const s = getSpeech(playerId);
+    return s && s.content;
+};
+
+const getSpeechBubbleStyle = (playerId) => {
+    const s = getSpeech(playerId);
+    if (s && s.type === 'text' && s.content) {
+        // Assume one Chinese character is roughly 15px wide (per PlayerSeat)
+        const charWidth = 15;
+        const padding = 20; // Total left/right padding (10px + 10px)
+        const textLength = Array.from(s.content).length; // Handle Unicode characters
+        let calculatedWidth = (textLength * charWidth) + padding;
+
+        // Cap the width to prevent it from becoming too wide (max 8 chars per line)
+        const maxWidthCap = (8 * charWidth) + padding;
+        if (calculatedWidth > maxWidthCap) {
+            calculatedWidth = maxWidthCap;
+        }
+
+        // Ensure a minimum width for very short phrases or emojis if needed (not strictly for text)
+        const minWidth = 60; // For small phrases or emojis
+        if (calculatedWidth < minWidth) {
+            calculatedWidth = minWidth;
+        }
+
+        return { width: `${calculatedWidth}px` };
+    }
+    // For emojis, or if no speech content, let CSS handle default sizing or use a default width
+    return { width: 'auto' };
+};
+
 const selectedCardIndices = ref([]);
 
 const handleCardClick = ({ card, index }) => {
@@ -1230,7 +1300,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
         <!-- 自己区域 -->
 
-        <div class="my-area" v-if="myPlayer">
+        <div class="my-area" v-if="myPlayer" :ref="(el) => setSeatRef(el, myPlayer.id)">
             <!-- 1. Calculation Formula Area -->
             <div v-show="store.currentPhase === 'SHOWDOWN' && !myPlayer.isShowHand && store.countdown > 0 && !myPlayer.isObserver"
                 class="showdown-wrapper">
@@ -1256,6 +1326,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                             :class="{ 'hand-card': true, 'bull-card-overlay': isBullPart(idx), 'selected': selectedCardIndices.includes(idx) }"
                             :style="{
                                 marginLeft: idx === 0 ? '0' : '1px', /* for myPlayer */
+                                opacity: (visibleCounts[myPlayer.id] === undefined || idx < visibleCounts[myPlayer.id]) ? 1 : 0
                             }" @click="handleCardClick({ card, index: idx })" />
                     </div>
                     <!-- Hand Result Badge - adapted from PlayerSeat -->
@@ -1263,7 +1334,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                         class="hand-result-badge">
                         <img v-if="getHandTypeImageUrl(myPlayer.handResult.typeName)"
                             :src="getHandTypeImageUrl(myPlayer.handResult.typeName)" alt="手牌类型" class="hand-type-img" />
-                        <template v-else>{{ myPlayer.handResult.typeName }}</template>
+                        <template v-else>TypeName: "{{ myPlayer.handResult.typeName }}" - URL Debug: {{ getHandTypeImageUrl(myPlayer.handResult.typeName) || 'null' }}</template>
                     </div>
                 </div>
             </div>
@@ -1282,6 +1353,14 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                             <van-image :src="myPlayer.avatar" class="avatar"
                                 :class="{ 'avatar-gray': myPlayer.isObserver }" />
                         </div>
+
+                        <!-- Speech Bubble -->
+                        <div v-show="showSpeechBubble(myPlayer.id)" class="speech-bubble" :style="getSpeechBubbleStyle(myPlayer.id)"
+                            :class="{ 'speech-visible': showSpeechBubble(myPlayer.id) }">
+                            <span v-if="getSpeech(myPlayer.id) && getSpeech(myPlayer.id).type === 'text'">{{ getSpeech(myPlayer.id).content }}</span>
+                            <img v-else-if="getSpeech(myPlayer.id) && getSpeech(myPlayer.id).type === 'emoji'" :src="getSpeech(myPlayer.id).content" class="speech-emoji" />
+                        </div>
+
                         <!-- Status float (rob/bet multiplier status) -->
                         <div class="status-float">
                             <Transition name="pop-up">
@@ -1376,8 +1455,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
                 <!-- NEW: Showdown Button -->
                 <div v-show="store.currentPhase === 'SHOWDOWN' && !myPlayer.isShowHand && store.countdown > 0 && !myPlayer.isObserver"
-                    class="game-btn orange showdown-btn" @click="playerShowHandDebounced(myPlayer.id)">
-                    摊牌
+                    class="game-btn showdown-btn" @click="playerShowHandDebounced(myPlayer.id)">
+                    <img :src="tanpaiImg" class="showdown-btn-img" alt="摊牌" />
                 </div>
 
                 <!-- Placeholder -->
@@ -1987,6 +2066,128 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+.speech-bubble {
+    position: absolute;
+    bottom: 100%;
+    /* Position above avatar */
+    left: 50%;
+    /* Center horizontally */
+    transform: translateX(-50%) translateY(-10px);
+    /* Base position for centering and gap */
+    opacity: 0;
+    /* Initially hidden */
+    background: linear-gradient(to bottom, #f9fafb, #e5e7eb);
+    /* Light background */
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    padding: 6px 10px;
+    font-size: 14px;
+    color: #333;
+    white-space: normal;
+    /* Allow normal text wrapping */
+    word-break: break-all;
+    /* Break long words */
+    z-index: 190;
+    /* High z-index to be above cards but below modals */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    display: inline-flex;
+    /* Use inline-flex for adaptive width */
+    align-items: center;
+    /* Vertically center content */
+    justify-content: center;
+    /* Horizontally center content */
+    text-align: center;
+    /* Center text when wrapped */
+    max-width: 170px;
+    /* Max width for longer phrases (e.g., 2 lines of ~10 chars + padding) */
+    /* animation is now controlled by .speech-visible class */
+    transition: opacity 0.3s ease-out;
+    /* Smooth fade in/out */
+}
+
+.speech-bubble.speech-visible {
+    opacity: 1;
+    animation: speechBubbleBounceIn 0.3s ease-out forwards;
+}
+
+.speech-bubble::before {
+    content: '';
+    position: absolute;
+    top: 100%;
+    /* Position at bottom of bubble */
+    left: 50%;
+    transform: translateX(-50%) translateY(-2px);
+    /* Center and overlap slightly */
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 12px solid #e5e7eb;
+    /* Tail color matches bubble */
+    z-index: 51;
+}
+
+.speech-bubble::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    /* Position at bottom of bubble (inner) */
+    left: 50%;
+    transform: translateX(-50%) translateY(-3px);
+    /* Center and overlap slightly */
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    /* Inner tail slightly smaller */
+    border-right: 8px solid transparent;
+    border-top: 10px solid #f9fafb;
+    /* Tail color matches bubble inner */
+    z-index: 52;
+}
+
+.speech-emoji {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+}
+
+@keyframes speechBubbleBounceIn {
+
+    from,
+    20%,
+    40%,
+    60%,
+    80%,
+    to {
+        animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+    }
+
+    from {
+        /* Maintain base transform, animate scale only */
+        transform: translateX(-50%) translateY(-10px) scale3d(0.3, 0.3, 0.3);
+    }
+
+    20% {
+        transform: translateX(-50%) translateY(-10px) scale3d(1.1, 1.1, 1.1);
+    }
+
+    40% {
+        transform: translateX(-50%) translateY(-10px) scale3d(0.9, 0.9, 0.9);
+    }
+
+    60% {
+        transform: translateX(-50%) translateY(-10px) scale3d(1.03, 1.03, 1.03);
+    }
+
+    80% {
+        transform: translateX(-50%) translateY(-10px) scale3d(0.97, 0.97, 0.97);
+    }
+
+    to {
+        transform: translateX(-50%) translateY(-10px) scale3d(1, 1, 1);
     }
 }
 
@@ -2687,21 +2888,21 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .showdown-btn {
     /* Removed absolute positioning */
-    width: 100px;
-    background: linear-gradient(to bottom, #facc15, #d97706);
-    /* Orange gradient */
-    border: 2px solid #fbbf24;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
-    color: white;
-    font-weight: bold;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-    /* Inherit basic game-btn properties if they exist */
+    width: auto;
+    height: auto;
+    background: none;
+    border: none;
+    box-shadow: none;
     display: flex;
-    /* Ensure flex properties for centering text */
     justify-content: center;
     align-items: center;
-    /* transition: transform 0.1s; */
-    /* Already in game-btn */
+    padding: 0;
+}
+
+.showdown-btn-img {
+    height: 60px;
+    width: auto;
+    object-fit: contain;
 }
 
 /* History Modal New Styles */

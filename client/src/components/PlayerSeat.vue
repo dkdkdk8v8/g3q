@@ -348,7 +348,9 @@ const displayName = computed(() => {
             <div v-if="shouldShowBadge" class="hand-result-badge">
                 <img v-if="getHandTypeImageUrl(player.handResult.typeName)"
                     :src="getHandTypeImageUrl(player.handResult.typeName)" alt="手牌类型" class="hand-type-img" />
-                <template v-else>{{ player.handResult.typeName }}</template>
+                <template v-else>
+        TypeName: "{{ player.handResult.typeName }}" - URL Debug: {{ getHandTypeImageUrl(player.handResult.typeName) || 'null' }}
+    </template>
             </div>
         </div>
     </div>
@@ -1004,6 +1006,7 @@ const displayName = computed(() => {
 
 .hand-card {
     transition: transform 0.2s;
+    flex-shrink: 0;
 }
 
 .hand-result-badge {

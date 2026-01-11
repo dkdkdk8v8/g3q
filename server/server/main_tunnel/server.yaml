@@ -1,0 +1,19 @@
+tunnels:
+  - ssh_user: "ec2-user"
+    ssh_key_path: "/Users/admin/Documents/ssh/rsa-3q.pem"
+    ssh_host: "43.198.8.247:22"
+    local_address: "127.0.0.1:16379"
+    remote_address: "127.0.0.1:6379"
+    auto_reconnect: true
+    keep_alive: true
+    retry_interval: 5s
+    mode: "local_forward"
+  - ssh_user: "ec2-user"
+    ssh_key_path: "/Users/admin/Documents/ssh/rsa-3q.pem"
+    ssh_host: "43.198.8.247:22"
+    local_address: "127.0.0.1:13306"
+    remote_address: "database-g3q-instance-1.c1y06igkstt7.ap-east-1.rds.amazonaws.com:3306"
+    auto_reconnect: true
+    keep_alive: true
+    retry_interval: 5s
+    mode: "local_forward"

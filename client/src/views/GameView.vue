@@ -583,15 +583,15 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
     } else if (newPhase === 'DEALING') {
         // Initial Deal: Reset visibleCounts to 0 to prevent flash and start fresh
         store.players.forEach(p => {
-             if (p.hand && p.hand.length > 0) {
-                 visibleCounts.value[p.id] = 0;
-             }
+            if (p.hand && p.hand.length > 0) {
+                visibleCounts.value[p.id] = 0;
+            }
         });
         setTimeout(() => {
             startDealingAnimation(false); // isSupplemental = false
         }, 100);
     } else if (['SHOWDOWN', 'SETTLEMENT'].includes(newPhase)) {
-         // Supplemental Deal: Do NOT reset visibleCounts, just trigger animation for new cards
+        // Supplemental Deal: Do NOT reset visibleCounts, just trigger animation for new cards
         setTimeout(() => {
             startDealingAnimation(true); // isSupplemental = true
         }, 100);
@@ -739,9 +739,9 @@ const startDealingAnimation = (isSupplemental = false) => {
     if (!isSupplemental) {
         visibleCounts.value = {}; // Reset visible counts ONLY if not supplemental
         store.players.forEach(p => {
-             if (p.hand && p.hand.length > 0) {
-                 visibleCounts.value[p.id] = 0;
-             }
+            if (p.hand && p.hand.length > 0) {
+                visibleCounts.value[p.id] = 0;
+            }
         });
         dealingCounts.value = {}; // Reset dealing counts too
     }
@@ -1334,7 +1334,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                         class="hand-result-badge">
                         <img v-if="getHandTypeImageUrl(myPlayer.handResult.typeName)"
                             :src="getHandTypeImageUrl(myPlayer.handResult.typeName)" alt="手牌类型" class="hand-type-img" />
-                        <template v-else>TypeName: "{{ myPlayer.handResult.typeName }}" - URL Debug: {{ getHandTypeImageUrl(myPlayer.handResult.typeName) || 'null' }}</template>
+                        <template v-else>TypeName: "{{ myPlayer.handResult.typeName }}" - URL Debug: {{
+                            getHandTypeImageUrl(myPlayer.handResult.typeName) || 'null' }}</template>
                     </div>
                 </div>
             </div>
@@ -1355,10 +1356,13 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                         </div>
 
                         <!-- Speech Bubble -->
-                        <div v-show="showSpeechBubble(myPlayer.id)" class="speech-bubble" :style="getSpeechBubbleStyle(myPlayer.id)"
+                        <div v-show="showSpeechBubble(myPlayer.id)" class="speech-bubble"
+                            :style="getSpeechBubbleStyle(myPlayer.id)"
                             :class="{ 'speech-visible': showSpeechBubble(myPlayer.id) }">
-                            <span v-if="getSpeech(myPlayer.id) && getSpeech(myPlayer.id).type === 'text'">{{ getSpeech(myPlayer.id).content }}</span>
-                            <img v-else-if="getSpeech(myPlayer.id) && getSpeech(myPlayer.id).type === 'emoji'" :src="getSpeech(myPlayer.id).content" class="speech-emoji" />
+                            <span v-if="getSpeech(myPlayer.id) && getSpeech(myPlayer.id).type === 'text'">{{
+                                getSpeech(myPlayer.id).content }}</span>
+                            <img v-else-if="getSpeech(myPlayer.id) && getSpeech(myPlayer.id).type === 'emoji'"
+                                :src="getSpeech(myPlayer.id).content" class="speech-emoji" />
                         </div>
 
                         <!-- Status float (rob/bet multiplier status) -->
@@ -1367,7 +1371,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                                 <div v-if="shouldShowRobMult" class="status-content">
                                     <span v-if="myPlayer.robMultiplier > 0" class="status-text">抢{{
                                         myPlayer.robMultiplier
-                                    }}倍</span>
+                                        }}倍</span>
                                     <span v-else class="status-text">不抢</span>
                                 </div>
                             </Transition>
@@ -1523,7 +1527,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                                 <div class="hc-bet-amt">
                                     投注: <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{
                                         formatCoins(item.bet)
-                                        }}</span>
+                                    }}</span>
                                 </div>
                             </div>
                         </div>
@@ -1706,13 +1710,14 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     font-size: 16px;
     font-weight: bold;
     background: linear-gradient(to right, rgba(0, 0, 0, 0.7), rgba(17, 24, 39, 0.9), rgba(0, 0, 0, 0.7));
-    padding: 10px 30px;
+    padding: 6px 24px;
     border-radius: 24px;
     border: 1px solid rgba(251, 191, 36, 0.4);
     /* Gold border */
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     display: flex;
     align-items: center;
+    align-self: center; /* Prevent stretching */
     justify-content: center;
     backdrop-filter: blur(4px);
     margin-bottom: 10px;

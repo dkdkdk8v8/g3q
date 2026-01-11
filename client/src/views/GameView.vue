@@ -1371,7 +1371,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                     </div>
 
                     <div class="info-box" :class="{ 'is-observer': myPlayer.isObserver }">
-                        <div class="name van-ellipsis">{{ myPlayer.name }}</div>
+                        <div class="name van-ellipsis">{{ myPlayer.name.length > 12 ? myPlayer.name.slice(0, 4) + '...' +
+                            myPlayer.name.slice(-4) : myPlayer.name }}</div>
                         <div class="coins-pill">
                             <img :src="goldImg" class="coin-icon-seat" />
                             {{ formatCoins(myPlayer.coins) }}

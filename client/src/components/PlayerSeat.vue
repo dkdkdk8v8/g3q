@@ -258,7 +258,12 @@ const slideTransitionName = computed(() => {
 
 const displayName = computed(() => {
     const name = props.player.name || '';
-    if (props.isMe) return name;
+    if (props.isMe) {
+        if (name.length > 12) {
+            return name.slice(0, 4) + '...' + name.slice(-4);
+        }
+        return name;
+    }
     if (name.length <= 1) return name;
     // For names with length >= 2, show first and last char, separated by 6 asterisks
     const first = name.charAt(0);

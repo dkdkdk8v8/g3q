@@ -1371,7 +1371,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                                 <div v-if="shouldShowRobMult" class="status-content">
                                     <span v-if="myPlayer.robMultiplier > 0" class="status-text">抢{{
                                         myPlayer.robMultiplier
-                                        }}倍</span>
+                                    }}倍</span>
                                     <span v-else class="status-text">不抢</span>
                                 </div>
                             </Transition>
@@ -1527,7 +1527,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                                 <div class="hc-bet-amt">
                                     投注: <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{
                                         formatCoins(item.bet)
-                                    }}</span>
+                                        }}</span>
                                 </div>
                             </div>
                         </div>
@@ -2422,7 +2422,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .my-hand-cards-area .hand-card.selected {
-    transform: translateY(-20px);
+    transform: translateY(-10px);
 }
 
 .my-hand-cards-area .hand-result-badge {
@@ -2668,7 +2668,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .multiplier-option-btn {
-    width: 23vw;
+    width: 20vw;
     height: auto;
 }
 
@@ -2904,7 +2904,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .showdown-btn-img {
-    height: 60px;
+    height: 45px;
     width: auto;
     object-fit: contain;
 }

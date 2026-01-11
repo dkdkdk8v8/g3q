@@ -112,7 +112,7 @@ const getMultiplierImageUrl = (multiplier) => {
 };
 
 const phraseSounds = [
-    talk0, talk1, talk2, talk3, talk3, talk4, talk5, talk6, talk7, talk8, talk9, talk10
+    talk0, talk1, talk2, talk3, talk4, talk5, talk6, talk7, talk8, talk9, talk10
 ];
 
 const playPhraseSound = (index) => {
@@ -1080,6 +1080,41 @@ const networkStatusClass = computed(() => {
 });
 
 // Card Calculation Logic
+// Speech Bubble Helpers
+const getSpeech = (playerId) => playerSpeech.value.get(playerId);
+
+const showSpeechBubble = (playerId) => {
+    const s = getSpeech(playerId);
+    return s && s.content;
+};
+
+const getSpeechBubbleStyle = (playerId) => {
+    const s = getSpeech(playerId);
+    if (s && s.type === 'text' && s.content) {
+        // Assume one Chinese character is roughly 15px wide (per PlayerSeat)
+        const charWidth = 15;
+        const padding = 20; // Total left/right padding (10px + 10px)
+        const textLength = Array.from(s.content).length; // Handle Unicode characters
+        let calculatedWidth = (textLength * charWidth) + padding;
+
+        // Cap the width to prevent it from becoming too wide (max 8 chars per line)
+        const maxWidthCap = (8 * charWidth) + padding;
+        if (calculatedWidth > maxWidthCap) {
+            calculatedWidth = maxWidthCap;
+        }
+
+        // Ensure a minimum width for very short phrases or emojis if needed (not strictly for text)
+        const minWidth = 60; // For small phrases or emojis
+        if (calculatedWidth < minWidth) {
+            calculatedWidth = minWidth;
+        }
+
+        return { width: `${calculatedWidth}px` };
+    }
+    // For emojis, or if no speech content, let CSS handle default sizing or use a default width
+    return { width: 'auto' };
+};
+
 const selectedCardIndices = ref([]);
 
 const handleCardClick = ({ card, index }) => {
@@ -1236,7 +1271,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
         <!-- 自己区域 -->
 
-        <div class="my-area" v-if="myPlayer">
+        <div class="my-area" v-if="myPlayer" :ref="(el) => setSeatRef(el, myPlayer.id)">
             <!-- 1. Calculation Formula Area -->
             <div v-show="store.currentPhase === 'SHOWDOWN' && !myPlayer.isShowHand && store.countdown > 0 && !myPlayer.isObserver"
                 class="showdown-wrapper">
@@ -1288,6 +1323,14 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                             <van-image :src="myPlayer.avatar" class="avatar"
                                 :class="{ 'avatar-gray': myPlayer.isObserver }" />
                         </div>
+
+                        <!-- Speech Bubble -->
+                        <div v-show="showSpeechBubble(myPlayer.id)" class="speech-bubble" :style="getSpeechBubbleStyle(myPlayer.id)"
+                            :class="{ 'speech-visible': showSpeechBubble(myPlayer.id) }">
+                            <span v-if="getSpeech(myPlayer.id) && getSpeech(myPlayer.id).type === 'text'">{{ getSpeech(myPlayer.id).content }}</span>
+                            <img v-else-if="getSpeech(myPlayer.id) && getSpeech(myPlayer.id).type === 'emoji'" :src="getSpeech(myPlayer.id).content" class="speech-emoji" />
+                        </div>
+
                         <!-- Status float (rob/bet multiplier status) -->
                         <div class="status-float">
                             <Transition name="pop-up">
@@ -1993,6 +2036,128 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+.speech-bubble {
+    position: absolute;
+    bottom: 100%;
+    /* Position above avatar */
+    left: 50%;
+    /* Center horizontally */
+    transform: translateX(-50%) translateY(-10px);
+    /* Base position for centering and gap */
+    opacity: 0;
+    /* Initially hidden */
+    background: linear-gradient(to bottom, #f9fafb, #e5e7eb);
+    /* Light background */
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    padding: 6px 10px;
+    font-size: 14px;
+    color: #333;
+    white-space: normal;
+    /* Allow normal text wrapping */
+    word-break: break-all;
+    /* Break long words */
+    z-index: 190;
+    /* High z-index to be above cards but below modals */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    display: inline-flex;
+    /* Use inline-flex for adaptive width */
+    align-items: center;
+    /* Vertically center content */
+    justify-content: center;
+    /* Horizontally center content */
+    text-align: center;
+    /* Center text when wrapped */
+    max-width: 170px;
+    /* Max width for longer phrases (e.g., 2 lines of ~10 chars + padding) */
+    /* animation is now controlled by .speech-visible class */
+    transition: opacity 0.3s ease-out;
+    /* Smooth fade in/out */
+}
+
+.speech-bubble.speech-visible {
+    opacity: 1;
+    animation: speechBubbleBounceIn 0.3s ease-out forwards;
+}
+
+.speech-bubble::before {
+    content: '';
+    position: absolute;
+    top: 100%;
+    /* Position at bottom of bubble */
+    left: 50%;
+    transform: translateX(-50%) translateY(-2px);
+    /* Center and overlap slightly */
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 12px solid #e5e7eb;
+    /* Tail color matches bubble */
+    z-index: 51;
+}
+
+.speech-bubble::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    /* Position at bottom of bubble (inner) */
+    left: 50%;
+    transform: translateX(-50%) translateY(-3px);
+    /* Center and overlap slightly */
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    /* Inner tail slightly smaller */
+    border-right: 8px solid transparent;
+    border-top: 10px solid #f9fafb;
+    /* Tail color matches bubble inner */
+    z-index: 52;
+}
+
+.speech-emoji {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+}
+
+@keyframes speechBubbleBounceIn {
+
+    from,
+    20%,
+    40%,
+    60%,
+    80%,
+    to {
+        animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+    }
+
+    from {
+        /* Maintain base transform, animate scale only */
+        transform: translateX(-50%) translateY(-10px) scale3d(0.3, 0.3, 0.3);
+    }
+
+    20% {
+        transform: translateX(-50%) translateY(-10px) scale3d(1.1, 1.1, 1.1);
+    }
+
+    40% {
+        transform: translateX(-50%) translateY(-10px) scale3d(0.9, 0.9, 0.9);
+    }
+
+    60% {
+        transform: translateX(-50%) translateY(-10px) scale3d(1.03, 1.03, 1.03);
+    }
+
+    80% {
+        transform: translateX(-50%) translateY(-10px) scale3d(0.97, 0.97, 0.97);
+    }
+
+    to {
+        transform: translateX(-50%) translateY(-10px) scale3d(1, 1, 1);
     }
 }
 

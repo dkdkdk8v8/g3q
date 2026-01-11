@@ -1382,16 +1382,16 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                     <div class="status-float">
                         <Transition name="pop-up">
                             <div v-if="shouldShowRobMult" class="status-content">
-                                <span v-if="myPlayer.robMultiplier > 0" class="status-text">抢{{
+                                <span v-if="myPlayer.robMultiplier > 0" class="status-text rob-text text-large">抢{{
                                     myPlayer.robMultiplier
                                     }}倍</span>
-                                <span v-else class="status-text">不抢</span>
+                                <span v-else class="status-text no-rob-text text-large">不抢</span>
                             </div>
                         </Transition>
 
                         <Transition name="pop-up">
                             <div v-if="shouldShowBetMult" class="status-content">
-                                <span class="status-text">押{{ myPlayer.betMultiplier }}倍</span>
+                                <span class="status-text bet-text text-large">押{{ myPlayer.betMultiplier }}倍</span>
                             </div>
                         </Transition>
                     </div>
@@ -3224,6 +3224,88 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     display: flex;
     justify-content: center;
     padding: 10px;
+}
+
+/* --- Status Text Styles (Duplicated from PlayerSeat for myPlayer) --- */
+.status-text {
+    font-family: "Microsoft YaHei", "Heiti SC", sans-serif;
+    font-weight: 900;
+    font-style: italic;
+    padding: 2px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    /* Default shadow */
+    text-shadow:
+        -1px -1px 0 #000,
+         1px -1px 0 #000,
+        -1px  1px 0 #000,
+         1px  1px 0 #000,
+         0 3px 5px rgba(0,0,0,0.5);
+}
+
+.rob-text {
+    color: #fcd34d;
+    text-shadow:
+        -2px -2px 0 #b45309,
+         2px -2px 0 #b45309,
+        -2px  2px 0 #b45309,
+         2px  2px 0 #b45309,
+         0 3px 5px rgba(0,0,0,0.5);
+    font-size: 20px;
+}
+
+.no-rob-text {
+    color: #e2e8f0;
+    text-shadow:
+        -2px -2px 0 #475569,
+         2px -2px 0 #475569,
+        -2px  2px 0 #475569,
+         2px  2px 0 #475569,
+         0 3px 5px rgba(0,0,0,0.5);
+    font-size: 18px;
+}
+
+.bet-text {
+    color: #4ade80;
+    text-shadow:
+        -2px -2px 0 #15803d,
+         2px -2px 0 #15803d,
+        -2px  2px 0 #15803d,
+         2px  2px 0 #15803d,
+         0 3px 5px rgba(0,0,0,0.5);
+    font-size: 20px;
+}
+
+/* Large Size for Self */
+.text-large {
+    font-size: 36px !important; /* Force override if needed */
+    height: 50px;
+    text-shadow:
+        -3px -3px 0 #000,
+         3px -3px 0 #000,
+        -3px  3px 0 #000,
+         3px  3px 0 #000,
+         0 5px 10px rgba(0,0,0,0.6);
+}
+
+.rob-text.text-large {
+    text-shadow:
+        -3px -3px 0 #b45309,
+         3px -3px 0 #b45309,
+        -3px  3px 0 #b45309,
+         3px  3px 0 #b45309,
+         0 5px 10px rgba(0,0,0,0.6);
+}
+
+.bet-text.text-large {
+    text-shadow:
+        -3px -3px 0 #15803d,
+         3px -3px 0 #15803d,
+        -3px  3px 0 #15803d,
+         3px  3px 0 #15803d,
+         0 5px 10px rgba(0,0,0,0.6);
 }
 </style>
 

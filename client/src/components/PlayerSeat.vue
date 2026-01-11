@@ -290,18 +290,18 @@ const displayName = computed(() => {
                 </div>
 
                 <!-- 状态浮层，移到 avatar-area 以便相对于头像定位 -->
-                <div class="status-float" v-if="!['IDLE', 'READY_COUNTDOWN'].includes(store.currentPhase)">
+                <div class="status-float" :class="{ 'is-me': isMe }" v-if="!['IDLE', 'READY_COUNTDOWN'].includes(store.currentPhase)">
                     <Transition :name="slideTransitionName">
                         <div v-if="shouldShowRobMult" class="status-content">
-                            <span v-if="player.robMultiplier > 0" class="status-text">抢{{ player.robMultiplier
+                            <span v-if="player.robMultiplier > 0" class="status-text rob-text" :class="{ 'text-large': isMe }">抢{{ player.robMultiplier
                                 }}倍</span>
-                            <span v-else class="status-text">不抢</span>
+                            <span v-else class="status-text no-rob-text" :class="{ 'text-large': isMe }">不抢</span>
                         </div>
                     </Transition>
 
                     <Transition :name="slideTransitionName">
                         <div v-if="shouldShowBetMult" class="status-content">
-                            <span class="status-text">押{{ player.betMultiplier }}倍</span>
+                            <span class="status-text bet-text" :class="{ 'text-large': isMe }">押{{ player.betMultiplier }}倍</span>
                         </div>
                     </Transition>
                 </div>
@@ -915,19 +915,22 @@ const displayName = computed(() => {
 .status-float {
     position: absolute;
     top: auto;
-    bottom: 100%;
-    /* Place above the avatar wrapper */
+    bottom: 90%; /* Closer to avatar for opponents (was 100%) */
     left: 50%;
     transform: translateX(-50%);
-    /* Center horizontally relative to avatar wrapper */
     right: auto;
-    z-index: 8;
-    margin-bottom: 5px;
-    /* Spacing above avatar */
+    z-index: 150; /* Ensure it is above cards and other elements */
+    margin-bottom: 0px;
     width: max-content;
     display: flex;
     flex-direction: column;
     align-items: center;
+    pointer-events: none; /* Let clicks pass through */
+}
+
+.status-float.is-me {
+    bottom: 100%; /* Higher for self */
+    margin-bottom: 10px; /* Extra spacing for self */
 }
 
 /* 右侧玩家的状态浮层显示在左侧 - Removed as overridden by generic opponent rule */
@@ -958,18 +961,90 @@ const displayName = computed(() => {
 }
 
 .status-text {
-    font-size: 16px;
-    font-weight: bold;
-    color: white;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
-    white-space: nowrap;
-    /* Prevent text from wrapping */
-    height: 45px;
-    /* Adjust height to give space for larger text */
+    font-family: "Microsoft YaHei", "Heiti SC", sans-serif;
+    font-weight: 900;
+    font-style: italic;
+    padding: 2px 8px;
     display: flex;
-    /* Use flexbox to vertically center the text */
     align-items: center;
-    /* Vertically center the text */
+    justify-content: center;
+    white-space: nowrap;
+    height: 40px; /* Reduced fixed height */
+    
+    /* Default shadow for visibility */
+    text-shadow:
+        -1px -1px 0 #000,
+         1px -1px 0 #000,
+        -1px  1px 0 #000,
+         1px  1px 0 #000,
+         0 3px 5px rgba(0,0,0,0.5);
+}
+
+/* Rob (Positive) */
+.rob-text {
+    color: #fcd34d; /* Amber-300 */
+    text-shadow:
+        -2px -2px 0 #b45309,
+         2px -2px 0 #b45309,
+        -2px  2px 0 #b45309,
+         2px  2px 0 #b45309,
+         0 3px 5px rgba(0,0,0,0.5);
+    font-size: 20px;
+}
+
+/* No Rob */
+.no-rob-text {
+    color: #e2e8f0; /* Slate-200 */
+    text-shadow:
+        -2px -2px 0 #475569,
+         2px -2px 0 #475569,
+        -2px  2px 0 #475569,
+         2px  2px 0 #475569,
+         0 3px 5px rgba(0,0,0,0.5);
+    font-size: 18px;
+}
+
+/* Bet */
+.bet-text {
+    color: #4ade80; /* Green-400 */
+    text-shadow:
+        -2px -2px 0 #15803d,
+         2px -2px 0 #15803d,
+        -2px  2px 0 #15803d,
+         2px  2px 0 #15803d,
+         0 3px 5px rgba(0,0,0,0.5);
+    font-size: 20px;
+}
+
+/* Large Size for Self */
+.status-text.text-large {
+    font-size: 36px; /* Significantly larger */
+    height: 50px;
+    text-shadow:
+        -3px -3px 0 #000,
+         3px -3px 0 #000,
+        -3px  3px 0 #000,
+         3px  3px 0 #000,
+         0 5px 10px rgba(0,0,0,0.6);
+}
+
+/* Specific stroke colors for Large size */
+.rob-text.text-large {
+    text-shadow:
+        -3px -3px 0 #b45309,
+         3px -3px 0 #b45309,
+        -3px  3px 0 #b45309,
+         3px  3px 0 #b45309,
+         0 5px 10px rgba(0,0,0,0.6);
+}
+
+.bet-text.text-large {
+    text-shadow:
+        -3px -3px 0 #15803d,
+         3px -3px 0 #15803d,
+        -3px  3px 0 #15803d,
+         3px  3px 0 #15803d,
+         0 5px 10px rgba(0,0,0,0.6);
 }
 
 .hand-area {

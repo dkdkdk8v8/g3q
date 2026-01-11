@@ -37,8 +37,10 @@ import randomBankSound from '@/assets/sounds/random_bank.mp3';
 import sendCoinSound from '@/assets/sounds/send_coin.mp3';
 import countdownSound from '@/assets/sounds/countdown.mp3';
 import countdownAlertSound from '@/assets/sounds/countdown_alert.mp3';
+import btnClickSound from '@/assets/sounds/btn_click.mp3';
 import goldImg from '@/assets/common/gold.png';
 import zhuangImg from '@/assets/common/zhuang.png';
+import tanpaiImg from '@/assets/common/tanpai.png';
 
 // Niu hand type images
 import niu1Img from '@/assets/niu/niu_1.png';
@@ -1040,10 +1042,12 @@ const formatHistoryTime = (isoString) => {
 };
 
 const onRob = debounce((multiplier) => {
+    new Audio(btnClickSound).play().catch(() => { });
     store.playerRob(multiplier);
 }, 500);
 
 const onBet = debounce((multiplier) => {
+    new Audio(btnClickSound).play().catch(() => { });
     store.playerBet(multiplier);
 }, 500);
 
@@ -1451,8 +1455,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
                 <!-- NEW: Showdown Button -->
                 <div v-show="store.currentPhase === 'SHOWDOWN' && !myPlayer.isShowHand && store.countdown > 0 && !myPlayer.isObserver"
-                    class="game-btn orange showdown-btn" @click="playerShowHandDebounced(myPlayer.id)">
-                    摊牌
+                    class="game-btn showdown-btn" @click="playerShowHandDebounced(myPlayer.id)">
+                    <img :src="tanpaiImg" class="showdown-btn-img" alt="摊牌" />
                 </div>
 
                 <!-- Placeholder -->
@@ -2884,21 +2888,21 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .showdown-btn {
     /* Removed absolute positioning */
-    width: 100px;
-    background: linear-gradient(to bottom, #facc15, #d97706);
-    /* Orange gradient */
-    border: 2px solid #fbbf24;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
-    color: white;
-    font-weight: bold;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-    /* Inherit basic game-btn properties if they exist */
+    width: auto;
+    height: auto;
+    background: none;
+    border: none;
+    box-shadow: none;
     display: flex;
-    /* Ensure flex properties for centering text */
     justify-content: center;
     align-items: center;
-    /* transition: transform 0.1s; */
-    /* Already in game-btn */
+    padding: 0;
+}
+
+.showdown-btn-img {
+    height: 60px;
+    width: auto;
+    object-fit: contain;
 }
 
 /* History Modal New Styles */

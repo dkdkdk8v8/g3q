@@ -21,6 +21,21 @@
             </div>
         </el-card>
 
+        <el-card shadow="never" class="chart-card mb-10">
+            <el-row :gutter="20">
+                <el-col :span="12">
+                    <div class="chart-box">
+                        <v-chart :option="pieOption" autoresize />
+                    </div>
+                </el-col>
+                <el-col :span="12">
+                    <div class="chart-box">
+                        <v-chart :option="barRankOption" autoresize />
+                    </div>
+                </el-col>
+            </el-row>
+        </el-card>
+
         <el-card shadow="never" class="chart-card">
             <div class="chart-box" ref="chartBoxRef">
                 <v-chart ref="chartRef" :option="chartOption" autoresize />
@@ -32,7 +47,7 @@
 <script lang="ts" setup name="sta-result-qznn">
 import { useCool } from "/@/cool";
 import { useDict } from '/$/dict';
-import { reactive, ref, onMounted, onUnmounted, nextTick } from "vue";
+import { reactive, ref, onMounted, onUnmounted, nextTick, watch } from "vue";
 import dayjs from "dayjs";
 
 const { service } = useCool();
@@ -49,6 +64,9 @@ const userType = ref("all");
 const chartRef = ref();
 const chartBoxRef = ref();
 const chartOption = ref({});
+const pieOption = ref({});
+const barRankOption = ref({});
+const isDark = ref(false);
 
 // 牌型定义
 const cardTypeMap: Record<string, string> = {
@@ -86,20 +104,20 @@ const cardTypeKeys = [
 
 // 颜色配置
 const colors = [
-    '#999999', // 无牛
-    '#5470c6', // 牛一
-    '#91cc75', // 牛二
-    '#fac858', // 牛三
-    '#ee6666', // 牛四
-    '#73c0de', // 牛五
-    '#3ba272', // 牛六
-    '#fc8452', // 牛七
-    '#9a60b4', // 牛八
-    '#ea7ccc', // 牛九
-    '#2f4554', // 牛牛
-    '#61a0a8', // 五花牛
-    '#d48265', // 炸弹牛
-    '#749f83'  // 五小牛
+    '#909399', // 无牛
+    '#3aa1ff', // 牛一
+    '#36cbcb', // 牛二
+    '#4ecb73', // 牛三
+    '#fbd437', // 牛四
+    '#f2637b', // 牛五
+    '#975fe5', // 牛六
+    '#5254cf', // 牛七
+    '#435188', // 牛八
+    '#faad14', // 牛九
+    '#f5222d', // 牛牛
+    '#fa541c', // 五花牛
+    '#722ed1', // 炸弹牛
+    '#13c2c2'  // 五小牛
 ];
 
 let rawDataCache: number[][] = [];
@@ -136,6 +154,7 @@ async function refresh() {
         }
 
         updateChart();
+        updatePieChart();
     } catch (e) {
         console.error(e);
     }
@@ -143,6 +162,11 @@ async function refresh() {
 
 function updateChart() {
     if (!rawDataCache.length) return;
+
+    const el = document.documentElement;
+    const getVar = (name: string) => getComputedStyle(el).getPropertyValue(name).trim();
+    const textColor = getVar('--el-text-color-primary');
+    const borderColor = getVar('--el-border-color-lighter');
 
     const grid = {
         left: 50,
@@ -220,8 +244,12 @@ function updateChart() {
         color: colors,
         tooltip: {
             trigger: 'axis',
+            confine: true,
+            backgroundColor: isDark.value ? 'rgba(0,0,0,0.7)' : '#fff',
+            borderColor: borderColor,
+            textStyle: { color: isDark.value ? '#fff' : '#333' },
             axisPointer: {
-                type: 'shadow'
+                type: 'shadow',
             },
             formatter: (params: any[]) => {
                 let res = `${params[0].axisValue}点<br/>`;
@@ -237,13 +265,15 @@ function updateChart() {
         legend: {
             data: cardTypeKeys.map(k => cardTypeMap[k]),
             type: 'scroll',
-            bottom: 0
+            bottom: 0,
+            textStyle: { color: textColor }
         },
         grid,
         yAxis: {
             type: 'value',
             axisLabel: {
-                formatter: (value: number) => (value * 100).toFixed(0) + '%'
+                formatter: (value: number) => (value * 100).toFixed(0) + '%',
+                color: textColor
             },
             max: 1
         },
@@ -251,7 +281,8 @@ function updateChart() {
             type: 'category',
             data: Array.from({ length: 24 }, (_, i) => i + ''),
             axisLabel: {
-                interval: 0
+                interval: 0,
+                color: textColor
             }
         },
         series,
@@ -261,10 +292,127 @@ function updateChart() {
     };
 }
 
+function updatePieChart() {
+    if (!rawDataCache.length) return;
+
+    const el = document.documentElement;
+    const getVar = (name: string) => getComputedStyle(el).getPropertyValue(name).trim();
+    const textColor = getVar('--el-text-color-primary');
+    const borderColor = getVar('--el-border-color-lighter');
+
+    const pieData = cardTypeKeys.map((key, i) => {
+        const total = rawDataCache[i].reduce((sum, val) => sum + val, 0);
+        return {
+            name: cardTypeMap[key],
+            value: total,
+            itemStyle: {
+                color: colors[i]
+            }
+        };
+    });
+
+    const grandTotal = pieData.reduce((sum, item) => sum + item.value, 0);
+    const sortedData = [...pieData].sort((a, b) => b.value - a.value);
+
+    pieOption.value = {
+        title: {
+            text: '牌型分布',
+            left: 'center',
+            textStyle: { color: textColor }
+        },
+        tooltip: {
+            trigger: 'item',
+            confine: true
+        },
+        legend: {
+            orient: 'vertical',
+            left: 'left',
+            textStyle: { color: textColor }
+        },
+        series: [
+            {
+                name: '牌型',
+                type: 'pie',
+                radius: '50%',
+                data: pieData,
+                label: {
+                    show: false,
+                    formatter: '{b}: {d}%'
+                },
+                emphasis: {
+                    itemStyle: {
+                        shadowBlur: 10,
+                        shadowOffsetX: 0,
+                        shadowColor: 'rgba(0, 0, 0, 0.5)'
+                    }
+                },
+            }
+        ]
+    };
+
+    barRankOption.value = {
+        title: {
+            text: '牌型排行',
+            left: 'center',
+            textStyle: { color: textColor }
+        },
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'shadow' },
+            confine: true,
+            backgroundColor: isDark.value ? 'rgba(0,0,0,0.7)' : '#fff',
+            borderColor: borderColor,
+            textStyle: { color: isDark.value ? '#fff' : '#333' },
+        },
+        grid: {
+            left: '15%',
+            right: '15%',
+            top: 40,
+            bottom: 20
+        },
+        xAxis: {
+            type: 'value',
+            show: false,
+        },
+        yAxis: {
+            type: 'category',
+            data: sortedData.map(i => i.name),
+            inverse: true,
+            axisLabel: { color: textColor },
+            axisLine: { show: false },
+            axisTick: { show: false },
+        },
+        series: [
+            {
+                type: 'bar',
+                data: sortedData,
+                label: {
+                    show: true,
+                    position: 'right',
+                    formatter: (params: any) => {
+                        const percent = grandTotal > 0 ? ((params.value / grandTotal) * 100).toFixed(2) + '%' : '0.00%';
+                        return `${params.value} (${percent})`;
+                    },
+                    color: textColor
+                },
+                barWidth: '60%'
+            }
+        ]
+    };
+}
+
 let resizeObserver: ResizeObserver | null = null;
+let observer: MutationObserver | null = null;
 
 onMounted(() => {
     refresh();
+
+    isDark.value = document.documentElement.classList.contains('dark');
+    observer = new MutationObserver(() => {
+        isDark.value = document.documentElement.classList.contains('dark');
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
     if (chartBoxRef.value) {
         resizeObserver = new ResizeObserver(() => {
             updateChart();
@@ -277,6 +425,14 @@ onUnmounted(() => {
     if (resizeObserver) {
         resizeObserver.disconnect();
     }
+    if (observer) {
+        observer.disconnect();
+    }
+});
+
+watch(isDark, () => {
+    updateChart();
+    updatePieChart();
 });
 </script>
 
@@ -286,8 +442,6 @@ onUnmounted(() => {
     height: 100%;
     overflow-y: auto;
     box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
 
     .filter-row {
         display: flex;
@@ -312,20 +466,14 @@ onUnmounted(() => {
     }
 
     .chart-card {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-
         :deep(.el-card__body) {
-            height: 100%;
             box-sizing: border-box;
         }
     }
 
     .chart-box {
         width: 100%;
-        height: 100%;
-        min-height: 500px;
+        height: 500px;
     }
 }
 </style>

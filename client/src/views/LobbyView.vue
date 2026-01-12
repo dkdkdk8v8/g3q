@@ -1744,15 +1744,17 @@ const goBack = () => {
 }
 
 .room-info-col-horiz {
+    display: flex;
     flex-direction: column;
     justify-content: center;
-    align-items: flex-end;
+    align-items: center;
     /* Ensure enough space for text */
     gap: 4px;
-    margin-right: 50px;
+    margin-right: 30px;
 }
 
 .limit-info-text {
+    padding: 2px 20px;
     display: flex;
     align-items: center;
     justify-content: center;

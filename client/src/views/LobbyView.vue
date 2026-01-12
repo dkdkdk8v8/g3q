@@ -565,17 +565,21 @@ const goBack = () => {
 
 .info-details {
 
-    display: flex;
+
 
     flex-direction: column;
 
+
+
     justify-content: center;
 
-    min-width: 0;
 
-    flex: 1;
+
+
 
     gap: 2px;
+
+
 
 }
 
@@ -607,45 +611,97 @@ const goBack = () => {
 
 .coin-row {
 
-    display: flex;
+
+
+    display: inline-flex;
+
+
 
     align-items: center;
 
+
+
     /* Added background for coin row */
+
+
 
     background: rgba(0, 0, 0, 0.6);
 
+
+
     border: 1px solid rgba(255, 255, 255, 0.2);
+
+
 
     border-radius: 12px;
 
+
+
+    padding: 2px 6px;
+    /* Added padding */
+
+
+
+    gap: 4px;
+    /* Added gap for spacing between items */
+
+
+
 }
+
+
+
+
 
 
 
 .coin-icon {
 
+
+
     width: 16px;
+
+
 
     height: 16px;
 
-    margin-right: 4px;
+
+
+    /* Removed margin-right as gap handles spacing */
+
+
 
 }
 
 
 
+
+
+
+
 .coin-val {
+
+
 
     font-size: 12px;
 
+
+
     color: #FFD700;
+
+
 
     font-weight: bold;
 
-    margin-right: 6px;
+
+
+    /* Removed margin-right as gap handles spacing */
+
+
 
     white-space: nowrap;
+
+
 
 }
 

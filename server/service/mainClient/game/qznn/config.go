@@ -7,7 +7,9 @@ var Configs = []LobbyConfig{
 	{Level: 1, Name: "初级场", MinBalance: 600, BaseBet: 100, BetMult: []int64{1, 5, 10, 15, 20}, BankerMult: []int64{1, 2, 3, 4}},
 	{Level: 2, Name: "中级场", MinBalance: 3000, BaseBet: 500, BetMult: []int64{1, 5, 10, 15, 20}, BankerMult: []int64{1, 2, 3, 4}},
 	{Level: 3, Name: "高级场", MinBalance: 6000, BaseBet: 1000, BetMult: []int64{1, 5, 10, 15, 20}, BankerMult: []int64{1, 2, 3, 4}},
-	{Level: 4, Name: "豪华场", MinBalance: 1200, BaseBet: 2000, BetMult: []int64{1, 5, 10, 15, 20}, BankerMult: []int64{1, 2, 3, 4}},
+	{Level: 4, Name: "豪华场", MinBalance: 30000, BaseBet: 5000, BetMult: []int64{1, 5, 10, 15, 20}, BankerMult: []int64{1, 2, 3, 4}},
+	{Level: 5, Name: "大师场", MinBalance: 60000, BaseBet: 10000, BetMult: []int64{1, 5, 10, 15, 20}, BankerMult: []int64{1, 2, 3, 4}},
+	{Level: 6, Name: "豪华场", MinBalance: 180000, BaseBet: 30000, BetMult: []int64{1, 5, 10, 15, 20}, BankerMult: []int64{1, 2, 3, 4}},
 }
 
 func GetConfig(level int) *LobbyConfig {

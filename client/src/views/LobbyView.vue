@@ -256,10 +256,10 @@ const goBack = () => {
             <img :src="currentMode === 2 ? tabSiSel : tabSi" class="tab-btn" :class="{ 'active': currentMode === 2 }"
                 @click="setMode(2)" />
 
-        </div>
+            <!-- Divider Line -->
+            <img :src="tabLineImg" class="lobby-divider" />
 
-        <!-- Divider Line -->
-        <img :src="tabLineImg" class="lobby-divider" />
+        </div>
 
         <!-- 4. Room Grid -->
         <div class="rooms-scroll-area">
@@ -458,6 +458,7 @@ const goBack = () => {
     /* Stretch bg to fit the container size perfectly */
     background-repeat: no-repeat;
     background-position: center;
+    position: relative;
 }
 
 .tab-btn {
@@ -550,15 +551,13 @@ const goBack = () => {
 
 
 .lobby-divider {
-    width: 100%;
-    height: auto;
-    /* Allow height to be defined by image aspect ratio or fix it if needed */
-    max-height: 20px;
-    /* Cap height if the image is large */
+    width: 100vw;
+    height: 8px;
     object-fit: fill;
-    /* Stretch to fill */
-    margin-bottom: 10px;
-    flex-shrink: 0;
+    position: absolute;
+    bottom: -7.5px;
+    left: 50%;
+    transform: translateX(-50%);
 }
 
 /* 4. Room Grid */

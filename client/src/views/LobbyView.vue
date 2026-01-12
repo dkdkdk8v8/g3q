@@ -109,6 +109,15 @@ const enterGame = debounce(async (level) => {
     }
 }, 500);
 
+const roomTextColors = [
+    "rgb(150, 250, 230)", // Tiyan
+    "rgb(148, 230, 253)", // Chuji
+    "rgb(122, 188, 255)", // Zhongji (corrected 257 -> 255)
+    "rgb(181, 169, 247)", // Gaoji
+    "rgb(238, 171, 237)", // Dashi
+    "rgb(240, 173, 222)"  // Dianfeng
+];
+
 const rooms = computed(() => {
     const configs = userStore.roomConfigs || [];
     return configs.map((cfg, index) => ({
@@ -116,7 +125,8 @@ const rooms = computed(() => {
         name: cfg.name,
         base: formatCoins(cfg.base_bet),
         min: formatCoins(cfg.min_balance),
-        assets: getRoomAssets(index)
+        assets: getRoomAssets(index),
+        limitColor: roomTextColors[index] || "rgb(255, 255, 255)"
     }));
 });
 
@@ -286,7 +296,7 @@ const goBack = () => {
                         </div>
 
                         <!-- Limit Section -->
-                        <div class="room-limit-section">
+                        <div class="room-limit-section" :style="{ color: room.limitColor }">
                             入场限制: {{ room.min }}
                         </div>
                     </div>
@@ -1317,7 +1327,6 @@ const goBack = () => {
 
 
     font-weight: bold;
-
 
 
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);

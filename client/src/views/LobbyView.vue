@@ -1353,7 +1353,7 @@ const goBack = () => {
 
 
 
-    background-color: rgba(30, 41, 59, 0.55);
+    background-color: rgba(30, 41, 59, 0.72);
 
 
 

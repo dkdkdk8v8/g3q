@@ -771,6 +771,10 @@ const goBack = () => {
 
 
 
+    /* Default state (inactive): visually smaller */
+
+
+
 }
 
 
@@ -1086,17 +1090,15 @@ const goBack = () => {
 
     grid-column: span 2;
 
+    height: 100px !important;
+    /* Set specific height */
 
 
-}
 
-/* Reduce size for single-row items (Index 4) */
-.room-item.room-idx-4 .room-shape-img {
-    width: 50% !important;
 }
 
 .room-item.room-idx-4 .room-text-img-new {
-    width: 38% !important;
+    width: 100px !important;
     /* Half of original 76% */
 }
 
@@ -1112,17 +1114,16 @@ const goBack = () => {
 
     grid-column: span 2;
 
+    height: 100px !important;
+    /* Set specific height */
+
 
 
 }
 
-/* Reduce size for single-row items (Index 5) */
-.room-item.room-idx-5 .room-shape-img {
-    width: 50% !important;
-}
 
 .room-item.room-idx-5 .room-text-img-new {
-    width: 38% !important;
+    width: 100px !important;
     /* Half of original 76% */
 }
 
@@ -1276,7 +1277,7 @@ const goBack = () => {
 
 
 
-    padding: 15px 5px 15px 5px;
+    padding: 5px 5px 5px 5px;
     /* Added vertical padding for spacing */
 
 
@@ -1322,15 +1323,71 @@ const goBack = () => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     width: 100%;
 
 
 
-    height: auto;
+
+
+
+
+
+
+
+
+
+
+
+
+    height: 100px;
+
+
+
+
+
+
+
+    /* Fixed height requested */
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
     object-fit: contain;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1533,7 +1590,6 @@ const goBack = () => {
     display: flex;
     align-items: center;
     flex: 1;
-    gap: 15px;
     /* Spacing between shape, text, and line */
 }
 
@@ -1545,10 +1601,9 @@ const goBack = () => {
 }
 
 .room-shape-box-horiz .room-shape-img {
-    width: 60px !important;
-    /* Fixed width for consistency, approx 50% of original visual */
-    height: auto;
+    height: 60px !important;
     object-fit: contain;
+    margin-right: 10px;
 }
 
 .room-text-box-horiz {
@@ -1558,7 +1613,6 @@ const goBack = () => {
 }
 
 .room-text-box-horiz .room-text-img-new {
-    width: 100px !important;
     /* Fixed width, approx 38% of original visual */
     height: auto;
     object-fit: contain;
@@ -1569,17 +1623,17 @@ const goBack = () => {
     /* Adjust height to match text roughly */
     width: auto;
     object-fit: contain;
+    margin-right: 10px;
     margin-left: 10px;
 }
 
 .room-info-col-horiz {
-    display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: flex-end;
-    min-width: 120px;
     /* Ensure enough space for text */
     gap: 4px;
+    margin-right: 50px;
 }
 
 .limit-info-text {

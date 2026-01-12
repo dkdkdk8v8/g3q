@@ -665,7 +665,7 @@ const goBack = () => {
 
 
 
-    transition: all 0.2s ease-in-out;
+    transition: filter 0.2s ease-in-out;
 
 
 
@@ -677,11 +677,11 @@ const goBack = () => {
 
 
 
-    transform: scale(0.60);
+    /* Removed transform scale */
 
 
 
-    filter: brightness(0.9);
+    filter: brightness(0.6);
 
 
 
@@ -697,11 +697,11 @@ const goBack = () => {
 
 
 
-    /* Active state: larger and fully bright */
+    /* Active state: fully bright */
 
 
 
-    transform: scale(1.1);
+    /* Removed transform scale */
 
 
 

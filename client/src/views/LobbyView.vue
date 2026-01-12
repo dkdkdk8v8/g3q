@@ -541,7 +541,7 @@ const goBack = () => {
 
 .add-btn {
 
-    background: linear-gradient(to bottom, #22c55e, #15803d);
+    background: linear-gradient(to bottom, #e56f20, #fd7a00e6);
 
     width: 14px;
 

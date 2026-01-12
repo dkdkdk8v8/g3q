@@ -270,16 +270,25 @@ const goBack = () => {
                     <!-- Background Layer -->
                     <img :src="room.assets.bg" class="room-bg" />
 
-                    <!-- Shape Layer -->
-                    <img :src="room.assets.shape" class="room-shape" />
+                    <!-- Content Wrapper -->
+                    <div class="room-content-wrapper">
+                        <!-- Info Section -->
+                        <div class="room-info-section">
+                            <!-- Left: Shape -->
+                            <div class="room-shape-box">
+                                <img :src="room.assets.shape" class="room-shape-img" />
+                            </div>
+                            <!-- Right: Text & Base Bet -->
+                            <div class="room-details-box">
+                                <img :src="room.assets.text" class="room-text-img-new" />
+                                <div class="base-info-text">底注: {{ room.base }}</div>
+                            </div>
+                        </div>
 
-                    <!-- Text Layer -->
-                    <img :src="room.assets.text" class="room-text-img" />
-
-                    <!-- Dynamic Text Overlay -->
-                    <div class="room-dynamic-info">
-                        <div class="base-info">底分: {{ room.base }}</div>
-                        <div class="limit-info">准入: {{ room.min }}</div>
+                        <!-- Limit Section -->
+                        <div class="room-limit-section">
+                            入场限制: {{ room.min }}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -287,217 +296,432 @@ const goBack = () => {
     </div>
 </template>
 
+
+
 <style scoped>
 .lobby-container {
+
     width: 100vw;
+
     height: 100vh;
+
     background-size: cover;
+
     background-position: center;
+
     background-repeat: no-repeat;
+
     display: flex;
+
     flex-direction: column;
+
     overflow: hidden;
+
     position: relative;
+
     font-family: "Microsoft YaHei", Arial, sans-serif;
+
 }
+
+
 
 /* 1. Top Bar */
+
 .top-bar {
+
     display: flex;
+
     justify-content: space-between;
+
     align-items: center;
+
     padding: 10px 15px;
+
     /* Reduced padding */
+
     z-index: 10;
+
     width: 100%;
+
     box-sizing: border-box;
+
     /* Ensure padding doesn't add to width */
+
 }
+
+
 
 .top-left-btns {
+
     display: flex;
+
     gap: 8px;
+
     /* Reduced gap */
+
     align-items: center;
+
     flex-shrink: 0;
+
     /* Prevent shrinking */
+
 }
+
+
 
 .icon-btn {
+
     width: 36px;
+
     /* Reduced from 50px */
+
     height: 36px;
+
     cursor: pointer;
+
     transition: transform 0.1s;
+
     object-fit: contain;
+
 }
+
+
 
 .icon-btn:active {
+
     transform: scale(0.9);
+
 }
+
+
 
 .user-info-area {
+
     display: flex;
+
     align-items: center;
+
     /* Removed background and border from the main container */
+
     background: transparent;
+
     border: none;
+
     padding: 0;
+
     gap: 8px;
+
     max-width: 55%;
+
 }
+
+
 
 .avatar-wrapper {
+
     width: 40px;
+
     height: 40px;
+
     border-radius: 6px;
+
     /* Square with slight rounding */
+
     border: 2px solid #fff;
+
     overflow: hidden;
+
     flex-shrink: 0;
+
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+
 }
+
+
 
 .avatar {
+
     width: 100%;
+
     height: 100%;
+
     object-fit: cover;
+
 }
+
+
 
 .info-details {
+
     display: flex;
+
     flex-direction: column;
+
     justify-content: center;
+
     min-width: 0;
+
     flex: 1;
+
     gap: 2px;
+
 }
+
+
 
 .name-row {
+
     font-size: 14px;
+
     font-weight: bold;
+
     color: white;
+
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+
     /* Added shadow for readability without bg */
+
     white-space: nowrap;
+
     overflow: hidden;
+
     text-overflow: ellipsis;
+
     padding-left: 2px;
+
 }
+
+
 
 .coin-row {
+
     display: flex;
+
     align-items: center;
+
     /* Added background for coin row */
+
     background: rgba(0, 0, 0, 0.6);
+
     border: 1px solid rgba(255, 255, 255, 0.2);
+
     border-radius: 12px;
+
     padding: 2px 6px 2px 4px;
+
 }
+
+
 
 .coin-icon {
+
     width: 16px;
+
     height: 16px;
+
     margin-right: 4px;
+
 }
+
+
 
 .coin-val {
+
     font-size: 13px;
+
     color: #FFD700;
+
     font-weight: bold;
+
     margin-right: 6px;
+
     white-space: nowrap;
+
 }
+
+
 
 .add-btn {
+
     background: linear-gradient(to bottom, #22c55e, #15803d);
+
     width: 14px;
+
     height: 14px;
+
     border-radius: 50%;
+
     text-align: center;
+
     line-height: 14px;
+
     font-size: 12px;
+
     color: white;
+
     cursor: pointer;
+
     font-weight: bold;
+
     flex-shrink: 0;
+
 }
+
+
 
 /* 2. Logo Row */
+
 .logo-row {
+
     display: flex;
+
     justify-content: center;
+
     margin-top: 20px;
+
     margin-bottom: 20px;
+
     z-index: 5;
+
 }
+
+
 
 .logo-img {
+
     width: 50vw;
+
     /* 1/2 of screen width */
+
     height: auto;
+
     object-fit: contain;
+
     filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
+
 }
+
+
 
 /* 3. Tabs Row */
+
 .tabs-container {
+
     display: flex;
+
     justify-content: center;
+
     align-items: center;
+
     gap: 5px;
+
     z-index: 5;
 
+
+
     /* Changed from width: 100% to fit content */
+
     width: auto;
+
     align-self: center;
+
     /* Center in the flex column parent */
 
+
+
     /* Background properties */
+
     background-size: 100% 100%;
+
     /* Stretch bg to fit the container size perfectly */
+
     background-repeat: no-repeat;
+
     background-position: center;
+
     position: relative;
+
 }
+
+
 
 .tab-btn {
 
+
+
     width: 25vw;
+
     /* ~1/4 of screen width */
+
+
 
     max-width: 200px;
 
+
+
     height: auto;
+
+
 
     cursor: pointer;
 
+
+
     transition: all 0.2s ease-in-out;
+
+
 
     object-fit: contain;
 
+
+
     /* Default state (inactive): visually smaller */
+
+
 
     transform: scale(0.60);
 
+
+
     filter: brightness(0.9);
 
+
+
 }
+
+
+
+
 
 
 
 .tab-btn.active {
 
+
+
     /* Active state: larger and fully bright */
+
+
 
     transform: scale(1.1);
 
+
+
     filter: brightness(1.1);
 
+
+
     z-index: 2;
+
     /* Bring to front */
 
+
+
 }
+
+
+
+
 
 
 
@@ -505,7 +729,15 @@ const goBack = () => {
 
 
 
+
+
+
+
     /* Hover effect (optional, maybe just scale up a bit more if active or inactive) */
+
+
+
+
 
 
 
@@ -513,7 +745,15 @@ const goBack = () => {
 
 
 
+
+
+
+
 }
+
+
+
+
 
 
 
@@ -525,12 +765,25 @@ const goBack = () => {
 
 
 
+
+
+
+
     width: 1px;
+
+
 
     border-radius: 10px;
 
+
+
     height: 20px;
+
     /* Approx 80% of typical tab height */
+
+
+
+
 
 
 
@@ -538,11 +791,23 @@ const goBack = () => {
 
 
 
+
+
+
+
     opacity: 0.6;
 
 
 
+
+
+
+
 }
+
+
+
+
 
 
 
@@ -551,139 +816,571 @@ const goBack = () => {
 
 
 .lobby-divider {
+
     width: 100vw;
+
     height: 8px;
+
     object-fit: fill;
+
     position: absolute;
+
     bottom: -7.5px;
+
     left: 50%;
+
     transform: translateX(-50%);
+
 }
+
+
 
 /* 4. Room Grid */
+
 .rooms-scroll-area {
+
     flex: 1;
+
     overflow-y: auto;
+
     width: 100%;
+
     padding: 10px 0 40px 0;
+
 }
+
+
 
 /* Hide scrollbar */
+
 .rooms-scroll-area::-webkit-scrollbar {
+
     display: none;
+
 }
 
+
+
 .rooms-grid {
+
     display: grid;
+
     grid-template-columns: repeat(2, 1fr);
+
     /* Gap between columns */
-    column-gap: 20px;
-    row-gap: 20px;
+
+    column-gap: 10px;
+    row-gap: 10px;
+
+    margin-top: 10px;
 
     /* 20px horizontal padding from screen edges */
+
     padding: 0 20px;
 
     width: 100%;
+
     box-sizing: border-box;
+
     justify-items: center;
+
 }
+
+
 
 .room-item {
+
+
+
     position: relative;
 
-    /* ~1/3 of screen width logic */
-    /* Since the grid has 2 columns, we want the item to feel like 1/3 of screen.
-       If we just set width to 33vw, the grid column might be wider, so we center it. */
-    width: 33vw;
-    max-width: 300px;
-    /* Cap max size for desktop */
 
-    /* Maintain aspect ratio - height based on width or fixed? 
-       Previous was fixed 360px. Let's try aspect-ratio or calc height. */
-    height: 45vw;
-    /* Responsive height */
-    max-height: 400px;
+
+
+
+
+
+    /* Fill the grid column width */
+
+
+
+    width: 100%;
+
+
+
+
+
+
+
+    /* Auto height based on content */
+
+
+
+    height: auto;
+
+
+
+
+
+
 
     cursor: pointer;
+
+
+
     transition: transform 0.2s;
+
+
+
+
+
+
+
+    /* NEW FLEX LAYOUT */
+
+
+
+    display: flex;
+
+
+
+    flex-direction: column;
+
+
+
+
+
+
+
+    border-radius: 10px;
+
+
+
+    overflow: hidden;
+
+
+
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+
+
+
 }
+
+
+
+
+
+
 
 .room-item:active {
+
+
+
     transform: scale(0.98);
+
+
+
 }
+
+
+
+
+
+
 
 /* Custom Grid Layout Logic */
+
+
+
 /* Index 4: Row 3 (1 col, centered) -> Spans 2 columns */
+
+
+
 .room-item.room-idx-4 {
+
+
+
     grid-column: span 2;
+
+
+
 }
+
+
+
+
+
+
 
 /* Index 5: Row 4 (1 col, centered) -> Spans 2 columns */
+
+
+
 .room-item.room-idx-5 {
+
+
+
     grid-column: span 2;
+
+
+
 }
+
+
+
+
+
+
 
 /* Internal Room Assets */
+
+
+
 .room-bg {
+
+
+
     position: absolute;
+
+
+
     top: 0;
+
+
+
     left: 0;
+
+
+
     width: 100%;
+
+
+
     height: 100%;
-    object-fit: contain;
+
+
+
+    object-fit: fill;
+
+
+
+    z-index: 0;
+
+
+
+}
+
+
+
+
+
+
+
+.room-content-wrapper {
+
+
+
+    position: relative;
+
+
+
     z-index: 1;
-}
 
-.room-shape {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -55%);
-    width: 85%;
-    height: auto;
-    z-index: 2;
-    object-fit: contain;
-}
 
-.room-text-img {
-    position: absolute;
-    bottom: 22%;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 70%;
-    height: auto;
-    z-index: 3;
-    object-fit: contain;
-}
 
-.room-dynamic-info {
-    position: absolute;
-    bottom: 8%;
     width: 100%;
+
+
+
+    /* Height auto to let content push it */
+
+
+
+    height: auto;
+
+
+
     display: flex;
+
+
+
     flex-direction: column;
-    align-items: center;
-    z-index: 4;
-    color: #fff;
-    font-size: 3.5vw;
-    /* Responsive font size */
-    font-weight: bold;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 1);
-    line-height: 1.4;
+
+
+
+    justify-content: space-between;
+
+
+
 }
+
+
+
+
+
+
+
+.room-info-section {
+
+
+
+    /* Allow it to grow with content */
+
+
+
+    display: flex;
+
+
+
+    flex-direction: row;
+
+
+
+    align-items: center;
+
+
+
+    padding: 15px 5px 15px 5px;
+    /* Added vertical padding for spacing */
+
+
+
+}
+
+
+
+
+
+
+
+.room-shape-box {
+
+
+
+    width: 35%;
+    /* Slightly larger shape area */
+
+
+
+    display: flex;
+
+
+
+    justify-content: center;
+
+
+
+    align-items: center;
+
+
+
+}
+
+
+
+
+
+
+
+.room-shape-img {
+
+
+
+    width: 100%;
+
+
+
+    height: auto;
+
+
+
+    object-fit: contain;
+
+
+
+}
+
+
+
+
+
+
+
+.room-details-box {
+
+
+
+    flex: 1;
+
+
+
+    display: flex;
+
+
+
+    flex-direction: column;
+
+
+
+    justify-content: center;
+
+
+
+    align-items: center;
+
+
+
+    padding-left: 5px;
+
+
+
+}
+
+
+
+
+
+
+
+.room-text-img-new {
+
+
+
+    width: 76%;
+
+
+
+    height: auto;
+
+
+
+    object-fit: contain;
+
+
+
+    margin-bottom: 4px;
+
+
+
+}
+
+
+
+
+
+
+
+.base-info-text {
+
+
+
+    font-size: 15px;
+
+
+
+    color: #FFF;
+
+
+
+    font-weight: bold;
+
+
+
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+
+
+
+}
+
+
+
+
+
+
+
+.room-limit-section {
+
+
+
+    height: 30px;
+
+
+
+    /* Dark gray/black background */
+
+
+
+    background-color: rgba(30, 41, 59, 0.55);
+
+
+
+
+
+
+
+    /* Rounded corners handled by parent overflow:hidden, but we can keep them to be safe or specific design */
+
+
+
+    /* If the card is rounded, the bottom bar will be clipped to round. */
+
+
+
+
+
+
+
+    display: flex;
+
+
+
+    justify-content: center;
+
+
+
+    align-items: center;
+
+
+
+
+
+
+
+    color: #cbd5e1;
+
+
+
+    font-size: 12px;
+
+
+
+    font-weight: bold;
+
+
+
+    margin: 0;
+    /* Flush to bottom of container */
+
+
+
+    width: 100%;
+
+
+
+}
+
+
 
 @media (min-width: 600px) {
-    .room-dynamic-info {
+
+    .base-info-text {
+
+        font-size: 16px;
+
+    }
+
+    .room-limit-section {
         font-size: 14px;
     }
-}
-
-.base-info {
-    color: #e2e8f0;
-}
-
-.limit-info {
-    color: #cbd5e1;
-    font-size: 13px;
 }
 </style>

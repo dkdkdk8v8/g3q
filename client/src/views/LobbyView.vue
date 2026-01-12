@@ -58,6 +58,9 @@ import roomDianfengShape from '@/assets/lobby/room_dianfeng_shape.png';
 import dashiLine from '@/assets/lobby/dashi_line.png';
 import dianfengLine from '@/assets/lobby/dianfeng_line.png';
 
+import dashiXianzhiBg from '@/assets/lobby/dashi_xianzhi_bg.png';
+import dianfengXianzhiBg from '@/assets/lobby/dianfeng_xianzhi_bg.png';
+
 import defaultAvatar from '@/assets/common/default_avatar.png';
 import lobbyBgSound from '@/assets/sounds/lobby_bg.mp3';
 import btnClickSound from '@/assets/sounds/btn_click.mp3';
@@ -138,8 +141,15 @@ const rooms = computed(() => {
     const configs = userStore.roomConfigs || [];
     return configs.map((cfg, index) => {
         let lineImg = null;
-        if (index === 4) lineImg = dashiLine;
-        if (index === 5) lineImg = dianfengLine;
+        let limitBgImg = null;
+        if (index === 4) {
+            lineImg = dashiLine;
+            limitBgImg = dashiXianzhiBg;
+        }
+        if (index === 5) {
+            lineImg = dianfengLine;
+            limitBgImg = dianfengXianzhiBg;
+        }
 
         return {
             level: cfg.level,
@@ -149,7 +159,8 @@ const rooms = computed(() => {
             assets: getRoomAssets(index),
             limitColor: roomTextColors[index] || "rgb(255, 255, 255)",
             isFullWidth: index === 4 || index === 5,
-            lineImg: lineImg
+            lineImg: lineImg,
+            limitBgImg: limitBgImg
         };
     });
 });
@@ -354,7 +365,10 @@ const goBack = () => {
                             <!-- 4. Info Column (Right) -->
                             <div class="room-info-col-horiz">
                                 <div class="base-info-text">底注: {{ room.base }}</div>
-                                <div class="limit-info-text" :style="{ color: room.limitColor }">入场: {{ room.min }}
+                                <div class="limit-info-text"
+                                    :style="{ color: room.limitColor, backgroundImage: `url(${room.limitBgImg})` }">
+                                    入场限制:
+                                    {{ room.min }}
                                 </div>
                             </div>
                         </template>
@@ -1495,16 +1509,36 @@ const goBack = () => {
 
 
 
+
+
+
+
 .room-item.room-idx-5 .base-info-text {
 
 
 
-    font-size: 28px;
+
+
+
+
+    font-size: 32px;
     /* Doubled from 16px for single-row rooms */
 
 
 
+
+
+
+
 }
+
+
+
+
+
+
+
+
 
 
 
@@ -1663,6 +1697,9 @@ const goBack = () => {
 }
 
 .limit-info-text {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-size: 14px;
     font-weight: bold;
     color: #cbd5e1;

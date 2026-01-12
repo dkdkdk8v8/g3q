@@ -364,7 +364,7 @@ const goBack = () => {
 
                             <!-- 4. Info Column (Right) -->
                             <div class="room-info-col-horiz">
-                                <div class="base-info-text">底注: {{ room.base }}</div>
+                                <div class="base-info-text">底注:{{ room.base }}</div>
                                 <div class="limit-info-text"
                                     :style="{ color: room.limitColor, backgroundImage: `url(${room.limitBgImg})` }">
                                     入场限制:
@@ -1521,7 +1521,7 @@ const goBack = () => {
 
 
 
-    font-size: 32px;
+    font-size: 28px;
     /* Doubled from 16px for single-row rooms */
 
 
@@ -1700,8 +1700,10 @@ const goBack = () => {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
+    font-size: 16px;
     font-weight: bold;
     color: #cbd5e1;
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
 }
 </style>

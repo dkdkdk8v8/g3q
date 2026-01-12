@@ -1,89 +1,132 @@
 <script setup>
 import { useRouter } from 'vue-router';
-import { ref, computed, watch, onMounted, onUnmounted, onActivated, onDeactivated } from 'vue'; // Added onDeactivated
+import { ref, computed, watch, onMounted, onUnmounted, onActivated, onDeactivated } from 'vue';
 import { debounce } from '../utils/debounce.js';
 import { formatCoins } from '../utils/format.js';
 import { useUserStore } from '../stores/user.js';
 import { useGameStore } from '../stores/game.js';
 import { useSettingsStore } from '../stores/settings.js';
 import gameClient from '../socket.js';
-import defaultAvatar from '@/assets/common/default_avatar.png'; // Import avatar directly
-import lobbyBgSound from '@/assets/sounds/lobby_bg.mp3'; // Import background music
+
+// Assets
+import bgImg from '@/assets/lobby/bg.png';
+import logoImg from '@/assets/lobby/logo.png';
+import btnExit from '@/assets/lobby/exit_btn.png';
+import btnHelp from '@/assets/lobby/help_btn.png';
+import btnHistory from '@/assets/lobby/bet_history_btn.png';
+import btnSetting from '@/assets/lobby/sett_btn.png';
+
+// Tabs
+import tabBukan from '@/assets/lobby/tab_bukan.png';
+import tabBukanSel from '@/assets/lobby/tab_bukan_choose.png';
+import tabSan from '@/assets/lobby/tab_kansanzhang.png';
+import tabSanSel from '@/assets/lobby/tab_kansanzhang_choose.png';
+import tabSi from '@/assets/lobby/tab_kansizhang.png';
+import tabSiSel from '@/assets/lobby/tab_kansizhang_choose.png';
+import tabLineImg from '@/assets/lobby/tab_line.png';
+import tabBgImg from '@/assets/lobby/tab_bg.png';
+
+// Room Assets Explicit Import
+import roomTiyanBg from '@/assets/lobby/room_tiyan_bg.png';
+import roomTiyanText from '@/assets/lobby/room_tiyan_text.png';
+import roomTiyanShape from '@/assets/lobby/room_tiyan_shape.png';
+
+import roomChujiBg from '@/assets/lobby/room_chuji_bg.png';
+import roomChujiText from '@/assets/lobby/room_chuji_text.png';
+import roomChujiShape from '@/assets/lobby/room_chuji_shape.png';
+
+import roomZhongjiBg from '@/assets/lobby/room_zhongji_bg.png';
+import roomZhongjiText from '@/assets/lobby/room_zhongji_text.png';
+import roomZhongjiShape from '@/assets/lobby/room_zhongji_shape.png';
+
+import roomGaojiBg from '@/assets/lobby/room_gaoji_bg.png';
+import roomGaojiText from '@/assets/lobby/room_gaoji_text.png';
+import roomGaojiShape from '@/assets/lobby/room_gaoji_shape.png';
+
+import roomDashiBg from '@/assets/lobby/room_dashi_bg.png';
+import roomDashiText from '@/assets/lobby/room_dashi_text.png';
+import roomDashiShape from '@/assets/lobby/room_dashi_shape.png';
+
+import roomDianfengBg from '@/assets/lobby/room_dianfeng_bg.png';
+import roomDianfengText from '@/assets/lobby/room_dianfeng_text.png';
+import roomDianfengShape from '@/assets/lobby/room_dianfeng_shape.png';
+
+import defaultAvatar from '@/assets/common/default_avatar.png';
+import lobbyBgSound from '@/assets/sounds/lobby_bg.mp3';
 import goldImg from '@/assets/common/gold.png';
 
 const router = useRouter();
 const userStore = useUserStore();
 const gameStore = useGameStore();
 const settingsStore = useSettingsStore();
-const bgAudio = ref(null); // Background audio ref
+const bgAudio = ref(null);
 
-// 模拟用户信息 - map from store
-const userInfo = computed(() => {
-    return {
-        name: userStore.userInfo.nick_name || userStore.userInfo.user_id,
-        id: userStore.userInfo.user_id || '---',
-        coins: formatCoins(userStore.userInfo.balance || 0),
-        avatar: userStore.userInfo.avatar || defaultAvatar // Use imported avatar
-    }
-});
-
-// 游戏模式：kanpai (看四张抢庄-type 2), bukan (不看牌抢庄-type 0)
-// type 1 (看三张)
-const currentMode = ref(0); // 强制默认不看牌抢庄
-
-const setMode0 = debounce(() => { currentMode.value = 0; }, 500);
-const setMode1 = debounce(() => { currentMode.value = 1; }, 500);
-const setMode2 = debounce(() => { currentMode.value = 2; }, 500);
-
-watch(currentMode, (newVal) => {
-    userStore.lastSelectedMode = newVal;
-    localStorage.setItem('lastSelectedMode', newVal);
-});
-
-const _enterGame = async (level) => {
-    // 传递房间等级(level)和玩法模式(mode)
-    // 发送匹配协议
-    try {
-        await gameStore.joinRoom(level, currentMode.value); // Await the promise
-        router.push({
-            path: '/game',
-            query: { mode: currentMode.value }
-        });
-    } catch (error) {
-        console.error("Failed to join room:", error);
-        // Optionally show a toast message to the user
-        // showToast('加入房间失败，请稍后再试');
-    }
+const roomAssetsMap = {
+    tiyan: { bg: roomTiyanBg, text: roomTiyanText, shape: roomTiyanShape },
+    chuji: { bg: roomChujiBg, text: roomChujiText, shape: roomChujiShape },
+    zhongji: { bg: roomZhongjiBg, text: roomZhongjiText, shape: roomZhongjiShape },
+    gaoji: { bg: roomGaojiBg, text: roomGaojiText, shape: roomGaojiShape },
+    dashi: { bg: roomDashiBg, text: roomDashiText, shape: roomDashiShape },
+    dianfeng: { bg: roomDianfengBg, text: roomDianfengText, shape: roomDianfengShape },
 };
 
-const enterGame = debounce(_enterGame, 500);
+const getRoomAssets = (levelIndex) => {
+    const types = ['tiyan', 'chuji', 'zhongji', 'gaoji', 'dashi', 'dianfeng'];
+    const type = types[levelIndex] || 'dianfeng';
+    return roomAssetsMap[type];
+};
 
-// Map server room configs to UI
+const userInfo = computed(() => {
+    const rawName = userStore.userInfo.nick_name || userStore.userInfo.user_id || '---';
+    let displayName = rawName;
+    if (rawName.length > 20) {
+        displayName = rawName.substring(0, 3) + '...' + rawName.substring(rawName.length - 3);
+    }
+
+    return {
+        name: rawName,
+        displayName: displayName,
+        id: userStore.userInfo.user_id || '---',
+        coins: formatCoins(userStore.userInfo.balance || 0),
+        avatar: userStore.userInfo.avatar || defaultAvatar
+    };
+});
+
+const currentMode = ref(0); // 0: Bukan, 1: San, 2: Si
+
+const setMode = (mode) => {
+    currentMode.value = mode;
+    userStore.lastSelectedMode = mode;
+    localStorage.setItem('lastSelectedMode', mode);
+};
+
+const enterGame = debounce(async (level) => {
+    try {
+        await gameStore.joinRoom(level, currentMode.value);
+        router.push({ path: '/game', query: { mode: currentMode.value } });
+    } catch (error) {
+        console.error("Failed to join room:", error);
+    }
+}, 500);
+
 const rooms = computed(() => {
     const configs = userStore.roomConfigs || [];
-    const colorClasses = ['room-cyan', 'room-blue', 'room-purple', 'room-red'];
-
-    return configs.map((cfg, index) => {
-        return {
-            level: cfg.level,
-            name: cfg.name,
-            base: formatCoins(cfg.base_bet),
-            min: formatCoins(cfg.min_balance),
-            players: Math.floor(Math.random() * 100), // Mock player count for now
-            colorClass: colorClasses[index % colorClasses.length]
-        };
-    });
+    return configs.map((cfg, index) => ({
+        level: cfg.level,
+        name: cfg.name,
+        base: formatCoins(cfg.base_bet),
+        min: formatCoins(cfg.min_balance),
+        assets: getRoomAssets(index)
+    }));
 });
 
 const fetchData = () => {
-    // 主动获取数据
     gameClient.send("UserInfo");
     gameClient.send("QZNN.LobbyConfig");
 };
 
 const playMusic = () => {
     if (!settingsStore.musicEnabled) return;
-
     if (!bgAudio.value) {
         bgAudio.value = new Audio(lobbyBgSound);
         bgAudio.value.loop = true;
@@ -93,104 +136,132 @@ const playMusic = () => {
 };
 
 const stopMusic = () => {
-    if (bgAudio.value) {
-        bgAudio.value.pause();
-    }
+    if (bgAudio.value) bgAudio.value.pause();
 };
 
 onMounted(() => {
-    // 注册消息监听
     gameClient.on('QZNN.UserInfo', (msg) => {
-        // Update User Info
         userStore.updateUserInfo({
             avatar: msg.data.Avatar,
             balance: msg.data.Balance,
             nick_name: msg.data.NickName,
             user_id: msg.data.UserId
         });
-
-        // Sync Settings from Server
         settingsStore.updateFromServer(msg.data);
     });
 
     gameClient.on('QZNN.LobbyConfig', (msg) => {
-        if (msg.code === 0 && msg.data && msg.data.LobbyConfigs) {
-            const mappedConfigs = msg.data.LobbyConfigs.map(cfg => ({
+        if (msg.code === 0 && msg.data?.LobbyConfigs) {
+            userStore.updateRoomConfigs(msg.data.LobbyConfigs.map(cfg => ({
                 level: cfg.Level,
                 name: cfg.Name,
                 base_bet: cfg.BaseBet,
                 min_balance: cfg.MinBalance
-            }));
-            userStore.updateRoomConfigs(mappedConfigs);
+            })));
         }
     });
 
-    fetchData(); // Initial fetch when mounted
+    fetchData();
     playMusic();
 });
 
 onActivated(() => {
-    fetchData(); // Re-fetch data when activated (e.g., returning from game)
+    fetchData();
     playMusic();
 });
 
-onDeactivated(() => {
-    stopMusic();
-});
-
+onDeactivated(stopMusic);
 onUnmounted(() => {
-    // 可选：移除监听，或者保留给其他页面复用（Network.js 是单例，handle会被覆盖）
     stopMusic();
     bgAudio.value = null;
 });
+
+const goBack = () => {
+    console.log("Exit clicked");
+    // router.push('/'); // Uncomment if needed
+};
 </script>
 
 <template>
-    <div class="lobby">
-        <!-- 顶部用户信息栏 -->
-        <div class="user-header">
-            <div class="user-info-left">
+    <div class="lobby-container" :style="{ backgroundImage: `url(${bgImg})` }">
+        <!-- 1. Top Bar -->
+        <div class="top-bar">
+            <!-- Left: Functional Buttons -->
+            <div class="top-left-btns">
+                <img :src="btnExit" class="icon-btn" @click="goBack" alt="Exit" />
+                <img :src="btnHistory" class="icon-btn" alt="History" />
+                <img :src="btnHelp" class="icon-btn" alt="Help" />
+                <img :src="btnSetting" class="icon-btn" alt="Settings" />
+            </div>
+
+            <!-- Right: User Info -->
+            <div class="user-info-area">
                 <div class="avatar-wrapper">
-                    <img :src="userInfo.avatar" class="user-avatar" />
+                    <img :src="userInfo.avatar" class="avatar" />
                 </div>
-                <div class="user-details">
-                    <div class="user-name">{{ userInfo.name }}</div>
-                    <div class="user-id">ID: {{ userInfo.id }}</div>
-                </div>
-            </div>
-            <div class="user-assets">
-                <div class="coin-display">
-                    <img :src="goldImg" class="coin-icon-img" />
-                    <span class="coin-text">{{ userInfo.coins }}</span>
-                    <div class="add-btn">+</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 玩法切换 Tab -->
-        <div class="mode-tabs-container">
-            <div class="tab-group-pill">
-                <div class="tab-item" :class="{ 'active-purple': currentMode === 0 }" @click="setMode0()">不看牌抢庄
-                </div>
-                <div class="tab-item" :class="{ 'active-blue': currentMode === 1 }" @click="setMode1()">看三张抢庄</div>
-                <div class="tab-item" :class="{ 'active-cyan': currentMode === 2 }" @click="setMode2()">看四张抢庄</div>
-            </div>
-        </div>
-
-        <!-- 房间列表 -->
-        <div class="room-container">
-            <div v-for="room in rooms" :key="room.level" class="room-card" :class="room.colorClass"
-                @click="enterGame(room.level)">
-                <div class="room-title">{{ room.name }}</div>
-                <div class="room-info">
-                    <span class="base-badge">底分 {{ room.base }}</span>
-                </div>
-                <div class="room-footer">
-                    <div class="entry-limit">
-                        <img :src="goldImg" class="coin-icon-img-small" /> {{ room.min }}
+                <div class="info-details">
+                    <div class="name-row">{{ userInfo.displayName }}</div>
+                    <div class="coin-row">
+                        <img :src="goldImg" class="coin-icon" />
+                        <span class="coin-val">{{ userInfo.coins }}</span>
+                        <div class="add-btn">+</div>
                     </div>
-                    <div class="online-count">
-                        👤 {{ room.players }}
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Logo Row -->
+        <div class="logo-row">
+            <img :src="logoImg" class="logo-img" alt="Logo" />
+        </div>
+
+        <!-- 3. Tabs Row -->
+
+        <div class="tabs-container" :style="{ backgroundImage: `url(${tabBgImg})` }">
+
+            <!-- Mode 0: Bukan (No Look) -->
+
+            <img :src="currentMode === 0 ? tabBukanSel : tabBukan" class="tab-btn"
+                :class="{ 'active': currentMode === 0 }" @click="setMode(0)" />
+
+
+
+            <!-- Mode 1: San (3 cards) -->
+
+            <img :src="currentMode === 1 ? tabSanSel : tabSan" class="tab-btn" :class="{ 'active': currentMode === 1 }"
+                @click="setMode(1)" />
+
+
+
+            <!-- Mode 2: Si (4 cards) -->
+
+            <img :src="currentMode === 2 ? tabSiSel : tabSi" class="tab-btn" :class="{ 'active': currentMode === 2 }"
+                @click="setMode(2)" />
+
+        </div>
+
+        <!-- Divider Line -->
+        <img :src="tabLineImg" class="lobby-divider" />
+
+        <!-- 4. Room Grid -->
+        <div class="rooms-scroll-area">
+            <div class="rooms-grid">
+                <div v-for="(room, index) in rooms" :key="room.level" class="room-item" :class="['room-idx-' + index]"
+                    @click="enterGame(room.level)">
+
+                    <!-- Background Layer -->
+                    <img :src="room.assets.bg" class="room-bg" />
+
+                    <!-- Shape Layer -->
+                    <img :src="room.assets.shape" class="room-shape" />
+
+                    <!-- Text Layer -->
+                    <img :src="room.assets.text" class="room-text-img" />
+
+                    <!-- Dynamic Text Overlay -->
+                    <div class="room-dynamic-info">
+                        <div class="base-info">底分: {{ room.base }}</div>
+                        <div class="limit-info">准入: {{ room.min }}</div>
                     </div>
                 </div>
             </div>
@@ -199,252 +270,361 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.lobby {
+.lobby-container {
+    width: 100vw;
     height: 100vh;
-    background: radial-gradient(circle at center, #1e3a8a 0%, #0f172a 100%);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
     display: flex;
     flex-direction: column;
-    box-sizing: border-box;
-    font-family: system-ui, -apple-system, sans-serif;
-    color: white;
-    padding-bottom: 20px;
-    /* 底部留白 */
+    overflow: hidden;
+    position: relative;
+    font-family: "Microsoft YaHei", Arial, sans-serif;
 }
 
-/* 用户信息栏 */
-.user-header {
+/* 1. Top Bar */
+.top-bar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px 20px;
-    background: rgba(0, 0, 0, 0.2);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 10px 15px;
+    /* Reduced padding */
+    z-index: 10;
+    width: 100%;
+    box-sizing: border-box;
+    /* Ensure padding doesn't add to width */
 }
 
-.user-info-left {
+.top-left-btns {
+    display: flex;
+    gap: 8px;
+    /* Reduced gap */
+    align-items: center;
+    flex-shrink: 0;
+    /* Prevent shrinking */
+}
+
+.icon-btn {
+    width: 36px;
+    /* Reduced from 50px */
+    height: 36px;
+    cursor: pointer;
+    transition: transform 0.1s;
+    object-fit: contain;
+}
+
+.icon-btn:active {
+    transform: scale(0.9);
+}
+
+.user-info-area {
     display: flex;
     align-items: center;
-    gap: 10px;
+    /* Removed background and border from the main container */
+    background: transparent;
+    border: none;
+    padding: 0;
+    gap: 8px;
+    max-width: 55%;
 }
 
 .avatar-wrapper {
-    width: 50px;
-    height: 50px;
-    border-radius: 8px;
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    /* Square with slight rounding */
     border: 2px solid #fff;
     overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    flex-shrink: 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-.user-avatar {
+.avatar {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
-.user-details {
+.info-details {
     display: flex;
     flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+    flex: 1;
+    gap: 2px;
 }
 
-.user-name {
-    font-size: 16px;
-    font-weight: bold;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
-
-.user-id {
-    font-size: 12px;
-    color: #cbd5e1;
-    margin-top: 2px;
-}
-
-.user-assets {
-    display: flex;
-    align-items: center;
-}
-
-.coin-display {
-    background: rgba(0, 0, 0, 0.5);
-    border-radius: 20px;
-    padding: 4px 4px 4px 12px;
-    display: flex;
-    align-items: center;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    gap: 6px;
-}
-
-.coin-icon-img {
-    width: 20px;
-    height: 20px;
-    object-fit: contain;
-}
-
-.coin-icon-img-small {
-    width: 14px;
-    height: 14px;
-    object-fit: contain;
-    vertical-align: middle;
-    margin-right: 2px;
-}
-
-.coin-text {
-    font-weight: bold;
+.name-row {
     font-size: 14px;
-    color: #fcd34d;
+    font-weight: bold;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    /* Added shadow for readability without bg */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-left: 2px;
+}
+
+.coin-row {
+    display: flex;
+    align-items: center;
+    /* Added background for coin row */
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 2px 6px 2px 4px;
+}
+
+.coin-icon {
+    width: 16px;
+    height: 16px;
     margin-right: 4px;
 }
 
+.coin-val {
+    font-size: 13px;
+    color: #FFD700;
+    font-weight: bold;
+    margin-right: 6px;
+    white-space: nowrap;
+}
+
 .add-btn {
-    width: 24px;
-    height: 24px;
     background: linear-gradient(to bottom, #22c55e, #15803d);
+    width: 14px;
+    height: 14px;
     border-radius: 50%;
+    text-align: center;
+    line-height: 14px;
+    font-size: 12px;
+    color: white;
+    cursor: pointer;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+/* 2. Logo Row */
+.logo-row {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    z-index: 5;
+}
+
+.logo-img {
+    width: 50vw;
+    /* 1/2 of screen width */
+    height: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
+}
+
+/* 3. Tabs Row */
+.tabs-container {
     display: flex;
     justify-content: center;
     align-items: center;
-    font-weight: bold;
-    font-size: 16px;
+    gap: 10px;
+    z-index: 5;
+
+    /* Changed from width: 100% to fit content */
+    width: auto;
+    align-self: center;
+    /* Center in the flex column parent */
+
+    /* Background properties */
+    background-size: 100% 100%;
+    /* Stretch bg to fit the container size perfectly */
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.tab-btn {
+
+    width: 25vw; /* ~1/4 of screen width */
+
+    max-width: 200px;
+
+    height: auto;
+
     cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+
+    transition: all 0.2s ease-in-out;
+
+    object-fit: contain;
+
+    /* Default state (inactive): visually smaller */
+
+    transform: scale(0.8);
+
+    filter: brightness(0.9);
+
 }
 
-/* 模式切换栏 */
-.mode-tabs-container {
-    display: flex;
-    justify-content: center;
-    padding: 15px 0;
+
+
+.tab-btn.active {
+
+    /* Active state: larger and fully bright */
+
+    transform: scale(1.1);
+
+    filter: brightness(1.1);
+
+    z-index: 2;
+    /* Bring to front */
+
 }
 
-.tab-group-pill {
-    display: flex;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 24px;
-    padding: 4px;
-    width: 80%;
-    /* 宽度控制 */
-    max-width: 300px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+
+
+.tab-btn:hover {
+
+    /* Hover effect (optional, maybe just scale up a bit more if active or inactive) */
+
+    filter: brightness(1.2);
+
 }
 
-.tab-item {
-    flex: 1;
-    text-align: center;
-    padding: 8px 0;
-    border-radius: 20px;
-    font-size: 14px;
-    font-weight: bold;
-    color: #94a3b8;
-    cursor: pointer;
-    transition: all 0.3s ease;
+.lobby-divider {
+    width: 100%;
+    height: auto;
+    /* Allow height to be defined by image aspect ratio or fix it if needed */
+    max-height: 20px;
+    /* Cap height if the image is large */
+    object-fit: fill;
+    /* Stretch to fill */
+    margin-bottom: 10px;
+    flex-shrink: 0;
 }
 
-.tab-item.active-purple {
-    background: linear-gradient(135deg, #c084fc 0%, #7e22ce 100%);
-    color: white;
-    box-shadow: 0 2px 8px rgba(126, 34, 206, 0.4);
-}
-
-.tab-item.active-blue {
-    background: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%);
-    color: white;
-    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
-}
-
-.tab-item.active-cyan {
-    background: linear-gradient(135deg, #2dd4bf 0%, #0f766e 100%);
-    color: white;
-    box-shadow: 0 2px 8px rgba(15, 118, 110, 0.4);
-}
-
-.room-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    /* 双列布局 */
-    gap: 16px;
+/* 4. Room Grid */
+.rooms-scroll-area {
     flex: 1;
     overflow-y: auto;
+    width: 100%;
+    padding: 10px 0 40px 0;
+}
+
+/* Hide scrollbar */
+.rooms-scroll-area::-webkit-scrollbar {
+    display: none;
+}
+
+.rooms-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    /* Gap between columns */
+    column-gap: 20px;
+    row-gap: 20px;
+
+    /* 20px horizontal padding from screen edges */
     padding: 0 20px;
+
+    width: 100%;
+    box-sizing: border-box;
+    justify-items: center;
 }
 
-.room-card {
-    border-radius: 12px;
-    padding: 16px 12px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+.room-item {
     position: relative;
-    overflow: hidden;
-    min-height: 100px;
-    transition: transform 0.1s;
+
+    /* ~1/3 of screen width logic */
+    /* Since the grid has 2 columns, we want the item to feel like 1/3 of screen.
+       If we just set width to 33vw, the grid column might be wider, so we center it. */
+    width: 33vw;
+    max-width: 300px;
+    /* Cap max size for desktop */
+
+    /* Maintain aspect ratio - height based on width or fixed? 
+       Previous was fixed 360px. Let's try aspect-ratio or calc height. */
+    height: 45vw;
+    /* Responsive height */
+    max-height: 400px;
+
+    cursor: pointer;
+    transition: transform 0.2s;
 }
 
-.room-card:active {
+.room-item:active {
     transform: scale(0.98);
 }
 
-/* 玻璃光泽 */
-.room-card::after {
-    content: '';
+/* Custom Grid Layout Logic */
+/* Index 4: Row 3 (1 col, centered) -> Spans 2 columns */
+.room-item.room-idx-4 {
+    grid-column: span 2;
+}
+
+/* Index 5: Row 4 (1 col, centered) -> Spans 2 columns */
+.room-item.room-idx-5 {
+    grid-column: span 2;
+}
+
+/* Internal Room Assets */
+.room-bg {
     position: absolute;
     top: 0;
     left: 0;
-    right: 0;
-    height: 40%;
-    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.2), transparent);
-    pointer-events: none;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    z-index: 1;
 }
 
-.room-cyan {
-    background: linear-gradient(135deg, #2dd4bf 0%, #0f766e 100%);
+.room-shape {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -55%);
+    width: 85%;
+    height: auto;
+    z-index: 2;
+    object-fit: contain;
 }
 
-.room-blue {
-    background: linear-gradient(135deg, #60a5fa 0%, #1e40af 100%);
+.room-text-img {
+    position: absolute;
+    bottom: 22%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 70%;
+    height: auto;
+    z-index: 3;
+    object-fit: contain;
 }
 
-.room-purple {
-    background: linear-gradient(135deg, #c084fc 0%, #7e22ce 100%);
-}
-
-.room-red {
-    background: linear-gradient(135deg, #f87171 0%, #991b1b 100%);
-}
-
-.room-title {
-    font-size: 20px;
-    font-weight: 900;
-    /* Extra bold */
-    text-shadow: 0 2px 2px rgba(0, 0, 0, 0.3);
-    margin-bottom: 8px;
-    letter-spacing: 1px;
-}
-
-.room-info {
+.room-dynamic-info {
+    position: absolute;
+    bottom: 8%;
+    width: 100%;
     display: flex;
-    margin-bottom: auto;
-}
-
-.base-badge {
-    background: rgba(0, 0, 0, 0.4);
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 12px;
-}
-
-.room-footer {
-    display: flex;
-    justify-content: space-between;
+    flex-direction: column;
     align-items: center;
-    font-size: 12px;
-    margin-top: 12px;
-    opacity: 0.9;
+    z-index: 4;
+    color: #fff;
+    font-size: 3.5vw;
+    /* Responsive font size */
+    font-weight: bold;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 1);
+    line-height: 1.4;
 }
 
-.entry-limit {
-    font-weight: bold;
+@media (min-width: 600px) {
+    .room-dynamic-info {
+        font-size: 14px;
+    }
+}
+
+.base-info {
+    color: #e2e8f0;
+}
+
+.limit-info {
+    color: #cbd5e1;
+    font-size: 13px;
 }
 </style>

@@ -8,6 +8,9 @@ import { useGameStore } from '../stores/game.js';
 import { useSettingsStore } from '../stores/settings.js';
 import { calculateHandType, transformServerCard } from '../utils/bullfight.js';
 import gameClient from '../socket.js';
+import HistoryModal from '../components/HistoryModal.vue';
+import SettingsModal from '../components/SettingsModal.vue';
+import HelpModal from '../components/HelpModal.vue';
 
 // Assets
 import bgImg from '@/assets/lobby/bg.png';
@@ -135,90 +138,17 @@ const rooms = computed(() => {
 const showHistory = ref(false);
 const showSettings = ref(false);
 const showHelp = ref(false);
-const historyListRef = ref(null);
-
-const formatHistoryTime = (isoString) => {
-    const date = new Date(isoString);
-    const h = date.getHours().toString().padStart(2, '0');
-    const m = date.getMinutes().toString().padStart(2, '0');
-    return `${h}:${m}`;
-};
-
-const historyGrouped = computed(() => {
-    const groups = [];
-    let currentGroup = null;
-    for (const item of gameStore.history) {
-        if (item.Type === 0) {
-            currentGroup = {
-                dateStr: item.Date,
-                totalBet: item.TotalBet,
-                totalValid: item.TotalWinBalance,
-                items: []
-            };
-            groups.push(currentGroup);
-        } else if (item.Type === 1) {
-            if (!currentGroup) continue;
-            const gdObj = item.GameDataObj;
-            const roomData = gdObj.Room || gdObj;
-            if (!roomData || !roomData.Players) continue;
-            
-            const myId = userStore.userInfo.user_id;
-            const myData = roomData.Players.find(p => p.ID === myId);
-            const bet = myData ? (myData.ValidBet || 0) : 0;
-            const score = myData ? (myData.BalanceChange || 0) : 0;
-            let handTypeName = '未知';
-            if (myData && myData.Cards && Array.isArray(myData.Cards)) {
-                const cardObjs = myData.Cards.map(id => transformServerCard(id));
-                const typeResult = calculateHandType(cardObjs);
-                handTypeName = typeResult.typeName;
-            } else if (roomData.State === 'StateBankerConfirm') {
-                handTypeName = '未摊牌';
-            }
-            let roomName = '抢庄牛牛';
-             currentGroup.items.push({
-                timestamp: item.Time,
-                roomName: roomName,
-                handType: handTypeName,
-                bet: bet,
-                profit: score
-            });
-        }
-    }
-    return groups;
-});
-
-const handleHistoryScroll = (e) => {
-    const { scrollTop, scrollHeight, clientHeight } = e.target;
-    if (scrollTop + clientHeight >= scrollHeight - 20) {
-        if (!gameStore.isLoadingHistory && !gameStore.isHistoryEnd) {
-            gameStore.fetchHistory();
-        }
-    }
-};
 
 const openHistoryDebounced = debounce(() => {
     showHistory.value = true;
-    gameStore.fetchHistory({ reset: true });
-}, 200);
-
-const closeHistoryDebounced = debounce(() => {
-    showHistory.value = false;
 }, 200);
 
 const openSettingsDebounced = debounce(() => {
     showSettings.value = true;
 }, 200);
 
-const closeSettingsDebounced = debounce(() => {
-    showSettings.value = false;
-}, 200);
-
 const openHelpDebounced = debounce(() => {
     showHelp.value = true;
-}, 200);
-
-const closeHelpDebounced = debounce(() => {
-    showHelp.value = false;
 }, 200);
 
 const fetchData = () => {
@@ -395,122 +325,13 @@ const goBack = () => {
             </div>
         </div>
         <!-- History Modal -->
-        <div v-if="showHistory" class="modal-overlay" style="z-index: 8000;">
-            <div class="modal-content history-modal">
-                <div class="modal-header">
-                    <h3>游戏记录</h3>
-                </div>
-                <div class="close-icon" @click="closeHistoryDebounced()">×</div>
-                <!-- Content -->
-                <div class="history-list-new" ref="historyListRef" @scroll="handleHistoryScroll">
-                    <div v-if="!gameStore.isLoadingHistory && historyGrouped.length === 0" class="empty-tip">暂无记录</div>
-
-                    <div v-for="group in historyGrouped" :key="group.dateStr" class="history-group">
-                        <div class="history-date-header">
-                            <span class="gh-date">{{ group.dateStr }}</span>
-                            <div class="gh-totals">
-                                <span>投注 ¥{{ formatCoins(group.totalBet) }}</span>
-                                <span :class="group.totalValid >= 0 ? 'win' : 'loss'">
-                                    有效投注 ¥{{ formatCoins(group.totalValid) }}
-                                </span>
-                            </div>
-                        </div>
-
-                        <div v-for="(item, idx) in group.items" :key="idx" class="history-card">
-                            <div class="hc-row-top">
-                                <span class="hc-room-name">{{ item.roomName }}</span>
-                                <span class="hc-time">{{ formatHistoryTime(item.timestamp) }}</span>
-                            </div>
-                            <div class="hc-row-main">
-                                <div class="hc-info">
-                                    <div class="hc-label">牌型</div>
-                                    <div class="hc-val">{{ item.handType }}</div>
-                                </div>
-                                <div class="hc-info">
-                                    <div class="hc-label">投注</div>
-                                    <div class="hc-val">{{ formatCoins(item.bet) }}</div>
-                                </div>
-                                <div class="hc-info">
-                                    <div class="hc-label">输赢</div>
-                                    <div class="hc-val" :class="item.profit >= 0 ? 'win' : 'loss'">
-                                        {{ item.profit >= 0 ? '+' : '' }}{{ formatCoins(item.profit) }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div v-if="gameStore.isLoadingHistory" class="loading-more">
-                        <span class="spinner"></span> 加载中...
-                    </div>
-                    <div v-if="gameStore.isHistoryEnd && historyGrouped.length > 0" class="loading-more"
-                        style="color: #999;">
-                        没有更多记录了
-                    </div>
-                </div>
-            </div>
-        </div>
+        <HistoryModal v-model:visible="showHistory" />
 
         <!-- Settings Modal -->
-        <div v-if="showSettings" class="modal-overlay">
-            <div class="modal-content settings-modal">
-                <div class="modal-header">
-                    <h3>游戏设置</h3>
-                </div>
-                <div class="close-icon" @click="closeSettingsDebounced()">×</div>
-                <div class="settings-list">
-                    <div class="setting-item">
-                        <span>背景音乐</span>
-                        <van-switch v-model="settingsStore.musicEnabled" size="24px" active-color="#13ce66"
-                            inactive-color="#7d7d7d" />
-                    </div>
-                    <div class="setting-item">
-                        <span>游戏音效</span>
-                        <van-switch v-model="settingsStore.soundEnabled" size="24px" active-color="#13ce66"
-                            inactive-color="#7d7d7d" />
-                    </div>
-                    <div class="setting-item">
-                        <span>屏蔽语音</span>
-                        <van-switch v-model="settingsStore.muteUsers" size="24px" active-color="#13ce66"
-                            inactive-color="#7d7d7d" />
-                    </div>
-                </div>
-            </div>
-        </div>
+        <SettingsModal v-model:visible="showSettings" />
 
         <!-- Help Modal -->
-        <div v-if="showHelp" class="modal-overlay" style="z-index: 8000;">
-            <div class="modal-content help-modal">
-                <div class="modal-header">
-                    <h3>规则说明</h3>
-                </div>
-                <div class="close-icon" @click="closeHelpDebounced()">×</div>
-                <div class="help-content">
-                    <section>
-                        <h4>游戏简介</h4>
-                        <p>抢庄牛牛是一款节奏极快、刺激的扑克游戏，主要流行于江浙一带。游戏需由2-5人进行，使用一副扑克牌（去掉大小王）。</p>
-                    </section>
-                    <section>
-                        <h4>牌型大小</h4>
-                        <p><b>五小牛 > 炸弹 > 五花牛 > 四花牛 > 牛牛 > 牛九 > ... > 牛一 > 没牛</b></p>
-                        <p>单张大小：K > Q > J > 10 > 9 > ... > A</p>
-                        <p>花色大小：黑桃 > 红桃 > 梅花 > 方块</p>
-                    </section>
-                    <section>
-                        <h4>牌型倍率</h4>
-                        <p>牛牛~牛七：3倍</p>
-                        <p>牛六~牛一：1倍</p>
-                        <p>没牛：1倍</p>
-                        <p>特殊牌型（五小牛/炸弹/五花/四花）：5倍</p>
-                    </section>
-                    <section>
-                        <h4>结算规则</h4>
-                        <p>A. 闲家赢：闲家分数 > 庄家分数，闲家赢 = 底分 x 闲家倍数 x 庄家倍数 x 赢家牌型倍率。</p>
-                        <p>B. 庄家赢：庄家分数 > 闲家分数，闲家输 = 底分 x 闲家倍数 x 庄家倍数 x 赢家牌型倍率。</p>
-                    </section>
-                </div>
-            </div>
-        </div>
+        <HelpModal v-model:visible="showHelp" :mode="currentMode" />
     </div>
 </template>
 
@@ -1634,208 +1455,4 @@ const goBack = () => {
         font-size: 14px;
     }
 }
-/* Modal Styles */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.7);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-}
-
-.modal-content {
-    width: 90vw;
-    max-width: 600px;
-    background: #1e293b;
-    border-radius: 12px;
-    border: 1px solid #475569;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    max-height: 85vh;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-    color: #fff;
-    overflow: hidden;
-}
-
-.modal-header {
-    padding: 15px;
-    background: #0f172a;
-    border-bottom: 1px solid #334155;
-    text-align: center;
-}
-
-.modal-header h3 {
-    margin: 0;
-    font-size: 18px;
-    color: #e2e8f0;
-}
-
-.close-icon {
-    position: absolute;
-    top: 10px;
-    right: 15px;
-    font-size: 28px;
-    color: #94a3b8;
-    cursor: pointer;
-    line-height: 1;
-    z-index: 10;
-}
-
-.close-icon:hover {
-    color: #fff;
-}
-
-/* History Specific */
-.history-modal {
-    height: 80vh;
-}
-
-.history-list-new {
-    flex: 1;
-    overflow-y: auto;
-    padding: 10px;
-    background: #1e293b;
-}
-
-.history-group {
-    margin-bottom: 15px;
-}
-
-.history-date-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 10px;
-    background: #334155;
-    border-radius: 6px;
-    margin-bottom: 8px;
-    font-size: 13px;
-    color: #cbd5e1;
-}
-
-.gh-totals {
-    display: flex;
-    gap: 10px;
-}
-
-.history-card {
-    background: #0f172a;
-    border: 1px solid #334155;
-    border-radius: 8px;
-    padding: 10px;
-    margin-bottom: 8px;
-}
-
-.hc-row-top {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 8px;
-    font-size: 13px;
-    color: #94a3b8;
-    border-bottom: 1px solid #1e293b;
-    padding-bottom: 5px;
-}
-
-.hc-row-main {
-    display: flex;
-    justify-content: space-between;
-}
-
-.hc-info {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    flex: 1;
-}
-
-.hc-label {
-    font-size: 11px;
-    color: #64748b;
-    margin-bottom: 2px;
-}
-
-.hc-val {
-    font-size: 14px;
-    font-weight: bold;
-    color: #f1f5f9;
-}
-
-.win { color: #22c55e !important; }
-.loss { color: #ef4444 !important; }
-
-.empty-tip {
-    text-align: center;
-    padding: 40px;
-    color: #64748b;
-}
-
-.loading-more {
-    text-align: center;
-    padding: 10px;
-    color: #94a3b8;
-    font-size: 12px;
-}
-
-/* Settings Specific */
-.settings-modal {
-    height: auto;
-}
-
-.settings-list {
-    padding: 20px;
-}
-
-.setting-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px 0;
-    border-bottom: 1px solid #334155;
-    color: #e2e8f0;
-    font-size: 16px;
-}
-
-.setting-item:last-child {
-    border-bottom: none;
-}
-
-/* Help Specific */
-.help-modal {
-    height: 80vh;
-}
-
-.help-content {
-    flex: 1;
-    overflow-y: auto;
-    padding: 20px;
-    color: #cbd5e1;
-    font-size: 14px;
-    line-height: 1.6;
-}
-
-.help-content section {
-    margin-bottom: 20px;
-}
-
-.help-content h4 {
-    color: #fff;
-    margin-bottom: 10px;
-    border-left: 4px solid #3b82f6;
-    padding-left: 10px;
-}
-
-.help-content p {
-    margin-bottom: 8px;
-}
-
-.help-content b {
-    color: #facc15;
-}
-
 </style>

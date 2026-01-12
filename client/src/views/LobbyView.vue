@@ -228,7 +228,7 @@ const goBack = () => {
 
             <!-- Mode 1: San (3 cards) -->
 
-            <div class="tab-separator"></div>
+            <div class="tab-separator" :style="{ visibility: currentMode === 2 ? 'visible' : 'hidden' }"></div>
 
             <img :src="currentMode === 1 ? tabSanSel : tabSan" class="tab-btn" :class="{ 'active': currentMode === 1 }"
                 @click="setMode(1)" />
@@ -243,7 +243,7 @@ const goBack = () => {
 
 
 
-            <div class="tab-separator"></div>
+            <div class="tab-separator" :style="{ visibility: currentMode === 0 ? 'visible' : 'hidden' }"></div>
 
 
 
@@ -445,7 +445,7 @@ const goBack = () => {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 10px;
+    gap: 5px;
     z-index: 5;
 
     /* Changed from width: 100% to fit content */
@@ -533,7 +533,7 @@ const goBack = () => {
 
 
 
-    background-color: #aaa;
+    background-color: #666;
 
 
 

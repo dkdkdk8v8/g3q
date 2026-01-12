@@ -228,8 +228,26 @@ const goBack = () => {
 
             <!-- Mode 1: San (3 cards) -->
 
+            <div class="tab-separator"></div>
+
             <img :src="currentMode === 1 ? tabSanSel : tabSan" class="tab-btn" :class="{ 'active': currentMode === 1 }"
                 @click="setMode(1)" />
+
+
+
+
+
+
+
+            <!-- Vertical Separator -->
+
+
+
+            <div class="tab-separator"></div>
+
+
+
+
 
 
 
@@ -444,7 +462,8 @@ const goBack = () => {
 
 .tab-btn {
 
-    width: 25vw; /* ~1/4 of screen width */
+    width: 25vw;
+    /* ~1/4 of screen width */
 
     max-width: 200px;
 
@@ -458,7 +477,7 @@ const goBack = () => {
 
     /* Default state (inactive): visually smaller */
 
-    transform: scale(0.8);
+    transform: scale(0.60);
 
     filter: brightness(0.9);
 
@@ -483,11 +502,52 @@ const goBack = () => {
 
 .tab-btn:hover {
 
+
+
     /* Hover effect (optional, maybe just scale up a bit more if active or inactive) */
+
+
 
     filter: brightness(1.2);
 
+
+
 }
+
+
+
+
+
+
+
+.tab-separator {
+
+
+
+    width: 1px;
+
+    border-radius: 10px;
+
+    height: 20px;
+    /* Approx 80% of typical tab height */
+
+
+
+    background-color: #aaa;
+
+
+
+    opacity: 0.6;
+
+
+
+}
+
+
+
+
+
+
 
 .lobby-divider {
     width: 100%;

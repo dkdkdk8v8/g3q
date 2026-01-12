@@ -1347,7 +1347,7 @@ const goBack = () => {
 
 
 
-    padding: 5px 5px 5px 5px;
+    padding: 15px 5px;
     /* Added vertical padding for spacing */
 
 
@@ -1419,9 +1419,6 @@ const goBack = () => {
 
 
 
-
-
-    height: 100px;
 
 
 

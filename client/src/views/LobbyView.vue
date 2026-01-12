@@ -409,7 +409,7 @@ const goBack = () => {
 
     padding: 0;
 
-    gap: 8px;
+    gap: 5px;
 
     max-width: 55%;
 
@@ -419,9 +419,9 @@ const goBack = () => {
 
 .avatar-wrapper {
 
-    width: 40px;
+    width: 36px;
 
-    height: 40px;
+    height: 36px;
 
     border-radius: 6px;
 
@@ -471,7 +471,7 @@ const goBack = () => {
 
 .name-row {
 
-    font-size: 14px;
+    font-size: 13px;
 
     font-weight: bold;
 
@@ -507,8 +507,6 @@ const goBack = () => {
 
     border-radius: 12px;
 
-    padding: 2px 6px 2px 4px;
-
 }
 
 
@@ -527,7 +525,7 @@ const goBack = () => {
 
 .coin-val {
 
-    font-size: 13px;
+    font-size: 12px;
 
     color: #FFD700;
 

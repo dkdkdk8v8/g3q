@@ -295,10 +295,12 @@ const displayName = computed(() => {
                 </div>
 
                 <!-- 状态浮层，移到 avatar-area 以便相对于头像定位 -->
-                <div class="status-float" :class="{ 'is-me': isMe }" v-if="!['IDLE', 'READY_COUNTDOWN'].includes(store.currentPhase)">
+                <div class="status-float" :class="{ 'is-me': isMe }"
+                    v-if="!['IDLE', 'READY_COUNTDOWN'].includes(store.currentPhase)">
                     <Transition :name="slideTransitionName">
                         <div v-if="shouldShowRobMult" class="status-content">
-                            <span v-if="player.robMultiplier > 0" class="status-text rob-text" :class="{ 'text-large': isMe }">抢{{ player.robMultiplier
+                            <span v-if="player.robMultiplier > 0" class="status-text rob-text"
+                                :class="{ 'text-large': isMe }">抢{{ player.robMultiplier
                                 }}倍</span>
                             <span v-else class="status-text no-rob-text" :class="{ 'text-large': isMe }">不抢</span>
                         </div>
@@ -306,7 +308,8 @@ const displayName = computed(() => {
 
                     <Transition :name="slideTransitionName">
                         <div v-if="shouldShowBetMult" class="status-content">
-                            <span class="status-text bet-text" :class="{ 'text-large': isMe }">押{{ player.betMultiplier }}倍</span>
+                            <span class="status-text bet-text" :class="{ 'text-large': isMe }">押{{ player.betMultiplier
+                            }}倍</span>
                         </div>
                     </Transition>
                 </div>
@@ -354,8 +357,9 @@ const displayName = computed(() => {
                 <img v-if="getHandTypeImageUrl(player.handResult.typeName)"
                     :src="getHandTypeImageUrl(player.handResult.typeName)" alt="手牌类型" class="hand-type-img" />
                 <template v-else>
-        TypeName: "{{ player.handResult.typeName }}" - URL Debug: {{ getHandTypeImageUrl(player.handResult.typeName) || 'null' }}
-    </template>
+                    TypeName: "{{ player.handResult.typeName }}" - URL Debug: {{
+                        getHandTypeImageUrl(player.handResult.typeName) || 'null' }}
+                </template>
             </div>
         </div>
     </div>
@@ -888,7 +892,7 @@ const displayName = computed(() => {
     background: rgba(0, 0, 0, 0.6);
     border-radius: 20px;
     /* More rounded */
-    padding: 4px 6px;
+    padding: 2px 5px 2px 2px;
     /* Adjusted padding */
     font-size: 13px;
     /* Increased from 14px */
@@ -920,22 +924,27 @@ const displayName = computed(() => {
 .status-float {
     position: absolute;
     top: auto;
-    bottom: 90%; /* Closer to avatar for opponents (was 100%) */
+    bottom: 90%;
+    /* Closer to avatar for opponents (was 100%) */
     left: 50%;
     transform: translateX(-50%);
     right: auto;
-    z-index: 150; /* Ensure it is above cards and other elements */
+    z-index: 150;
+    /* Ensure it is above cards and other elements */
     margin-bottom: 0px;
     width: max-content;
     display: flex;
     flex-direction: column;
     align-items: center;
-    pointer-events: none; /* Let clicks pass through */
+    pointer-events: none;
+    /* Let clicks pass through */
 }
 
 .status-float.is-me {
-    bottom: 100%; /* Higher for self */
-    margin-bottom: 10px; /* Extra spacing for self */
+    bottom: 100%;
+    /* Higher for self */
+    margin-bottom: 10px;
+    /* Extra spacing for self */
 }
 
 /* 右侧玩家的状态浮层显示在左侧 - Removed as overridden by generic opponent rule */
@@ -974,63 +983,70 @@ const displayName = computed(() => {
     align-items: center;
     justify-content: center;
     white-space: nowrap;
-    height: 40px; /* Reduced fixed height */
-    
+    height: 40px;
+    /* Reduced fixed height */
+
     /* Default shadow for visibility */
     text-shadow:
         -1px -1px 0 #000,
-         1px -1px 0 #000,
-        -1px  1px 0 #000,
-         1px  1px 0 #000,
-         0 3px 5px rgba(0,0,0,0.5);
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000,
+        0 3px 5px rgba(0, 0, 0, 0.5);
 }
 
 /* Rob (Positive) */
 .rob-text {
-    color: #fcd34d; /* Amber-300 */
+    color: #fcd34d;
+    /* Amber-300 */
     text-shadow:
         -2px -2px 0 #b45309,
-         2px -2px 0 #b45309,
-        -2px  2px 0 #b45309,
-         2px  2px 0 #b45309,
-         0 3px 5px rgba(0,0,0,0.5);
+        2px -2px 0 #b45309,
+        -2px 2px 0 #b45309,
+        2px 2px 0 #b45309,
+        0 3px 5px rgba(0, 0, 0, 0.5);
     font-size: 18px;
 }
 
 /* No Rob - Updated to match Rob style */
 .no-rob-text {
-    color: #fcd34d; /* Match rob-text */
+    color: #fcd34d;
+    /* Match rob-text */
     text-shadow:
         -2px -2px 0 #b45309,
-         2px -2px 0 #b45309,
-        -2px  2px 0 #b45309,
-         2px  2px 0 #b45309,
-         0 3px 5px rgba(0,0,0,0.5);
-    font-size: 18px; /* Match rob-text */
+        2px -2px 0 #b45309,
+        -2px 2px 0 #b45309,
+        2px 2px 0 #b45309,
+        0 3px 5px rgba(0, 0, 0, 0.5);
+    font-size: 18px;
+    /* Match rob-text */
 }
 
 /* Bet */
 .bet-text {
-    color: #ffffff; /* White */
+    color: #ffffff;
+    /* White */
     text-shadow:
-        -2px -2px 0 #166534, /* Green-800 */
-         2px -2px 0 #166534,
-        -2px  2px 0 #166534,
-         2px  2px 0 #166534,
-         0 3px 5px rgba(0,0,0,0.5);
+        -2px -2px 0 #166534,
+        /* Green-800 */
+        2px -2px 0 #166534,
+        -2px 2px 0 #166534,
+        2px 2px 0 #166534,
+        0 3px 5px rgba(0, 0, 0, 0.5);
     font-size: 18px;
 }
 
 /* Large Size for Self */
 .status-text.text-large {
-    font-size: 22px; /* Reduced from 26px */
+    font-size: 22px;
+    /* Reduced from 26px */
     height: 40px;
     text-shadow:
         -2px -2px 0 #000,
-         2px -2px 0 #000,
-        -2px  2px 0 #000,
-         2px  2px 0 #000,
-         0 4px 8px rgba(0,0,0,0.6);
+        2px -2px 0 #000,
+        -2px 2px 0 #000,
+        2px 2px 0 #000,
+        0 4px 8px rgba(0, 0, 0, 0.6);
 }
 
 /* Specific stroke colors for Large size */
@@ -1038,19 +1054,20 @@ const displayName = computed(() => {
 .no-rob-text.text-large {
     text-shadow:
         -2px -2px 0 #b45309,
-         2px -2px 0 #b45309,
-        -2px  2px 0 #b45309,
-         2px  2px 0 #b45309,
-         0 4px 8px rgba(0,0,0,0.6);
+        2px -2px 0 #b45309,
+        -2px 2px 0 #b45309,
+        2px 2px 0 #b45309,
+        0 4px 8px rgba(0, 0, 0, 0.6);
 }
 
 .bet-text.text-large {
     text-shadow:
-        -2px -2px 0 #166534, /* Green-800 */
-         2px -2px 0 #166534,
-        -2px  2px 0 #166534,
-         2px  2px 0 #166534,
-         0 4px 8px rgba(0,0,0,0.6);
+        -2px -2px 0 #166534,
+        /* Green-800 */
+        2px -2px 0 #166534,
+        -2px 2px 0 #166534,
+        2px 2px 0 #166534,
+        0 4px 8px rgba(0, 0, 0, 0.6);
 }
 
 .hand-area {
@@ -1076,7 +1093,8 @@ const displayName = computed(() => {
 
     margin-top: 0;
 
-    margin-bottom: 10px; /* Increased to move hand cards further up */
+    margin-bottom: 10px;
+    /* Increased to move hand cards further up */
 
 }
 

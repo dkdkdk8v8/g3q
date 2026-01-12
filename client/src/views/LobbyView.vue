@@ -55,6 +55,9 @@ import roomDianfengBg from '@/assets/lobby/room_dianfeng_bg.png';
 import roomDianfengText from '@/assets/lobby/room_dianfeng_text.png';
 import roomDianfengShape from '@/assets/lobby/room_dianfeng_shape.png';
 
+import dashiLine from '@/assets/lobby/dashi_line.png';
+import dianfengLine from '@/assets/lobby/dianfeng_line.png';
+
 import defaultAvatar from '@/assets/common/default_avatar.png';
 import lobbyBgSound from '@/assets/sounds/lobby_bg.mp3';
 import btnClickSound from '@/assets/sounds/btn_click.mp3';
@@ -133,14 +136,22 @@ const roomTextColors = [
 
 const rooms = computed(() => {
     const configs = userStore.roomConfigs || [];
-    return configs.map((cfg, index) => ({
-        level: cfg.level,
-        name: cfg.name,
-        base: formatCoins(cfg.base_bet),
-        min: formatCoins(cfg.min_balance),
-        assets: getRoomAssets(index),
-        limitColor: roomTextColors[index] || "rgb(255, 255, 255)"
-    }));
+    return configs.map((cfg, index) => {
+        let lineImg = null;
+        if (index === 4) lineImg = dashiLine;
+        if (index === 5) lineImg = dianfengLine;
+
+        return {
+            level: cfg.level,
+            name: cfg.name,
+            base: formatCoins(cfg.base_bet),
+            min: formatCoins(cfg.min_balance),
+            assets: getRoomAssets(index),
+            limitColor: roomTextColors[index] || "rgb(255, 255, 255)",
+            isFullWidth: index === 4 || index === 5,
+            lineImg: lineImg
+        };
+    });
 });
 
 // --- History, Settings, Help Logic ---
@@ -323,24 +334,51 @@ const goBack = () => {
                     <img :src="room.assets.bg" class="room-bg" />
 
                     <!-- Content Wrapper -->
-                    <div class="room-content-wrapper">
-                        <!-- Info Section -->
-                        <div class="room-info-section">
-                            <!-- Left: Shape -->
-                            <div class="room-shape-box">
-                                <img :src="room.assets.shape" class="room-shape-img" />
-                            </div>
-                            <!-- Right: Text & Base Bet -->
-                            <div class="room-details-box">
-                                <img :src="room.assets.text" class="room-text-img-new" />
-                                <div class="base-info-text">底注: {{ room.base }}</div>
-                            </div>
-                        </div>
+                    <div class="room-content-wrapper" :class="{ 'horizontal-layout': room.isFullWidth }">
 
-                        <!-- Limit Section -->
-                        <div class="room-limit-section" :style="{ color: room.limitColor }">
-                            入场限制: {{ room.min }}
-                        </div>
+                        <!-- Full Width Layout -->
+                        <template v-if="room.isFullWidth">
+                            <div class="left-content-group">
+                                <!-- 1. Shape -->
+                                <div class="room-shape-box-horiz">
+                                    <img :src="room.assets.shape" class="room-shape-img" />
+                                </div>
+                                <!-- 2. Text -->
+                                <div class="room-text-box-horiz">
+                                    <img :src="room.assets.text" class="room-text-img-new" />
+                                </div>
+                                <!-- 3. Line -->
+                                <img v-if="room.lineImg" :src="room.lineImg" class="room-separator-line" />
+                            </div>
+
+                            <!-- 4. Info Column (Right) -->
+                            <div class="room-info-col-horiz">
+                                <div class="base-info-text">底注: {{ room.base }}</div>
+                                <div class="limit-info-text" :style="{ color: room.limitColor }">入场: {{ room.min }}
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Standard Layout -->
+                        <template v-else>
+                            <!-- Info Section -->
+                            <div class="room-info-section">
+                                <!-- Left: Shape -->
+                                <div class="room-shape-box">
+                                    <img :src="room.assets.shape" class="room-shape-img" />
+                                </div>
+                                <!-- Right: Text & Base Bet -->
+                                <div class="room-details-box">
+                                    <img :src="room.assets.text" class="room-text-img-new" />
+                                    <div class="base-info-text">底注: {{ room.base }}</div>
+                                </div>
+                            </div>
+
+                            <!-- Limit Section -->
+                            <div class="room-limit-section" :style="{ color: room.limitColor }">
+                                入场限制: {{ room.min }}
+                            </div>
+                        </template>
                     </div>
                 </div>
             </div>
@@ -707,7 +745,7 @@ const goBack = () => {
 
 
 
-    width: 25vw;
+    width: 28vw;
 
     /* ~1/4 of screen width */
 
@@ -730,18 +768,6 @@ const goBack = () => {
 
 
     object-fit: contain;
-
-
-
-    /* Default state (inactive): visually smaller */
-
-
-
-    /* Removed transform scale */
-
-
-
-    filter: brightness(0.6);
 
 
 
@@ -1068,8 +1094,10 @@ const goBack = () => {
 .room-item.room-idx-4 .room-shape-img {
     width: 50% !important;
 }
+
 .room-item.room-idx-4 .room-text-img-new {
-    width: 38% !important; /* Half of original 76% */
+    width: 38% !important;
+    /* Half of original 76% */
 }
 
 
@@ -1092,8 +1120,10 @@ const goBack = () => {
 .room-item.room-idx-5 .room-shape-img {
     width: 50% !important;
 }
+
 .room-item.room-idx-5 .room-text-img-new {
-    width: 38% !important; /* Half of original 76% */
+    width: 38% !important;
+    /* Half of original 76% */
 }
 
 
@@ -1487,5 +1517,74 @@ const goBack = () => {
     .room-limit-section {
         font-size: 14px;
     }
+}
+
+/* Horizontal Layout Styles */
+.horizontal-layout {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    height: 100%;
+}
+
+.left-content-group {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    gap: 15px;
+    /* Spacing between shape, text, and line */
+}
+
+.room-shape-box-horiz {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* Remove fixed width, let content define it, but constrain img */
+}
+
+.room-shape-box-horiz .room-shape-img {
+    width: 60px !important;
+    /* Fixed width for consistency, approx 50% of original visual */
+    height: auto;
+    object-fit: contain;
+}
+
+.room-text-box-horiz {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.room-text-box-horiz .room-text-img-new {
+    width: 100px !important;
+    /* Fixed width, approx 38% of original visual */
+    height: auto;
+    object-fit: contain;
+}
+
+.room-separator-line {
+    height: 40px;
+    /* Adjust height to match text roughly */
+    width: auto;
+    object-fit: contain;
+    margin-left: 10px;
+}
+
+.room-info-col-horiz {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-end;
+    min-width: 120px;
+    /* Ensure enough space for text */
+    gap: 4px;
+}
+
+.limit-info-text {
+    font-size: 14px;
+    font-weight: bold;
+    color: #cbd5e1;
 }
 </style>

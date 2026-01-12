@@ -410,11 +410,11 @@ const goBack = () => {
 
 .icon-btn {
 
-    width: 36px;
+    width: 32px;
 
-    /* Reduced from 50px */
+    /* Reduced from 36px */
 
-    height: 36px;
+    height: 32px;
 
     cursor: pointer;
 

@@ -1478,6 +1478,7 @@ const goBack = () => {
     font-weight: bold;
 
 
+
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 
 
@@ -1490,7 +1491,32 @@ const goBack = () => {
 
 
 
+.room-item.room-idx-4 .base-info-text,
+
+
+
+.room-item.room-idx-5 .base-info-text {
+
+
+
+    font-size: 28px;
+    /* Doubled from 16px for single-row rooms */
+
+
+
+}
+
+
+
+
+
+
+
 .room-limit-section {
+
+
+
+
 
 
 

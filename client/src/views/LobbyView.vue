@@ -1080,7 +1080,15 @@ const goBack = () => {
 
 
 
+
+
+
+
     position: relative;
+
+
+
+
 
 
 
@@ -1088,15 +1096,31 @@ const goBack = () => {
 
 
 
+
+
+
+
     width: 100%;
 
 
 
-    /* Height auto to let content push it */
 
 
 
-    height: auto;
+
+    /* Flex 1 ensures it fills the parent height (which is stretched by grid) */
+
+
+
+
+
+
+
+    flex: 1;
+
+
+
+
 
 
 
@@ -1104,11 +1128,23 @@ const goBack = () => {
 
 
 
+
+
+
+
     flex-direction: column;
 
 
 
+
+
+
+
     justify-content: space-between;
+
+
+
+
 
 
 

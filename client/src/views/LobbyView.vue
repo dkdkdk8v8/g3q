@@ -57,6 +57,7 @@ import roomDianfengShape from '@/assets/lobby/room_dianfeng_shape.png';
 
 import defaultAvatar from '@/assets/common/default_avatar.png';
 import lobbyBgSound from '@/assets/sounds/lobby_bg.mp3';
+import btnClickSound from '@/assets/sounds/btn_click.mp3';
 import goldImg from '@/assets/common/gold.png';
 
 const router = useRouter();
@@ -64,6 +65,12 @@ const userStore = useUserStore();
 const gameStore = useGameStore();
 const settingsStore = useSettingsStore();
 const bgAudio = ref(null);
+
+const playBtnSound = () => {
+    if (settingsStore.soundEnabled) {
+        new Audio(btnClickSound).play().catch(() => { });
+    }
+};
 
 const roomAssetsMap = {
     tiyan: { bg: roomTiyanBg, text: roomTiyanText, shape: roomTiyanShape },
@@ -99,12 +106,14 @@ const userInfo = computed(() => {
 const currentMode = ref(0); // 0: Bukan, 1: San, 2: Si
 
 const setMode = (mode) => {
+    playBtnSound();
     currentMode.value = mode;
     userStore.lastSelectedMode = mode;
     localStorage.setItem('lastSelectedMode', mode);
 };
 
 const enterGame = debounce(async (level) => {
+    playBtnSound();
     try {
         await gameStore.joinRoom(level, currentMode.value);
         router.push({ path: '/game', query: { mode: currentMode.value } });
@@ -140,14 +149,17 @@ const showSettings = ref(false);
 const showHelp = ref(false);
 
 const openHistoryDebounced = debounce(() => {
+    playBtnSound();
     showHistory.value = true;
 }, 200);
 
 const openSettingsDebounced = debounce(() => {
+    playBtnSound();
     showSettings.value = true;
 }, 200);
 
 const openHelpDebounced = debounce(() => {
+    playBtnSound();
     showHelp.value = true;
 }, 200);
 
@@ -169,6 +181,14 @@ const playMusic = () => {
 const stopMusic = () => {
     if (bgAudio.value) bgAudio.value.pause();
 };
+
+watch(() => settingsStore.musicEnabled, (val) => {
+    if (val) {
+        playMusic();
+    } else {
+        stopMusic();
+    }
+});
 
 onMounted(() => {
     gameClient.on('QZNN.UserInfo', (msg) => {
@@ -208,6 +228,7 @@ onUnmounted(() => {
 });
 
 const goBack = () => {
+    playBtnSound();
     console.log("Exit clicked");
     // router.push('/'); // Uncomment if needed
 };
@@ -1043,9 +1064,13 @@ const goBack = () => {
 
 }
 
-
-
-
+/* Reduce size for single-row items (Index 4) */
+.room-item.room-idx-4 .room-shape-img {
+    width: 50% !important;
+}
+.room-item.room-idx-4 .room-text-img-new {
+    width: 38% !important; /* Half of original 76% */
+}
 
 
 
@@ -1061,6 +1086,14 @@ const goBack = () => {
 
 
 
+}
+
+/* Reduce size for single-row items (Index 5) */
+.room-item.room-idx-5 .room-shape-img {
+    width: 50% !important;
+}
+.room-item.room-idx-5 .room-text-img-new {
+    width: 38% !important; /* Half of original 76% */
 }
 
 

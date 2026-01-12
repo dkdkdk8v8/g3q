@@ -900,12 +900,16 @@ onUnmounted(() => {
 
 
 const onRob = debounce((multiplier) => {
-    new Audio(btnClickSound).play().catch(() => { });
+    if (settingsStore.soundEnabled) {
+        new Audio(btnClickSound).play().catch(() => { });
+    }
     store.playerRob(multiplier);
 }, 500);
 
 const onBet = debounce((multiplier) => {
-    new Audio(btnClickSound).play().catch(() => { });
+    if (settingsStore.soundEnabled) {
+        new Audio(btnClickSound).play().catch(() => { });
+    }
     store.playerBet(multiplier);
 }, 500);
 

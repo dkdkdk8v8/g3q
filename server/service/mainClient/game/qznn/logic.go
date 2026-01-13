@@ -8,6 +8,7 @@ import (
 	"math"
 	"math/rand"
 	"service/comm"
+	"service/initMain"
 	"service/mainClient/game/znet"
 	"service/modelClient"
 	"slices"
@@ -303,6 +304,16 @@ func (r *QZNNRoom) AddPlayer(p *Player) (int, error) {
 			return seatNum, nil
 		}
 	}
+	if !p.IsRobot {
+		// 检查是否已经有真人用户了
+		for _, existingPlayer := range r.Players {
+			if !existingPlayer.IsRobot {
+				r.RoomMu.RUnlock()
+				return 0, comm.ErrRealPlayerAlreadyInRoom
+			}
+		}
+	}
+
 	r.RoomMu.RUnlock()
 	bIsObState := r.CheckPlayerIsOb()
 
@@ -1006,10 +1017,16 @@ func (r *QZNNRoom) StartGame() {
 
 	settle := modelClient.GameSettletruct{RoomId: r.ID, GameRecordId: uint64(nGameRecordId)}
 	for _, p := range activePlayer {
+		insertUserRecord := true
+		if p.IsRobot && !initMain.DefCtx.IsTest {
+			//非测试模式下，机器人不记录对局记录
+			insertUserRecord = false
+		}
 		settle.Players = append(settle.Players, modelClient.UserSettingStruct{
-			UserId:        p.ID,
-			ChangeBalance: p.BalanceChange,
-			ValidBet:      p.ValidBet,
+			UserId:               p.ID,
+			ChangeBalance:        p.BalanceChange,
+			ValidBet:             p.ValidBet,
+			UserGameRecordInsert: insertUserRecord,
 		})
 	}
 	//

@@ -16,4 +16,5 @@ const (
 	CmdMonitorDuration = "md"
 	CmdDebug           = "debug"
 	CmdCfgPath         = "config"
+	CmdTest            = "test"
 )

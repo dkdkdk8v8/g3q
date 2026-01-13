@@ -23,6 +23,7 @@ var (
 	flagProcess string
 	monitorMd   int
 	debug       bool
+	test        bool
 )
 
 var (
@@ -73,7 +74,7 @@ func main() {
 			initMain.InitAlert()
 
 			daemonRunner := initMain.DaemonRunner{Ctx: initMain.BaseCtx{ProcessName: processName, IgnorePid: debug, IsTerm: term,
-				VipDefaultCfgDir: vipDefaultCfgDir, IsDebug: debug}}
+				VipDefaultCfgDir: vipDefaultCfgDir, IsDebug: debug, IsTest: test}}
 			authWork, err := createMainWork(debug)
 			if err != nil {
 				logrus.WithError(err).Error("createRemoteAuthWorkFail")
@@ -122,6 +123,7 @@ func main() {
 	rootCmd.PersistentFlags().IntVar(&monitorMd, initMain.CmdMonitorDuration, 2, "monitor duration second")
 	rootCmd.PersistentFlags().BoolVar(&printVersion, "v", false, "print version info")
 	rootCmd.PersistentFlags().BoolVar(&debug, initMain.CmdDebug, false, "debug mode")
+	rootCmd.PersistentFlags().BoolVar(&test, initMain.CmdTest, false, "test")
 	//rootCmd.PersistentFlags().StringVar(&configPath, initMain.CmdCfgPath, "", "config path")
 
 	rootCmd.Execute()

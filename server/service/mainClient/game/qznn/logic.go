@@ -138,6 +138,11 @@ func (r *QZNNRoom) CheckGameStart() bool {
 func (r *QZNNRoom) CheckPlayerIsOb() bool {
 	r.RoomMu.RLock()
 	defer r.RoomMu.RUnlock()
+	return r.checkPlayerIsOb()
+}
+
+// checkPlayerIsOb 内部方法，不加锁，供已持有锁的函数调用
+func (r *QZNNRoom) checkPlayerIsOb() bool {
 	if !(r.State == StateWaiting || r.State == StatePrepare) {
 		return true
 	}
@@ -204,7 +209,7 @@ func (r *QZNNRoom) GetPlayerAndRealPlayerCount() (int, int) {
 	currentRealCount := 0
 	for _, p := range r.Players {
 		if p != nil {
-			currentRealCount++
+			currentCount++
 			if !p.IsRobot {
 				currentRealCount++
 			}
@@ -296,30 +301,29 @@ func (r *QZNNRoom) getPlayerByID(userID string) (*Player, bool) {
 }
 
 func (r *QZNNRoom) AddPlayer(p *Player) (int, error) {
-	r.RoomMu.RLock()
+	r.RoomMu.Lock()
 	// 检查玩家是否已在房间
 	for seatNum, existingPlayer := range r.Players {
 		if existingPlayer != nil && existingPlayer.ID == p.ID {
-			r.RoomMu.RUnlock()
+			r.RoomMu.Unlock()
 			return seatNum, nil
 		}
 	}
 	if !p.IsRobot {
 		// 检查是否已经有真人用户了
 		for _, existingPlayer := range r.Players {
-			if !existingPlayer.IsRobot {
-				r.RoomMu.RUnlock()
+			if existingPlayer != nil && !existingPlayer.IsRobot {
+				r.RoomMu.Unlock()
 				return 0, comm.ErrRealPlayerAlreadyInRoom
 			}
 		}
 	}
 
-	r.RoomMu.RUnlock()
-	bIsObState := r.CheckPlayerIsOb()
+	// 使用内部方法，避免递归锁，同时复用逻辑
+	bIsObState := r.checkPlayerIsOb()
 
 	emptySeat := -1
 	countExistPlayerNum := 0
-	r.RoomMu.RLock()
 	for i, pl := range r.Players {
 		if pl != nil {
 			countExistPlayerNum++
@@ -328,17 +332,15 @@ func (r *QZNNRoom) AddPlayer(p *Player) (int, error) {
 		}
 	}
 	if countExistPlayerNum >= cap(r.Players) || emptySeat == -1 {
-		r.RoomMu.RUnlock()
+		r.RoomMu.Unlock()
 		return 0, comm.NewMyError("房间已满")
 	}
-	r.RoomMu.RUnlock()
 
 	p.Mu.Lock()
 	p.SeatNum = emptySeat
 	p.IsOb = bIsObState
 	p.Mu.Unlock()
 
-	r.RoomMu.Lock()
 	r.Players[emptySeat] = p
 	r.RoomMu.Unlock()
 
@@ -465,7 +467,11 @@ func (r *QZNNRoom) leave(userId string) bool {
 func (r *QZNNRoom) GetActivePlayers(filter func(*Player) bool) []*Player {
 	r.RoomMu.RLock()
 	defer r.RoomMu.RUnlock()
+	return r.getActivePlayers(filter)
+}
 
+// getActivePlayers 内部方法，不加锁
+func (r *QZNNRoom) getActivePlayers(filter func(*Player) bool) []*Player {
 	var players []*Player
 	for _, p := range r.Players {
 		if p == nil || p.IsOb {
@@ -482,7 +488,11 @@ func (r *QZNNRoom) GetActivePlayers(filter func(*Player) bool) []*Player {
 func (r *QZNNRoom) GetBroadCasePlayers(filter func(*Player) bool) []*Player {
 	r.RoomMu.RLock()
 	defer r.RoomMu.RUnlock()
+	return r.getBroadCasePlayers(filter)
+}
 
+// getBroadCasePlayers 内部方法，不加锁
+func (r *QZNNRoom) getBroadCasePlayers(filter func(*Player) bool) []*Player {
 	var players []*Player
 	for _, p := range r.Players {
 		if p == nil {
@@ -497,6 +507,10 @@ func (r *QZNNRoom) GetBroadCasePlayers(filter func(*Player) bool) []*Player {
 }
 
 func (r *QZNNRoom) prepareDeck() {
+	// 修复：必须加写锁，防止并发修改 Deck 和 Players
+	r.RoomMu.Lock()
+	defer r.RoomMu.Unlock()
+
 	// 1. 洗牌
 	r.Deck = rand.Perm(52)
 
@@ -508,6 +522,7 @@ func (r *QZNNRoom) prepareDeck() {
 		if p.IsOb {
 			continue
 		}
+		// 注意：这里持有 RoomMu，然后获取 p.Mu (在 ResetGameData 内部)，符合 Room -> Player 的锁序
 		p.ResetGameData()
 		// 决定输赢概率 (目标牛几)
 		targetScore := GetArithmetic().DecideOutcome(p.ID, 0)
@@ -519,14 +534,18 @@ func (r *QZNNRoom) prepareDeck() {
 			foundCards[i], foundCards[j] = foundCards[j], foundCards[i]
 		})
 		if foundCards != nil {
+			p.Mu.Lock()
 			p.Cards = foundCards
+			p.Mu.Unlock()
 			// 从牌堆中移除这些牌
 			r.Deck = RemoveCardsFromDeck(r.Deck, foundCards)
 		} else {
 			// 兜底：如果找不到符合条件的牌（概率极低），直接发牌堆顶端的5张
 			if len(r.Deck) >= 5 {
+				p.Mu.Lock()
 				p.Cards = make([]int, 5)
 				copy(p.Cards, r.Deck[:5])
+				p.Mu.Unlock()
 				r.Deck = r.Deck[5:]
 			} else {
 				// 极端情况：牌不够了（理论上不应发生，除非人数过多）

@@ -117,11 +117,14 @@ func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []b
 		}
 	}
 
-	if room == nil {
+	if room == nil && !user.IsRobot {
 		room, err = game.GetMgr().SelectRoom(user, p, req.Level, req.BankerType, cfg)
 		if err != nil {
 			return err
 		}
+	}
+	if room == nil {
+		room = game.GetMgr().CreateRoom(req.Level, req.BankerType, cfg)
 	}
 	room, err = game.GetMgr().JoinQZNNRoom(room, user, p)
 	if err != nil {
@@ -349,7 +352,11 @@ func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) 
 			}
 			staUser, err := modelAdmin.GetStaUser(userId, userRecoed.CreateAt)
 			if err != nil {
-				return nil, err
+				if !ormutil.IsNoRow(err) {
+					return nil, err
+				} else {
+					staUser = &modelAdmin.ModelStaUser{}
+				}
 			}
 			currentSummy.TotalBet = staUser.BetAmount
 			currentSummy.TotalWinBalance = staUser.BetWin

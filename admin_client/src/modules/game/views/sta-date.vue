@@ -82,7 +82,7 @@ const searchParams = reactive({
     app: "",
     gameName: "",
     showType: "date",
-    userType: "all",
+    userType: "real",
 });
 
 // 自定义Service

@@ -3,7 +3,9 @@ package mainRobot
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"math/rand"
+	"net/http"
 	"net/url"
 	"service/comm"
 	"service/initMain"
@@ -18,73 +20,282 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var targetServerURL = SERVER_URL
+var targetHost = HOST_PROD
 
 func Start() {
-
 	if initMain.DefCtx.IsTerm {
-		targetServerURL = SERVER_URL_DEV
+		targetHost = HOST_DEV
 	}
+	go managerLoop()
+}
 
-	manageRobots()
+type RobotRuntime struct {
+	Cancel context.CancelFunc
+	Action RobotAction
+	UserId string
 }
 
 var (
-	activeRobots   = make(map[string]context.CancelFunc)
+	activeRobots   = make(map[string]*RobotRuntime)
 	activeRobotsMu sync.Mutex
+	robotOffset    = 0 // 用于轮询数据库中的机器人
 )
 
-func manageRobots() {
-	ticker := time.NewTicker(time.Second * 20)
-	defer ticker.Stop()
+// PlayerSimple 用于解析 HTTP 接口返回的玩家数据
+type PlayerSimple struct {
+	ID      string
+	IsRobot bool
+}
 
+// RoomDataSimple 用于解析 HTTP 接口返回的房间数据
+type RoomDataSimple struct {
+	ID         string
+	Players    []*PlayerSimple
+	Config     qznn.LobbyConfig
+	BankerType int
+}
+
+type RobotAction struct {
+	Level      int
+	BankerType int
+	RoomId     string // 如果为空则创建新房间
+}
+
+func managerLoop() {
 	for {
-		users, err := modelClient.GetAllRobots()
-		if err != nil {
-			logrus.Errorf("获取所有机器人失败: %v", err)
-		} else {
-			logrus.Infof("获取到机器人数量: %d", len(users))
-			activeRobotsMu.Lock()
-			// 找出需要删除的机器人
-			existUsers := make(map[string]bool)
-			for _, u := range users {
-				existUsers[u.UserId] = true
-			}
-			for uid, cancel := range activeRobots {
-				if !existUsers[uid] {
-					cancel()
-				}
-			}
-
-			// 找出需要添加的机器人
-			for _, u := range users {
-				if _, ok := activeRobots[u.UserId]; !ok {
-					ctx, cancel := context.WithCancel(context.Background())
-					activeRobots[u.UserId] = cancel
-					go runRobot(u, ctx)
-				}
-			}
-			activeRobotsMu.Unlock()
-		}
-		<-ticker.C
+		managerRound()
+		time.Sleep(time.Second * 3)
 	}
 }
 
-func runRobot(user *modelClient.ModelUser, ctx context.Context) {
+func managerRound() {
+	// 1. 读取全部房间数据
+	rooms, err := fetchRooms()
+	if err != nil {
+		logrus.Errorf("获取房间列表失败: %v", err)
+		return
+	}
+
+	// 2. 根据优先级生成行动计划
+	actions := planActions(rooms)
+	if len(actions) == 0 {
+		return
+	}
+
+	// 3. 获取闲置机器人 (固定100个)
+	robots := fetchIdleRobots(100)
+	if len(robots) == 0 {
+		return
+	}
+
+	// 4. 执行调度
+	// 取行动数和机器人数的较小值
+	count := len(actions)
+	if len(robots) < count {
+		count = len(robots)
+	}
+
+	for i := 0; i < count; i++ {
+		go launchRobot(robots[i], actions[i])
+	}
+}
+
+func planActions(rooms []*RoomDataSimple) []RobotAction {
+	var actions []RobotAction
+
+	// 分类房间
+	// pureRobotRooms: [Level][BankerType] -> List of Rooms
+	pureRobotRooms := make(map[int]map[int][]*RoomDataSimple)
+	// realUserRooms: List of Rooms (Only 1 real user, 0 robots)
+	var realUserRooms []*RoomDataSimple
+	// mixedRooms: List of Rooms (Real > 0 && Robot > 0)
+	var mixedRooms []*RoomDataSimple
+
+	for _, room := range rooms {
+		hasReal := false
+		robotCount := 0
+		playerCount := 0
+
+		for _, p := range room.Players {
+			if p != nil {
+				playerCount++
+				if p.IsRobot {
+					robotCount++
+				} else {
+					hasReal = true
+				}
+			}
+		}
+
+		if hasReal {
+			// 只有1个用户且没有机器人
+			if playerCount == 1 && robotCount == 0 {
+				realUserRooms = append(realUserRooms, room)
+			} else if robotCount > 0 {
+				// 优先级4条件：有真人也有机器人
+				mixedRooms = append(mixedRooms, room)
+			}
+		} else {
+			// 纯机器人房间
+			if pureRobotRooms[room.Config.Level] == nil {
+				pureRobotRooms[room.Config.Level] = make(map[int][]*RoomDataSimple)
+			}
+			pureRobotRooms[room.Config.Level][room.Config.BankerType] = append(pureRobotRooms[room.Config.Level][room.Config.BankerType], room)
+		}
+	}
+
+	// 真实用户房间 (1人0机器人) -> 进1个机器人
+	for _, room := range realUserRooms {
+		actions = append(actions, RobotAction{
+			Level:      room.Config.Level,
+			BankerType: room.Config.BankerType,
+			RoomId:     room.ID,
+		})
+	}
+
+	// 补充纯机器人房间
+	for _, level := range ALLOWED_LEVELS {
+		for _, bt := range ALLOWED_BANKER_TYPES {
+			existing := pureRobotRooms[level][bt]
+			count := len(existing)
+
+			if count < MIN_ROBOT_ROOMS {
+				need := MIN_ROBOT_ROOMS - count
+				for i := 0; i < need; i++ {
+					actions = append(actions, RobotAction{
+						Level:      level,
+						BankerType: bt,
+						RoomId:     "", // Create new
+					})
+				}
+			}
+
+			// 只有机器人的房间，人数不满4个 -> 50%进1个机器人
+			for _, room := range existing {
+				pCount := 0
+				for _, p := range room.Players {
+					if p != nil {
+						pCount++
+					}
+				}
+
+				if pCount < 4 && rand.Intn(2) == 1 {
+					actions = append(actions, RobotAction{
+						Level:      level,
+						BankerType: bt,
+						RoomId:     room.ID,
+					})
+				}
+			}
+		}
+	}
+
+	// 当房间内有真人时并且也有机器人时，还有空余位置时随机派一个机器人进入该房间。
+	for _, room := range mixedRooms {
+		pCount := 0
+		for _, p := range room.Players {
+			if p != nil {
+				pCount++
+			}
+		}
+
+		if pCount < 5 {
+			actions = append(actions, RobotAction{
+				Level:      room.Config.Level,
+				BankerType: room.Config.BankerType,
+				RoomId:     room.ID,
+			})
+		}
+	}
+
+	return actions
+}
+
+func fetchIdleRobots(count int) []*modelClient.ModelUser {
+	var result []*modelClient.ModelUser
+	// 尝试获取更多以过滤掉忙碌的机器人
+	limit := count * 2
+	if limit < 200 {
+		limit = 200
+	}
+
+	attempts := 0
+	// 简单的重试机制，防止刚好读到末尾
+	for len(result) < count && attempts < 3 {
+		users, err := modelClient.GetRobots(limit, robotOffset)
+		if err != nil || len(users) == 0 {
+			robotOffset = 0 // 重置到开头
+			attempts++
+			continue
+		}
+
+		activeRobotsMu.Lock()
+		for _, u := range users {
+			if _, ok := activeRobots[u.UserId]; !ok {
+				result = append(result, u)
+				if len(result) >= count {
+					break
+				}
+			}
+		}
+		activeRobotsMu.Unlock()
+
+		robotOffset += len(users)
+		if len(users) < limit {
+			robotOffset = 0 // 读完一轮，重置
+		}
+	}
+	return result
+}
+
+func launchRobot(user *modelClient.ModelUser, action RobotAction) {
+	activeRobotsMu.Lock()
+	// 双重检查
+	if _, ok := activeRobots[user.UserId]; ok {
+		activeRobotsMu.Unlock()
+		return
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	activeRobots[user.UserId] = &RobotRuntime{
+		Cancel: cancel,
+		Action: action,
+		UserId: user.UserId,
+	}
+	activeRobotsMu.Unlock()
+
+	logrus.WithFields(logrus.Fields{
+		"uid":        user.UserId,
+		"targetRoom": action.RoomId,
+		"level":      action.Level,
+	}).Info("机器人-开始调度")
+
+	runRobot(user, ctx, action)
+}
+
+func runRobot(user *modelClient.ModelUser, ctx context.Context, action RobotAction) {
 	defer func() {
 		activeRobotsMu.Lock()
 		delete(activeRobots, user.UserId)
 		activeRobotsMu.Unlock()
 	}()
 
-	seconds := rand.Intn(SECONDS_WAIT_MAX)
-	select {
-	case <-ctx.Done():
-		return
-	case <-time.After(time.Second * time.Duration(seconds)):
+	// 5. 进入房间前按照目前的规则充值
+	if cfg := qznn.GetConfig(action.Level); cfg != nil {
+		// 使用配置的倍数范围随机
+		mult := ROBOT_BALANCE_MULT_MIN + rand.Float64()*(ROBOT_BALANCE_MULT_MAX-ROBOT_BALANCE_MULT_MIN)
+		user.Balance = int64(float64(cfg.MinBalance) * mult)
+		if _, err := modelClient.UpdateUser(user); err != nil {
+			logrus.WithField("uid", user.UserId).WithError(err).Error("更新机器人余额失败")
+		}
 	}
 
-	robot := &Robot{Uid: user.UserId, AppId: user.AppId, AppUserId: user.AppUserId, Balance: user.Balance}
+	robot := &Robot{
+		Uid:       user.UserId,
+		AppId:     user.AppId,
+		AppUserId: user.AppUserId,
+		Balance:   user.Balance,
+		Target:    action,
+	}
 
 	// 监听取消信号
 	done := make(chan struct{})
@@ -100,6 +311,45 @@ func runRobot(user *modelClient.ModelUser, ctx context.Context) {
 	close(done)
 }
 
+func fetchRooms() ([]*RoomDataSimple, error) {
+	u := url.URL{
+		Scheme: "http",
+		Host:   targetHost,
+		Path:   PATH_RPC_DATA,
+	}
+	resp, err := http.Get(u.String())
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var result struct {
+		Code int    `json:"code"`
+		Msg  string `json:"msg"`
+		Data string `json:"data"`
+	}
+
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, err
+	}
+
+	var roomMap map[string]*RoomDataSimple
+	if err := json.Unmarshal([]byte(result.Data), &roomMap); err != nil {
+		return nil, err
+	}
+
+	var rooms []*RoomDataSimple
+	for _, r := range roomMap {
+		rooms = append(rooms, r)
+	}
+	return rooms, nil
+}
+
 type Robot struct {
 	Uid         string
 	AppId       string
@@ -111,13 +361,14 @@ type Robot struct {
 	gamesPlayed int
 	isClosing   bool
 	Balance     int64
+	Target      RobotAction
 }
 
 func (r *Robot) Run() {
-	u, err := url.Parse(targetServerURL)
-	if err != nil {
-		logrus.Errorf("机器人 %s 解析URL失败: %v", r.Uid, err)
-		return
+	u := url.URL{
+		Scheme: "ws",
+		Host:   targetHost,
+		Path:   PATH_WS,
 	}
 	q := u.Query()
 	q.Set("uid", r.AppUserId)
@@ -169,7 +420,7 @@ func (r *Robot) Run() {
 			if closing {
 				return
 			}
-			logrus.Errorf("机器人 %s 读取消息错误: %v", r.Uid, err)
+			// logrus.Errorf("机器人 %s 读取消息错误: %v", r.Uid, err)
 			return
 		}
 
@@ -215,24 +466,28 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 		json.Unmarshal(data, &d)
 		switch d.Router {
 		case znet.Lobby:
-			logrus.Infof("机器人 %s 进入大厅...", r.Uid)
-			// 根据配置随机选择房间等级
-			if len(qznn.Configs) > 0 {
-				var candidates []qznn.LobbyConfig
-				for _, cfg := range qznn.Configs {
-					candidates = append(candidates, cfg)
-				}
-				if len(candidates) > 0 {
-					randomConfig := candidates[rand.Intn(len(candidates))]
-					r.Send(qznn.CmdPlayerJoin, map[string]interface{}{"Level": randomConfig.Level, "BankerType": qznn.BankerTypeNoLook})
-				}
+			// 进入大厅后，根据 Target 指令进入房间
+			req := map[string]interface{}{
+				"Level":      r.Target.Level,
+				"BankerType": r.Target.BankerType,
 			}
+			if r.Target.RoomId != "" {
+				req["RoomId"] = r.Target.RoomId
+			}
+			r.Send(qznn.CmdPlayerJoin, req)
+			logrus.WithFields(logrus.Fields{
+				"uid":    r.Uid,
+				"roomId": r.Target.RoomId,
+			}).Info("机器人-发送进入房间请求")
+
 		case znet.Game:
-			logrus.Infof("机器人 %s 进入房间...", r.Uid)
 			var room qznn.QZNNRoom
 			if err := json.Unmarshal(d.Room, &room); err == nil {
 				r.updateRoomInfo(&room)
-				// 修复：进入房间时，如果房间处于活跃状态（如抢庄、下注），需要立即触发状态处理
+				logrus.WithFields(logrus.Fields{
+					"uid":    r.Uid,
+					"roomId": room.ID,
+				}).Info("机器人-进入房间同步成功")
 				r.handleStateChange(room.State)
 			}
 		}
@@ -240,7 +495,6 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 	case qznn.PushChangeState:
 		var d qznn.PushChangeStateStruct
 		if err := json.Unmarshal(data, &d); err != nil {
-			logrus.Errorf("机器人 %s 解析 PushChangeState 失败: %v", r.Uid, err)
 			return
 		}
 		r.updateRoomInfo(d.Room)
@@ -249,25 +503,36 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 	case qznn.PushPlayJoin:
 		var d qznn.PushPlayerJoinStruct
 		if err := json.Unmarshal(data, &d); err != nil {
-			logrus.Errorf("机器人 %s 解析 PushPlayJoin 失败: %v", r.Uid, err)
 			return
 		}
 		r.updateRoomInfo(d.Room)
-		r.checkLeave()
+		if d.Room != nil && d.UserId == r.Uid {
+			logrus.WithFields(logrus.Fields{
+				"uid":    r.Uid,
+				"roomId": d.Room.ID,
+			}).Info("机器人-加入房间成功")
+		}
 
 	case qznn.PushPlayLeave:
 		var d qznn.PushPlayerLeaveStruct
 		if err := json.Unmarshal(data, &d); err != nil {
-			logrus.Errorf("机器人 %s 解析 PushPlayLeave 失败: %v", r.Uid, err)
 			return
 		}
 		r.updateRoomInfo(d.Room)
-		r.checkLeave()
+		if d.Room != nil {
+			for _, uid := range d.UserIds {
+				if uid == r.Uid {
+					logrus.WithFields(logrus.Fields{
+						"uid":    r.Uid,
+						"roomId": d.Room.ID,
+					}).Info("机器人-离开房间成功")
+				}
+			}
+		}
 
 	case qznn.PushPlayerCallBanker:
 		var d qznn.PushPlayerCallBankerStruct
 		if err := json.Unmarshal(data, &d); err != nil {
-			logrus.Errorf("机器人 %s 解析 PushPlayerCallBanker 失败: %v", r.Uid, err)
 			return
 		}
 		r.updateRoomInfo(d.Room)
@@ -275,7 +540,6 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 	case qznn.PushPlayerPlaceBet:
 		var d qznn.PushPlayerPlaceBetStruct
 		if err := json.Unmarshal(data, &d); err != nil {
-			logrus.Errorf("机器人 %s 解析 PushPlayerPlaceBet 失败: %v", r.Uid, err)
 			return
 		}
 		r.updateRoomInfo(d.Room)
@@ -283,7 +547,6 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 	case qznn.PushPlayerShowCard:
 		var d qznn.PushPlayerShowCardStruct
 		if err := json.Unmarshal(data, &d); err != nil {
-			logrus.Errorf("机器人 %s 解析 PushPlayerShowCard 失败: %v", r.Uid, err)
 			return
 		}
 		r.updateRoomInfo(d.Room)
@@ -291,7 +554,6 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 	case qznn.PushRoom:
 		var d qznn.PushRoomStruct
 		if err := json.Unmarshal(data, &d); err != nil {
-			logrus.Errorf("机器人 %s 解析 PushRoom 失败: %v", r.Uid, err)
 			return
 		}
 		r.updateRoomInfo(d.Room)
@@ -352,9 +614,7 @@ func (r *Robot) handleStateChange(state qznn.RoomState) {
 		case qznn.StateSettling:
 			r.mu.Lock()
 			r.gamesPlayed++
-			// played := r.gamesPlayed
 			r.mu.Unlock()
-			// logrus.Infof("机器人 %s 本局结束，已玩局数: %d", r.Uid, played)
 			r.checkLeave()
 		}
 	}()
@@ -374,16 +634,18 @@ func (r *Robot) checkLeave() {
 		if roomData == nil {
 			return
 		}
-		if gamesPlayed < MIN_GAMES {
-			// logrus.Infof("机器人 %s 局数不足(当前%d/目标%d)，继续游戏", r.Uid, gamesPlayed, MIN_GAMES)
-			return
-		}
+
+		// 计算当前房间人数
 		count := 0
-		// 使用具体的结构体字段获取人数
 		for _, p := range roomData.Players {
 			if p != nil {
 				count++
 			}
+		}
+
+		// 游戏最小局数后按照概率退出房间
+		if gamesPlayed < MIN_GAMES {
+			return
 		}
 
 		var prob float64
@@ -402,8 +664,6 @@ func (r *Robot) checkLeave() {
 			logrus.Infof("机器人 %s 决定退出房间，当前房间人数: %d, 概率: %.2f", r.Uid, count, prob)
 			r.Send(qznn.CmdPlayerLeave, map[string]interface{}{"RoomId": roomId})
 			r.Close()
-		} else {
-			logrus.Infof("机器人 %s 决定继续留在房间，当前房间人数: %d", r.Uid, count)
 		}
 	}()
 }

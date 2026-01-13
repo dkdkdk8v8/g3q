@@ -28,8 +28,8 @@ type ModelUser struct {
 	LastPlayed      time.Time `orm:"column(last_played);type(datetime);null" json:"-"`   // 最后游戏时间
 	IsRobot         bool      `orm:"column(is_robot);default(0)" json:"-"`               // 是否机器人
 	Enable          bool      `orm:"column(enable);default(0)" json:"-"`                 // 是否启用
-	Effect          bool      `orm:"column(effect);default(true)"`                       // 是否开启音效
-	Music           bool      `orm:"column(music);default(true)"`                        // 是否开启音乐
+	Effect          bool      `orm:"column(effect);default(0)"`                          // 是否开启音效
+	Music           bool      `orm:"column(music);default(0)"`                           // 是否开启音乐
 	Talk            bool      `orm:"column(talk);default(0)"`                            // 是否开启聊天
 	TotalDeposit    uint64    `orm:"column(total_deposit);default(0)"`                   // 总充值金额
 	TotalWithDraw   uint64    `orm:"column(total_with_draw);default(0)"`                 // 总提现金额

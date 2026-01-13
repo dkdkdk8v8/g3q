@@ -386,7 +386,7 @@ watch(() => props.visible, (val) => {
     left: 0;
     margin-top: 4px;
     background: #334155;
-    border-radius: 8px;
+    border-radius: 10px;
     overflow: hidden;
     min-width: 80px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);

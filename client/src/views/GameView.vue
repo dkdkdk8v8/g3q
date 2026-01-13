@@ -1101,19 +1101,11 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                     </div>
                 </transition>
             </div>
-
-            <div class="room-info-box">
-                <div>房间ID: {{ store.roomId }}</div>
-                <div>房间名: {{ store.roomName }}</div>
-                <!-- <div>底分: <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{
-                    formatCoins(store.baseBet) }}</span></div> -->
-                <div>玩法: {{ modeName }}</div>
-            </div>
         </div>
 
         <!-- Base Bet Display -->
         <div class="base-bet-display" :style="{ '--game-top-difen-bg': 'url(' + gameTopDifenBg + ')' }">
-            <span>底分：</span>
+            <span class="bet-amount">底分：</span>
             <img :src="goldImg" class="gold-icon-small" />
             <span class="bet-amount">{{ formatCoins(store.baseBet) }}</span>
         </div>
@@ -1155,6 +1147,11 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
             <div v-if="store.currentPhase === 'GAME_OVER'" class="restart-btn" @click="startGameDebounced()">
                 继续游戏
             </div>
+        </div>
+
+        <!-- Watermark for Room Name and Mode -->
+        <div class="room-mode-watermark">
+            {{ store.roomName }}•{{ modeName }}
         </div>
 
         <!-- 自己区域 -->
@@ -2932,6 +2929,27 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     display: flex;
     justify-content: center;
     padding: 10px;
+}
+
+/* Watermark Style */
+.room-mode-watermark {
+    position: absolute;
+    bottom: 35%;
+    /* 40% from the bottom */
+    left: 50%;
+    transform: translateX(-50%);
+    color: #55a773;
+    /* Very light white, translucent for watermark effect */
+    font-size: 16px;
+    /* Not too large */
+    font-weight: bold;
+    pointer-events: none;
+    /* Do not block interactions */
+    z-index: 1;
+    /* Ensure it's behind interactive elements */
+    white-space: nowrap;
+    text-shadow: 1px 2px 1px rgba(0, 0, 0, 0.3);
+    /* Subtle shadow for better readability on varied backgrounds */
 }
 
 /* --- Status Text Styles (Duplicated from PlayerSeat for myPlayer) --- */

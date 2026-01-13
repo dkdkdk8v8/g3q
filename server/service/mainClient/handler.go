@@ -60,8 +60,25 @@ func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []b
 		return comm.NewMyError("获取用户信息失败")
 	}
 
+	if req.RoomId != "" {
+		if !user.IsRobot {
+			return comm.NewMyError("无权直接选择房间")
+		}
+	}
+
 	userId := appId + appUserId
-	// 处理抢庄牛牛匹配逻辑
+
+	alreadyRoom, alreadyPlayer := game.GetMgr().CheckPlayerInRoom(userId)
+	if alreadyPlayer != nil && alreadyRoom != nil {
+		//客户端弹框，确认要不要重新进入
+		alreadyRoom.PushPlayer(alreadyPlayer, comm.PushData{
+			Cmd:      comm.ServerPush,
+			PushType: qznn.PushRoom,
+			Data:     qznn.PushRoomStruct{Room: alreadyRoom.GetClientRoom(alreadyPlayer.ID)}})
+		return comm.ErrPlayerInRoom
+	}
+
+	//player初始化完成，看房间
 	p := qznn.NewPlayer()
 	p.ID = userId
 	p.Balance = user.Balance
@@ -73,8 +90,37 @@ func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []b
 		}
 		return user.NickName
 	}()
+	//注意这里，如果无感发布，不会有问题。如果房间异常直接关闭进程
+	//确认用户没有在任何房间,但是记录了gameID
+	if user.GameId != "" {
+		//把用户的lockBalance 被gameId锁了，更新user
+		var err1 error
+		user, err1 = modelClient.RecoveryGameId(userId, user.GameId)
+		if err1 != nil {
+			return err1
+		}
+	}
+	if user.Balance < cfg.MinBalance {
+		return comm.NewMyError("用户余额不足")
+	} else {
+		p.Balance = user.Balance
+	}
 
-	room, err := game.GetMgr().JoinOrCreateNNRoom(user, p, req.Level, req.BankerType, cfg)
+	//处理进房间逻辑
+	var room *qznn.QZNNRoom
+	if req.RoomId != "" {
+		room = game.GetMgr().GetRoomByRoomId(req.RoomId)
+		if room == nil {
+			return comm.NewMyError("房间不存在")
+		}
+	}
+
+	selectRoom, err := game.GetMgr().SelectRoom(user, p, req.Level, req.BankerType, cfg)
+	if err != nil {
+		return err
+	}
+
+	room, err = game.GetMgr().JoinQZNNRoom(selectRoom, user, p)
 	if err != nil {
 		return err
 	}

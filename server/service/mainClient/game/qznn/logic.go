@@ -184,6 +184,34 @@ func (r *QZNNRoom) GetPlayerCount() int {
 	return currentCount
 }
 
+func (r *QZNNRoom) GetRealPlayerCount() int {
+	r.RoomMu.RLock()
+	defer r.RoomMu.RUnlock()
+	currentCount := 0
+	for _, p := range r.Players {
+		if p != nil && !p.IsRobot {
+			currentCount++
+		}
+	}
+	return currentCount
+}
+
+func (r *QZNNRoom) GetPlayerAndRealPlayerCount() (int, int) {
+	r.RoomMu.RLock()
+	defer r.RoomMu.RUnlock()
+	currentCount := 0
+	currentRealCount := 0
+	for _, p := range r.Players {
+		if p != nil {
+			currentRealCount++
+			if !p.IsRobot {
+				currentRealCount++
+			}
+		}
+	}
+	return currentCount, currentRealCount
+}
+
 // todo::StateSettlingDirectPreCard 这个 也要判断kickoff
 func (r *QZNNRoom) kickOffByWsDisconnect() ([]string, bool) {
 	type delHolder struct {

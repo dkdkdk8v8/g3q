@@ -66,13 +66,23 @@ func (rm *RoomManager) GetRoomByRoomId(roomId string) *qznn.QZNNRoom {
 	return rm.QZNNRooms[roomId]
 }
 
-func (rm *RoomManager) JoinOrCreateNNRoom(user *modelClient.ModelUser,
-	player *qznn.Player, level int, bankerType int, roomCfg *qznn.LobbyConfig) (*qznn.QZNNRoom, error) {
-	// 如果处于排空模式，拒绝新的匹配请求
-	if rm.isDraining {
-		return nil, comm.ErrServerMaintenance
+func (rm *RoomManager) CheckPlayerInRoom(userId string) (*qznn.QZNNRoom, *qznn.Player) {
+	rm.ManagerMu.RLock()
+	rooms := make([]*qznn.QZNNRoom, 0, len(rm.QZNNRooms))
+	for _, room := range rm.QZNNRooms {
+		rooms = append(rooms, room)
 	}
+	rm.ManagerMu.RUnlock()
+	for _, room := range rooms {
+		if playerData, ok := room.GetPlayerByID(userId); ok {
+			return room, playerData
+		}
+	}
+	return nil, nil
+}
 
+func (rm *RoomManager) SelectRoom(user *modelClient.ModelUser,
+	player *qznn.Player, level int, bankerType int, roomCfg *qznn.LobbyConfig) (*qznn.QZNNRoom, error) {
 	// Fix: 使用快照方式遍历，避免长时间持有锁，且避免 rm.mu -> room.mu 的锁嵌套
 	rm.ManagerMu.RLock()
 	rooms := make([]*qznn.QZNNRoom, 0, len(rm.QZNNRooms))
@@ -89,20 +99,15 @@ func (rm *RoomManager) JoinOrCreateNNRoom(user *modelClient.ModelUser,
 	var targetRoom *qznn.QZNNRoom
 	// 遍历快照
 	for _, room := range rooms {
-		// 1. 核心检查：确认玩家是否已经在该房间中
-		if alreadyPlayer, ok := room.GetPlayerByID(player.ID); ok {
-			//客户端弹框，确认要不要重新进入
-			room.PushPlayer(alreadyPlayer, comm.PushData{
-				Cmd:      comm.ServerPush,
-				PushType: qznn.PushRoom,
-				Data:     qznn.PushRoomStruct{Room: room}})
-			return nil, comm.ErrPlayerInRoom
-		}
-		//2. 在遍历的同时，寻找一个合适的房间 (如果尚未找到)这样可以避免多次遍历
+		//寻找一个合适的房间 (如果尚未找到)这样可以避免多次遍历
 		if room.Config.BankerType == bankerType && room.Config.Level == level {
 			// 避免加入即将被释放的房间
-			num := room.GetPlayerCount()
+			num, realNum := room.GetPlayerAndRealPlayerCount()
 			if num == 0 && time.Since(room.CreateAt) > time.Minute {
+				continue
+			}
+			if realNum > 0 {
+				//已经有真人在房间内了，不要分配此房间
 				continue
 			}
 			// 检查房间人数是否未满
@@ -111,28 +116,11 @@ func (rm *RoomManager) JoinOrCreateNNRoom(user *modelClient.ModelUser,
 			}
 		}
 	}
-	//todo::注意这里，如果无感发布，不会有问题。如果房间异常直接关闭进程
-	//确认用户没有在任何房间,但是记录了gameID
-	if user.GameId != "" {
-		//把用户的lockBalance 被gameId锁了，更新user
-		var err1 error
-		user, err1 = modelClient.RecoveryGameId(player.ID, user.GameId)
-		if err1 != nil {
-			return nil, err1
-		}
-	}
 
-	if user.Balance < roomCfg.MinBalance {
-		return nil, comm.NewMyError("用户余额不足")
-	} else {
-		player.Balance = user.Balance
-	}
-
-	// 3. 循环结束，此时已确认玩家不在任何房间内
-	// 如果找到了合适的房间，则尝试加入
 	sort.Slice(sortPlayerRoom, func(i, j int) bool {
 		return sortPlayerRoom[i].PlayerNum > sortPlayerRoom[j].PlayerNum
 	})
+
 	for _, r := range sortPlayerRoom {
 		targetRoom = r.Room
 		break
@@ -147,15 +135,25 @@ func (rm *RoomManager) JoinOrCreateNNRoom(user *modelClient.ModelUser,
 
 	roomID := fmt.Sprintf("%s_%d_%d_"+qznn.GameName, util.EncodeToBase36(uid.Generate()), bankerType, level)
 	newRoom := qznn.NewRoom(roomID, bankerType, level)
-	_, err := newRoom.AddPlayer(player)
+	return newRoom, nil
+}
+
+func (rm *RoomManager) JoinQZNNRoom(joinRoom *qznn.QZNNRoom, user *modelClient.ModelUser,
+	player *qznn.Player) (*qznn.QZNNRoom, error) {
+	// 如果处于排空模式，拒绝新的匹配请求
+	if rm.isDraining {
+		return nil, comm.ErrServerMaintenance
+	}
+
+	_, err := joinRoom.AddPlayer(player)
 	if err != nil {
 		return nil, err
 	}
-	newRoom.OnBotAction = nil //RobotForQZNNRoom
+	joinRoom.OnBotAction = nil //RobotForQZNNRoom
 	rm.ManagerMu.Lock()
-	rm.QZNNRooms[roomID] = newRoom
+	rm.QZNNRooms[joinRoom.ID] = joinRoom
 	rm.ManagerMu.Unlock()
-	return newRoom, nil
+	return joinRoom, nil
 }
 
 func (rm *RoomManager) cleanupLoop() {

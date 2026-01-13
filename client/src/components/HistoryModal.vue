@@ -7,6 +7,64 @@ import { transformServerCard, calculateHandType } from '../utils/bullfight.js';
 import goldImg from '@/assets/common/gold.png';
 import menuBetHistoryImg from '@/assets/common/menu_bet_history.png';
 
+// Import Bet History Images
+import niu1 from '@/assets/bethistory/niu_1.png';
+import niu2 from '@/assets/bethistory/niu_2.png';
+import niu3 from '@/assets/bethistory/niu_3.png';
+import niu4 from '@/assets/bethistory/niu_4.png';
+import niu5 from '@/assets/bethistory/niu_5.png';
+import niu6 from '@/assets/bethistory/niu_6.png';
+import niu7 from '@/assets/bethistory/niu_7.png';
+import niu8 from '@/assets/bethistory/niu_8.png';
+import niu9 from '@/assets/bethistory/niu_9.png';
+import niuNiu from '@/assets/bethistory/niu_niu.png';
+import niuMei from '@/assets/bethistory/niu_mei.png';
+import niuBoom from '@/assets/bethistory/niu_boom.png';
+import niuWuhua from '@/assets/bethistory/niu_wuhua.png';
+import niuWuxiao from '@/assets/bethistory/niu_wuxiao.png';
+import niuSihua from '@/assets/bethistory/niu_sihua.png';
+
+import roomChuji from '@/assets/bethistory/room_chuji.png';
+import roomGaoji from '@/assets/bethistory/room_gaoji.png';
+import roomTiyan from '@/assets/bethistory/room_tiyan.png';
+import roomDashi from '@/assets/bethistory/room_dashi.png';
+import roomZhongji from '@/assets/bethistory/room_zhongji.png';
+import roomDianfeng from '@/assets/bethistory/room_dianfeng.png';
+
+const handTypeImages = {
+    'BULL_1': niu1,
+    'BULL_2': niu2,
+    'BULL_3': niu3,
+    'BULL_4': niu4,
+    'BULL_5': niu5,
+    'BULL_6': niu6,
+    'BULL_7': niu7,
+    'BULL_8': niu8,
+    'BULL_9': niu9,
+    'BULL_BULL': niuNiu,
+    'NO_BULL': niuMei,
+    'BOMB': niuBoom,
+    'FIVE_FLOWER': niuWuhua,
+    'FIVE_SMALL': niuWuxiao,
+    'FOUR_FLOWER': niuSihua
+};
+
+const roomLevelImages = {
+    '初级场': roomChuji,
+    '高级场': roomGaoji,
+    '体验场': roomTiyan,
+    '大师级': roomDashi,
+    '中级': roomZhongji,
+    '中级场': roomZhongji,
+    '巅峰场': roomDianfeng
+};
+
+const getHandTypeImage = (type) => handTypeImages[type];
+const getRoomLevelImage = (name) => {
+    if (!name) return null;
+    return roomLevelImages[name] || roomLevelImages[name.trim()];
+};
+
 const props = defineProps({
     visible: Boolean
 });
@@ -123,25 +181,42 @@ const historyGrouped = computed(() => {
 
             // Calculate Hand Type
             let handTypeName = '未知';
+            let handTypeKey = ''; // For Image
             if (playerRec && playerRec.Cards && Array.isArray(playerRec.Cards)) {
                 const cardObjs = playerRec.Cards.map(id => transformServerCard(id));
                 const typeResult = calculateHandType(cardObjs);
                 handTypeName = typeResult.typeName;
+                handTypeKey = typeResult.type;
             } else if (roomData.State === 'StateBankerConfirm') {
                 // If cards are not shown yet (incomplete game in history?), maybe show state
                 handTypeName = '未摊牌';
             }
 
             // Room Name Construction
-            let roomName = '抢庄牛牛';
-            if (roomData.Config && roomData.Config.Name) {
-                roomName += ` | ${roomData.Config.Name}`;
+            let roomModeText = '抢庄牛牛';
+            let roomLevelName = '';
+
+            if (roomData.Config) {
+                const bt = roomData.Config.BankerType;
+                if (bt === 0) roomModeText = '不开牌';
+                else if (bt === 1) roomModeText = '看三张';
+                else if (bt === 2) roomModeText = '看四张';
+
+                if (roomData.Config.Name) {
+                    roomLevelName = roomData.Config.Name;
+                }
             }
+
+            // Fallback for roomName text (legacy support if needed, or constructed display)
+            const roomName = roomLevelName ? `${roomModeText} | ${roomLevelName}` : roomModeText;
 
             currentGroup.items.push({
                 timestamp: item.CreateAt || item.Time, // GameStore uses CreateAt or Time depending on mapping
-                roomName: roomName,
+                roomName: roomName, // Keep full string as fallback or title
+                roomModeText: roomModeText,
+                roomLevelName: roomLevelName,
                 handType: handTypeName,
+                handTypeKey: handTypeKey,
                 score: score, // This is Win/Loss
                 bet: bet
             });
@@ -226,10 +301,19 @@ watch(() => props.visible, (val) => {
                     <div v-for="(item, idx) in group.items" :key="idx" class="history-card">
                         <div class="hc-content">
                             <div class="hc-top-row">
-                                <span class="hc-title">{{ item.roomName }}</span>
-                                <span class="hc-hand">
-                                    {{ item.handType }}
+                                <span class="hc-title">
+                                    {{ item.roomModeText }}
+                                    <img v-if="getRoomLevelImage(item.roomLevelName)"
+                                        :src="getRoomLevelImage(item.roomLevelName)" class="room-level-img" />
+                                    <span v-else-if="item.roomLevelName"> | {{ item.roomLevelName }}</span>
                                 </span>
+                                <div class="hand-container">
+                                    <img v-if="getHandTypeImage(item.handTypeKey)"
+                                        :src="getHandTypeImage(item.handTypeKey)" class="hand-type-img" />
+                                    <span v-else class="hc-hand">
+                                        {{ item.handType }}
+                                    </span>
+                                </div>
                             </div>
                             <div class="hc-bottom-row">
                                 <span class="hc-time">{{ formatHistoryTime(item.timestamp) }}</span>
@@ -242,7 +326,7 @@ watch(() => props.visible, (val) => {
                             <div class="hc-bet-amt">
                                 投注: <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{
                                     formatCoins(item.bet)
-                                }}</span>
+                                    }}</span>
                             </div>
                         </div>
                     </div>
@@ -386,7 +470,7 @@ watch(() => props.visible, (val) => {
     left: 0;
     margin-top: 4px;
     background: #334155;
-    border-radius: 8px;
+    border-radius: 10px;
     overflow: hidden;
     min-width: 80px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
@@ -459,13 +543,32 @@ watch(() => props.visible, (val) => {
 
 .hc-top-row {
     display: flex;
+    justify-content: flex-start;
+    /* Spread title and hand result */
     align-items: center;
     gap: 8px;
     margin-bottom: 4px;
 }
 
+.room-level-img {
+    height: 15px;
+    vertical-align: middle;
+    margin-left: 4px;
+}
+
+.hand-container {
+    display: flex;
+    align-items: center;
+}
+
+.hand-type-img {
+    height: 18px;
+    /* Slightly larger for visibility */
+    object-fit: contain;
+}
+
 .hc-title {
-    font-size: 13px;
+    font-size: 15px;
     color: #f1f5f9;
     font-weight: bold;
 }

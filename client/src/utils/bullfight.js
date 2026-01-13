@@ -88,6 +88,15 @@ export function calculateHandType(cards) {
     return { type: 'NO_BULL', typeName: '未知', multiplier: 1, sortedCards: cards };
   }
 
+  // 0. 检查五小牛 (5张牌都小于5，且点数总和小于等于10)
+  const isFiveSmall = cards.every(c => c.rank < 5);
+  if (isFiveSmall) {
+      const totalRank = cards.reduce((sum, c) => sum + c.rank, 0);
+      if (totalRank <= 10) {
+          return { type: 'FIVE_SMALL', typeName: '五小牛', multiplier: 8, sortedCards: cards };
+      }
+  }
+
   // 1. 检查五花牛 (所有牌都是 J Q K，即 rank > 10)
   // 注意：原逻辑 rank > 10 对应 J(11), Q(12), K(13)。10不算五花。
   const isFiveFlower = cards.every(c => c.rank > 10);

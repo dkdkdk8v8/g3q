@@ -117,11 +117,14 @@ func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []b
 		}
 	}
 
-	if room == nil {
+	if room == nil && !user.IsRobot {
 		room, err = game.GetMgr().SelectRoom(user, p, req.Level, req.BankerType, cfg)
 		if err != nil {
 			return err
 		}
+	}
+	if room == nil {
+		room = game.GetMgr().CreateRoom(req.Level, req.BankerType, cfg)
 	}
 	room, err = game.GetMgr().JoinQZNNRoom(room, user, p)
 	if err != nil {

@@ -26,8 +26,10 @@ type LobbyConfigRsp struct {
 
 func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []byte) error {
 	var req struct {
-		Level      int
-		BankerType int
+		Level               int
+		BankerType          int
+		RoomId              string
+		IsBotFakeRealPlayer bool
 	}
 	// 默认进入初级场
 	req.Level = 1
@@ -63,7 +65,7 @@ func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []b
 	p := qznn.NewPlayer()
 	p.ID = userId
 	p.Balance = user.Balance
-	p.IsRobot = user.IsRobot
+	p.IsRobot = user.IsRobot && !req.IsBotFakeRealPlayer
 	p.ConnWrap = connWrap
 	p.NickName = func() string {
 		if user.NickName == "" {

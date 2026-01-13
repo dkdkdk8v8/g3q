@@ -1,10 +1,11 @@
 package initMain
 
 import (
-	"github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/sirupsen/logrus"
 )
 
 type Runner interface {
@@ -28,6 +29,7 @@ type BaseCtx struct {
 	IsTerm           bool
 	VipDefaultCfgDir string
 	IsDebug          bool
+	IsTest           bool
 }
 
 var DefCtx *BaseCtx

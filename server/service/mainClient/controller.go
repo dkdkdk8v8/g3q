@@ -144,7 +144,7 @@ func handleConnection(connWrap *ws.WsConnWrap, appId, appUserId string) {
 		// 读取客户端发来的 JSON 消息
 		readTimeout := time.Second * 10
 		if initMain.DefCtx.IsDebug {
-			readTimeout = time.Second * 2
+			readTimeout = time.Second * 6
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), readTimeout)
 		connWrap.Mu.RLock()

@@ -36,11 +36,12 @@ var (
 
 	ErrTokenReserve = NewMyErrorWithCode(100020, "预留错误")
 
-	ErrRedisInvalid      = NewMyErrorWithCode(110001, "系统错误1,正在维护请稍后再试!")
-	ErrAesError          = NewMyErrorWithCode(100010, "未知协议类型,请确保安装版本!")
-	ErrServerMaintenance = NewMyErrorWithCode(100011, "服务器维护中")
-	ErrClientParam       = NewMyErrorWithCode(200000, "客户端请求参数有点问题，请稍后再试或联系客服")
-	ErrPlayerInRoom      = NewMyErrorWithCode(200010, "您已经在其他房间了")
+	ErrRedisInvalid            = NewMyErrorWithCode(110001, "系统错误1,正在维护请稍后再试!")
+	ErrAesError                = NewMyErrorWithCode(100010, "未知协议类型,请确保安装版本!")
+	ErrServerMaintenance       = NewMyErrorWithCode(100011, "服务器维护中")
+	ErrClientParam             = NewMyErrorWithCode(200000, "客户端请求参数有点问题，请稍后再试或联系客服")
+	ErrPlayerInRoom            = NewMyErrorWithCode(200010, "您已经在其他房间了")
+	ErrRealPlayerAlreadyInRoom = NewMyErrorWithCode(200011, "进入房间失败,请重试进入")
 )
 
 //func DoSomething() error {

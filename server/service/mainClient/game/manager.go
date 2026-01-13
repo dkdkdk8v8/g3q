@@ -4,6 +4,7 @@ import (
 	"compoment/jsondiytag"
 	"compoment/uid"
 	"compoment/util"
+	"errors"
 	"fmt"
 	"service/comm"
 	"service/mainClient/game/qznn"
@@ -128,6 +129,9 @@ func (rm *RoomManager) SelectRoom(user *modelClient.ModelUser,
 
 	if targetRoom != nil {
 		if _, err := targetRoom.AddPlayer(player); err != nil {
+			if errors.As(err, &comm.ErrRealPlayerAlreadyInRoom) {
+				logrus.WithField("!", nil).WithField("roomId", targetRoom.ID).Error("RealPlayerAlreadyInRoom")
+			}
 			return nil, err
 		}
 		return targetRoom, nil
@@ -147,6 +151,9 @@ func (rm *RoomManager) JoinQZNNRoom(joinRoom *qznn.QZNNRoom, user *modelClient.M
 
 	_, err := joinRoom.AddPlayer(player)
 	if err != nil {
+		if errors.As(err, &comm.ErrRealPlayerAlreadyInRoom) {
+			logrus.WithField("!", nil).WithField("roomId", joinRoom.ID).Error("RealPlayerAlreadyInRoom")
+		}
 		return nil, err
 	}
 	joinRoom.OnBotAction = nil //RobotForQZNNRoom

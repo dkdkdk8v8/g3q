@@ -44,6 +44,7 @@ import btnClickSound from '@/assets/sounds/btn_click.mp3';
 import goldImg from '@/assets/common/gold.png';
 import zhuangImg from '@/assets/common/zhuang.png';
 import tanpaiImg from '@/assets/common/tanpai.png';
+import gameTopDifenBg from '@/assets/common/game_top_difen_bg.png';
 
 // Niu hand type images
 import niu1Img from '@/assets/niu/niu_1.png';
@@ -141,6 +142,59 @@ const allRobOptions = computed(() => {
     return options;
 });
 const settingsStore = useSettingsStore();
+
+// Responsive scaling logic
+const gameScale = ref(1);
+
+const updateGameScale = () => {
+    const designWidth = 375;
+    const designHeight = 844;
+    const aspect = window.innerWidth / window.innerHeight;
+    const designAspect = designWidth / designHeight;
+
+    if (aspect > designAspect) {
+        gameScale.value = window.innerHeight / (window.innerWidth / designAspect);
+    } else {
+        gameScale.value = 1;
+    }
+    if (gameScale.value < 0.7) gameScale.value = 0.7;
+};
+
+const getSeatStyle = (seatNum) => {
+    const s = gameScale.value;
+    if (s === 1) return {};
+
+    let origin = 'center center';
+    if (seatNum === 1) origin = 'left center';
+    if (seatNum === 2) origin = 'left top';
+    if (seatNum === 3) origin = 'right top';
+    if (seatNum === 4) origin = 'right center';
+
+    return {
+        transform: `scale(${s})`,
+        transformOrigin: origin
+    };
+};
+
+const getMyAreaStyle = () => {
+    const s = gameScale.value;
+    if (s === 1) return {};
+    return {
+        transform: `scale(${s})`,
+        transformOrigin: 'bottom center',
+        width: `${100 / s}%`,
+        marginLeft: `${(1 - 1 / s) * 50}%`
+    };
+};
+
+onMounted(() => {
+    updateGameScale();
+    window.addEventListener('resize', debounce(updateGameScale, 100));
+});
+
+onUnmounted(() => {
+    window.removeEventListener('resize', updateGameScale);
+});
 const router = useRouter();
 const route = useRoute();
 const coinLayer = ref(null);
@@ -979,30 +1033,8 @@ const showSpeechBubble = (playerId) => {
 };
 
 const getSpeechBubbleStyle = (playerId) => {
-    const s = getSpeech(playerId);
-    if (s && s.type === 'text' && s.content) {
-        // Assume one Chinese character is roughly 15px wide (per PlayerSeat)
-        const charWidth = 15;
-        const padding = 20; // Total left/right padding (10px + 10px)
-        const textLength = Array.from(s.content).length; // Handle Unicode characters
-        let calculatedWidth = (textLength * charWidth) + padding;
-
-        // Cap the width to prevent it from becoming too wide (max 8 chars per line)
-        const maxWidthCap = (8 * charWidth) + padding;
-        if (calculatedWidth > maxWidthCap) {
-            calculatedWidth = maxWidthCap;
-        }
-
-        // Ensure a minimum width for very short phrases or emojis if needed (not strictly for text)
-        const minWidth = 60; // For small phrases or emojis
-        if (calculatedWidth < minWidth) {
-            calculatedWidth = minWidth;
-        }
-
-        return { width: `${calculatedWidth}px` };
-    }
-    // For emojis, or if no speech content, let CSS handle default sizing or use a default width
-    return { width: 'auto' };
+    // Return empty to let CSS handle width (responsive)
+    return {};
 };
 
 const selectedCardIndices = ref([]);
@@ -1100,19 +1132,17 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                     </div>
                 </transition>
             </div>
-
-            <div class="room-info-box">
-                <div>房间ID: {{ store.roomId }}</div>
-                <div>房间名: {{ store.roomName }}</div>
-                <div>底分: <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{
-                    formatCoins(store.baseBet) }}</span></div>
-                <div>玩法: {{ modeName }}</div>
-            </div>
         </div>
 
+        <!-- Base Bet Display -->
+        <div class="base-bet-display" :style="{ '--game-top-difen-bg': 'url(' + gameTopDifenBg + ')' }">
+            <span class="bet-amount">底分</span>
+            <img :src="goldImg" class="gold-icon-small" />
+            <span class="bet-amount">{{ formatCoins(store.baseBet, 0) }}</span>
+        </div>
         <div class="opponents-layer">
             <div v-for="(p, index) in opponentSeats" :key="index" class="opponent-seat-abs"
-                :class="getOpponentClass(index + 1)">
+                :class="getOpponentClass(index + 1)" :style="getSeatStyle(index + 1)">
                 <PlayerSeat v-if="p && p.id" :player="p" :ref="(el) => setSeatRef(el, p.id)"
                     :position="getLayoutType(index + 1)"
                     :visible-card-count="visibleCounts[p.id] !== undefined ? visibleCounts[p.id] : 0"
@@ -1150,9 +1180,14 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
             </div>
         </div>
 
+        <!-- Watermark for Room Name and Mode -->
+        <div class="room-mode-watermark">
+            {{ store.roomName }}•{{ modeName }}
+        </div>
+
         <!-- 自己区域 -->
 
-        <div class="my-area" v-if="myPlayer" :ref="(el) => setSeatRef(el, myPlayer.id)">
+        <div class="my-area" v-if="myPlayer" :ref="(el) => setSeatRef(el, myPlayer.id)" :style="getMyAreaStyle()">
             <!-- 1. Calculation Formula Area -->
             <div v-show="store.currentPhase === 'SHOWDOWN' && !myPlayer.isShowHand && store.countdown > 0 && !myPlayer.isObserver"
                 class="showdown-wrapper">
@@ -1223,7 +1258,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                     </div>
 
                     <div class="info-box" :class="{ 'is-observer': myPlayer.isObserver }">
-                        <div class="name van-ellipsis">{{ myPlayer.name.length > 12 ? myPlayer.name.slice(0, 4) + '...'
+                        <div class="name van-ellipsis">{{ myPlayer.name.length > 10 ? myPlayer.name.slice(0, 4) + '...'
                             +
                             myPlayer.name.slice(-4) : myPlayer.name }}</div>
                         <div class="coins-pill">
@@ -1238,7 +1273,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                             <div v-if="shouldShowRobMult" class="status-content">
                                 <span v-if="myPlayer.robMultiplier > 0" class="status-text rob-text text-large">抢{{
                                     myPlayer.robMultiplier
-                                    }}倍</span>
+                                }}倍</span>
                                 <span v-else class="status-text no-rob-text text-large">不抢</span>
                             </div>
                         </Transition>
@@ -2040,6 +2075,48 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     color: #fbbf24;
 }
 
+/* Base Bet Display */
+.base-bet-display {
+    position: absolute;
+    top: 93px;
+    /* Adjust this value as needed based on visual inspection */
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--game-top-difen-bg) no-repeat center center;
+    /* Use CSS variable */
+    background-size: contain;
+    /* Example width, adjust as needed */
+    height: 40px;
+    /* Example height, adjust as needed */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #55a773;
+    font-size: 14px;
+    font-weight: bold;
+    z-index: 250;
+    font-weight: bold;
+    /* Adjust padding to center text within the background image, if image has borders */
+    padding: 0 20px;
+    box-sizing: border-box;
+}
+
+.base-bet-display .gold-icon-small {
+    width: 16px;
+    /* Adjust size */
+    height: 16px;
+    object-fit: contain;
+    margin-right: 4px;
+    margin-left: 4px;
+}
+
+.base-bet-display .bet-amount {
+    text-shadow: 1px 2px 1px rgba(0, 0, 0, 0.3);
+    /* Amber-400, similar to other coin displays */
+    font-weight: bold;
+}
+
+
 .my-area {
     margin-top: auto;
     display: flex;
@@ -2198,8 +2275,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .my-player-info-row .banker-badge {
     position: absolute;
-    bottom: -8px;
-    right: -8px;
+    bottom: 0;
+    right: 0;
     width: 24px;
     height: 24px;
     display: flex;
@@ -2214,7 +2291,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     border: 1px solid #fff;
     box-shadow: 0 0 10px #fbbf24;
     animation: shine 2s infinite;
-    /* Removed transform: translate(50%, 50%); */
+    transform: translate(50%, 50%);
 }
 
 .banker-badge-img {
@@ -2406,7 +2483,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     display: flex;
     justify-content: center;
     align-items: center;
-    box-shadow: none; /* Remove box-shadow for consistency with menu-btn */
+    box-shadow: none;
+    /* Remove box-shadow for consistency with menu-btn */
     cursor: pointer;
     z-index: 100;
     transition: transform 0.1s;
@@ -2884,6 +2962,27 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     padding: 10px;
 }
 
+/* Watermark Style */
+.room-mode-watermark {
+    position: absolute;
+    bottom: 35%;
+    /* 40% from the bottom */
+    left: 50%;
+    transform: translateX(-50%);
+    color: #55a773;
+    /* Very light white, translucent for watermark effect */
+    font-size: 16px;
+    /* Not too large */
+    font-weight: bold;
+    pointer-events: none;
+    /* Do not block interactions */
+    z-index: 0;
+    /* Ensure it's behind interactive elements */
+    white-space: nowrap;
+    text-shadow: 1px 2px 1px rgba(0, 0, 0, 0.3);
+    /* Subtle shadow for better readability on varied backgrounds */
+}
+
 /* --- Status Text Styles (Duplicated from PlayerSeat for myPlayer) --- */
 .status-text {
     font-family: "Microsoft YaHei", "Heiti SC", sans-serif;
@@ -2976,6 +3075,24 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 <style>
 /* Global styles for Vant components in dark mode */
+
+@keyframes shine {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 5px #fbbf24;
+    }
+
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 0 15px #fbbf24;
+    }
+
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 5px #fbbf24;
+    }
+}
+
 .dark-theme-popup {
     --van-popup-background: #1e293b;
     --van-picker-background: #1e293b;

@@ -101,7 +101,7 @@ func WSEntry(c *gin.Context) {
 	if existWsWrap != nil {
 		_ = existWsWrap.WriteJSON(comm.PushData{Cmd: comm.ServerPush, PushType: game.PushOtherConnect})
 		existWsWrap.CloseNormal("handler exit")
-		logrus.WithField("appId", appId).WithField("appUserId", appUserId).Info("WS-Client-KickOffConnect")
+		logrus.WithField("appId", appId).WithField("appUserId", appUserId).Info("WS-Client-KickOffOldConnect")
 	}
 
 	// 2. 进入消息处理循环
@@ -144,7 +144,7 @@ func handleConnection(connWrap *ws.WsConnWrap, appId, appUserId string) {
 		// 读取客户端发来的 JSON 消息
 		readTimeout := time.Second * 10
 		if initMain.DefCtx.IsDebug {
-			readTimeout = time.Second * 2
+			readTimeout = time.Second * 6
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), readTimeout)
 		connWrap.Mu.RLock()

@@ -31,6 +31,8 @@ func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []b
 		RoomId              string
 		IsBotFakeRealPlayer bool
 	}
+	logrus.WithField("level", req.Level).WithField("bankerType", req.BankerType).WithField(
+		"roomId", req.RoomId).WithField("isBotFRP", req.IsBotFakeRealPlayer).Info("handlePlayerJoin-Req")
 	// 默认进入初级场
 	req.Level = 1
 	req.BankerType = -1 // 默认值，用于检测客户端是否传递
@@ -115,12 +117,16 @@ func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []b
 		}
 	}
 
-	selectRoom, err := game.GetMgr().SelectRoom(user, p, req.Level, req.BankerType, cfg)
-	if err != nil {
-		return err
+	if room == nil && !user.IsRobot {
+		room, err = game.GetMgr().SelectRoom(user, p, req.Level, req.BankerType, cfg)
+		if err != nil {
+			return err
+		}
 	}
-
-	room, err = game.GetMgr().JoinQZNNRoom(selectRoom, user, p)
+	if room == nil {
+		room = game.GetMgr().CreateRoom(req.Level, req.BankerType, cfg)
+	}
+	room, err = game.GetMgr().JoinQZNNRoom(room, user, p)
 	if err != nil {
 		return err
 	}
@@ -346,7 +352,11 @@ func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) 
 			}
 			staUser, err := modelAdmin.GetStaUser(userId, userRecoed.CreateAt)
 			if err != nil {
-				return nil, err
+				if !ormutil.IsNoRow(err) {
+					return nil, err
+				} else {
+					staUser = &modelAdmin.ModelStaUser{}
+				}
 			}
 			currentSummy.TotalBet = staUser.BetAmount
 			currentSummy.TotalWinBalance = staUser.BetWin

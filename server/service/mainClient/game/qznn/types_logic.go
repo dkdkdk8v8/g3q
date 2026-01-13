@@ -2,7 +2,6 @@ package qznn
 
 import (
 	"compoment/ws"
-	"sync"
 	"time"
 
 	"github.com/sasha-s/go-deadlock"
@@ -68,8 +67,8 @@ type PlayerData struct {
 // Player 代表房间内的一个玩家
 type Player struct {
 	PlayerData
-	Mu       sync.RWMutex   `json:"-"` // 保护 PlayerData
-	ConnWrap *ws.WsConnWrap `json:"-"` // WebSocket 连接
+	Mu       deadlock.RWMutex `json:"-"` // 保护 PlayerData
+	ConnWrap *ws.WsConnWrap   `json:"-"` // WebSocket 连接
 }
 
 func NewPlayer() *Player {

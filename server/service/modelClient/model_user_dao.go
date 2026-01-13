@@ -168,9 +168,10 @@ type GameSettletruct struct {
 	Players      []UserSettingStruct
 }
 type UserSettingStruct struct {
-	UserId        string
-	ChangeBalance int64
-	ValidBet      int64
+	UserId               string
+	ChangeBalance        int64
+	ValidBet             int64
+	UserGameRecordInsert bool
 }
 
 func UpdateUserSetting(setting *GameSettletruct) ([]*ModelUser, error) {
@@ -198,17 +199,19 @@ func UpdateUserSetting(setting *GameSettletruct) ([]*ModelUser, error) {
 				return err
 			}
 			ret = append(ret, &user)
-			//插入用户的userRecord
-			userRecord := ModelUserRecord{
-				UserId:        user.UserId,
-				BalanceBefore: oldBalance,
-				BalanceAfter:  user.Balance,
-				GameRecordId:  setting.GameRecordId,
-				RecordType:    RecordTypeGame,
-			}
-			_, err = txOrm.Insert(&userRecord)
-			if err != nil {
-				return err
+			if player.UserGameRecordInsert {
+				//插入用户的userRecord
+				userRecord := ModelUserRecord{
+					UserId:        user.UserId,
+					BalanceBefore: oldBalance,
+					BalanceAfter:  user.Balance,
+					GameRecordId:  setting.GameRecordId,
+					RecordType:    RecordTypeGame,
+				}
+				_, err = txOrm.Insert(&userRecord)
+				if err != nil {
+					return err
+				}
 			}
 		}
 		return nil

@@ -39,5 +39,5 @@ func (u *ModelStaUser) TableIndex() [][]string {
 
 func GetStaUser(userId string, date time.Time) (*ModelStaUser, error) {
 	ormDb := GetReadDb()
-	return ormutil.QueryOneNoDiff[ModelStaUser](ormDb, ormutil.WithKV("user_id", userId), ormutil.WithKV("date", date))
+	return ormutil.QueryOneNoDiff[ModelStaUser](ormDb, ormutil.WithKV("userId", userId), ormutil.WithKV("date", date))
 }

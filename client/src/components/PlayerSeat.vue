@@ -84,29 +84,8 @@ const showSpeechBubble = computed(() => {
 
 // Computed property to calculate dynamic width for speech bubble
 const speechBubbleStyle = computed(() => {
-    if (props.speech && props.speech.type === 'text' && props.speech.content) {
-        // Assume one Chinese character is roughly 8px wide (per user request)
-        const charWidth = 15;
-        const padding = 20; // Total left/right padding (10px + 10px)
-        const textLength = Array.from(props.speech.content).length; // Handle Unicode characters
-        let calculatedWidth = (textLength * charWidth) + padding;
-
-        // Cap the width to prevent it from becoming too wide (max 8 chars per line)
-        const maxWidthCap = (8 * charWidth) + padding;
-        if (calculatedWidth > maxWidthCap) {
-            calculatedWidth = maxWidthCap;
-        }
-
-        // Ensure a minimum width for very short phrases or emojis if needed (not strictly for text)
-        const minWidth = 60; // For small phrases or emojis
-        if (calculatedWidth < minWidth) {
-            calculatedWidth = minWidth;
-        }
-
-        return { width: `${calculatedWidth}px` };
-    }
-    // For emojis, or if no speech content, let CSS handle default sizing or use a default width
-    return { width: 'auto' };
+    // Return empty to let CSS handle width (responsive)
+    return {};
 });
 
 // 始终返回完整手牌以保持布局稳定
@@ -259,7 +238,7 @@ const slideTransitionName = computed(() => {
 const displayName = computed(() => {
     const name = props.player.name || '';
     if (props.isMe) {
-        if (name.length > 12) {
+        if (name.length > 10) {
             return name.slice(0, 4) + '...' + name.slice(-4);
         }
         return name;
@@ -309,7 +288,7 @@ const displayName = computed(() => {
                     <Transition :name="slideTransitionName">
                         <div v-if="shouldShowBetMult" class="status-content">
                             <span class="status-text bet-text" :class="{ 'text-large': isMe }">押{{ player.betMultiplier
-                            }}倍</span>
+                                }}倍</span>
                         </div>
                     </Transition>
                 </div>
@@ -342,13 +321,12 @@ const displayName = computed(() => {
 
         <!-- 手牌区域 (始终渲染以占位) -->
         <div class="hand-area">
-            <div class="cards" :style="{ visibility: showCards ? 'visible' : 'hidden' }">
+            <div class="cards" :class="{ 'is-me-cards': isMe }" :style="{ visibility: showCards ? 'visible' : 'hidden' }">
                 <PokerCard v-for="(card, idx) in displayedHand" :key="idx"
                     :card="(shouldShowCardFace && (visibleCardCount === -1 || idx < visibleCardCount)) ? card : null"
                     :is-small="!isMe"
                     :class="{ 'hand-card': true, 'bull-card-overlay': isBullPart(idx), 'selected': selectedCardIndices.includes(idx) }"
                     :style="{
-                        marginLeft: idx === 0 ? '0' : (isMe ? '1px' : '-20px'),
                         opacity: (visibleCardCount === -1 || idx < visibleCardCount) ? 1 : 0,
                     }" @click="props.isMe ? emit('card-click', { card, index: idx }) : null" />
             </div>
@@ -405,9 +383,10 @@ const displayName = computed(() => {
 .seat-right,
 .seat-top-left,
 .seat-top-right {
-    width: auto;
+    width: 160px;
+    /* Fixed width to prevent horizontal shifting */
     min-width: 100px;
-    /* Ensure minimum width for hand */
+    /* Keep minimum width */
 }
 
 /* 头像区域微调 */
@@ -472,8 +451,8 @@ const displayName = computed(() => {
 
 /* Increase avatar size for opponents */
 :not(.seat-bottom) .avatar-wrapper {
-    width: 70px;
-    height: 70px;
+    width: 52px;
+    height: 52px;
 }
 
 .ready-badge {
@@ -814,22 +793,7 @@ const displayName = computed(() => {
     /* Ensure the entire image is visible within the bounds */
 }
 
-@keyframes shine {
-    0% {
-        transform: scale(1);
-        box-shadow: 0 0 5px #fbbf24;
-    }
 
-    50% {
-        transform: scale(1.1);
-        box-shadow: 0 0 15px #fbbf24;
-    }
-
-    100% {
-        transform: scale(1);
-        box-shadow: 0 0 5px #fbbf24;
-    }
-}
 
 .info-box {
     margin-top: 2px;
@@ -888,6 +852,10 @@ const displayName = computed(() => {
     margin-bottom: 2px;
 }
 
+:not(.seat-bottom) .name {
+    font-size: 12px;
+}
+
 .coins-pill {
     background: rgba(0, 0, 0, 0.6);
     border-radius: 20px;
@@ -905,11 +873,20 @@ const displayName = computed(() => {
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+:not(.seat-bottom) .coins-pill {
+    font-size: 10px;
+}
+
 .coin-icon-seat {
     width: 18px;
     /* Increased from 16px */
     height: 18px;
     object-fit: contain;
+}
+
+:not(.seat-bottom) .coin-icon-seat {
+    width: 14px;
+    height: 14px;
 }
 
 .coin-icon-float {
@@ -1106,6 +1083,14 @@ const displayName = computed(() => {
 .hand-card {
     transition: transform 0.2s;
     flex-shrink: 0;
+}
+
+.cards .hand-card + .hand-card {
+    margin-left: -28px;
+}
+
+.cards.is-me-cards .hand-card + .hand-card {
+    margin-left: 1px;
 }
 
 .hand-result-badge {

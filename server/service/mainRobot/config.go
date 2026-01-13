@@ -1,12 +1,24 @@
 package mainRobot
 
-// WebSocket 服务器地址
-const SERVER_URL = "ws://127.0.0.1:8084/rpc/ws"        // 正式服地址
-const SERVER_URL_DEV = "ws://43.198.8.247:8084/rpc/ws" // 测试服地址
+// 服务器 Host 配置
+const HOST_PROD = "127.0.0.1:8084"
+const HOST_DEV = "172.20.10.5:18084"
 
-const SECONDS_WAIT_MAX = 30      // 进入房间前等待的最长秒数
-const MIN_GAMES = 100            // 机器人至少玩几局
-const PROB_LEAVE_5_PLAYERS = 0.8 // 5人时退出概率
-const PROB_LEAVE_4_PLAYERS = 0.6 // 4人时退出概率
-const PROB_LEAVE_3_PLAYERS = 0.4 // 3人时退出概率
-const PROB_LEAVE_2_PLAYERS = 0.0 // 2人时退出概率
+// 路径配置
+const PATH_WS = "/rpc/ws"
+const PATH_RPC_DATA = "/rpc/qznn-data"
+
+const MIN_GAMES = 10                // 机器人至少玩几局
+const PROB_LEAVE_5_PLAYERS = 0.7    // 5人时退出概率
+const PROB_LEAVE_4_PLAYERS = 0.5    // 4人时退出概率
+const PROB_LEAVE_3_PLAYERS = 0.2    // 3人时退出概率
+const PROB_LEAVE_2_PLAYERS = 0.0    // 2人时退出概率
+const MIN_ROBOT_ROOMS = 3           // 纯机器人房间最少保持数量
+const ROBOT_BALANCE_MULT_MIN = 10.0 // 机器人进入房间携带金额最小倍数
+const ROBOT_BALANCE_MULT_MAX = 30.0 // 机器人进入房间携带金额最大倍数
+
+// 机器人允许进入的房间等级配置
+var ALLOWED_LEVELS = []int{1, 2, 3, 4, 5, 6}
+
+// 机器人允许进入的玩法类型配置 (0:无看牌抢庄, 1:看三张牌抢庄, 2:看四张牌抢庄)
+var ALLOWED_BANKER_TYPES = []int{0, 1, 2}

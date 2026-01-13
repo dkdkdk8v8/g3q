@@ -61,6 +61,18 @@ func GetAllRobots() ([]*ModelUser, error) {
 	return robots, err
 }
 
+func GetRobots(limit, offset int) ([]*ModelUser, error) {
+	var robots []*ModelUser
+	_, err := GetDb().Raw("SELECT * FROM g3q_user WHERE is_robot = 1 AND enable = 1 AND app_id !=? ORDER BY last_played ASC LIMIT ? OFFSET ?", "USER", limit, offset).QueryRows(&robots)
+	return robots, err
+}
+
+func GetUserRobots() ([]*ModelUser, error) {
+	var robots []*ModelUser
+	_, err := GetDb().Raw("SELECT * FROM g3q_user WHERE is_robot = 1 AND enable = 1 AND app_id=?", "USER").QueryRows(&robots)
+	return robots, err
+}
+
 // UpdateUser 更新用户信息
 func UpdateUser(user *ModelUser) (int64, error) {
 	return WrapUpdate(user)

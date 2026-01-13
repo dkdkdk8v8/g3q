@@ -4,10 +4,8 @@
  * @param {number|string} coins - The coin amount from server (usually in cents)
  * @returns {string} Formatted string
  */
-export function formatCoins(coins) {
+export function formatCoins(coins, decimalPlaces = 2) {
     const num = Number(coins);
-    if (isNaN(num)) return '0';
-    // Use toFixed(0) to ensure no decimal places.
-    // Division by 100 converts integer cents to yuan units, then rounded to whole number.
-    return (num / 100).toFixed(0);
+    if (isNaN(num)) return (0).toFixed(decimalPlaces);
+    return (num / 100).toFixed(decimalPlaces);
 }

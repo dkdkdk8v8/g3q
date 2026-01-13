@@ -1105,9 +1105,9 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
         <!-- Base Bet Display -->
         <div class="base-bet-display" :style="{ '--game-top-difen-bg': 'url(' + gameTopDifenBg + ')' }">
-            <span class="bet-amount">底分：</span>
+            <span class="bet-amount">底分</span>
             <img :src="goldImg" class="gold-icon-small" />
-            <span class="bet-amount">{{ formatCoins(store.baseBet) }}</span>
+            <span class="bet-amount">{{ formatCoins(store.baseBet, 0) }}</span>
         </div>
         <div class="opponents-layer">
             <div v-for="(p, index) in opponentSeats" :key="index" class="opponent-seat-abs"
@@ -2080,7 +2080,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .base-bet-display .bet-amount {
-    color: #fbbf24;
+    text-shadow: 1px 2px 1px rgba(0, 0, 0, 0.3);
     /* Amber-400, similar to other coin displays */
     font-weight: bold;
 }

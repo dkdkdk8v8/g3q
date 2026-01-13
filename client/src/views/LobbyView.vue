@@ -154,8 +154,8 @@ const rooms = computed(() => {
         return {
             level: cfg.level,
             name: cfg.name,
-            base: formatCoins(cfg.base_bet),
-            min: formatCoins(cfg.min_balance),
+            base: formatCoins(cfg.base_bet, 0),
+            min: formatCoins(cfg.min_balance, 0),
             assets: getRoomAssets(index),
             limitColor: roomTextColors[index] || "rgb(255, 255, 255)",
             isFullWidth: index === 4 || index === 5,

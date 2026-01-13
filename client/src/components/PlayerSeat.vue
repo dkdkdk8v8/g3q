@@ -405,9 +405,8 @@ const displayName = computed(() => {
 .seat-right,
 .seat-top-left,
 .seat-top-right {
-    width: auto;
-    min-width: 100px;
-    /* Ensure minimum width for hand */
+    width: 160px; /* Fixed width to prevent horizontal shifting */
+    min-width: 100px; /* Keep minimum width */
 }
 
 /* 头像区域微调 */

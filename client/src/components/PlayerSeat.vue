@@ -814,22 +814,7 @@ const displayName = computed(() => {
     /* Ensure the entire image is visible within the bounds */
 }
 
-@keyframes shine {
-    0% {
-        transform: scale(1);
-        box-shadow: 0 0 5px #fbbf24;
-    }
 
-    50% {
-        transform: scale(1.1);
-        box-shadow: 0 0 15px #fbbf24;
-    }
-
-    100% {
-        transform: scale(1);
-        box-shadow: 0 0 5px #fbbf24;
-    }
-}
 
 .info-box {
     margin-top: 2px;

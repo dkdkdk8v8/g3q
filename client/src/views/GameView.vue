@@ -1238,7 +1238,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                             <div v-if="shouldShowRobMult" class="status-content">
                                 <span v-if="myPlayer.robMultiplier > 0" class="status-text rob-text text-large">抢{{
                                     myPlayer.robMultiplier
-                                }}倍</span>
+                                    }}倍</span>
                                 <span v-else class="status-text no-rob-text text-large">不抢</span>
                             </div>
                         </Transition>
@@ -2198,8 +2198,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .my-player-info-row .banker-badge {
     position: absolute;
-    bottom: 12px;
-    right: 12px;
+    bottom: 0;
+    right: 0;
     width: 24px;
     height: 24px;
     display: flex;
@@ -2977,6 +2977,24 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 <style>
 /* Global styles for Vant components in dark mode */
+
+@keyframes shine {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 5px #fbbf24;
+    }
+
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 0 15px #fbbf24;
+    }
+
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 5px #fbbf24;
+    }
+}
+
 .dark-theme-popup {
     --van-popup-background: #1e293b;
     --van-picker-background: #1e293b;

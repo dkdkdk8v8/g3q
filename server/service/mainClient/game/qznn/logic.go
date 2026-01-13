@@ -12,6 +12,7 @@ import (
 	"service/mainClient/game/znet"
 	"service/modelClient"
 	"slices"
+	"strings"
 	"time"
 
 	errors "github.com/pkg/errors"
@@ -971,8 +972,7 @@ func (r *QZNNRoom) StartGame() {
 		Amount   int64
 	}
 	var playerWins []WinRecord
-	var totalBankerPay int64 = 0  // 庄家需要赔付的总额
-	var totalBankerGain int64 = 0 // 庄家从输家那里赢来的总额
+	var playerLoses []WinRecord
 
 	baseBet := r.Config.BaseBet
 
@@ -986,59 +986,100 @@ func (r *QZNNRoom) StartGame() {
 		// 庄家赢：底注 * 庄倍 * 闲倍 * 庄家牌型倍数
 		loseAmount := baseBet * bankerMult * p.BetMult * bankerPlayer.CardResult.Mult
 		if isPlayerWin {
-			p.ValidBet = winAmount
-			//庄家流水和各个闲家的总和
-			bankerPlayer.ValidBet += winAmount
+			if winAmount > p.Balance {
+				winAmount = p.Balance
+			}
+			//赢庄家，需要下面计算庄家赔付和庄家本金
 			playerWins = append(playerWins, WinRecord{PlayerID: p.ID, Amount: winAmount})
-
-			totalBankerPay += winAmount
 		} else {
-			//看闲家够不够,输家输的钱不能超过自己的余额
-			if p.Balance < loseAmount {
+			if loseAmount > p.Balance {
+				//最多把自己的本金输光
 				loseAmount = p.Balance
 			}
-			p.ValidBet = loseAmount
-			bankerPlayer.ValidBet += loseAmount
-			p.BalanceChange -= loseAmount
-			totalBankerGain += loseAmount
+			playerLoses = append(playerLoses, WinRecord{PlayerID: p.ID, Amount: loseAmount})
 		}
 	}
-	//计算庄家的有效投注流水
-	if bankerPlayer.Balance < bankerPlayer.ValidBet {
-		bankerPlayer.ValidBet = bankerPlayer.Balance
+
+	// 先算输的闲家给庄家赔付
+	playerLoss2Banker := int64(0)
+	for _, rec := range playerLoses {
+		for _, p := range activePlayer {
+			if p.ID == rec.PlayerID {
+				playerLoss2Banker += rec.Amount
+				break
+			}
+		}
 	}
 
-	// 2. 计算庄家赔付能力
-	// 庄家现有资金 + 本局赢来的钱
-	bankerCapacity := bankerPlayer.Balance + totalBankerGain
-
-	// 3. 结算闲家赢钱（考虑庄家破产）
-	if totalBankerPay > bankerCapacity {
-		// 庄家不够赔，按比例赔付
-		ratio := float64(bankerCapacity) / float64(totalBankerPay)
-		for _, rec := range playerWins {
+	if playerLoss2Banker > bankerPlayer.Balance {
+		//庄家本金不够多，输的闲按庄本金比例赔
+		for _, rec := range playerLoses {
 			for _, p := range activePlayer {
 				if p.ID == rec.PlayerID {
-					realWin := int64(math.Round(float64(rec.Amount) * ratio))
-					p.BalanceChange += realWin
-					p.ValidBet = realWin
+					realLose := int64(math.Round(float64(rec.Amount) * float64(bankerPlayer.Balance) / float64(playerLoss2Banker)))
+					p.BalanceChange -= realLose
+					bankerPlayer.BalanceChange += realLose
 					break
 				}
 			}
 		}
-		// 庄家输光所有（余额+赢来的）
-		bankerPlayer.BalanceChange = totalBankerGain - bankerCapacity
 	} else {
-		// 庄家够赔
-		for _, rec := range playerWins {
+		//庄家本金足够
+		for _, rec := range playerLoses {
 			for _, p := range activePlayer {
 				if p.ID == rec.PlayerID {
-					p.BalanceChange += rec.Amount
+					p.BalanceChange -= rec.Amount
+					bankerPlayer.BalanceChange += rec.Amount
 					break
 				}
 			}
 		}
-		bankerPlayer.BalanceChange = totalBankerGain - totalBankerPay
+	}
+
+	//计算庄家输给闲家
+	bankerLoss2player := int64(0)
+	playerCanWinByBalance := int64(0)
+	for _, rec := range playerWins {
+		for _, p := range activePlayer {
+			if p.ID == rec.PlayerID {
+				bankerLoss2player += rec.Amount
+				playerCanWinByBalance += p.Balance
+				break
+			}
+		}
+	}
+	// 先查赢的闲家的本金 最多能赢多少庄家的
+	if bankerLoss2player > playerCanWinByBalance {
+		bankerLoss2player = playerCanWinByBalance
+	}
+	//bankerPlayer.BalanceChange 当前赢的闲家的
+	if bankerLoss2player > (bankerPlayer.Balance + bankerPlayer.BalanceChange) {
+		//闲赢的钱大于庄家本金加刚赢的闲家的钱，不够赔
+		for _, rec := range playerWins {
+			for _, p := range activePlayer {
+				if p.ID == rec.PlayerID {
+					//已经限制 赢的闲的本金
+					realWin := int64(math.Round(float64(rec.Amount) * float64(bankerPlayer.Balance+bankerPlayer.BalanceChange) / float64(bankerLoss2player)))
+					p.BalanceChange += realWin
+					break
+				}
+			}
+		}
+		//庄家本金输光
+		bankerPlayer.BalanceChange = 0
+		bankerPlayer.BalanceChange -= bankerPlayer.Balance
+	} else {
+		//庄家够赔
+		for _, rec := range playerWins {
+			for _, p := range activePlayer {
+				if p.ID == rec.PlayerID {
+					//已经限制 赢的闲的本金
+					p.BalanceChange += rec.Amount
+					bankerPlayer.BalanceChange -= rec.Amount
+					break
+				}
+			}
+		}
 	}
 
 	// 4. 扣税 (只扣赢家的)
@@ -1090,7 +1131,19 @@ func (r *QZNNRoom) StartGame() {
 	//
 	modelUsers, err := modelClient.UpdateUserSetting(&settle)
 	if err != nil {
-		//todo:: log very detail for recovery user data
+		var allUserIds []string
+		for _, u := range settle.Players {
+			allUserIds = append(allUserIds, u.UserId)
+		}
+		logrus.WithField("!", nil).WithError(err).WithField(
+			"gameId", r.GameID).WithField(
+			"userIds", strings.Join(allUserIds, ",")).Error("UpdateUserSetting-Fail")
+		for _, u := range settle.Players {
+			logrus.WithField(
+				"gameId", r.GameID).WithField(
+				"userId", u.UserId).WithField(
+				"changeBal", u.ChangeBalance).Error("UpdateUserSetting-Restore")
+		}
 		return
 	}
 

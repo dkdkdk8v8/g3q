@@ -101,6 +101,7 @@ func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []b
 		if err1 != nil {
 			return err1
 		}
+		logrus.WithField("userId", userId).WithField("gameId", user.GameId).Warn("RecoveryGameId-Ok")
 	}
 	if user.Balance < cfg.MinBalance {
 		return comm.NewMyError("用户余额不足")

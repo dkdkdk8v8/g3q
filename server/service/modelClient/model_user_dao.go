@@ -115,7 +115,7 @@ func RecoveryGameId(userId string, gameId string) (*ModelUser, error) {
 		user.Balance += user.BalanceLock
 		user.BalanceLock = 0
 		user.GameId = ""
-		_, err = txOrm.Update(&user, "balance", "balance_lock", "game_id")
+		_, err = txOrm.Update(&user)
 		if err != nil {
 			return err
 		}
@@ -151,7 +151,7 @@ func GameLockUserBalance(userId string, gameId string, minBalance int64) error {
 		user.BalanceLock += user.Balance
 		user.Balance = 0
 		user.GameId = gameId
-		_, err = txOrm.Update(&user, "balance", "balance_lock", "game_id")
+		_, err = txOrm.Update(&user)
 		if err != nil {
 			return err
 		}
@@ -196,10 +196,12 @@ func UpdateUserSetting(setting *GameSettletruct) ([]*ModelUser, error) {
 			user.TotalGameCount++
 			user.TotalBet += uint64(player.ValidBet)
 			user.TotalNetBalance += player.ChangeBalance
-			_, err = txOrm.Update(&user, "balance", "balance_lock", "game_id",
-				"last_played", "total_game_count", "total_bet", "total_net_balance")
+			effectRow, err := txOrm.Update(&user)
 			if err != nil {
 				return err
+			}
+			if effectRow <= 0 {
+				logrus.WithField("userId", player.UserId).Error("SettingEffectZero")
 			}
 			ret = append(ret, &user)
 			if player.UserGameRecordInsert {
@@ -263,10 +265,17 @@ func GetUserGameRecordsJoinGameRecord(userId string, limit int, id uint64, start
 
 }
 
-func GetUserGameRecords(userId string, limit int) ([]*ModelUserRecord, error) {
-	var records []*ModelUserRecord
+type ModelUserRecordOnlyBanalce struct {
+	UserId        string     `orm:"column(user_id);size(64)"` // 用户标识(带APPID前缀)
+	RecordType    RecordType `orm:"column(record_type);default(0)"`
+	BalanceBefore int64      `orm:"column(balance_before);default(0)"` // 余额（分）
+	BalanceAfter  int64      `orm:"column(balance_after);default(0)"`  // 余额（分）
+}
+
+func GetUserGameRecords(userId string, limit int) ([]*ModelUserRecordOnlyBanalce, error) {
+	var records []*ModelUserRecordOnlyBanalce
 	ormDb := GetReadOrm()
-	sql := `SELECT g3q_user_record.balance_before,g3q_user_record.balance_after FROM g3q_user_record
+	sql := `SELECT g3q_user_record.user_id,g3q_user_record.balance_before,g3q_user_record.balance_after FROM g3q_user_record
 	WHERE user_id = ? AND record_type = ? ORDER BY g3q_user_record.id DESC LIMIT ?`
 
 	_, err := ormDb.Raw(sql, userId, RecordTypeGame, limit).QueryRows(&records)

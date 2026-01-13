@@ -1004,6 +1004,7 @@ const goBack = () => {
     width: 100%;
 
     padding: 10px 0 40px 0;
+    background-color: #0006;
 
 }
 

@@ -84,29 +84,8 @@ const showSpeechBubble = computed(() => {
 
 // Computed property to calculate dynamic width for speech bubble
 const speechBubbleStyle = computed(() => {
-    if (props.speech && props.speech.type === 'text' && props.speech.content) {
-        // Assume one Chinese character is roughly 8px wide (per user request)
-        const charWidth = 15;
-        const padding = 20; // Total left/right padding (10px + 10px)
-        const textLength = Array.from(props.speech.content).length; // Handle Unicode characters
-        let calculatedWidth = (textLength * charWidth) + padding;
-
-        // Cap the width to prevent it from becoming too wide (max 8 chars per line)
-        const maxWidthCap = (8 * charWidth) + padding;
-        if (calculatedWidth > maxWidthCap) {
-            calculatedWidth = maxWidthCap;
-        }
-
-        // Ensure a minimum width for very short phrases or emojis if needed (not strictly for text)
-        const minWidth = 60; // For small phrases or emojis
-        if (calculatedWidth < minWidth) {
-            calculatedWidth = minWidth;
-        }
-
-        return { width: `${calculatedWidth}px` };
-    }
-    // For emojis, or if no speech content, let CSS handle default sizing or use a default width
-    return { width: 'auto' };
+    // Return empty to let CSS handle width (responsive)
+    return {};
 });
 
 // 始终返回完整手牌以保持布局稳定
@@ -342,13 +321,12 @@ const displayName = computed(() => {
 
         <!-- 手牌区域 (始终渲染以占位) -->
         <div class="hand-area">
-            <div class="cards" :style="{ visibility: showCards ? 'visible' : 'hidden' }">
+            <div class="cards" :class="{ 'is-me-cards': isMe }" :style="{ visibility: showCards ? 'visible' : 'hidden' }">
                 <PokerCard v-for="(card, idx) in displayedHand" :key="idx"
                     :card="(shouldShowCardFace && (visibleCardCount === -1 || idx < visibleCardCount)) ? card : null"
                     :is-small="!isMe"
                     :class="{ 'hand-card': true, 'bull-card-overlay': isBullPart(idx), 'selected': selectedCardIndices.includes(idx) }"
                     :style="{
-                        marginLeft: idx === 0 ? '0' : (isMe ? '1px' : '-20px'),
                         opacity: (visibleCardCount === -1 || idx < visibleCardCount) ? 1 : 0,
                     }" @click="props.isMe ? emit('card-click', { card, index: idx }) : null" />
             </div>
@@ -1092,6 +1070,14 @@ const displayName = computed(() => {
 .hand-card {
     transition: transform 0.2s;
     flex-shrink: 0;
+}
+
+.cards .hand-card + .hand-card {
+    margin-left: -28px;
+}
+
+.cards.is-me-cards .hand-card + .hand-card {
+    margin-left: 1px;
 }
 
 .hand-result-badge {

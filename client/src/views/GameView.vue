@@ -142,6 +142,48 @@ const allRobOptions = computed(() => {
     return options;
 });
 const settingsStore = useSettingsStore();
+
+// Responsive scaling logic
+const gameScale = ref(1);
+
+const updateGameScale = () => {
+    const designWidth = 375;
+    const designHeight = 844;
+    const aspect = window.innerWidth / window.innerHeight;
+    const designAspect = designWidth / designHeight;
+
+    if (aspect > designAspect) {
+        gameScale.value = window.innerHeight / (window.innerWidth / designAspect);
+    } else {
+        gameScale.value = 1;
+    }
+    if (gameScale.value < 0.7) gameScale.value = 0.7;
+};
+
+const getSeatStyle = (seatNum) => {
+    const s = gameScale.value;
+    if (s === 1) return {};
+
+    let origin = 'center center';
+    if (seatNum === 1) origin = 'left center';
+    if (seatNum === 2) origin = 'left top';
+    if (seatNum === 3) origin = 'right top';
+    if (seatNum === 4) origin = 'right center';
+
+    return {
+        transform: `scale(${s})`,
+        transformOrigin: origin
+    };
+};
+
+onMounted(() => {
+    updateGameScale();
+    window.addEventListener('resize', debounce(updateGameScale, 100));
+});
+
+onUnmounted(() => {
+    window.removeEventListener('resize', updateGameScale);
+});
 const router = useRouter();
 const route = useRoute();
 const coinLayer = ref(null);
@@ -980,30 +1022,8 @@ const showSpeechBubble = (playerId) => {
 };
 
 const getSpeechBubbleStyle = (playerId) => {
-    const s = getSpeech(playerId);
-    if (s && s.type === 'text' && s.content) {
-        // Assume one Chinese character is roughly 15px wide (per PlayerSeat)
-        const charWidth = 15;
-        const padding = 20; // Total left/right padding (10px + 10px)
-        const textLength = Array.from(s.content).length; // Handle Unicode characters
-        let calculatedWidth = (textLength * charWidth) + padding;
-
-        // Cap the width to prevent it from becoming too wide (max 8 chars per line)
-        const maxWidthCap = (8 * charWidth) + padding;
-        if (calculatedWidth > maxWidthCap) {
-            calculatedWidth = maxWidthCap;
-        }
-
-        // Ensure a minimum width for very short phrases or emojis if needed (not strictly for text)
-        const minWidth = 60; // For small phrases or emojis
-        if (calculatedWidth < minWidth) {
-            calculatedWidth = minWidth;
-        }
-
-        return { width: `${calculatedWidth}px` };
-    }
-    // For emojis, or if no speech content, let CSS handle default sizing or use a default width
-    return { width: 'auto' };
+    // Return empty to let CSS handle width (responsive)
+    return {};
 };
 
 const selectedCardIndices = ref([]);
@@ -1111,7 +1131,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
         </div>
         <div class="opponents-layer">
             <div v-for="(p, index) in opponentSeats" :key="index" class="opponent-seat-abs"
-                :class="getOpponentClass(index + 1)">
+                :class="getOpponentClass(index + 1)" :style="getSeatStyle(index + 1)">
                 <PlayerSeat v-if="p && p.id" :player="p" :ref="(el) => setSeatRef(el, p.id)"
                     :position="getLayoutType(index + 1)"
                     :visible-card-count="visibleCounts[p.id] !== undefined ? visibleCounts[p.id] : 0"

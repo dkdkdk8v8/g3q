@@ -350,7 +350,7 @@ func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) 
 				Date: userRecord.CreateAt.Format("01月02") + "周" +
 					GetChineseWeekName(int(userRecord.CreateAt.Weekday())),
 			}
-			staUser, err := modelAdmin.GetStaUser(userId, userRecord.CreateAt)
+			staUser, err := modelAdmin.GetStaUser(userId, util.AddDateWithoutLock(userRecord.CreateAt, 0, 0, 0))
 			if err != nil {
 				if !ormutil.IsNoRow(err) {
 					return nil, err

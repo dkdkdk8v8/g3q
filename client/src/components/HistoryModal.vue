@@ -283,7 +283,7 @@ watch(() => props.visible, (val) => {
     width: 85%;
     max-width: 400px;
     max-height: 70vh;
-    background: #1e293bdd;
+    background: rgba(32, 35, 45, 1);
     border-radius: 16px;
     display: flex;
     flex-direction: column;
@@ -395,19 +395,14 @@ watch(() => props.visible, (val) => {
 .history-list-new {
     flex: 1;
     overflow-y: auto;
-    background: #1e293b;
-}
-
-.history-group {
-    margin-bottom: 16px;
 }
 
 .group-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #334155;
-    padding: 8px 12px;
+    background: rgba(32, 35, 45, 1);
+    padding: 10px 15px;
     border-radius: 8px 8px 0 0;
     font-size: 12px;
     color: #cbd5e1;
@@ -429,7 +424,9 @@ watch(() => props.visible, (val) => {
 }
 
 .history-card {
-    background: #0f172a;
+    border-radius: 10px;
+    margin: 5px 10px;
+    background: rgba(38, 43, 58, 1);
     border: 1px solid #334155;
     border-top: none;
     padding: 12px;
@@ -467,6 +464,11 @@ watch(() => props.visible, (val) => {
     border-radius: 4px;
 }
 
+.hc-time {
+    font-size: 11px;
+    color: #94a3b8;
+}
+
 .hc-bottom-row {
     font-size: 11px;
     color: #64748b;
@@ -485,11 +487,11 @@ watch(() => props.visible, (val) => {
 }
 
 .hc-score.win {
-    color: #ef4444;
+    color: #22c55e;
 }
 
 .hc-score.lose {
-    color: #22c55e;
+    color: #ef4444;
 }
 
 .hc-bet-amt {

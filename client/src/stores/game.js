@@ -58,6 +58,7 @@ export const useGameStore = defineStore('game', () => {
     // History State
     const history = ref([]);
     const historyLastId = ref(0);
+    const historyLastTimestamp = ref(0);
     const isLoadingHistory = ref(false);
     const isHistoryEnd = ref(false);
     const historyFilterDate = ref('');
@@ -67,6 +68,7 @@ export const useGameStore = defineStore('game', () => {
         if (reset) {
             history.value = [];
             historyLastId.value = 0;
+            historyLastTimestamp.value = 0;
             isHistoryEnd.value = false;
             historyFilterDate.value = date;
         }
@@ -79,6 +81,7 @@ export const useGameStore = defineStore('game', () => {
         gameClient.send('GameRecord', {
             Limit: 10,
             LastId: historyLastId.value,
+            LastTimestamp: historyLastTimestamp.value,
             Date: historyFilterDate.value
         });
     };
@@ -102,22 +105,35 @@ export const useGameStore = defineStore('game', () => {
             isHistoryEnd.value = true;
         }
 
+        // Update LastTimestamp for next pagination
+        if (data.LastTimestamp !== undefined) {
+            historyLastTimestamp.value = data.LastTimestamp;
+        } else if (list.length > 0) {
+            // Fallback: use the last item's timestamp if server doesn't provide explicit field
+            const lastItem = list[list.length - 1];
+            // Prefer CreateAt (Unix) or Time (ISO?) - verify what server sends usually. 
+            // If LastTimestamp is expected as int, CreateAt is likely correct if it's unix timestamp. 
+            // If Time is ISO string, we might need to convert. 
+            // Assuming server matches request expectation.
+            // Safe fallback: try to find a numeric timestamp field.
+            if (lastItem.CreateAt) historyLastTimestamp.value = lastItem.CreateAt;
+        }
+
         if (list.length > 0) {
             // Process list items
             const processedList = list
-                .filter(item => item && item.Type === 1) // Only process Type 1 items
                 .map(item => {
-                // If it's a record item (Type 1), parse the GameData JSON
-                if (item.GameData && typeof item.GameData === 'string') { // Type 1 already filtered
-                    try {
-                        item.GameDataObj = JSON.parse(item.GameData);
-                    } catch (e) {
-                        console.error('Failed to parse GameData JSON:', e);
-                        item.GameDataObj = {};
+                    // If it's a record item (Type 1), parse the GameData JSON
+                    if (item && item.Type === 1 && item.GameData && typeof item.GameData === 'string') {
+                        try {
+                            item.GameDataObj = JSON.parse(item.GameData);
+                        } catch (e) {
+                            console.error('Failed to parse GameData JSON:', e);
+                            item.GameDataObj = {};
+                        }
                     }
-                }
-                return item;
-            });
+                    return item;
+                });
             
             history.value.push(...processedList);
         }

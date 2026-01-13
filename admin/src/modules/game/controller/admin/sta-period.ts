@@ -32,8 +32,9 @@ export class StaPeriodController extends BaseController {
         @Query('sort') sort: string,
         @Query('order') order: string,
         @Query('userType') userType: string,
+        @Query('userId') userId: string,
     ) {
-        return this.staPeriodService.getUserStats(startDate, endDate, app, sort, order, userType);
+        return this.staPeriodService.getUserStats(startDate, endDate, app, sort, order, userType, userId);
     }
 
     @Get('/getDayTrend', { summary: '获取当日趋势对比' })

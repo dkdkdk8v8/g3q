@@ -59,7 +59,7 @@ const options = reactive({
 
 const date = ref(dayjs().format("YYYY-MM-DD"));
 const appId = ref("");
-const userType = ref("all");
+const userType = ref("real");
 
 const chartRef = ref();
 const chartBoxRef = ref();

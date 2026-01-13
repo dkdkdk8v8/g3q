@@ -38,7 +38,8 @@
                     class="mb-15">
                     <el-card shadow="hover">
                         <div class="chart-box">
-                            <v-chart :option="item.option" :loading="item.loading" autoresize />
+                            <v-chart :option="item.option" :loading="item.loading" :loading-options="loadingOptions"
+                                autoresize />
                         </div>
                     </el-card>
                 </el-col>
@@ -50,7 +51,7 @@
 <script lang="ts" setup name="sta-trend">
 import { useCool } from "/@/cool";
 import { useDict } from '/$/dict';
-import { reactive, ref, onMounted, onUnmounted, watch } from "vue";
+import { reactive, ref, onMounted, onUnmounted, watch, computed } from "vue";
 import dayjs from "dayjs";
 
 const { service } = useCool();
@@ -69,7 +70,7 @@ const options = reactive({
 const date = ref(dayjs().format("YYYY-MM-DD"));
 const appId = ref("");
 const duration = ref(10);
-const userType = ref("all");
+const userType = ref("real");
 
 const chartList = ref<any[]>([]);
 const lastData = ref<any>(null);
@@ -77,12 +78,20 @@ const isDark = ref(false);
 
 // 指标定义
 const metrics = [
-    { key: 'gameUserCount', title: '游戏人数', isMoney: false },
-    { key: 'firstGameUserCount', title: '首次游戏人数', isMoney: false },
+    { key: 'gameUserCount', title: '累计游戏用户', isMoney: false },
+    { key: 'firstGameUserCount', title: '累计首游用户', isMoney: false },
     { key: 'betCount', title: '投注次数', isMoney: false },
     { key: 'betAmount', title: '投注金额', isMoney: true },
     { key: 'gameWin', title: '平台盈亏', isMoney: true },
 ];
+
+const loadingOptions = computed(() => {
+    return {
+        text: "加载中...",
+        textColor: isDark.value ? "#fff" : "#000",
+        maskColor: isDark.value ? "rgba(0, 0, 0, 0.8)" : "rgba(255, 255, 255, 0.8)",
+    };
+});
 
 async function refresh() {
     if (chartList.value.length === 0) {

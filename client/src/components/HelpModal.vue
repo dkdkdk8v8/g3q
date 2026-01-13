@@ -139,7 +139,7 @@ const close = () => {
     width: 85%;
     max-width: 400px;
     max-height: 70vh;
-    background: #1e293bdd;
+    background: rgba(32, 35, 45, 1);
     border-radius: 16px;
     display: flex;
     flex-direction: column;

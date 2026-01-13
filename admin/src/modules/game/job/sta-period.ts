@@ -198,6 +198,22 @@ export class StaPeriodJob implements IJob {
     });
   }
 
+  /**
+   * 检查是否首次游戏，带缓存优化
+   */
+  private async checkIsFirstGame(userId: string, recordId: number): Promise<boolean> {
+    const cacheKey = `game:sta:played:${userId}`;
+    const hasPlayed = await this.midwayCache.get(cacheKey);
+    if (hasPlayed) {
+      return false;
+    }
+    const isFirst = await this.staPeriodService.isFirstGame(userId, recordId);
+    if (!isFirst) {
+      await this.midwayCache.set(cacheKey, 1, 7 * 24 * 3600);
+    }
+    return isFirst;
+  }
+
   async onTick(): Promise<void> {
     if (StaPeriodJob.isRunning) {
       return;
@@ -253,10 +269,10 @@ export class StaPeriodJob implements IJob {
         const involvedGroups = new Set<string>();
 
         await Promise.all(Players.map(async (player) => {
-          const { ID, IsOb, BalanceChange, ValidBet, Cards } = player;
+          const { ID: userId, IsOb, BalanceChange, ValidBet, Cards } = player;
           if (IsOb) return;
 
-          const user = userMap.get(ID);
+          const user = userMap.get(userId);
           const app_id = user?.app_id || '';
           if (!user) return;
           const isRobot = !!user.is_robot;
@@ -278,21 +294,21 @@ export class StaPeriodJob implements IJob {
 
           // 首次游戏判断
           // 使用 batchFirstGameUsers 防止同批次内同一个新用户被统计多次
-          if (!batchFirstGameUsers.has(ID)) {
-            batchFirstGameUsers.add(ID); // 先同步标记，防止后续并发进入
-            if (await this.staPeriodService.isFirstGame(ID, id)) {
+          if (!batchFirstGameUsers.has(userId)) {
+            batchFirstGameUsers.add(userId); // 先同步标记，防止后续并发进入
+            if (await this.checkIsFirstGame(userId, id)) {
               stats.firstGameUserCount += 1;
-              stats.firstGameUserIds.push(ID);
+              stats.firstGameUserIds.push(userId);
             }
           }
 
           // 活跃用户按天去重
           const dateStr = moment(timeKey).format('YYYY-MM-DD');
-          const dauKey = `${dateStr}:${ID}`;
+          const dauKey = `${dateStr}:${userId}`;
           let isDailyActive = false;
           if (!batchActiveUsers.has(dauKey)) {
             batchActiveUsers.add(dauKey);
-            isDailyActive = await this.staPeriodService.isDailyActive(timeKey, ID);
+            isDailyActive = await this.staPeriodService.isDailyActive(timeKey, userId);
           }
 
           if (isDailyActive) {
@@ -300,11 +316,11 @@ export class StaPeriodJob implements IJob {
           }
 
           // 用户数据统计
-          const userKey = `${dateKey.getTime()}_${ID}`;
+          const userKey = `${dateKey.getTime()}_${userId}`;
           if (!userStatsMap.has(userKey)) {
             userStatsMap.set(userKey, {
               date: dateKey,
-              userId: ID,
+              userId: userId,
               appId: app_id,
               isRobot: user.is_robot,
               betCount: 0,
@@ -321,7 +337,7 @@ export class StaPeriodJob implements IJob {
           if ((Number(BalanceChange) || 0) > 0) {
             uStats.winCount++;
           }
-          if (BankerID && String(BankerID) === String(ID)) {
+          if (BankerID && String(BankerID) === String(userId)) {
             uStats.bankerCount++;
           }
         }));

@@ -268,6 +268,10 @@ watch(() => props.visible, (val) => {
 </template>
 
 <style scoped>
+::v-deep(.van-picker) {
+    background-color: red;
+}
+
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -356,9 +360,9 @@ watch(() => props.visible, (val) => {
 }
 
 .filter-chip {
-    background: rgba(255, 255, 255, 0.1);
+    background: #2c333d;
     padding: 4px 12px;
-    border-radius: 16px;
+    border-radius: 4px;
     font-size: 12px;
     cursor: pointer;
     display: flex;
@@ -446,7 +450,7 @@ watch(() => props.visible, (val) => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0px 1px 0px #222222;
+    box-shadow: 1px 1px 1px 1px #16161633;
 }
 
 .hc-content {
@@ -532,5 +536,19 @@ watch(() => props.visible, (val) => {
     padding: 10px;
     display: flex;
     justify-content: center;
+}
+
+/* DatePicker Dark Theme Overrides */
+:deep(.dark-theme-popup) {
+    --van-popup-background: red;
+    --van-picker-background: red;
+    --van-picker-option-text-color: #94a3b8;
+    --van-picker-title-color: #f1f5f9;
+    --van-picker-action-text-color: #60a5fa;
+    --van-picker-mask-color: linear-gradient(180deg, rgba(32, 35, 45, 0.9), rgba(32, 35, 45, 0.4)), linear-gradient(0deg, rgba(32, 35, 45, 0.9), rgba(32, 35, 45, 0.4));
+}
+
+:deep(.van-picker) {
+    background-color: transparent;
 }
 </style>

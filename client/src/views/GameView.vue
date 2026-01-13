@@ -7,6 +7,9 @@ import { useSettingsStore } from '../stores/settings.js';
 import CoinLayer from '../components/CoinLayer.vue';
 import DealingLayer from '../components/DealingLayer.vue';
 import ChatBubbleSelector from '../components/ChatBubbleSelector.vue';
+import SettingsModal from '../components/SettingsModal.vue';
+import HelpModal from '../components/HelpModal.vue';
+import HistoryModal from '../components/HistoryModal.vue';
 import { useRouter, useRoute } from 'vue-router';
 import { formatCoins } from '../utils/format.js';
 import { transformServerCard, calculateHandType } from '../utils/bullfight.js';
@@ -892,164 +895,21 @@ onUnmounted(() => {
     gameClient.setLatencyCallback(null);
 });
 
-// Date Filter Logic
-const showFilterMenu = ref(false);
-const filterType = ref('all'); // 'all', 'today', 'yesterday', 'week', 'custom'
-const showDatePicker = ref(false);
-const currentDate = ref([]); // Vant 4 DatePicker uses array of strings
-const minDate = new Date(new Date().getFullYear() - 2, 0, 1);
-const maxDate = new Date();
+// Date Filter Logic - Moved to HistoryModal
+// History Logic - Moved to HistoryModal
 
-const filterLabel = computed(() => {
-    if (filterType.value === 'all') return '全部';
-    if (currentDate.value.length === 3) {
-        return `${currentDate.value[0]}-${currentDate.value[1]}-${currentDate.value[2]}`;
-    }
-    return '自定义';
-});
-
-const toggleFilterMenu = () => {
-    showFilterMenu.value = !showFilterMenu.value;
-};
-
-const selectFilter = (type) => {
-    let dateStr = '';
-    const now = new Date();
-
-    if (type === 'custom') {
-        if (currentDate.value.length === 0) {
-            currentDate.value = [
-                now.getFullYear().toString(),
-                (now.getMonth() + 1).toString().padStart(2, '0'),
-                now.getDate().toString().padStart(2, '0')
-            ];
-        }
-        showDatePicker.value = true;
-        // Do not fetch yet
-    } else {
-        // Assume 'all'
-        filterType.value = type;
-        dateStr = ''; // Empty string for All
-        store.fetchHistory({ reset: true, date: dateStr });
-    }
-
-    if (typeof showFilterMenu !== 'undefined') {
-        showFilterMenu.value = false;
-    }
-};
-
-const onConfirmDate = ({ selectedValues }) => {
-    currentDate.value = selectedValues;
-    filterType.value = 'custom';
-    showDatePicker.value = false;
-
-    // selectedValues is [year, month, day] strings
-    const [y, m, d] = selectedValues;
-    // Ensure padding
-    const dateStr = `${y}${m.padStart(2, '0')}${d.padStart(2, '0')}`;
-    store.fetchHistory({ reset: true, date: dateStr });
-};
-
-const onCancelDate = () => {
-    showDatePicker.value = false;
-};
-
-// History Logic
-const historyGrouped = computed(() => {
-    const groups = [];
-    let currentGroup = null;
-
-    // Iterate through store.history which contains mixed Type 0 (Summary) and Type 1 (Record) items
-    for (const item of store.history) {
-        if (item.Type === 0) {
-            // New Group Summary (Daily Header)
-            currentGroup = {
-                dateStr: item.Date, // e.g., "12月02周5"
-                totalBet: item.TotalBet,
-                totalValid: item.TotalWinBalance, // Using TotalWinBalance for the "Valid Bet" slot as per UI requirement (or is it actual ValidBet?)
-                // User prompt: "TotalWinBalance int64 //总输赢". UI shows "有效投注". 
-                // Usually ValidBet is "Effective Bet". But user mapped TotalWinBalance to the summary struct.
-                // Let's stick to what the server gives. If the UI label is "有效投注", maybe I should put TotalBet there?
-                // The UI has two slots: "投注" and "有效投注".
-                // Type 0 has TotalBet and TotalWinBalance.
-                // It's possible "Effective Bet" is missing from Type 0, or TotalWinBalance is what user wants to show.
-                // Given the prompt: "TotalWinBalance //总输赢", and UI typically shows "Bet" and "Win/Loss".
-                // But the UI text says "有效投注" (Valid Bet).
-                // Let's use TotalBet for "投注" and TotalWinBalance for the second slot, even if label is "有效投注".
-                // Or maybe TotalWinBalance IS the total valid bet? 
-                // Let's assume the second slot in the header should display TotalWinBalance (Profit/Loss) as per common history views,
-                // despite the class name or label in my previous analysis potentially being "gh-totals".
-                // Looking at the UI code: <div class="gh-totals"> 投注 ¥... 有效投注 ¥... </div>
-                // If the user wants to show Win/Loss there, the label should probably be "输赢".
-                // But if the server provides TotalBet and TotalWinBalance...
-                // Let's just map TotalBet -> "投注" and TotalWinBalance -> "有效投注" (or whatever the second field is).
-                items: []
-            };
-            groups.push(currentGroup);
-        } else if (item.Type === 1) {
-            // Game Record Item
-            if (!currentGroup) continue;
-
-            const gdObj = item.GameDataObj;
-            // The structure is GameDataObj -> Room -> Players
-            // or sometimes direct if not nested (but based on log it is nested under Room)
-            const roomData = gdObj.Room || gdObj;
-
-            if (!roomData || !roomData.Players) continue;
-
-            const myData = roomData.Players.find(p => p.ID === store.myPlayerId);
-            // If not found, skip or use defaults
-            const bet = myData ? (myData.ValidBet || 0) : 0;
-            const score = myData ? (myData.BalanceChange || 0) : 0; // Win/Loss
-
-            // Calculate Hand Type
-            let handTypeName = '未知';
-            if (myData && myData.Cards && Array.isArray(myData.Cards)) {
-                const cardObjs = myData.Cards.map(id => transformServerCard(id));
-                const typeResult = calculateHandType(cardObjs);
-                handTypeName = typeResult.typeName;
-            } else if (roomData.State === 'StateBankerConfirm') {
-                // If cards are not shown yet (incomplete game in history?), maybe show state
-                handTypeName = '未摊牌';
-            }
-
-            // Room Name Construction
-            let roomName = '抢庄牛牛';
-            if (roomData.Config && roomData.Config.Name) {
-                roomName += ` | ${roomData.Config.Name}`;
-            }
-
-            currentGroup.items.push({
-                timestamp: item.CreateAt,
-                roomName: roomName,
-                handType: handTypeName,
-                score: score, // This is Win/Loss
-                bet: bet
-            });
-        }
-    }
-
-    return groups;
-});
-
-const formatHistoryTime = (isoString) => {
-    if (!isoString) return '';
-    const date = new Date(isoString);
-    const m = (date.getMonth() + 1).toString().padStart(2, '0');
-    const d = date.getDate().toString().padStart(2, '0');
-    const h = date.getHours().toString().padStart(2, '0');
-    const min = date.getMinutes().toString().padStart(2, '0');
-    const s = date.getSeconds().toString().padStart(2, '0');
-    return `${m}-${d} ${h}:${min}:${s}`;
-};
 
 const onRob = debounce((multiplier) => {
-    new Audio(btnClickSound).play().catch(() => { });
+    if (settingsStore.soundEnabled) {
+        new Audio(btnClickSound).play().catch(() => { });
+    }
     store.playerRob(multiplier);
 }, 500);
 
 const onBet = debounce((multiplier) => {
-    new Audio(btnClickSound).play().catch(() => { });
+    if (settingsStore.soundEnabled) {
+        new Audio(btnClickSound).play().catch(() => { });
+    }
     store.playerBet(multiplier);
 }, 500);
 
@@ -1065,7 +925,6 @@ const startGameDebounced = debounce(() => {
 const openHistoryDebounced = debounce(() => {
     showMenu.value = false;
     showHistory.value = true;
-    selectFilter('all'); // Load all history by default
 }, 500);
 
 const openSettingsDebounced = debounce(() => {
@@ -1163,16 +1022,7 @@ const handleCardClick = ({ card, index }) => {
     }
 };
 
-const historyListRef = ref(null);
 
-const handleHistoryScroll = (e) => {
-    const el = e.target;
-    if (el.scrollHeight - el.scrollTop - el.clientHeight < 50) {
-        if (!store.isLoadingHistory && !store.isHistoryEnd) {
-            store.fetchHistory();
-        }
-    }
-};
 
 const calculationData = computed(() => {
     const cards = [];
@@ -1388,7 +1238,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                             <div v-if="shouldShowRobMult" class="status-content">
                                 <span v-if="myPlayer.robMultiplier > 0" class="status-text rob-text text-large">抢{{
                                     myPlayer.robMultiplier
-                                }}倍</span>
+                                    }}倍</span>
                                 <span v-else class="status-text no-rob-text text-large">不抢</span>
                             </div>
                         </Transition>
@@ -1476,208 +1326,12 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
         <!-- 全局点击关闭菜单 -->
         <div v-if="showMenu" class="mask-transparent" @click="toggleShowMenu()"></div>
 
-        <!-- 押注记录弹窗 -->
-        <div v-if="showHistory" class="modal-overlay" style="z-index: 8000;">
-            <div class="modal-content history-modal">
-                <div class="modal-header">
-                    <h3>投注记录</h3>
-                    <div class="filter-chip" @click.stop="toggleFilterMenu">
-                        {{ filterLabel }} <span class="down-triangle" :class="{ 'rotate-180': showFilterMenu }">▼</span>
+        <!-- Modals -->
+        <HistoryModal v-model:visible="showHistory" />
 
-                        <!-- Filter Menu -->
-                        <div v-if="showFilterMenu" class="filter-menu" @click.stop>
-                            <div class="filter-menu-item" :class="{ active: filterType === 'all' }"
-                                @click="selectFilter('all')">全部</div>
-                            <div class="filter-menu-item" :class="{ active: filterType === 'custom' }"
-                                @click="selectFilter('custom')">自定义</div>
-                        </div>
-                    </div>
+        <SettingsModal v-model:visible="showSettings" />
 
-                    <div class="header-right">
-                        <div class="close-icon" @click="closeHistoryDebounced()">×</div>
-                    </div>
-                </div>
-
-                <div class="history-list-new" ref="historyListRef" @scroll="handleHistoryScroll">
-                    <div v-if="!store.isLoadingHistory && historyGrouped.length === 0" class="empty-tip">暂无记录</div>
-
-                    <div v-for="group in historyGrouped" :key="group.dateStr" class="history-group">
-                        <div class="group-header">
-                            <div class="gh-date">{{ group.dateStr }} <span class="down-triangle">▼</span></div>
-                            <div class="gh-totals">
-                                投注 <span class="coin-amount-text">{{
-                                    formatCoins(group.totalBet) }}</span> &nbsp;
-                                输赢 <span class="coin-amount-text">{{
-                                    formatCoins(group.totalValid) }}</span>
-                            </div>
-                        </div>
-
-                        <div v-for="(item, idx) in group.items" :key="idx" class="history-card">
-                            <div class="hc-content">
-                                <div class="hc-top-row">
-                                    <span class="hc-title">抢庄牛牛 | {{ item.roomName }}</span>
-                                    <span class="hc-hand">
-                                        {{ item.handType }}
-                                    </span>
-                                </div>
-                                <div class="hc-bottom-row">
-                                    <span class="hc-time">{{ formatHistoryTime(item.timestamp) }}</span>
-                                </div>
-                            </div>
-                            <div class="hc-right">
-                                <div class="hc-score" :class="item.score >= 0 ? 'win' : 'lose'">
-                                    {{ item.score > 0 ? '+' : '' }}{{ formatCoins(item.score) }}
-                                </div>
-                                <div class="hc-bet-amt">
-                                    投注: <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{
-                                        formatCoins(item.bet)
-                                    }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div v-if="store.isLoadingHistory" class="loading-more">
-                        <van-loading type="spinner" size="24px" color="#cbd5e1">加载中...</van-loading>
-                    </div>
-                    <div v-if="store.isHistoryEnd && historyGrouped.length > 0" class="loading-more"
-                        style="color: #64748b; font-size: 13px;">
-                        没有更多了
-                    </div>
-                </div>
-
-                <!-- Date Picker Popup -->
-                <van-popup v-model:show="showDatePicker" position="bottom" :style="{ height: '40%' }" teleport="body"
-                    z-index="9000" class="dark-theme-popup">
-                    <van-date-picker v-model="currentDate" title="选择日期" :min-date="minDate" :max-date="maxDate"
-                        @confirm="onConfirmDate" @cancel="onCancelDate" />
-                </van-popup>
-            </div>
-        </div>
-
-        <!-- Settings Modal -->
-        <div v-if="showSettings" class="modal-overlay">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>游戏设置</h3>
-                    <div class="close-icon" @click="closeSettingsDebounced()">×</div>
-                </div>
-                <div class="settings-list">
-                    <div class="setting-item">
-                        <span>背景音乐</span>
-                        <van-switch v-model="settingsStore.musicEnabled" size="24px" active-color="#13ce66"
-                            inactive-color="#ff4949" />
-                    </div>
-                    <div class="setting-item">
-                        <span>游戏音效</span>
-                        <van-switch v-model="settingsStore.soundEnabled" size="24px" active-color="#13ce66"
-                            inactive-color="#ff4949" />
-                    </div>
-                    <div class="setting-item">
-                        <span>屏蔽他人发言</span>
-                        <van-switch v-model="settingsStore.muteUsers" size="24px" active-color="#13ce66"
-                            inactive-color="#ff4949" />
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Help Modal -->
-        <div v-if="showHelp" class="modal-overlay" style="z-index: 8000;">
-            <div class="modal-content help-modal">
-                <div class="modal-header">
-                    <h3>游戏帮助</h3>
-                    <div class="close-icon" @click="closeHelpDebounced()">×</div>
-                </div>
-                <div class="help-content">
-                    <!-- 这个是不看牌抢庄牛牛的基本规则 -->
-                    <section v-if="store.gameMode === 0">
-                        <h4>基本规则</h4>
-                        <p>• <b>抢庄阶段：</b>玩家可以选择“1倍”、“2倍”、“3倍”、“4倍”、“不抢”。抢庄倍数最高的玩家做庄。若多名玩家抢庄最高倍数相同，则携带金币越多的玩家坐庄几率越大，如果所有玩家都不叫分，则系统随机选择一个玩家作为庄家，倍率默认为“1倍”。
-                        </p>
-                        <p>• <b>加倍阶段：</b>确定庄家后，闲家可以选择“1倍”、“5倍”、“10倍”、“15倍”、“20倍”倍率进行加倍。不选则默认以最小的“1倍”进行加倍。</p>
-                        <p>• <b>拼点阶段：</b>发牌之后，玩家可以计算自己的牌型，并选择摊牌。</p>
-                        <p>• <b>比牌阶段：</b>每位闲家分别和庄家比较大小，闲家和闲家之间不进行比较。</p>
-                    </section>
-
-                    <!-- 这个是看三张抢庄牛牛的基本规则 -->
-                    <section v-else-if="store.gameMode === 1">
-                        <h4>基本规则</h4>
-                        <p>• <b>发牌阶段</b>游戏开始，系统会发给所有玩家三张手牌，并先翻开给玩家看。翻开的三张牌只有玩家自己能看见，无法看见其他人先翻开的三张牌。</p>
-                        <p>• <b>抢庄阶段：</b>玩家可以选择“1倍”、“2倍”、“3倍”、“4倍”、“不抢”。抢庄倍数最高的玩家做庄。若多名玩家抢庄最高倍数相同，则携带金币越多的玩家坐庄几率越大，如果所有玩家都不叫分，则系统随机选择一个玩家作为庄家，倍率默认为“1倍”。
-                        </p>
-                        <p>• <b>加倍阶段：</b>确定庄家后，闲家可以选择“1倍”、“5倍”、“10倍”、“15倍”、“20倍”倍率进行加倍。不选则默认以最小的“1倍”进行加倍。</p>
-                        <p>• <b>拼点阶段：</b>投注结束后，系统会发出最后2张牌给各玩家，玩家可以计算自己的牌型，并选择摊牌。</p>
-                        <p>• <b>比牌阶段：</b>每位闲家分别和庄家比较大小，闲家和闲家之间不进行比较。</p>
-                    </section>
-
-                    <!-- 这个是看四张抢庄牛牛的基本规则 -->
-                    <section v-else-if="store.gameMode === 2">
-                        <h4>基本规则</h4>
-                        <p>• <b>发牌阶段</b>游戏开始，系统会发给所有玩家四张手牌，并先翻开给玩家看。翻开的四张牌只有玩家自己能看见，无法看见其他人先翻开的四张牌。</p>
-                        <p>• <b>抢庄阶段：</b>玩家可以选择“1倍”、“2倍”、“3倍”、“4倍”、“不抢”。抢庄倍数最高的玩家做庄。若多名玩家抢庄最高倍数相同，则携带金币越多的玩家坐庄几率越大，如果所有玩家都不叫分，则系统随机选择一个玩家作为庄家，倍率默认为“1倍”。
-                        </p>
-                        <p>• <b>加倍阶段：</b>确定庄家后，闲家可以选择“1倍”、“5倍”、“10倍”、“15倍”、“20倍”倍率进行加倍。不选则默认以最小的“1倍”进行加倍。</p>
-                        <p>• <b>拼点阶段：</b>投注结束后，系统会发出最后1张牌给各玩家，玩家可以计算自己的牌型，并选择摊牌。</p>
-                        <p>• <b>比牌阶段：</b>每位闲家分别和庄家比较大小，闲家和闲家之间不进行比较。</p>
-                    </section>
-
-                    <section>
-                        <h4>牌型</h4>
-                        <p>抢庄牛牛游戏中采用一副52张牌，没有大小王。J、Q、K都是10点，其他按照排面的点数计算。</p>
-                        <p>• <b>无牛：</b>没有任意三张牌能加起来成为10的倍数。</p>
-                        <p>• <b>有牛：</b>从牛一到牛九。任意三张牌相加是10的倍数，剩余两张牌相加不是10的倍数，然后取个位数，各位数是几，就是牛几。</p>
-                        <p>• <b>牛牛：</b>任意三张牌相加是10的倍数，剩余2张牌相加也是10的倍数。</p>
-                        <p>• <b>四花牛：</b>五张牌中有四张为花牌（J、Q、K）中的任意牌，且第五张为10。</p>
-                        <p>• <b>四炸：</b>五张牌中有四张一样的牌即为四炸，此时不需要有牛。</p>
-                        <p>• <b>五花牛：</b>手上五张牌全都是J、Q、K组成的特殊牛牛牌型为五花牛。</p>
-                        <p>• <b>五小牛：</b>五张牌点数都小于5，且点数之和小于等于10。</p>
-                    </section>
-
-                    <section>
-                        <h4>牌型比较</h4>
-                        <p>• <b>单张大小：</b>从大到小排序为：K > Q > J > 10 > 9 > 8 > 7 > 6 > 5 > 4 > 3 > 2 > A。</p>
-                        <p>• <b>花色大小：</b>花色由大到小排序为：黑桃 <span
-                                style="color: black; font-size: 1.3em; text-shadow: 1px 0 0 #aaa, 0 1px 0 #aaa, -1px 0 0 #aaa, 0 -1px 0 #aaa;">♠</span>
-                            > 红桃 <span
-                                style="color: #ef4444; font-size: 1.3em; text-shadow: 1px 0 0 #aaa, 0 1px 0 #aaa, -1px 0 0 #aaa, 0 -1px 0 #aaa;">♥</span>
-                            > 梅花 <span
-                                style="color: black; font-size: 1.3em; text-shadow: 1px 0 0 #aaa, 0 1px 0 #aaa, -1px 0 0 #aaa, 0 -1px 0 #aaa;">♣</span>
-                            > 方片 <span
-                                style="color: #ef4444; font-size: 1.3em; text-shadow: 1px 0 0 #aaa, 0 1px 0 #aaa, -1px 0 0 #aaa, 0 -1px 0 #aaa;">♦</span>。
-                        </p>
-                        <p>• <b>牌型大小：</b>从大到小排序为：五小牛 > 五花牛 > 四炸 > 四花牛 > 牛牛 > 有牛 > 无牛。</p>
-                        <p>• <b>有牛大小：</b>当都为有牛时，从大到小排序为：牛九 > 牛八 > 牛七 > 牛六 > 牛五 > 牛四 > 牛三 > 牛二 > 牛一。</p>
-                        <p>• <b>牌型相同：</b>当庄和闲相同牌型时，挑出最大的一张牌进行比较，如果最大牌点数一样，则按花色进行比较。（特例：当有多个四炸时，比较四张相同的牌的点数大小）</p>
-                    </section>
-
-
-                    <section>
-                        <h4>结算说明</h4>
-
-                        <h3>赔率</h3>
-                        <p>• 无牛到牛六：1倍</p>
-                        <p>• 牛七到牛九：2倍</p>
-                        <p>• 牛牛：3倍</p>
-                        <p>• 四炸：4倍</p>
-                        <p>• 五花牛：5倍</p>
-                        <p>• 五小牛：5倍</p>
-
-                        <h3>计算公式</h3>
-                        <p>• <b>庄家胜利：</b>房间底注 × 庄家牌型倍数 × 庄家抢庄倍数 × 闲家下注倍数。</p>
-                        <p>• <b>庄家失败：</b>房间底注 × 闲家牌型倍数 × 庄家抢庄倍数 × 闲家下注倍数。</p>
-                        <p>• <b>闲家胜利：</b>房间底注 × 闲家牌型倍数 × 庄家抢庄倍数 × 闲家下注倍数。</p>
-                        <p>• <b>闲家失败：</b>房间底注 × 庄家牌型倍数 × 庄家抢庄倍数 × 闲家下注倍数。</p>
-
-                        <h3>结算</h3>
-                        <p>• 为了游戏公平，玩家在一局游戏胜利后，赢得的金币总额不会超过身上携带的金币，如某玩家按照游戏规则计算应该赢100金币，但是因为它身上值携带了30金币，所以本局该玩家最多只能赢取30金币，输家按照对应比例相应减少所输的金币。所以如果玩家携带很少的金币进行游戏，很可能会出现赢到的金币低于预期，不够赔付输掉的金币甚至输掉本金的情况，所以强烈建议您携带足够的金币进行游戏。
-                        </p>
-                        <p>• 在每局游戏中获胜后，系统会收取本局总赢钱金额的5%作为税收。</p>
-
-                    </section>
-                </div>
-            </div>
-        </div>
+        <HelpModal v-model:visible="showHelp" :mode="store.gameMode" />
 
         <!-- Wrap ChatBubbleSelector to avoid nextSibling error -->
         <div>
@@ -2411,7 +2065,6 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     height: 90px;
     /* For myPlayer cards */
     margin-top: 0;
-    margin-bottom: 18px;
     /* Increased to move hand cards further up */
     position: relative;
     display: flex;

@@ -6,8 +6,8 @@
  */
 export function formatCoins(coins) {
     const num = Number(coins);
-    if (isNaN(num)) return '0.00';
-    // Use toFixed(2) to ensure 2 decimal places. 
-    // Division by 100 converts integer cents to yuan units.
-    return (num / 100).toFixed(2);
+    if (isNaN(num)) return '0';
+    // Use toFixed(0) to ensure no decimal places.
+    // Division by 100 converts integer cents to yuan units, then rounded to whole number.
+    return (num / 100).toFixed(0);
 }

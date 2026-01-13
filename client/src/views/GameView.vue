@@ -44,6 +44,7 @@ import btnClickSound from '@/assets/sounds/btn_click.mp3';
 import goldImg from '@/assets/common/gold.png';
 import zhuangImg from '@/assets/common/zhuang.png';
 import tanpaiImg from '@/assets/common/tanpai.png';
+import gameTopDifenBg from '@/assets/common/game_top_difen_bg.png';
 
 // Niu hand type images
 import niu1Img from '@/assets/niu/niu_1.png';
@@ -1110,6 +1111,13 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
             </div>
         </div>
 
+        <!-- Base Bet Display -->
+        <div class="base-bet-display">
+            <span>底分：</span>
+            <img :src="goldImg" class="gold-icon-small" />
+            <span class="bet-amount">{{ formatCoins(store.baseBet) }}</span>
+        </div>
+
         <div class="opponents-layer">
             <div v-for="(p, index) in opponentSeats" :key="index" class="opponent-seat-abs"
                 :class="getOpponentClass(index + 1)">
@@ -1223,7 +1231,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                     </div>
 
                     <div class="info-box" :class="{ 'is-observer': myPlayer.isObserver }">
-                        <div class="name van-ellipsis">{{ myPlayer.name.length > 12 ? myPlayer.name.slice(0, 4) + '...'
+                        <div class="name van-ellipsis">{{ myPlayer.name.length > 10 ? myPlayer.name.slice(0, 4) + '...'
                             +
                             myPlayer.name.slice(-4) : myPlayer.name }}</div>
                         <div class="coins-pill">
@@ -1238,7 +1246,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                             <div v-if="shouldShowRobMult" class="status-content">
                                 <span v-if="myPlayer.robMultiplier > 0" class="status-text rob-text text-large">抢{{
                                     myPlayer.robMultiplier
-                                }}倍</span>
+                                    }}倍</span>
                                 <span v-else class="status-text no-rob-text text-large">不抢</span>
                             </div>
                         </Transition>
@@ -2039,6 +2047,48 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 .coin-amount-text {
     color: #fbbf24;
 }
+
+/* Base Bet Display */
+.base-bet-display {
+    position: absolute;
+    top: 60px;
+    /* Adjust this value as needed based on visual inspection */
+    left: 50%;
+    transform: translateX(-50%);
+    background: url(v-bind(gameTopDifenBg)) no-repeat center center;
+    /* Use v-bind for dynamic background */
+    background-size: contain;
+    width: 200px;
+    /* Example width, adjust as needed */
+    height: 40px;
+    /* Example height, adjust as needed */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    z-index: 250;
+    font-weight: bold;
+    /* Adjust padding to center text within the background image, if image has borders */
+    padding: 0 20px;
+    box-sizing: border-box;
+}
+
+.base-bet-display .gold-icon-small {
+    width: 16px;
+    /* Adjust size */
+    height: 16px;
+    object-fit: contain;
+    margin-right: 4px;
+    margin-left: 4px;
+}
+
+.base-bet-display .bet-amount {
+    color: #fbbf24;
+    /* Amber-400, similar to other coin displays */
+    font-weight: bold;
+}
+
 
 .my-area {
     margin-top: auto;

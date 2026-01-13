@@ -58,6 +58,7 @@ export const useGameStore = defineStore('game', () => {
     // History State
     const history = ref([]);
     const historyLastId = ref(0);
+    const historyLastTimestamp = ref(0);
     const isLoadingHistory = ref(false);
     const isHistoryEnd = ref(false);
     const historyFilterDate = ref('');
@@ -67,6 +68,7 @@ export const useGameStore = defineStore('game', () => {
         if (reset) {
             history.value = [];
             historyLastId.value = 0;
+            historyLastTimestamp.value = 0;
             isHistoryEnd.value = false;
             historyFilterDate.value = date;
         }
@@ -79,6 +81,7 @@ export const useGameStore = defineStore('game', () => {
         gameClient.send('GameRecord', {
             Limit: 10,
             LastId: historyLastId.value,
+            LastTimestamp: historyLastTimestamp.value,
             Date: historyFilterDate.value
         });
     };
@@ -100,6 +103,20 @@ export const useGameStore = defineStore('game', () => {
         const list = data.List || [];
         if (list.length < 10) {
             isHistoryEnd.value = true;
+        }
+
+        // Update LastTimestamp for next pagination
+        if (data.LastTimestamp !== undefined) {
+            historyLastTimestamp.value = data.LastTimestamp;
+        } else if (list.length > 0) {
+            // Fallback: use the last item's timestamp if server doesn't provide explicit field
+            const lastItem = list[list.length - 1];
+            // Prefer CreateAt (Unix) or Time (ISO?) - verify what server sends usually. 
+            // If LastTimestamp is expected as int, CreateAt is likely correct if it's unix timestamp. 
+            // If Time is ISO string, we might need to convert. 
+            // Assuming server matches request expectation.
+            // Safe fallback: try to find a numeric timestamp field.
+            if (lastItem.CreateAt) historyLastTimestamp.value = lastItem.CreateAt;
         }
 
         if (list.length > 0) {

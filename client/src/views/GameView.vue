@@ -862,10 +862,13 @@ const startDealingAnimation = (isSupplemental = false) => {
         // Scale adjustment: Opponent seats have transform: scale(0.85) in CSS, so we must match that.
         const scale = t.isMe ? 1 : 0.85;
 
+        // Viewport scaling to match postcss-px-to-viewport (assuming 375 design width)
+        const viewportRatio = window.innerWidth / 375;
+
         // Spacing calculation:
-        // Me: 60px width + 1px margin = 61px (Scale 1)
-        // Opponent: (48px width - 20px overlap) * 0.85 scale = 23.8px
-        const spacing = t.isMe ? 61 : 23.8;
+        // Me: 60px width + 1px margin = 61px (Scale 1) -> Scaled by viewport
+        // Opponent: (48px width - 20px overlap) * 0.85 scale = 23.8px -> Scaled by viewport
+        const spacing = (t.isMe ? 61 : 23.8) * viewportRatio;
 
         const totalWidth = (t.total - 1) * spacing;
         const startX = t.x - (totalWidth / 2);
@@ -2078,7 +2081,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 /* Base Bet Display */
 .base-bet-display {
     position: absolute;
-    top: 93px;
+    top: 11vh;
     /* Adjust this value as needed based on visual inspection */
     left: 50%;
     transform: translateX(-50%);

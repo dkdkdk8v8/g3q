@@ -15,3 +15,5 @@
 **/*.tar.gz
 **/*.tar
 **/*.bin
+**/*.crash
+**/*.deadlock

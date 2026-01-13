@@ -101,7 +101,7 @@ func WSEntry(c *gin.Context) {
 	if existWsWrap != nil {
 		_ = existWsWrap.WriteJSON(comm.PushData{Cmd: comm.ServerPush, PushType: game.PushOtherConnect})
 		existWsWrap.CloseNormal("handler exit")
-		logrus.WithField("appId", appId).WithField("appUserId", appUserId).Info("WS-Client-KickOffConnect")
+		logrus.WithField("appId", appId).WithField("appUserId", appUserId).Info("WS-Client-KickOffOldConnect")
 	}
 
 	// 2. 进入消息处理循环

@@ -204,7 +204,7 @@ func (r *QZNNRoom) GetPlayerAndRealPlayerCount() (int, int) {
 	currentRealCount := 0
 	for _, p := range r.Players {
 		if p != nil {
-			currentRealCount++
+			currentCount++
 			if !p.IsRobot {
 				currentRealCount++
 			}
@@ -296,30 +296,34 @@ func (r *QZNNRoom) getPlayerByID(userID string) (*Player, bool) {
 }
 
 func (r *QZNNRoom) AddPlayer(p *Player) (int, error) {
-	r.RoomMu.RLock()
+	r.RoomMu.Lock()
 	// 检查玩家是否已在房间
 	for seatNum, existingPlayer := range r.Players {
 		if existingPlayer != nil && existingPlayer.ID == p.ID {
-			r.RoomMu.RUnlock()
+			r.RoomMu.Unlock()
 			return seatNum, nil
 		}
 	}
 	if !p.IsRobot {
 		// 检查是否已经有真人用户了
 		for _, existingPlayer := range r.Players {
-			if !existingPlayer.IsRobot {
-				r.RoomMu.RUnlock()
+			if existingPlayer != nil && !existingPlayer.IsRobot {
+				r.RoomMu.Unlock()
 				return 0, comm.ErrRealPlayerAlreadyInRoom
 			}
 		}
 	}
 
-	r.RoomMu.RUnlock()
-	bIsObState := r.CheckPlayerIsOb()
+	// CheckPlayerIsOb logic inlined
+	bIsObState := false
+	if !(r.State == StateWaiting || r.State == StatePrepare) {
+		bIsObState = true
+	} else if r.State == StatePrepare && r.StateLeftSec <= 2 {
+		bIsObState = true
+	}
 
 	emptySeat := -1
 	countExistPlayerNum := 0
-	r.RoomMu.RLock()
 	for i, pl := range r.Players {
 		if pl != nil {
 			countExistPlayerNum++
@@ -328,17 +332,15 @@ func (r *QZNNRoom) AddPlayer(p *Player) (int, error) {
 		}
 	}
 	if countExistPlayerNum >= cap(r.Players) || emptySeat == -1 {
-		r.RoomMu.RUnlock()
+		r.RoomMu.Unlock()
 		return 0, comm.NewMyError("房间已满")
 	}
-	r.RoomMu.RUnlock()
 
 	p.Mu.Lock()
 	p.SeatNum = emptySeat
 	p.IsOb = bIsObState
 	p.Mu.Unlock()
 
-	r.RoomMu.Lock()
 	r.Players[emptySeat] = p
 	r.RoomMu.Unlock()
 

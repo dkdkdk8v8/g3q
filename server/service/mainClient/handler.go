@@ -349,7 +349,11 @@ func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) 
 			}
 			staUser, err := modelAdmin.GetStaUser(userId, userRecoed.CreateAt)
 			if err != nil {
-				return nil, err
+				if !ormutil.IsNoRow(err) {
+					return nil, err
+				} else {
+					staUser = &modelAdmin.ModelStaUser{}
+				}
 			}
 			currentSummy.TotalBet = staUser.BetAmount
 			currentSummy.TotalWinBalance = staUser.BetWin

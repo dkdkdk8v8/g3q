@@ -13,7 +13,7 @@ const PROB_LEAVE_5_PLAYERS = 0.7    // 5人时退出概率
 const PROB_LEAVE_4_PLAYERS = 0.5    // 4人时退出概率
 const PROB_LEAVE_3_PLAYERS = 0.2    // 3人时退出概率
 const PROB_LEAVE_2_PLAYERS = 0.0    // 2人时退出概率
-const MIN_ROBOT_ROOMS = 3           // 纯机器人房间最少保持数量
+const MIN_ROBOT_ROOMS = 0           // 纯机器人房间最少保持数量
 const ROBOT_BALANCE_MULT_MIN = 10.0 // 机器人进入房间携带金额最小倍数
 const ROBOT_BALANCE_MULT_MAX = 30.0 // 机器人进入房间携带金额最大倍数
 

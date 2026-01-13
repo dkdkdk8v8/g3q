@@ -1,8 +1,10 @@
 export const levelMap: Record<string, string> = {
-    "1": "初级场",
-    "2": "中级场",
-    "3": "高级场",
-    "4": "豪华场",
+    "1": "体验场",
+    "2": "初级场",
+    "3": "中级场",
+    "4": "高级场",
+    "5": "大师场",
+    "6": "巅峰场",
 };
 
 export const typeMap: Record<string, string> = {

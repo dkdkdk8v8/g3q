@@ -105,19 +105,18 @@ export const useGameStore = defineStore('game', () => {
         if (list.length > 0) {
             // Process list items
             const processedList = list
-                .filter(item => item && item.Type === 1) // Only process Type 1 items
                 .map(item => {
-                // If it's a record item (Type 1), parse the GameData JSON
-                if (item.GameData && typeof item.GameData === 'string') { // Type 1 already filtered
-                    try {
-                        item.GameDataObj = JSON.parse(item.GameData);
-                    } catch (e) {
-                        console.error('Failed to parse GameData JSON:', e);
-                        item.GameDataObj = {};
+                    // If it's a record item (Type 1), parse the GameData JSON
+                    if (item && item.Type === 1 && item.GameData && typeof item.GameData === 'string') {
+                        try {
+                            item.GameDataObj = JSON.parse(item.GameData);
+                        } catch (e) {
+                            console.error('Failed to parse GameData JSON:', e);
+                            item.GameDataObj = {};
+                        }
                     }
-                }
-                return item;
-            });
+                    return item;
+                });
             
             history.value.push(...processedList);
         }

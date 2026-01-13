@@ -6,17 +6,21 @@ import (
 	"compoment/logrotate"
 	"compoment/util"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 func InitLog(isTerminal bool, serverName string, disableFilePos bool, rotateType string, level string, dbLog, sysLog bool) (io.Writer, error) {
 	txtFmt := &formater.TextFormatter{TimestampFormat: "2006-01-02T15:04:05.000", DisableFilePos: disableFilePos}
+	if isTerminal {
+		txtFmt.ForceColors = true
+	}
 	logrus.SetFormatter(txtFmt)
 	var logfile io.Writer
 	if !isTerminal {

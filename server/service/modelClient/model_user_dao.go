@@ -31,6 +31,9 @@ func GetOrCreateUser(appId string, appUserId string) (*ModelUser, error) {
 		AppUserId: appUserId,
 		Enable:    true,
 		Balance:   200000, // 默认2000元 用于测试
+		Talk:      false,
+		Effect:    true,
+		Music:     true,
 	}
 
 	_, err = WrapInsert(&user)

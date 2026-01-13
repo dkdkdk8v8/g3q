@@ -343,14 +343,14 @@ func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) 
 	// 更新LastId，防止死循环
 	req.LastId = records[len(records)-1].Id
 
-	for _, userRecoed := range records {
-		if lastTime.IsZero() || !util.IsSameDay(lastTime, userRecoed.CreateAt) {
+	for _, userRecord := range records {
+		if lastTime.IsZero() || !util.IsSameDay(lastTime, userRecord.CreateAt) {
 			currentSummy = &recordSummery{
 				Type: 0,
-				Date: userRecoed.CreateAt.Format("01月02") + "周" +
-					GetChineseWeekName(int(userRecoed.CreateAt.Weekday())),
+				Date: userRecord.CreateAt.Format("01月02") + "周" +
+					GetChineseWeekName(int(userRecord.CreateAt.Weekday())),
 			}
-			staUser, err := modelAdmin.GetStaUser(userId, userRecoed.CreateAt)
+			staUser, err := modelAdmin.GetStaUser(userId, util.AddDateWithoutLock(userRecord.CreateAt, 0, 0, 0))
 			if err != nil {
 				if !ormutil.IsNoRow(err) {
 					return nil, err
@@ -362,20 +362,21 @@ func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) 
 			currentSummy.TotalWinBalance = staUser.BetWin
 			rsp.List = append(rsp.List, currentSummy)
 		}
-		lastTime = userRecoed.CreateAt
+		lastTime = userRecord.CreateAt
 
 		nRecord := &recordItem{
 			Type:          1,
-			BalanceBefore: userRecoed.BalanceBefore,
-			BalanceAfter:  userRecoed.BalanceAfter,
-			GameName:      userRecoed.GameName,
-			CreateAt:      userRecoed.CreateAt}
+			BalanceBefore: userRecord.BalanceBefore,
+			BalanceAfter:  userRecord.BalanceAfter,
+			GameName:      userRecord.GameName,
+			GameData:      userRecord.GameData,
+			CreateAt:      userRecord.CreateAt}
 
 		rsp.List = append(rsp.List, nRecord)
 		//客户端透传数据，方便下次请求的时候直接准确算偏移量
-		rsp.LastId = userRecoed.Id
+		rsp.LastId = userRecord.Id
 		//客户端透传数据，方便下次请求的时候直接判断是否跨天
-		rsp.LastTimestamp = userRecoed.CreateAt.Unix()
+		rsp.LastTimestamp = userRecord.CreateAt.Unix()
 		if len(rsp.List) >= req.Limit {
 			return &rsp, nil
 		}

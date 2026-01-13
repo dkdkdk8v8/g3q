@@ -395,7 +395,6 @@ watch(() => props.visible, (val) => {
 .history-list-new {
     flex: 1;
     overflow-y: auto;
-    padding: 16px;
     background: #1e293b;
 }
 
@@ -412,6 +411,10 @@ watch(() => props.visible, (val) => {
     border-radius: 8px 8px 0 0;
     font-size: 12px;
     color: #cbd5e1;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .gh-date {

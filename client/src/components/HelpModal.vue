@@ -1,4 +1,6 @@
 <script setup>
+import menuHelpImg from '@/assets/common/menu_help.png';
+
 const props = defineProps({
     visible: Boolean,
     mode: {
@@ -19,8 +21,13 @@ const close = () => {
     <div v-if="visible" class="modal-overlay" style="z-index: 8000;">
         <div class="modal-content help-modal">
             <div class="modal-header">
-                <h3>游戏帮助</h3>
-                <div class="close-icon" @click="close">×</div>
+                <div class="modal-header-left-spacer"></div>
+
+                <img :src="menuHelpImg" alt="游戏帮助" class="modal-title-img" />
+
+                <div class="modal-header-right">
+                    <div class="close-icon" @click="close">×</div>
+                </div>
             </div>
             <div class="help-content">
                 <!-- 这个是不看牌抢庄牛牛的基本规则 -->
@@ -132,7 +139,7 @@ const close = () => {
     width: 85%;
     max-width: 400px;
     max-height: 70vh;
-    background: #1e293b;
+    background: #1e293bdd;
     border-radius: 16px;
     display: flex;
     flex-direction: column;
@@ -145,13 +152,38 @@ const close = () => {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     justify-content: space-between;
+    /* To push title image to center and close button to right */
     align-items: center;
     color: white;
 }
 
-.modal-header h3 {
-    margin: 0;
-    font-size: 18px;
+/* New styles for the modal header title image and layout */
+.modal-header-left-spacer,
+.modal-header-right {
+    flex: 1;
+    /* Take up available space to push title image to center */
+    display: flex;
+    align-items: center;
+}
+
+.modal-header-left-spacer {
+    /* For alignment, can be empty or used for other left-aligned elements */
+}
+
+.modal-header-right {
+    justify-content: flex-end;
+    /* Push content to the right */
+    gap: 10px;
+    /* Space between close button and potential other elements */
+}
+
+.modal-title-img {
+    width: 70%;
+    /* 50% of the modal's width */
+    height: auto;
+    object-fit: contain;
+    flex-shrink: 0;
+    /* Prevent image from shrinking */
 }
 
 .close-icon {

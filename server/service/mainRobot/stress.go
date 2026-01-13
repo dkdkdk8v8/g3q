@@ -2,6 +2,7 @@ package mainRobot
 
 import (
 	"encoding/json"
+	"math/rand"
 	"net/url"
 	"service/comm"
 	"service/mainClient/game"
@@ -21,7 +22,7 @@ var (
 )
 
 func StartStress() {
-	logrus.Info("压力测试：开始监控并自动加入模拟真实用户")
+	logrus.Info("压测：开始监控并自动加入模拟真实用户")
 	go func() {
 		ticker := time.NewTicker(5 * time.Second)
 		defer ticker.Stop()
@@ -29,7 +30,7 @@ func StartStress() {
 		for range ticker.C {
 			users, err := modelClient.GetUserRobots()
 			if err != nil {
-				logrus.Errorf("压力测试：获取用户列表失败: %v", err)
+				logrus.Errorf("压测：获取用户列表失败: %v", err)
 				continue
 			}
 
@@ -67,7 +68,7 @@ func runStressUser(user *modelClient.ModelUser) {
 
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
-		logrus.Errorf("压力测试用户 %s: 连接服务器失败: %v", user.UserId, err)
+		logrus.Errorf("压测用户 %s: 连接服务器失败: %v", user.UserId, err)
 		return
 	}
 	defer conn.Close()
@@ -99,19 +100,18 @@ func runStressUser(user *modelClient.ModelUser) {
 		}
 
 		if msg.Code != 0 {
-			logrus.Errorf("压力测试用户 %s 收到错误: %d %s", user.UserId, msg.Code, msg.Msg)
+			logrus.Errorf("压测用户 %s 收到错误: %d %s", user.UserId, msg.Code, msg.Msg)
 			return
 		}
 
-		// 模拟 manager.go 中的逻辑：进入大厅后发送加入房间请求
 		if msg.Cmd == comm.ServerPush && msg.PushType == znet.PushRouter {
 			var d struct {
 				Router znet.RouterType `json:"Router"`
 			}
 			if err := json.Unmarshal(msg.Data, &d); err == nil && d.Router == znet.Lobby {
 				joinReq := map[string]interface{}{
-					"Level":               ALLOWED_LEVELS[0],
-					"BankerType":          ALLOWED_BANKER_TYPES[0],
+					"Level":               ALLOWED_LEVELS[rand.Intn(len(ALLOWED_LEVELS))],
+					"BankerType":          ALLOWED_BANKER_TYPES[rand.Intn(len(ALLOWED_BANKER_TYPES))],
 					"IsBotFakeRealPlayer": true,
 				}
 				reqData, _ := json.Marshal(joinReq)
@@ -120,10 +120,10 @@ func runStressUser(user *modelClient.ModelUser) {
 					Data: reqData,
 				}
 				if err := conn.WriteJSON(req); err != nil {
-					logrus.Errorf("压力测试用户 %s 发送加入房间请求失败: %v", user.UserId, err)
+					logrus.Errorf("压测用户 %s 发送加入房间请求失败: %v", user.UserId, err)
 					return
 				}
-				logrus.Infof("压力测试用户 %s 已成功发送加入房间请求", user.UserId)
+				logrus.Infof("压测用户 %s 已成功发送加入房间请求", user.UserId)
 			}
 		}
 	}

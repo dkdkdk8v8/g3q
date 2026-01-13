@@ -134,8 +134,15 @@ const historyGrouped = computed(() => {
 
             // Room Name Construction
             let roomName = '抢庄牛牛';
-            if (roomData.Config && roomData.Config.Name) {
-                roomName += ` | ${roomData.Config.Name}`;
+            if (roomData.Config) {
+                const bt = roomData.Config.BankerType;
+                if (bt === 0) roomName = '不看牌';
+                else if (bt === 1) roomName = '看三张';
+                else if (bt === 2) roomName = '看四张';
+
+                if (roomData.Config.Name) {
+                    roomName += ` | ${roomData.Config.Name}`;
+                }
             }
 
             currentGroup.items.push({

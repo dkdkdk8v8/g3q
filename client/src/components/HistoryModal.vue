@@ -242,7 +242,7 @@ watch(() => props.visible, (val) => {
                             <div class="hc-bet-amt">
                                 投注: <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{
                                     formatCoins(item.bet)
-                                    }}</span>
+                                }}</span>
                             </div>
                         </div>
                     </div>
@@ -298,10 +298,22 @@ watch(() => props.visible, (val) => {
     padding: 16px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
-    justify-content: space-between;
-    /* To push title image to center and close button to right */
-    align-items: center;
+    flex-direction: column;
+    gap: 10px;
     color: white;
+}
+
+.modal-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.modal-header-bottom {
+    display: flex;
+    justify-content: flex-start;
+    width: 100%;
 }
 
 /* New styles for the modal header title image and layout */
@@ -320,14 +332,13 @@ watch(() => props.visible, (val) => {
 .modal-header-right {
     justify-content: flex-end;
     /* Push content to the right */
-    gap: 10px;
-    /* Space between filter chip and close button */
 }
 
 .modal-title-img {
-    width: 70%;
-    /* 50% of the modal's width */
-    height: auto;
+    width: auto;
+    height: 33px;
+    /* Adjust width to fit nicely */
+
     object-fit: contain;
     flex-shrink: 0;
     /* Prevent image from shrinking */

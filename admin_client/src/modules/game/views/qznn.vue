@@ -24,13 +24,21 @@
           :type="filterLevel === name ? 'primary' : ''" @click="filterLevel = String(name)">{{ name }} {{ count
           }}</el-button>
       </div>
-      <div class="divider"></div>
       <div class="group">
         <span class="label">类型:</span>
         <el-button size="small" round :type="filterType === '' ? 'primary' : ''" @click="filterType = ''">全部</el-button>
         <el-button v-for="(count, name) in statsData.types" :key="name" size="small" round
           :type="filterType === name ? 'primary' : ''" @click="filterType = String(name)">{{ name }} {{ count
           }}</el-button>
+      </div>
+      <div class="group">
+        <span class="label">用户:</span>
+        <el-button size="small" round :type="filterUserType === '' ? 'primary' : ''"
+          @click="filterUserType = ''">全部</el-button>
+        <el-button size="small" round :type="filterUserType === 'real' ? 'primary' : ''"
+          @click="filterUserType = 'real'">真实用户房间 {{ statsData.userTypes.real }}</el-button>
+        <el-button size="small" round :type="filterUserType === 'robot' ? 'primary' : ''"
+          @click="filterUserType = 'robot'">机器人房间 {{ statsData.userTypes.robot }}</el-button>
       </div>
     </div>
 
@@ -113,10 +121,10 @@
                           <div class="player-balance-change">
                             <span v-if="player.BalanceChange > 0" class="positive">+{{ (player.BalanceChange /
                               100).toFixed(2)
-                              }}</span>
+                            }}</span>
                             <span v-else-if="player.BalanceChange < 0" class="negative">{{ (player.BalanceChange /
                               100).toFixed(2)
-                              }}</span>
+                            }}</span>
                             <span v-else class="zero">0</span>
                           </div>
                         </div>
@@ -159,16 +167,27 @@ const list = ref<any>({});
 const errorMessage = ref("");
 const filterLevel = ref("");
 const filterType = ref("");
+const filterUserType = ref("");
 
 const filteredList = computed<any[]>(() => {
   const all = Object.values(list.value);
-  if (!filterLevel.value && !filterType.value) return all;
 
   return all.filter((item: any) => {
     const info = getRoomInfo(item.ID);
     const matchLevel = filterLevel.value ? info.level === filterLevel.value : true;
     const matchType = filterType.value ? info.type === filterType.value : true;
-    return matchLevel && matchType;
+
+    let matchUserType = true;
+    if (filterUserType.value) {
+      const players = (item.Players || []).filter((p: any) => p);
+      const isRobotRoom = players.length > 0 && players.every((p: any) => p.IsRobot);
+      if (filterUserType.value === 'robot') {
+        matchUserType = isRobotRoom;
+      } else if (filterUserType.value === 'real') {
+        matchUserType = !isRobotRoom;
+      }
+    }
+    return matchLevel && matchType && matchUserType;
   });
 });
 
@@ -279,6 +298,7 @@ const playerStats = computed(() => {
 const statsData = computed(() => {
   const levels: Record<string, number> = {};
   const types: Record<string, number> = {};
+  const userTypes: Record<string, number> = { real: 0, robot: 0 };
 
   Object.values(levelMap).forEach((v) => (levels[v] = 0));
   Object.values(typeMap).forEach((v) => (types[v] = 0));
@@ -287,9 +307,17 @@ const statsData = computed(() => {
     const info = getRoomInfo(room.ID);
     if (levels[info.level] !== undefined) levels[info.level]++;
     if (types[info.type] !== undefined) types[info.type]++;
+
+    const players = (room.Players || []).filter((p: any) => p);
+    const isRobotRoom = players.length > 0 && players.every((p: any) => p.IsRobot);
+    if (isRobotRoom) {
+      userTypes.robot++;
+    } else {
+      userTypes.real++;
+    }
   });
 
-  return { levels, types };
+  return { levels, types, userTypes };
 });
 
 const copyGameID = (id: any) => {
@@ -303,7 +331,7 @@ const loadMore = () => {
 };
 
 // 当筛选条件变化时，重置显示数量，避免数据错乱或停留在底部
-watch([filterLevel, filterType], () => {
+watch([filterLevel, filterType, filterUserType], () => {
   displayedRoomsCount.value = 20;
 });
 
@@ -386,29 +414,21 @@ onUnmounted(() => {
     padding: 10px 15px;
     border-radius: 4px;
     display: flex;
-    align-items: center;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: flex-start;
     font-size: 13px;
     color: var(--el-text-color-regular);
 
     .group {
       display: flex;
       align-items: center;
-      margin-right: 20px;
-      margin-bottom: 5px;
+      margin-bottom: 10px;
       gap: 5px;
 
       .label {
         font-weight: bold;
         margin-right: 10px;
       }
-    }
-
-    .divider {
-      width: 1px;
-      height: 16px;
-      background-color: var(--el-border-color);
-      margin-right: 20px;
     }
   }
 

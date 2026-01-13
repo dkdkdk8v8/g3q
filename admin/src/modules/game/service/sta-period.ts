@@ -179,7 +179,7 @@ export class StaPeriodService extends BaseService {
         return false;
     }
 
-    async getUserStats(startDate: string, endDate: string, app: string, sort: string, order: string, userType?: string) {
+    async getUserStats(startDate: string, endDate: string, app: string, sort: string, order: string, userType?: string, userId?: string) {
         const start = moment(startDate).startOf('day').toDate();
         const end = moment(endDate).endOf('day').toDate();
 
@@ -188,6 +188,10 @@ export class StaPeriodService extends BaseService {
         };
         if (app) {
             where.appId = app;
+        }
+
+        if (userId) {
+            where.userId = userId;
         }
 
         const list = await this.staUserEntity.find({
@@ -371,6 +375,19 @@ export class StaPeriodService extends BaseService {
             }
         }
 
+        const accumulate = (arr: any[], limitIndex?: number) => {
+            let accGameUserCount = 0;
+            let accFirstGameUserCount = 0;
+            const max = limitIndex ?? arr.length - 1;
+            for (let i = 0; i <= max; i++) {
+                const item = arr[i];
+                accGameUserCount += (item.gameUserCount || 0);
+                accFirstGameUserCount += (item.firstGameUserCount || 0);
+                item.gameUserCount = accGameUserCount;
+                item.firstGameUserCount = accFirstGameUserCount;
+            }
+        };
+
         // 处理当日数据：当前时间之前的数据若为null置为0，之后保留null
         if (targetDate.isSame(moment(), 'day')) {
             const now = moment();
@@ -378,8 +395,6 @@ export class StaPeriodService extends BaseService {
 
             dataMap.current.forEach((item, index) => {
                 if (index <= currentSlot) {
-                    item.gameUserCount = item.gameUserCount ?? 0;
-                    item.firstGameUserCount = item.firstGameUserCount ?? 0;
                     item.betCount = item.betCount ?? 0;
                     item.betAmount = item.betAmount ?? 0;
                     item.gameWin = item.gameWin ?? 0;
@@ -391,7 +406,13 @@ export class StaPeriodService extends BaseService {
                     item.gameWin = null;
                 }
             });
+            accumulate(dataMap.current, currentSlot);
+        } else {
+            accumulate(dataMap.current);
         }
+
+        accumulate(dataMap.yesterday);
+        accumulate(dataMap.lastWeek);
 
         result.current = dataMap.current;
         result.yesterday = dataMap.yesterday;

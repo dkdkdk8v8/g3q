@@ -186,11 +186,15 @@ watch(() => props.visible, (val) => {
     <div v-if="visible" class="modal-overlay" style="z-index: 8000;">
         <div class="modal-content history-modal">
             <div class="modal-header">
-                <div class="modal-header-left-spacer"></div>
+                <div class="modal-header-top">
+                    <div class="modal-header-left-spacer"></div>
+                    <img :src="menuBetHistoryImg" alt="投注记录" class="modal-title-img" />
+                    <div class="modal-header-right">
+                        <div class="close-icon" @click="close">×</div>
+                    </div>
+                </div>
 
-                <img :src="menuBetHistoryImg" alt="投注记录" class="modal-title-img" />
-
-                <div class="modal-header-right">
+                <div class="modal-header-bottom">
                     <div class="filter-chip" @click.stop="toggleFilterMenu">
                         {{ filterLabel }} <span class="down-triangle" :class="{ 'rotate-180': showFilterMenu }">▼</span>
 
@@ -202,7 +206,6 @@ watch(() => props.visible, (val) => {
                                 @click="selectFilter('custom')">自定义</div>
                         </div>
                     </div>
-                    <div class="close-icon" @click="close">×</div>
                 </div>
             </div>
 
@@ -211,7 +214,7 @@ watch(() => props.visible, (val) => {
 
                 <div v-for="group in historyGrouped" :key="group.dateStr" class="history-group">
                     <div class="group-header">
-                        <div class="gh-date">{{ group.dateStr }} <span class="down-triangle">▼</span></div>
+                        <div class="gh-date">{{ group.dateStr }} </div>
                         <div class="gh-totals">
                             投注 <span class="coin-amount-text">{{
                                 formatCoins(group.totalBet) }}</span> &nbsp;
@@ -425,18 +428,14 @@ watch(() => props.visible, (val) => {
 
 .history-card {
     border-radius: 10px;
-    margin: 5px 10px;
+    margin: 8px 10px;
     background: rgba(38, 43, 58, 1);
-    border: 1px solid #334155;
     border-top: none;
     padding: 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-}
-
-.history-card:last-child {
-    border-radius: 0 0 8px 8px;
+    box-shadow: 0px 1px 0px #222222;
 }
 
 .hc-content {

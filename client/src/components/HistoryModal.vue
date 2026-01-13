@@ -186,11 +186,15 @@ watch(() => props.visible, (val) => {
     <div v-if="visible" class="modal-overlay" style="z-index: 8000;">
         <div class="modal-content history-modal">
             <div class="modal-header">
-                <div class="modal-header-left-spacer"></div>
+                <div class="modal-header-top">
+                    <div class="modal-header-left-spacer"></div>
+                    <img :src="menuBetHistoryImg" alt="投注记录" class="modal-title-img" />
+                    <div class="modal-header-right">
+                        <div class="close-icon" @click="close">×</div>
+                    </div>
+                </div>
 
-                <img :src="menuBetHistoryImg" alt="投注记录" class="modal-title-img" />
-
-                <div class="modal-header-right">
+                <div class="modal-header-bottom">
                     <div class="filter-chip" @click.stop="toggleFilterMenu">
                         {{ filterLabel }} <span class="down-triangle" :class="{ 'rotate-180': showFilterMenu }">▼</span>
 
@@ -202,7 +206,6 @@ watch(() => props.visible, (val) => {
                                 @click="selectFilter('custom')">自定义</div>
                         </div>
                     </div>
-                    <div class="close-icon" @click="close">×</div>
                 </div>
             </div>
 
@@ -211,7 +214,7 @@ watch(() => props.visible, (val) => {
 
                 <div v-for="group in historyGrouped" :key="group.dateStr" class="history-group">
                     <div class="group-header">
-                        <div class="gh-date">{{ group.dateStr }} <span class="down-triangle">▼</span></div>
+                        <div class="gh-date">{{ group.dateStr }} </div>
                         <div class="gh-totals">
                             投注 <span class="coin-amount-text">{{
                                 formatCoins(group.totalBet) }}</span> &nbsp;
@@ -239,7 +242,7 @@ watch(() => props.visible, (val) => {
                             <div class="hc-bet-amt">
                                 投注: <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{
                                     formatCoins(item.bet)
-                                    }}</span>
+                                }}</span>
                             </div>
                         </div>
                     </div>
@@ -283,7 +286,7 @@ watch(() => props.visible, (val) => {
     width: 85%;
     max-width: 400px;
     max-height: 70vh;
-    background: #1e293bdd;
+    background: rgba(32, 35, 45, 1);
     border-radius: 16px;
     display: flex;
     flex-direction: column;
@@ -295,10 +298,22 @@ watch(() => props.visible, (val) => {
     padding: 16px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
-    justify-content: space-between;
-    /* To push title image to center and close button to right */
-    align-items: center;
+    flex-direction: column;
+    gap: 10px;
     color: white;
+}
+
+.modal-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.modal-header-bottom {
+    display: flex;
+    justify-content: flex-start;
+    width: 100%;
 }
 
 /* New styles for the modal header title image and layout */
@@ -317,14 +332,13 @@ watch(() => props.visible, (val) => {
 .modal-header-right {
     justify-content: flex-end;
     /* Push content to the right */
-    gap: 10px;
-    /* Space between filter chip and close button */
 }
 
 .modal-title-img {
-    width: 70%;
-    /* 50% of the modal's width */
-    height: auto;
+    width: auto;
+    height: 33px;
+    /* Adjust width to fit nicely */
+
     object-fit: contain;
     flex-shrink: 0;
     /* Prevent image from shrinking */
@@ -395,19 +409,14 @@ watch(() => props.visible, (val) => {
 .history-list-new {
     flex: 1;
     overflow-y: auto;
-    background: #1e293b;
-}
-
-.history-group {
-    margin-bottom: 16px;
 }
 
 .group-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #334155;
-    padding: 8px 12px;
+    background: rgba(32, 35, 45, 1);
+    padding: 10px 15px;
     border-radius: 8px 8px 0 0;
     font-size: 12px;
     color: #cbd5e1;
@@ -429,17 +438,15 @@ watch(() => props.visible, (val) => {
 }
 
 .history-card {
-    background: #0f172a;
-    border: 1px solid #334155;
+    border-radius: 10px;
+    margin: 8px 10px;
+    background: rgba(38, 43, 58, 1);
     border-top: none;
     padding: 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-}
-
-.history-card:last-child {
-    border-radius: 0 0 8px 8px;
+    box-shadow: 0px 1px 0px #222222;
 }
 
 .hc-content {
@@ -467,6 +474,11 @@ watch(() => props.visible, (val) => {
     border-radius: 4px;
 }
 
+.hc-time {
+    font-size: 11px;
+    color: #94a3b8;
+}
+
 .hc-bottom-row {
     font-size: 11px;
     color: #64748b;
@@ -485,11 +497,11 @@ watch(() => props.visible, (val) => {
 }
 
 .hc-score.win {
-    color: #ef4444;
+    color: #22c55e;
 }
 
 .hc-score.lose {
-    color: #22c55e;
+    color: #ef4444;
 }
 
 .hc-bet-amt {

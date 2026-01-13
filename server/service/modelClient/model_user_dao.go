@@ -262,3 +262,16 @@ func GetUserGameRecordsJoinGameRecord(userId string, limit int, id uint64, start
 	return records, nil
 
 }
+
+func GetUserGameRecords(userId string, limit int) ([]*ModelUserRecord, error) {
+	var records []*ModelUserRecord
+	ormDb := GetReadOrm()
+	sql := `SELECT g3q_user_record.balance_before,g3q_user_record.balance_after FROM g3q_user_record
+	WHERE user_id = ? AND record_type = ? ORDER BY g3q_user_record.id DESC LIMIT ?`
+
+	_, err := ormDb.Raw(sql, userId, RecordTypeGame, limit).QueryRows(&records)
+	if err != nil {
+		return nil, err
+	}
+	return records, nil
+}

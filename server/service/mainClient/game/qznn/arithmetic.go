@@ -155,3 +155,7 @@ func (a *ArithmeticManager) GetCardsByScore(score int) []int {
 
 	return pool[rand.Intn(len(pool))]
 }
+
+
+
+

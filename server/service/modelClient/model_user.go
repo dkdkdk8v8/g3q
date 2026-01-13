@@ -36,6 +36,7 @@ type ModelUser struct {
 	TotalGameCount  uint64    `orm:"column(total_game_count);default(0)"`                // 总游戏次数
 	TotalBet        uint64    `orm:"column(total_bet);default(0)"`                       // 总投注金额
 	TotalNetBalance int64     `orm:"column(total_net_balance);default(0)"`               // 总输赢金额
+	BaseLucky       int16     `orm:"column(base_lucy);default(0)"`                       // 幸运分
 	CreateAt        time.Time `orm:"column(create_at);type(datetime);auto_now_add"`      // 创建时间
 	UpdateAt        time.Time `orm:"column(update_at);type(datetime);auto_now" json:"-"` // 更新时间
 }

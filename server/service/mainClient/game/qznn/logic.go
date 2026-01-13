@@ -309,7 +309,19 @@ func (r *QZNNRoom) AddPlayer(p *Player) (int, error) {
 			return seatNum, nil
 		}
 	}
-	if !p.IsRobot {
+	if p.IsRobot {
+		// 机器人不能5个在一个房间
+		botCount := 0
+		for _, existingPlayer := range r.Players {
+			if existingPlayer != nil && existingPlayer.IsRobot {
+				botCount++
+				if botCount >= 4 {
+					r.RoomMu.Unlock()
+					return 0, comm.ErrMaxRobotInRoom
+				}
+			}
+		}
+	} else {
 		// 检查是否已经有真人用户了
 		for _, existingPlayer := range r.Players {
 			if existingPlayer != nil && !existingPlayer.IsRobot {
@@ -590,22 +602,49 @@ func (r *QZNNRoom) tickWaiting() {
 	leaveIds, _ := r.kickOffByWsDisconnect()
 	//reset ob data
 	r.ResetOb()
-	//check balance >= min balance
+
 	players := r.GetPlayers()
 	for _, p := range players {
 		if p == nil {
 			continue
 		}
+		//check balance_lock and game_id
+		modelUser, err := modelClient.GetUserByUserId(p.ID)
+		if err != nil {
+			logrus.WithField("!", nil).WithField("userId", p.ID).WithError(err).Error("GetUserByUserId-Fail")
+			return
+		}
+		bKiffOffPlayer := false
+		kiffOffMsg := ""
+		if modelUser.GameId != "" {
+			logrus.WithField("userId", p.ID).WithField("gameId", modelUser.GameId).WithField(
+				"balance", modelUser.Balance).WithField("balance_lock", modelUser.BalanceLock).Error("userGameIdInvalid")
+			bKiffOffPlayer = true
+			kiffOffMsg = "还有未计算游戏,稍等重新进房"
+		}
+
+		if modelUser.Balance != p.Balance {
+			logrus.WithField("userId", p.ID).WithField(
+				"balance", modelUser.Balance).WithField("balance_lock", modelUser.BalanceLock).Error("userBalanceInvalid")
+			bKiffOffPlayer = true
+			kiffOffMsg = "正在计算钱包,稍等重新进房"
+		}
+
 		if p.Balance < r.Config.MinBalance {
-			if r.Leave(p.ID) {
-				leaveIds = append(leaveIds, p.ID)
-				r.PushPlayer(p, comm.PushData{
-					Cmd:      comm.ServerPush,
-					PushType: znet.PushRouter,
-					Data: znet.PushRouterStruct{
-						Router:  znet.Lobby,
-						Message: "余额不足,离开房间"}})
-			}
+			logrus.WithField("userId", p.ID).WithField(
+				"balance", modelUser.Balance).WithField("balance_lock", modelUser.BalanceLock).Info("userBalanceNotEnough")
+			bKiffOffPlayer = true
+			kiffOffMsg = "余额不足,离开房间"
+		}
+
+		if bKiffOffPlayer && r.Leave(p.ID) {
+			leaveIds = append(leaveIds, p.ID)
+			r.PushPlayer(p, comm.PushData{
+				Cmd:      comm.ServerPush,
+				PushType: znet.PushRouter,
+				Data: znet.PushRouterStruct{
+					Router:  znet.Lobby,
+					Message: kiffOffMsg}})
 		}
 	}
 	if len(leaveIds) > 0 {

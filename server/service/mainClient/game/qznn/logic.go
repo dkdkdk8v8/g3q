@@ -90,10 +90,13 @@ func (r *QZNNRoom) SetStatus(oldStates []RoomState, newState RoomState, stateLef
 		return false
 	}
 	if !slices.Contains(oldStates, r.State) {
+		logRState := r.State
 		r.RoomMu.Unlock()
 		logrus.WithFields(logrus.Fields{
-			"roomId": r.ID,
-			"state":  newState,
+			"roomId":    r.ID,
+			"oldStates": oldStates,
+			"state":     newState,
+			"rState":    logRState,
 		}).Error("QZNNStatuIgnored")
 		return false
 	}
@@ -957,6 +960,8 @@ func (r *QZNNRoom) StartGame() {
 	}
 	if bankerPlayer == nil {
 		logrus.WithField("gameId", r.GameID).WithField("bankerId", r.BankerID).Error("QZNNRoom-BankerInvalid")
+		// 异常情况强制进入结算状态，避免房间卡死
+		r.SetStatus([]RoomState{StateShowCard}, StateSettling, 0)
 		return
 	}
 	bankerMult := int64(bankerPlayer.CallMult)
@@ -1038,29 +1043,33 @@ func (r *QZNNRoom) StartGame() {
 
 	//计算庄家输给闲家
 	bankerLoss2player := int64(0)
-	playerCanWinByBalance := int64(0)
 	for _, rec := range playerWins {
 		for _, p := range activePlayer {
 			if p.ID == rec.PlayerID {
 				bankerLoss2player += rec.Amount
-				playerCanWinByBalance += p.Balance
 				break
 			}
 		}
 	}
-	// 先查赢的闲家的本金 最多能赢多少庄家的
-	if bankerLoss2player > playerCanWinByBalance {
-		bankerLoss2player = playerCanWinByBalance
-	}
 	//bankerPlayer.BalanceChange 当前赢的闲家的
-	if bankerLoss2player > (bankerPlayer.Balance + bankerPlayer.BalanceChange) {
+	bankerTotalFunds := bankerPlayer.Balance + bankerPlayer.BalanceChange
+	if bankerLoss2player > bankerTotalFunds {
 		//闲赢的钱大于庄家本金加刚赢的闲家的钱，不够赔
-		for _, rec := range playerWins {
+		totalDistributed := int64(0)
+		for i, rec := range playerWins {
 			for _, p := range activePlayer {
 				if p.ID == rec.PlayerID {
 					//已经限制 赢的闲的本金
-					realWin := int64(math.Round(float64(rec.Amount) * float64(bankerPlayer.Balance+bankerPlayer.BalanceChange) / float64(bankerLoss2player)))
+					var realWin int64
+					if i == len(playerWins)-1 {
+						//资金泄漏风险（浮点数精度问题）：在庄家爆庄（不够赔）进行按比例分配时，使用 math.Round 分别计算每个人的赢钱数，累加后可能不等于庄家可赔付的总金额（可能多出或少于1分钱），导致系统资金账目不平。
+						//在按比例分配时，最后一名玩家应直接获得剩余的全部金额，以确保总账平齐。
+						realWin = bankerTotalFunds - totalDistributed
+					} else {
+						realWin = int64(math.Round(float64(rec.Amount) * float64(bankerTotalFunds) / float64(bankerLoss2player)))
+					}
 					p.BalanceChange += realWin
+					totalDistributed += realWin
 					break
 				}
 			}

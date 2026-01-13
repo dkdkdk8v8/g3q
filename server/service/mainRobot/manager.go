@@ -22,7 +22,7 @@ import (
 
 var targetHost = HOST_PROD
 
-func Start() {
+func StartRobot() {
 	if initMain.DefCtx.IsTerm {
 		targetHost = HOST_DEV
 	}
@@ -64,7 +64,7 @@ type RobotAction struct {
 func managerLoop() {
 	for {
 		managerRound()
-		time.Sleep(time.Second * 3)
+		time.Sleep(time.Second * 10)
 	}
 }
 
@@ -82,8 +82,8 @@ func managerRound() {
 		return
 	}
 
-	// 3. 获取闲置机器人 (固定100个)
-	robots := fetchIdleRobots(100)
+	// 3. 获取闲置机器人 (固定500个)
+	robots := fetchIdleRobots(500)
 	if len(robots) == 0 {
 		return
 	}

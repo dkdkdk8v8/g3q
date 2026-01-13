@@ -76,7 +76,6 @@ func WSEntry(c *gin.Context) {
 
 	appUserId := c.Query("uid")
 	appId := c.Query("app")
-
 	// 如果中间件未提取到 UserID (WebSocket 握手通常通过 URL Query 传递 Token)
 	// todo 客户端以后加token验证逻辑后，再开启注释
 	// if userId == "" {
@@ -198,7 +197,8 @@ func logWSCloseErr(userId string, err error) {
 	}
 }
 
-func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, userId string, msg *comm.Request) {
+func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, userId string,
+	msg *comm.Request) {
 
 	if msg.Cmd == game.CmdPingPong {
 		atomic.AddInt64(&pingCount, 1)

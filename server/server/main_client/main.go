@@ -1,6 +1,7 @@
 package main
 
 import (
+	"compoment/alert"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -72,6 +73,7 @@ func main() {
 			viper.AddConfigPath(vipDefaultCfgDir + "/cfg")
 			viper.SetConfigType("yaml")
 			initMain.InitAlert()
+			alert.IsDisable = debug
 
 			daemonRunner := initMain.DaemonRunner{Ctx: initMain.BaseCtx{ProcessName: processName, IgnorePid: debug, IsTerm: term,
 				VipDefaultCfgDir: vipDefaultCfgDir, IsDebug: debug, IsTest: test}}

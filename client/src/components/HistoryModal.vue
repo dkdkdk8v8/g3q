@@ -53,8 +53,8 @@ const roomLevelImages = {
     '初级场': roomChuji,
     '高级场': roomGaoji,
     '体验场': roomTiyan,
-    '大师级': roomDashi,
-    '中级': roomZhongji,
+    '大师场': roomDashi,
+    '中级场': roomZhongji,
     '中级场': roomZhongji,
     '巅峰场': roomDianfeng
 };
@@ -326,7 +326,7 @@ watch(() => props.visible, (val) => {
                             <div class="hc-bet-amt">
                                 投注: <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{
                                     formatCoins(item.bet)
-                                    }}</span>
+                                }}</span>
                             </div>
                         </div>
                     </div>

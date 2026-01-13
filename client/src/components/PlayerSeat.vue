@@ -451,8 +451,8 @@ const displayName = computed(() => {
 
 /* Increase avatar size for opponents */
 :not(.seat-bottom) .avatar-wrapper {
-    width: 70px;
-    height: 70px;
+    width: 52px;
+    height: 52px;
 }
 
 .ready-badge {
@@ -852,6 +852,10 @@ const displayName = computed(() => {
     margin-bottom: 2px;
 }
 
+:not(.seat-bottom) .name {
+    font-size: 12px;
+}
+
 .coins-pill {
     background: rgba(0, 0, 0, 0.6);
     border-radius: 20px;
@@ -869,11 +873,20 @@ const displayName = computed(() => {
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+:not(.seat-bottom) .coins-pill {
+    font-size: 10px;
+}
+
 .coin-icon-seat {
     width: 18px;
     /* Increased from 16px */
     height: 18px;
     object-fit: contain;
+}
+
+:not(.seat-bottom) .coin-icon-seat {
+    width: 14px;
+    height: 14px;
 }
 
 .coin-icon-float {

@@ -44,6 +44,7 @@ import btnClickSound from '@/assets/sounds/btn_click.mp3';
 import goldImg from '@/assets/common/gold.png';
 import zhuangImg from '@/assets/common/zhuang.png';
 import tanpaiImg from '@/assets/common/tanpai.png';
+import gameTopDifenBg from '@/assets/common/game_top_difen_bg.png';
 
 // Niu hand type images
 import niu1Img from '@/assets/niu/niu_1.png';
@@ -1100,16 +1101,14 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                     </div>
                 </transition>
             </div>
-
-            <div class="room-info-box">
-                <div>房间ID: {{ store.roomId }}</div>
-                <div>房间名: {{ store.roomName }}</div>
-                <div>底分: <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{
-                    formatCoins(store.baseBet) }}</span></div>
-                <div>玩法: {{ modeName }}</div>
-            </div>
         </div>
 
+        <!-- Base Bet Display -->
+        <div class="base-bet-display" :style="{ '--game-top-difen-bg': 'url(' + gameTopDifenBg + ')' }">
+            <span class="bet-amount">底分</span>
+            <img :src="goldImg" class="gold-icon-small" />
+            <span class="bet-amount">{{ formatCoins(store.baseBet, 0) }}</span>
+        </div>
         <div class="opponents-layer">
             <div v-for="(p, index) in opponentSeats" :key="index" class="opponent-seat-abs"
                 :class="getOpponentClass(index + 1)">
@@ -1148,6 +1147,11 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
             <div v-if="store.currentPhase === 'GAME_OVER'" class="restart-btn" @click="startGameDebounced()">
                 继续游戏
             </div>
+        </div>
+
+        <!-- Watermark for Room Name and Mode -->
+        <div class="room-mode-watermark">
+            {{ store.roomName }}•{{ modeName }}
         </div>
 
         <!-- 自己区域 -->
@@ -1223,7 +1227,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                     </div>
 
                     <div class="info-box" :class="{ 'is-observer': myPlayer.isObserver }">
-                        <div class="name van-ellipsis">{{ myPlayer.name.length > 12 ? myPlayer.name.slice(0, 4) + '...'
+                        <div class="name van-ellipsis">{{ myPlayer.name.length > 10 ? myPlayer.name.slice(0, 4) + '...'
                             +
                             myPlayer.name.slice(-4) : myPlayer.name }}</div>
                         <div class="coins-pill">
@@ -2040,6 +2044,48 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     color: #fbbf24;
 }
 
+/* Base Bet Display */
+.base-bet-display {
+    position: absolute;
+    top: 93px;
+    /* Adjust this value as needed based on visual inspection */
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--game-top-difen-bg) no-repeat center center;
+    /* Use CSS variable */
+    background-size: contain;
+    /* Example width, adjust as needed */
+    height: 40px;
+    /* Example height, adjust as needed */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #55a773;
+    font-size: 14px;
+    font-weight: bold;
+    z-index: 250;
+    font-weight: bold;
+    /* Adjust padding to center text within the background image, if image has borders */
+    padding: 0 20px;
+    box-sizing: border-box;
+}
+
+.base-bet-display .gold-icon-small {
+    width: 16px;
+    /* Adjust size */
+    height: 16px;
+    object-fit: contain;
+    margin-right: 4px;
+    margin-left: 4px;
+}
+
+.base-bet-display .bet-amount {
+    text-shadow: 1px 2px 1px rgba(0, 0, 0, 0.3);
+    /* Amber-400, similar to other coin displays */
+    font-weight: bold;
+}
+
+
 .my-area {
     margin-top: auto;
     display: flex;
@@ -2198,8 +2244,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .my-player-info-row .banker-badge {
     position: absolute;
-    bottom: 12px;
-    right: 12px;
+    bottom: 0;
+    right: 0;
     width: 24px;
     height: 24px;
     display: flex;
@@ -2885,6 +2931,27 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     padding: 10px;
 }
 
+/* Watermark Style */
+.room-mode-watermark {
+    position: absolute;
+    bottom: 35%;
+    /* 40% from the bottom */
+    left: 50%;
+    transform: translateX(-50%);
+    color: #55a773;
+    /* Very light white, translucent for watermark effect */
+    font-size: 16px;
+    /* Not too large */
+    font-weight: bold;
+    pointer-events: none;
+    /* Do not block interactions */
+    z-index: 0;
+    /* Ensure it's behind interactive elements */
+    white-space: nowrap;
+    text-shadow: 1px 2px 1px rgba(0, 0, 0, 0.3);
+    /* Subtle shadow for better readability on varied backgrounds */
+}
+
 /* --- Status Text Styles (Duplicated from PlayerSeat for myPlayer) --- */
 .status-text {
     font-family: "Microsoft YaHei", "Heiti SC", sans-serif;
@@ -2977,6 +3044,24 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 <style>
 /* Global styles for Vant components in dark mode */
+
+@keyframes shine {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 5px #fbbf24;
+    }
+
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 0 15px #fbbf24;
+    }
+
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 5px #fbbf24;
+    }
+}
+
 .dark-theme-popup {
     --van-popup-background: #1e293b;
     --van-picker-background: #1e293b;

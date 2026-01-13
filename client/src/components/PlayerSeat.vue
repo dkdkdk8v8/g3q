@@ -259,7 +259,7 @@ const slideTransitionName = computed(() => {
 const displayName = computed(() => {
     const name = props.player.name || '';
     if (props.isMe) {
-        if (name.length > 12) {
+        if (name.length > 10) {
             return name.slice(0, 4) + '...' + name.slice(-4);
         }
         return name;
@@ -309,7 +309,7 @@ const displayName = computed(() => {
                     <Transition :name="slideTransitionName">
                         <div v-if="shouldShowBetMult" class="status-content">
                             <span class="status-text bet-text" :class="{ 'text-large': isMe }">押{{ player.betMultiplier
-                            }}倍</span>
+                                }}倍</span>
                         </div>
                     </Transition>
                 </div>
@@ -405,9 +405,10 @@ const displayName = computed(() => {
 .seat-right,
 .seat-top-left,
 .seat-top-right {
-    width: auto;
+    width: 160px;
+    /* Fixed width to prevent horizontal shifting */
     min-width: 100px;
-    /* Ensure minimum width for hand */
+    /* Keep minimum width */
 }
 
 /* 头像区域微调 */
@@ -814,22 +815,7 @@ const displayName = computed(() => {
     /* Ensure the entire image is visible within the bounds */
 }
 
-@keyframes shine {
-    0% {
-        transform: scale(1);
-        box-shadow: 0 0 5px #fbbf24;
-    }
 
-    50% {
-        transform: scale(1.1);
-        box-shadow: 0 0 15px #fbbf24;
-    }
-
-    100% {
-        transform: scale(1);
-        box-shadow: 0 0 5px #fbbf24;
-    }
-}
 
 .info-box {
     margin-top: 2px;

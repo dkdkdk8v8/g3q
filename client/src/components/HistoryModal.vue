@@ -5,6 +5,7 @@ import { useUserStore } from '../stores/user.js';
 import { formatCoins } from '../utils/format.js';
 import { transformServerCard, calculateHandType } from '../utils/bullfight.js';
 import goldImg from '@/assets/common/gold.png';
+import menuBetHistoryImg from '@/assets/common/menu_bet_history.png';
 
 const props = defineProps({
     visible: Boolean
@@ -94,7 +95,7 @@ const historyGrouped = computed(() => {
             currentGroup = {
                 dateStr: item.Date, // e.g., "12月02周5"
                 totalBet: item.TotalBet,
-                totalValid: item.TotalWinBalance, 
+                totalValid: item.TotalWinBalance,
                 items: []
             };
             groups.push(currentGroup);
@@ -113,8 +114,8 @@ const historyGrouped = computed(() => {
             const myId = store.myPlayerId === 'me' ? userStore.userInfo.user_id : store.myPlayerId;
             const myData = roomData.Players.find(p => p.ID === myId);
             // If not found, try userStore ID explicitly if store.myPlayerId might be stale/default
-             const fallbackData = roomData.Players.find(p => p.ID === userStore.userInfo.user_id);
-            
+            const fallbackData = roomData.Players.find(p => p.ID === userStore.userInfo.user_id);
+
             const playerRec = myData || fallbackData;
 
             const bet = playerRec ? (playerRec.ValidBet || 0) : 0;
@@ -185,20 +186,22 @@ watch(() => props.visible, (val) => {
     <div v-if="visible" class="modal-overlay" style="z-index: 8000;">
         <div class="modal-content history-modal">
             <div class="modal-header">
-                <h3>投注记录</h3>
-                <div class="filter-chip" @click.stop="toggleFilterMenu">
-                    {{ filterLabel }} <span class="down-triangle" :class="{ 'rotate-180': showFilterMenu }">▼</span>
+                <div class="modal-header-left-spacer"></div>
 
-                    <!-- Filter Menu -->
-                    <div v-if="showFilterMenu" class="filter-menu" @click.stop>
-                        <div class="filter-menu-item" :class="{ active: filterType === 'all' }"
-                            @click="selectFilter('all')">全部</div>
-                        <div class="filter-menu-item" :class="{ active: filterType === 'custom' }"
-                            @click="selectFilter('custom')">自定义</div>
+                <img :src="menuBetHistoryImg" alt="投注记录" class="modal-title-img" />
+
+                <div class="modal-header-right">
+                    <div class="filter-chip" @click.stop="toggleFilterMenu">
+                        {{ filterLabel }} <span class="down-triangle" :class="{ 'rotate-180': showFilterMenu }">▼</span>
+
+                        <!-- Filter Menu -->
+                        <div v-if="showFilterMenu" class="filter-menu" @click.stop>
+                            <div class="filter-menu-item" :class="{ active: filterType === 'all' }"
+                                @click="selectFilter('all')">全部</div>
+                            <div class="filter-menu-item" :class="{ active: filterType === 'custom' }"
+                                @click="selectFilter('custom')">自定义</div>
+                        </div>
                     </div>
-                </div>
-
-                <div class="header-right">
                     <div class="close-icon" @click="close">×</div>
                 </div>
             </div>
@@ -236,7 +239,7 @@ watch(() => props.visible, (val) => {
                             <div class="hc-bet-amt">
                                 投注: <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{
                                     formatCoins(item.bet)
-                                }}</span>
+                                    }}</span>
                             </div>
                         </div>
                     </div>
@@ -280,7 +283,7 @@ watch(() => props.visible, (val) => {
     width: 85%;
     max-width: 400px;
     max-height: 70vh;
-    background: #1e293b;
+    background: #1e293bdd;
     border-radius: 16px;
     display: flex;
     flex-direction: column;
@@ -293,13 +296,38 @@ watch(() => props.visible, (val) => {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     justify-content: space-between;
+    /* To push title image to center and close button to right */
     align-items: center;
     color: white;
 }
 
-.modal-header h3 {
-    margin: 0;
-    font-size: 18px;
+/* New styles for the modal header title image and layout */
+.modal-header-left-spacer,
+.modal-header-right {
+    flex: 1;
+    /* Take up available space to push title image to center */
+    display: flex;
+    align-items: center;
+}
+
+.modal-header-left-spacer {
+    /* For alignment, can be empty or used for other left-aligned elements */
+}
+
+.modal-header-right {
+    justify-content: flex-end;
+    /* Push content to the right */
+    gap: 10px;
+    /* Space between filter chip and close button */
+}
+
+.modal-title-img {
+    width: 70%;
+    /* 50% of the modal's width */
+    height: auto;
+    object-fit: contain;
+    flex-shrink: 0;
+    /* Prevent image from shrinking */
 }
 
 .close-icon {

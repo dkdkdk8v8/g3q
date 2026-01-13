@@ -9,8 +9,8 @@ const PATH_WS = "/rpc/ws"
 const PATH_RPC_DATA = "/rpc/qznn-data"
 
 const MIN_ROBOT_ROOMS = 0           // 纯机器人房间最少保持数量
-const MANAGER_LOOP_INTERVAL = 10    // 机器人管理循环间隔(秒)
-const MIN_GAMES = 10                // 机器人至少玩几局
+const MANAGER_LOOP_INTERVAL = 4     // 机器人管理循环间隔(秒)
+const MIN_GAMES = 20                // 机器人至少玩几局
 const PROB_LEAVE_5_PLAYERS = 0.7    // 5人时退出概率
 const PROB_LEAVE_4_PLAYERS = 0.5    // 4人时退出概率
 const PROB_LEAVE_3_PLAYERS = 0.2    // 3人时退出概率

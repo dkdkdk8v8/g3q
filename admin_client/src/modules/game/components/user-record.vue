@@ -35,9 +35,11 @@
                             <div class="room-info">
                                 <div class="tags">
                                     <el-tag size="small" type="danger" effect="plain">{{
-                                        getRoomInfo(item.parsedGameData.Room.ID).level }}</el-tag>
+                                        options.qznn_room_level.find(i => i.value ===
+                                            item.parsedGameData.Room.Config.Level)?.label}}</el-tag>
                                     <el-tag size="small" type="warning" effect="plain">{{
-                                        getRoomInfo(item.parsedGameData.Room.ID).type }}</el-tag>
+                                        options.qznn_room_type.find(i => i.value ===
+                                            item.parsedGameData.Room.Config.BankerType)?.label}}</el-tag>
                                 </div>
                                 <span class="room-id">{{ item.parsedGameData.Room.ID }}</span>
                             </div>
@@ -84,10 +86,10 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, reactive } from "vue";
+import { ref, reactive, computed } from "vue";
 import { useCool } from "/@/cool";
+import { useDict } from '/$/dict';
 import { getCardResult, getCardStyle } from "../utils/card";
-import { getRoomInfo } from "../utils/room";
 import { ArrowRight } from "@element-plus/icons-vue";
 
 const RecordType = {
@@ -109,6 +111,12 @@ function getRecordTypeInfo(type: number) {
 }
 
 const { service } = useCool();
+const { dict } = useDict();
+
+const options = reactive({
+    qznn_room_level: dict.get("qznn_room_level"),
+    qznn_room_type: dict.get("qznn_room_type"),
+});
 
 const visible = ref(false);
 const loading = ref(false);

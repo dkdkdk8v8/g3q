@@ -49,7 +49,7 @@
 
       <div v-else>
         <div v-for="group in displayedGroups" :key="group.title" class="level-group">
-          <div class="group-header">{{ group.title }} <span class="count">({{ group.rooms.length }})</span></div>
+          <div class="group-header">{{ group.title }} <span class="count"></span></div>
           <el-row :gutter="10">
             <el-col v-for="item in group.rooms" :key="item.ID" :xs="24" :sm="12" :md="12" :lg="8" :xl="6">
               <el-card shadow="hover" class="room-card">
@@ -151,6 +151,7 @@
 
 <script lang="ts" name="game-room-qznn" setup>
 import { useCool } from "/@/cool";
+import { useDict } from '/$/dict';
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
 import dayjs from "dayjs";
@@ -158,16 +159,46 @@ import { Refresh, CopyDocument } from "@element-plus/icons-vue";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/zh-cn";
 import { getCardResult, getCardStyle } from "../utils/card";
-import { getRoomInfo, levelMap, typeMap } from "../utils/room";
 
 dayjs.extend(relativeTime);
 dayjs.locale("zh-cn");
 const { service } = useCool();
+const { dict } = useDict();
 const list = ref<any>({});
 const errorMessage = ref("");
 const filterLevel = ref("");
 const filterType = ref("");
 const filterUserType = ref("");
+
+const levelMap = computed(() => {
+  const map: Record<string, string> = {};
+  const data = dict.get("qznn_room_level").value || [];
+  data.forEach((item: any) => {
+    map[String(item.value)] = item.label;
+  });
+  return map;
+});
+
+const typeMap = computed(() => {
+  const map: Record<string, string> = {};
+  const data = dict.get("qznn_room_type").value || [];
+  data.forEach((item: any) => {
+    map[String(item.value)] = item.label;
+  });
+  return map;
+});
+
+function getRoomInfo(id: string) {
+  if (!id) return { level: "", type: "" };
+  const parts = id.split("_");
+  if (parts.length >= 3) {
+    return {
+      level: levelMap.value[parts[2]] || "未知",
+      type: typeMap.value[parts[1]] || "未知",
+    };
+  }
+  return { level: "未知", type: "未知" };
+}
 
 const filteredList = computed<any[]>(() => {
   const all = Object.values(list.value);
@@ -202,8 +233,8 @@ const groupedList = computed(() => {
   });
 
   // 按照 levelMap 的 key 顺序 (1, 2, 3, 4) 添加分组
-  Object.keys(levelMap).sort().forEach((key) => {
-    const name = levelMap[key];
+  Object.keys(levelMap.value).sort().forEach((key) => {
+    const name = levelMap.value[key];
     if (temp[name]) {
       temp[name].sort((a, b) => new Date(b.CreateAt).getTime() - new Date(a.CreateAt).getTime());
       groups.push({ title: name, rooms: temp[name] });
@@ -300,8 +331,8 @@ const statsData = computed(() => {
   const types: Record<string, number> = {};
   const userTypes: Record<string, number> = { real: 0, robot: 0 };
 
-  Object.values(levelMap).forEach((v) => (levels[v] = 0));
-  Object.values(typeMap).forEach((v) => (types[v] = 0));
+  Object.values(levelMap.value).forEach((v) => (levels[v] = 0));
+  Object.values(typeMap.value).forEach((v) => (types[v] = 0));
 
   Object.values(list.value).forEach((room: any) => {
     const info = getRoomInfo(room.ID);

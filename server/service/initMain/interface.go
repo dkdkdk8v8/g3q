@@ -1,10 +1,11 @@
 package initMain
 
 import (
-	"github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/sirupsen/logrus"
 )
 
 type Runner interface {

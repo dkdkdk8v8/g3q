@@ -2,14 +2,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"os"
 	"path/filepath"
 	"service/initMain"
 	"syscall"
 	"time"
+
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -72,7 +73,7 @@ func main() {
 			initMain.InitAlert()
 
 			daemonRunner := initMain.DaemonRunner{Ctx: initMain.BaseCtx{ProcessName: processName, IgnorePid: debug, IsTerm: term,
-				VipDefaultCfgDir: vipDefaultCfgDir, IsDebug: debug || term}}
+				VipDefaultCfgDir: vipDefaultCfgDir, IsDebug: debug}}
 			authWork, err := createMainWork(debug)
 			if err != nil {
 				logrus.WithError(err).Error("createRemoteAuthWorkFail")

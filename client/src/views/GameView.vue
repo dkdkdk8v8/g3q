@@ -1105,19 +1105,18 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
             <div class="room-info-box">
                 <div>房间ID: {{ store.roomId }}</div>
                 <div>房间名: {{ store.roomName }}</div>
-                <div>底分: <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{
-                    formatCoins(store.baseBet) }}</span></div>
+                <!-- <div>底分: <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{
+                    formatCoins(store.baseBet) }}</span></div> -->
                 <div>玩法: {{ modeName }}</div>
             </div>
         </div>
 
         <!-- Base Bet Display -->
-        <div class="base-bet-display">
+        <div class="base-bet-display" :style="{ '--game-top-difen-bg': 'url(' + gameTopDifenBg + ')' }">
             <span>底分：</span>
             <img :src="goldImg" class="gold-icon-small" />
             <span class="bet-amount">{{ formatCoins(store.baseBet) }}</span>
         </div>
-
         <div class="opponents-layer">
             <div v-for="(p, index) in opponentSeats" :key="index" class="opponent-seat-abs"
                 :class="getOpponentClass(index + 1)">
@@ -2051,22 +2050,22 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 /* Base Bet Display */
 .base-bet-display {
     position: absolute;
-    top: 60px;
+    top: 93px;
     /* Adjust this value as needed based on visual inspection */
     left: 50%;
     transform: translateX(-50%);
-    background: url(v-bind(gameTopDifenBg)) no-repeat center center;
-    /* Use v-bind for dynamic background */
+    background: var(--game-top-difen-bg) no-repeat center center;
+    /* Use CSS variable */
     background-size: contain;
-    width: 200px;
     /* Example width, adjust as needed */
     height: 40px;
     /* Example height, adjust as needed */
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: #55a773;
     font-size: 14px;
+    font-weight: bold;
     z-index: 250;
     font-weight: bold;
     /* Adjust padding to center text within the background image, if image has borders */

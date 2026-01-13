@@ -1238,7 +1238,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                             <div v-if="shouldShowRobMult" class="status-content">
                                 <span v-if="myPlayer.robMultiplier > 0" class="status-text rob-text text-large">抢{{
                                     myPlayer.robMultiplier
-                                    }}倍</span>
+                                }}倍</span>
                                 <span v-else class="status-text no-rob-text text-large">不抢</span>
                             </div>
                         </Transition>
@@ -2198,8 +2198,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .my-player-info-row .banker-badge {
     position: absolute;
-    bottom: -8px;
-    right: -8px;
+    bottom: 12px;
+    right: 12px;
     width: 24px;
     height: 24px;
     display: flex;
@@ -2214,7 +2214,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     border: 1px solid #fff;
     box-shadow: 0 0 10px #fbbf24;
     animation: shine 2s infinite;
-    /* Removed transform: translate(50%, 50%); */
+    transform: translate(50%, 50%);
 }
 
 .banker-badge-img {
@@ -2406,7 +2406,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     display: flex;
     justify-content: center;
     align-items: center;
-    box-shadow: none; /* Remove box-shadow for consistency with menu-btn */
+    box-shadow: none;
+    /* Remove box-shadow for consistency with menu-btn */
     cursor: pointer;
     z-index: 100;
     transition: transform 0.1s;

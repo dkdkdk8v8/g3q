@@ -64,7 +64,7 @@ type RobotAction struct {
 func managerLoop() {
 	for {
 		managerRound()
-		time.Sleep(time.Second * 10)
+		time.Sleep(time.Second * MANAGER_LOOP_INTERVAL)
 	}
 }
 

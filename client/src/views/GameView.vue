@@ -176,6 +176,17 @@ const getSeatStyle = (seatNum) => {
     };
 };
 
+const getMyAreaStyle = () => {
+    const s = gameScale.value;
+    if (s === 1) return {};
+    return {
+        transform: `scale(${s})`,
+        transformOrigin: 'bottom center',
+        width: `${100 / s}%`,
+        marginLeft: `${(1 - 1 / s) * 50}%`
+    };
+};
+
 onMounted(() => {
     updateGameScale();
     window.addEventListener('resize', debounce(updateGameScale, 100));
@@ -1176,7 +1187,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
         <!-- 自己区域 -->
 
-        <div class="my-area" v-if="myPlayer" :ref="(el) => setSeatRef(el, myPlayer.id)">
+        <div class="my-area" v-if="myPlayer" :ref="(el) => setSeatRef(el, myPlayer.id)" :style="getMyAreaStyle()">
             <!-- 1. Calculation Formula Area -->
             <div v-show="store.currentPhase === 'SHOWDOWN' && !myPlayer.isShowHand && store.countdown > 0 && !myPlayer.isObserver"
                 class="showdown-wrapper">

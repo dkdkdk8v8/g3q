@@ -26,6 +26,12 @@
                 <el-radio-button label="real">真实用户</el-radio-button>
                 <el-radio-button label="robot">机器人</el-radio-button>
             </el-radio-group>
+            <cl-flex1 />
+            <!-- 用户ID筛选 -->
+            <cl-filter label="用户ID">
+                <el-input v-model="searchParams.userId" placeholder="搜索用户ID" clearable @keyup.enter="refresh"
+                    @clear="refresh" style="width: 150px" />
+            </cl-filter>
         </cl-row>
 
         <cl-row>
@@ -92,7 +98,7 @@ const options = reactive({
 
 // 日期范围默认最近30天
 const dateRange = ref([
-    dayjs().subtract(29, "day").format("YYYY-MM-DD"),
+    dayjs().subtract(0, "day").format("YYYY-MM-DD"),
     dayjs().format("YYYY-MM-DD"),
 ]);
 
@@ -101,13 +107,14 @@ const searchParams = reactive({
     startDate: dateRange.value[0],
     endDate: dateRange.value[1],
     app: "",
-    userType: "all",
+    userType: "real",
+    userId: "",
 });
 
 // 自定义Service
 const crudService = {
     page: async (params: any) => {
-        const { app, startDate, endDate, userType } = searchParams;
+        const { app, startDate, endDate, userType, userId } = searchParams;
         const { sort, order, page, size } = params;
 
         const res = await service.game.staPeriod.getUserStats({
@@ -115,6 +122,7 @@ const crudService = {
             endDate,
             app,
             userType,
+            userId,
             sort,
             order
         });

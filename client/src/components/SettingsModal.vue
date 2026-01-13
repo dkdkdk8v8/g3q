@@ -2,6 +2,9 @@
 import { useSettingsStore } from '../stores/settings.js';
 
 import menuSetImg from '@/assets/common/menu_set.png';
+import gameSetMusicImg from '@/assets/common/game_set_music.png';
+import gameSetEffectImg from '@/assets/common/game_set_effect.png';
+import gameSetTalkImg from '@/assets/common/game_set_talk.png';
 
 const props = defineProps({
     visible: Boolean
@@ -31,19 +34,28 @@ const close = () => {
             </div>
             <div class="settings-list">
                 <div class="setting-item">
-                    <span>背景音乐</span>
+                    <div class="setting-label">
+                        <img :src="gameSetMusicImg" class="setting-icon" />
+                        <span>背景音乐</span>
+                    </div>
                     <van-switch v-model="settingsStore.musicEnabled" size="24px" active-color="#13ce66"
-                        inactive-color="#ff4949" />
+                        inactive-color="grey" />
                 </div>
                 <div class="setting-item">
-                    <span>游戏音效</span>
+                    <div class="setting-label">
+                        <img :src="gameSetEffectImg" class="setting-icon" />
+                        <span>游戏音效</span>
+                    </div>
                     <van-switch v-model="settingsStore.soundEnabled" size="24px" active-color="#13ce66"
-                        inactive-color="#ff4949" />
+                        inactive-color="grey" />
                 </div>
                 <div class="setting-item">
-                    <span>屏蔽他人发言</span>
+                    <div class="setting-label">
+                        <img :src="gameSetTalkImg" class="setting-icon" />
+                        <span>屏蔽他人发言</span>
+                    </div>
                     <van-switch v-model="settingsStore.muteUsers" size="24px" active-color="#13ce66"
-                        inactive-color="#ff4949" />
+                        inactive-color="grey" />
                 </div>
             </div>
         </div>
@@ -144,5 +156,17 @@ const close = () => {
 
 .setting-item:last-child {
     border-bottom: none;
+}
+
+.setting-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.setting-icon {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
 }
 </style>

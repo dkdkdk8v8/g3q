@@ -171,7 +171,7 @@ const getSeatStyle = (seatNum) => {
     if (seatNum === 4) origin = 'right center';
 
     return {
-        transform: `scale(${s})`,
+        transform: `scale(${s * 0.85})`,
         transformOrigin: origin
     };
 };

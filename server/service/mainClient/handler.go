@@ -31,8 +31,6 @@ func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []b
 		RoomId              string
 		IsBotFakeRealPlayer bool
 	}
-	logrus.WithField("level", req.Level).WithField("bankerType", req.BankerType).WithField(
-		"roomId", req.RoomId).WithField("isBotFRP", req.IsBotFakeRealPlayer).Info("handlePlayerJoin-Req")
 	// 默认进入初级场
 	req.Level = 1
 	req.BankerType = -1 // 默认值，用于检测客户端是否传递
@@ -40,6 +38,8 @@ func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []b
 	if err := json.Unmarshal(data, &req); err != nil {
 		return comm.ErrClientParam
 	}
+	logrus.WithField("level", req.Level).WithField("bankerType", req.BankerType).WithField(
+		"roomId", req.RoomId).WithField("isBotFRP", req.IsBotFakeRealPlayer).Info("handlePlayerJoin-Req")
 	if req.Level <= 0 {
 		req.Level = 1
 	}
@@ -101,6 +101,7 @@ func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []b
 		if err1 != nil {
 			return err1
 		}
+		logrus.WithField("userId", userId).WithField("gameId", user.GameId).Warn("RecoveryGameId-Ok")
 	}
 	if user.Balance < cfg.MinBalance {
 		return comm.NewMyError("用户余额不足")

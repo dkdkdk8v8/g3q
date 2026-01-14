@@ -117,10 +117,6 @@ func (rm *RoomManager) SelectRoom(user *modelClient.ModelUser,
 				if realNum > 0 {
 					continue
 				}
-				if num-realNum >= 4 && user.IsRobot {
-					//4个机器了
-					return nil, comm.NewMyError("进入房间失败")
-				}
 				if num < room.GetPlayerCap() {
 					sortPlayerRoom = append(sortPlayerRoom, roomHolder{Room: room, PlayerNum: num})
 				}

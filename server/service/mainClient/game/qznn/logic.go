@@ -12,6 +12,7 @@ import (
 	"service/mainClient/game/znet"
 	"service/modelClient"
 	"slices"
+	"strings"
 	"time"
 
 	errors "github.com/pkg/errors"
@@ -89,10 +90,13 @@ func (r *QZNNRoom) SetStatus(oldStates []RoomState, newState RoomState, stateLef
 		return false
 	}
 	if !slices.Contains(oldStates, r.State) {
+		logRState := r.State
 		r.RoomMu.Unlock()
 		logrus.WithFields(logrus.Fields{
-			"roomId": r.ID,
-			"state":  newState,
+			"roomId":    r.ID,
+			"oldStates": oldStates,
+			"state":     newState,
+			"rState":    logRState,
 		}).Error("QZNNStatuIgnored")
 		return false
 	}
@@ -309,7 +313,19 @@ func (r *QZNNRoom) AddPlayer(p *Player) (int, error) {
 			return seatNum, nil
 		}
 	}
-	if !p.IsRobot {
+	if p.IsRobot {
+		// 机器人不能5个在一个房间
+		botCount := 0
+		for _, existingPlayer := range r.Players {
+			if existingPlayer != nil && existingPlayer.IsRobot {
+				botCount++
+				if botCount >= 4 {
+					r.RoomMu.Unlock()
+					return 0, comm.ErrMaxRobotInRoom
+				}
+			}
+		}
+	} else {
 		// 检查是否已经有真人用户了
 		for _, existingPlayer := range r.Players {
 			if existingPlayer != nil && !existingPlayer.IsRobot {
@@ -590,22 +606,49 @@ func (r *QZNNRoom) tickWaiting() {
 	leaveIds, _ := r.kickOffByWsDisconnect()
 	//reset ob data
 	r.ResetOb()
-	//check balance >= min balance
+
 	players := r.GetPlayers()
 	for _, p := range players {
 		if p == nil {
 			continue
 		}
+		//check balance_lock and game_id
+		modelUser, err := modelClient.GetUserByUserId(p.ID)
+		if err != nil {
+			logrus.WithField("!", nil).WithField("userId", p.ID).WithError(err).Error("GetUserByUserId-Fail")
+			return
+		}
+		bKiffOffPlayer := false
+		kiffOffMsg := ""
+		if modelUser.GameId != "" {
+			logrus.WithField("userId", p.ID).WithField("gameId", modelUser.GameId).WithField(
+				"balance", modelUser.Balance).WithField("balance_lock", modelUser.BalanceLock).Error("userGameIdInvalid")
+			bKiffOffPlayer = true
+			kiffOffMsg = "还有未计算游戏,稍等重新进房"
+		}
+
+		if modelUser.Balance != p.Balance {
+			logrus.WithField("userId", p.ID).WithField(
+				"balance", modelUser.Balance).WithField("balance_lock", modelUser.BalanceLock).Error("userBalanceInvalid")
+			bKiffOffPlayer = true
+			kiffOffMsg = "正在计算钱包,稍等重新进房"
+		}
+
 		if p.Balance < r.Config.MinBalance {
-			if r.Leave(p.ID) {
-				leaveIds = append(leaveIds, p.ID)
-				r.PushPlayer(p, comm.PushData{
-					Cmd:      comm.ServerPush,
-					PushType: znet.PushRouter,
-					Data: znet.PushRouterStruct{
-						Router:  znet.Lobby,
-						Message: "余额不足,离开房间"}})
-			}
+			logrus.WithField("userId", p.ID).WithField(
+				"balance", modelUser.Balance).WithField("balance_lock", modelUser.BalanceLock).Info("userBalanceNotEnough")
+			bKiffOffPlayer = true
+			kiffOffMsg = "余额不足,离开房间"
+		}
+
+		if bKiffOffPlayer && r.Leave(p.ID) {
+			leaveIds = append(leaveIds, p.ID)
+			r.PushPlayer(p, comm.PushData{
+				Cmd:      comm.ServerPush,
+				PushType: znet.PushRouter,
+				Data: znet.PushRouterStruct{
+					Router:  znet.Lobby,
+					Message: kiffOffMsg}})
 		}
 	}
 	if len(leaveIds) > 0 {
@@ -917,6 +960,8 @@ func (r *QZNNRoom) StartGame() {
 	}
 	if bankerPlayer == nil {
 		logrus.WithField("gameId", r.GameID).WithField("bankerId", r.BankerID).Error("QZNNRoom-BankerInvalid")
+		// 异常情况强制进入结算状态，避免房间卡死
+		r.SetStatus([]RoomState{StateShowCard}, StateSettling, 0)
 		return
 	}
 	bankerMult := int64(bankerPlayer.CallMult)
@@ -932,8 +977,7 @@ func (r *QZNNRoom) StartGame() {
 		Amount   int64
 	}
 	var playerWins []WinRecord
-	var totalBankerPay int64 = 0  // 庄家需要赔付的总额
-	var totalBankerGain int64 = 0 // 庄家从输家那里赢来的总额
+	var playerLoses []WinRecord
 
 	baseBet := r.Config.BaseBet
 
@@ -947,59 +991,104 @@ func (r *QZNNRoom) StartGame() {
 		// 庄家赢：底注 * 庄倍 * 闲倍 * 庄家牌型倍数
 		loseAmount := baseBet * bankerMult * p.BetMult * bankerPlayer.CardResult.Mult
 		if isPlayerWin {
-			p.ValidBet = winAmount
-			//庄家流水和各个闲家的总和
-			bankerPlayer.ValidBet += winAmount
+			if winAmount > p.Balance {
+				winAmount = p.Balance
+			}
+			//赢庄家，需要下面计算庄家赔付和庄家本金
 			playerWins = append(playerWins, WinRecord{PlayerID: p.ID, Amount: winAmount})
-
-			totalBankerPay += winAmount
 		} else {
-			//看闲家够不够,输家输的钱不能超过自己的余额
-			if p.Balance < loseAmount {
+			if loseAmount > p.Balance {
+				//最多把自己的本金输光
 				loseAmount = p.Balance
 			}
-			p.ValidBet = loseAmount
-			bankerPlayer.ValidBet += loseAmount
-			p.BalanceChange -= loseAmount
-			totalBankerGain += loseAmount
+			playerLoses = append(playerLoses, WinRecord{PlayerID: p.ID, Amount: loseAmount})
 		}
 	}
-	//计算庄家的有效投注流水
-	if bankerPlayer.Balance < bankerPlayer.ValidBet {
-		bankerPlayer.ValidBet = bankerPlayer.Balance
+
+	// 先算输的闲家给庄家赔付
+	playerLoss2Banker := int64(0)
+	for _, rec := range playerLoses {
+		for _, p := range activePlayer {
+			if p.ID == rec.PlayerID {
+				playerLoss2Banker += rec.Amount
+				break
+			}
+		}
 	}
 
-	// 2. 计算庄家赔付能力
-	// 庄家现有资金 + 本局赢来的钱
-	bankerCapacity := bankerPlayer.Balance + totalBankerGain
-
-	// 3. 结算闲家赢钱（考虑庄家破产）
-	if totalBankerPay > bankerCapacity {
-		// 庄家不够赔，按比例赔付
-		ratio := float64(bankerCapacity) / float64(totalBankerPay)
-		for _, rec := range playerWins {
+	if playerLoss2Banker > bankerPlayer.Balance {
+		//庄家本金不够多，输的闲按庄本金比例赔
+		for _, rec := range playerLoses {
 			for _, p := range activePlayer {
 				if p.ID == rec.PlayerID {
-					realWin := int64(math.Round(float64(rec.Amount) * ratio))
-					p.BalanceChange += realWin
-					p.ValidBet = realWin
+					realLose := int64(math.Round(float64(rec.Amount) * float64(bankerPlayer.Balance) / float64(playerLoss2Banker)))
+					p.BalanceChange -= realLose
+					bankerPlayer.BalanceChange += realLose
 					break
 				}
 			}
 		}
-		// 庄家输光所有（余额+赢来的）
-		bankerPlayer.BalanceChange = totalBankerGain - bankerCapacity
 	} else {
-		// 庄家够赔
-		for _, rec := range playerWins {
+		//庄家本金足够
+		for _, rec := range playerLoses {
 			for _, p := range activePlayer {
 				if p.ID == rec.PlayerID {
-					p.BalanceChange += rec.Amount
+					p.BalanceChange -= rec.Amount
+					bankerPlayer.BalanceChange += rec.Amount
 					break
 				}
 			}
 		}
-		bankerPlayer.BalanceChange = totalBankerGain - totalBankerPay
+	}
+
+	//计算庄家输给闲家
+	bankerLoss2player := int64(0)
+	for _, rec := range playerWins {
+		for _, p := range activePlayer {
+			if p.ID == rec.PlayerID {
+				bankerLoss2player += rec.Amount
+				break
+			}
+		}
+	}
+	//bankerPlayer.BalanceChange 当前赢的闲家的
+	bankerTotalFunds := bankerPlayer.Balance + bankerPlayer.BalanceChange
+	if bankerLoss2player > bankerTotalFunds {
+		//闲赢的钱大于庄家本金加刚赢的闲家的钱，不够赔
+		totalDistributed := int64(0)
+		for i, rec := range playerWins {
+			for _, p := range activePlayer {
+				if p.ID == rec.PlayerID {
+					//已经限制 赢的闲的本金
+					var realWin int64
+					if i == len(playerWins)-1 {
+						//资金泄漏风险（浮点数精度问题）：在庄家爆庄（不够赔）进行按比例分配时，使用 math.Round 分别计算每个人的赢钱数，累加后可能不等于庄家可赔付的总金额（可能多出或少于1分钱），导致系统资金账目不平。
+						//在按比例分配时，最后一名玩家应直接获得剩余的全部金额，以确保总账平齐。
+						realWin = bankerTotalFunds - totalDistributed
+					} else {
+						realWin = int64(math.Round(float64(rec.Amount) * float64(bankerTotalFunds) / float64(bankerLoss2player)))
+					}
+					p.BalanceChange += realWin
+					totalDistributed += realWin
+					break
+				}
+			}
+		}
+		//庄家本金输光
+		bankerPlayer.BalanceChange = 0
+		bankerPlayer.BalanceChange -= bankerPlayer.Balance
+	} else {
+		//庄家够赔
+		for _, rec := range playerWins {
+			for _, p := range activePlayer {
+				if p.ID == rec.PlayerID {
+					//已经限制 赢的闲的本金
+					p.BalanceChange += rec.Amount
+					bankerPlayer.BalanceChange -= rec.Amount
+					break
+				}
+			}
+		}
 	}
 
 	// 4. 扣税 (只扣赢家的)
@@ -1051,7 +1140,19 @@ func (r *QZNNRoom) StartGame() {
 	//
 	modelUsers, err := modelClient.UpdateUserSetting(&settle)
 	if err != nil {
-		//todo:: log very detail for recovery user data
+		var allUserIds []string
+		for _, u := range settle.Players {
+			allUserIds = append(allUserIds, u.UserId)
+		}
+		logrus.WithField("!", nil).WithError(err).WithField(
+			"gameId", r.GameID).WithField(
+			"userIds", strings.Join(allUserIds, ",")).Error("UpdateUserSetting-Fail")
+		for _, u := range settle.Players {
+			logrus.WithField(
+				"gameId", r.GameID).WithField(
+				"userId", u.UserId).WithField(
+				"changeBal", u.ChangeBalance).Error("UpdateUserSetting-Restore")
+		}
 		return
 	}
 

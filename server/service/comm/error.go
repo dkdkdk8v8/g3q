@@ -42,6 +42,7 @@ var (
 	ErrClientParam             = NewMyErrorWithCode(200000, "客户端请求参数有点问题，请稍后再试或联系客服")
 	ErrPlayerInRoom            = NewMyErrorWithCode(200010, "您已经在其他房间了")
 	ErrRealPlayerAlreadyInRoom = NewMyErrorWithCode(200011, "进入房间失败,请重试进入")
+	ErrMaxRobotInRoom          = NewMyErrorWithCode(200012, "进入房间失败,请重试进入")
 )
 
 //func DoSomething() error {

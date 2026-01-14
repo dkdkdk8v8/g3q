@@ -171,7 +171,7 @@ const getSeatStyle = (seatNum) => {
     if (seatNum === 4) origin = 'right center';
 
     return {
-        transform: `scale(${s})`,
+        transform: `scale(${s * 1})`,
         transformOrigin: origin
     };
 };
@@ -860,15 +860,20 @@ const startDealingAnimation = (isSupplemental = false) => {
     targets.forEach((t, pIndex) => {
         const cardTargets = [];
         // Scale adjustment: Opponent seats have transform: scale(0.85) in CSS, so we must match that.
-        const scale = t.isMe ? 1 : 0.85;
+        const scale = (t.isMe ? 1 : 1) * gameScale.value;
 
         // Viewport scaling to match postcss-px-to-viewport (assuming 375 design width)
         const viewportRatio = window.innerWidth / 375;
 
-        // Spacing calculation:
-        // Me: 60px width + 1px margin = 61px (Scale 1) -> Scaled by viewport
-        // Opponent: (48px width - 20px overlap) * 0.85 scale = 23.8px -> Scaled by viewport
-        const spacing = (t.isMe ? 61 : 23.8) * viewportRatio;
+        // Spacing calculation (Base pixels at 375 width):
+        // Me: 60px width + 1px margin = 61px
+        // Opponent: 48px width - 28px margin = 20px
+        const baseSpacing = t.isMe ? 61 : 20;
+
+        // Spacing must be scaled because the static cards are inside a scaled container
+        // and thus the visual distance between centers is scaled.
+        // We apply the same scale to the flying card spacing.
+        const spacing = baseSpacing * viewportRatio * scale;
 
         const totalWidth = (t.total - 1) * spacing;
         const startX = t.x - (totalWidth / 2);
@@ -1163,7 +1168,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
         <div class="table-center" ref="tableCenterRef">
             <!-- 阶段提示信息容器 -->
-            <div v-if="['READY_COUNTDOWN', 'ROB_BANKER', 'BETTING', 'SHOWDOWN', 'BANKER_SELECTION_ANIMATION', 'BANKER_CONFIRMED', 'SETTLEMENT'].includes(store.currentPhase)"
+            <div v-if="['READY_COUNTDOWN', 'ROB_BANKER', 'BETTING', 'SHOWDOWN', 'BANKER_SELECTION_ANIMATION', 'BANKER_CONFIRMED'].includes(store.currentPhase)"
                 class="clock-and-info-wrapper">
                 <div class="phase-info">
                     <span v-if="store.currentPhase === 'WAITING_FOR_PLAYERS'">匹配玩家中...</span>
@@ -1276,7 +1281,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                             <div v-if="shouldShowRobMult" class="status-content">
                                 <span v-if="myPlayer.robMultiplier > 0" class="status-text rob-text text-large">抢{{
                                     myPlayer.robMultiplier
-                                    }}倍</span>
+                                }}倍</span>
                                 <span v-else class="status-text no-rob-text text-large">不抢</span>
                             </div>
                         </Transition>
@@ -1953,18 +1958,18 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 .seat-right {
     top: 38%;
     /* Adjusted for fixed top alignment */
-    right: 10px;
+    right: 4vw;
     /* transform: scale(0.85); Removed redundant scale */
 }
 
 .seat-right-top {
     top: 15%;
-    right: 8%;
+    right: 12%;
 }
 
 .seat-left-top {
     top: 15%;
-    left: 8%;
+    left: 12%;
 }
 
 .seat-left {
@@ -2016,8 +2021,9 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     display: flex;
     flex-direction: column;
     align-items: center;
-    /* Removed gap: 10px; as it will be managed by clock-and-info-wrapper */
-    width: 200px;
+    gap: 0.8vw;
+    /* This handles the 3px distance between clock and phase info */
+    width: 53.3333vw;
     min-height: 120px;
     /* 允许高度自适应，防止挤压 */
     height: auto;
@@ -2030,7 +2036,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 3px;
+    gap: 0.8vw;
     /* This handles the 3px distance between clock and phase info */
     pointer-events: auto;
     /* Allow interaction with children if needed */
@@ -2040,19 +2046,18 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     background: linear-gradient(to bottom, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.7));
     color: #fbbf24;
     /* Golden text */
-    padding: 8px 24px;
+    padding: 2.1333vw 6.4vw;
     /* Slightly larger padding */
-    border-radius: 24px;
-    font-size: 16px;
+    border-radius: 6.4vw;
+    font-size: 1.8vh;
     font-weight: bold;
-    margin-top: 30px;
-    border: 1px solid rgba(251, 191, 36, 0.4);
-    border-bottom: 3px solid rgba(180, 83, 9, 0.8);
+    margin-top: 8vw;
+    border: 0.2667vw solid rgba(251, 191, 36, 0.4);
+    border-bottom: 0.8vw solid rgba(180, 83, 9, 0.8);
     /* Distinct bottom frame/border */
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.6), 0 0 15px rgba(251, 191, 36, 0.2);
+    box-shadow: 0 1.6vw 3.2vw rgba(0, 0, 0, 0.6), 0 0 4vw rgba(251, 191, 36, 0.2);
     /* Deep shadow + Glow */
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
-    min-width: 140px;
+    text-shadow: 0 0.5333vw 1.0667vw rgba(0, 0, 0, 0.9);
     display: flex;
     justify-content: center;
     align-items: center;

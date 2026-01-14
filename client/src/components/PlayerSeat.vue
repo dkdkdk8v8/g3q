@@ -1050,7 +1050,7 @@ const displayName = computed(() => {
 .hand-area {
     position: relative;
     /* 占位高度，防止发牌时抖动 */
-    height: 75px;
+    height: 20vw;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -1059,18 +1059,18 @@ const displayName = computed(() => {
 
 /* 机器人手牌下移，避免遮挡信息 */
 .seat-top .hand-area {
-    margin-top: 25px;
+    margin-top: 6.6667vw;
 }
 
 .seat-bottom .hand-area {
 
-    height: 90px;
+    height: 24vw;
 
     /* 自己的牌比较大 */
 
     margin-top: 0;
 
-    margin-bottom: 10px;
+    margin-bottom: 2.6667vw;
     /* Increased to move hand cards further up */
 
 }
@@ -1086,11 +1086,11 @@ const displayName = computed(() => {
 }
 
 .cards .hand-card + .hand-card {
-    margin-left: -28px;
+    margin-left: -7.4667vw;
 }
 
 .cards.is-me-cards .hand-card + .hand-card {
-    margin-left: 1px;
+    margin-left: 0.2667vw;
 }
 
 .hand-result-badge {

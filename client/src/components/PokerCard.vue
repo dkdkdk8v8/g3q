@@ -79,9 +79,9 @@ const suitSymbol = computed(() => {
 
 <style scoped>
 .poker-card {
-  width: 60px;
-  height: 88px;
-  border-radius: 6px;
+  width: 16vw;
+  height: 23.4667vw;
+  border-radius: 1.6vw;
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
   position: relative;
   box-sizing: border-box;
@@ -91,8 +91,8 @@ const suitSymbol = computed(() => {
 }
 
 .poker-card.is-small {
-  width: 48px;
-  height: 70px;
+  width: 12.8vw;
+  height: 18.6667vw;
   font-size: 0.8em;
 }
 
@@ -115,19 +115,19 @@ const suitSymbol = computed(() => {
     width: 100%;
     height: 100%;
     backface-visibility: hidden; /* 翻转时隐藏背面 */
-    border-radius: 6px;
+    border-radius: 1.6vw;
     box-sizing: border-box;
 }
 
 .card-face {
     background-color: white;
-    border: 2px solid white; /* 和背面保持一致的边框 */
+    border: 0.5333vw solid white; /* 和背面保持一致的边框 */
 }
 
 .card-back-face {
     background: url('@/assets/common/card_back.png') no-repeat center center;
     background-size: 100% 100%; /* Stretch to fit */
-    border-radius: 6px; /* Match parent radius */
+    border-radius: 1.6vw; /* Match parent radius */
     transform: rotateY(180deg); /* 初始旋转180度，使其背面朝外 */
     box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1); /* Optional: subtle border */
 }
@@ -152,40 +152,40 @@ const suitSymbol = computed(() => {
   flex-direction: column;
   align-items: center;
   line-height: 1;
-  width: 24px; /* 限制宽度防止溢出 */
+  width: 6.4vw; /* 限制宽度防止溢出 */
 }
 
 .corner-top-left {
-  top: 4px;
-  left: 4px;
+  top: 1.0667vw;
+  left: 1.0667vw;
 }
 
 .corner-bottom-right {
-  bottom: 2px;
-  right: 2px;
+  bottom: 0.5333vw;
+  right: 0.5333vw;
   /* transform: rotate(180deg); Removed per request */
 }
 
-.is-small .corner-top-left { top: 2px; left: 2px; }
-.is-small .corner-bottom-right { bottom: 1px; right: 1px; }
+.is-small .corner-top-left { top: 0.5333vw; left: 0.5333vw; }
+.is-small .corner-bottom-right { bottom: 0.2667vw; right: 0.2667vw; }
 
 .rank {
   font-weight: 800;
-  font-size: 26px;
-  letter-spacing: -2px;
+  font-size: 6.9333vw;
+  letter-spacing: -0.5333vw;
 }
 .is-small .rank {
-  font-size: 18px;
+  font-size: 4.8vw;
 }
 
 .suit {
-  font-size: 22px;
+  font-size: 5.8667vw;
   font-weight: bold;
-  margin-top: -2px;
+  margin-top: -0.5333vw;
 }
 .is-small .suit {
-  font-size: 16px;
-  margin-top: -1px;
+  font-size: 4.2667vw;
+  margin-top: -0.2667vw;
 }
 
 .corner-bottom-right {
@@ -193,11 +193,11 @@ const suitSymbol = computed(() => {
 }
 
 .corner-suit {
-  font-size: 50px;
+  font-size: 13.3333vw;
   font-weight: bold;
   line-height: 1;
 }
 .is-small .corner-suit {
-  font-size: 32px;
+  font-size: 8.5333vw;
 }
 </style>

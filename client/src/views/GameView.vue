@@ -1253,7 +1253,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                             <van-image :src="myPlayer.avatar" class="avatar" fit="cover"
                                 :class="{ 'avatar-gray': myPlayer.isObserver }" />
                         </div>
-                        
+
                         <!-- Avatar Frame Overlay -->
                         <img :src="avatarFrameImg" class="avatar-border-overlay" />
 
@@ -1272,7 +1272,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                             class="banker-badge"><img :src="zhuangImg" alt="庄" class="banker-badge-img" /></div>
                     </div>
 
-                    <div class="info-box" :style="{ backgroundImage: `url(${userInfoBgImg})` }" :class="{ 'is-observer': myPlayer.isObserver }">
+                    <div class="info-box" :style="{ backgroundImage: `url(${userInfoBgImg})` }"
+                        :class="{ 'is-observer': myPlayer.isObserver }">
                         <div class="name van-ellipsis">{{ myPlayer.name.length > 10 ? myPlayer.name.slice(0, 4) + '...'
                             +
                             myPlayer.name.slice(-4) : myPlayer.name }}</div>
@@ -2243,7 +2244,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     width: 100%;
     height: 100%;
     /* Use the imported image for background */
-    
+
     background-size: 100% 100%;
     background-repeat: no-repeat;
     background-color: transparent;
@@ -2340,11 +2341,11 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     justify-content: center;
 
     /* Background Image */
-    
+
     background-size: 100% 100%;
     background-repeat: no-repeat;
     background-color: transparent;
-    
+
     /* Remove clip-path */
     clip-path: none;
 
@@ -2418,9 +2419,11 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 5; /* Above avatar (in frame), below banker badge (100) */
+    z-index: 5;
+    /* Above avatar (in frame), below banker badge (100) */
     pointer-events: none;
-    object-fit: fill; /* Or contain, depending on image */
+    object-fit: fill;
+    /* Or contain, depending on image */
 }
 
 /* Ensure controls container has enough height */

@@ -2203,8 +2203,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     /* Anchor for status float */
     display: flex;
 
-    justify-content: space-between;
-    /* To push info left and chat right */
+    justify-content: center;
+    /* Center align user info */
 
     align-items: center;
 
@@ -2409,10 +2409,12 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     align-items: center;
 }
 
-/* Ensure chat button pushes to the right within my-player-info-row */
+/* Position chat button absolutely to the right */
 .my-player-info-row .chat-toggle-btn {
-    margin-left: auto;
-    /* Push to the right */
+    position: absolute;
+    right: 20px; /* Align with padding */
+    top: 50%;
+    transform: translateY(-50%);
 }
 
 .my-player-info-row .avatar-border-overlay {

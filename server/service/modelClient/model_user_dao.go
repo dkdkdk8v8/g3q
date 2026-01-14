@@ -196,7 +196,12 @@ func UpdateUserSetting(setting *GameSettletruct) ([]*ModelUser, error) {
 			user.TotalGameCount++
 			user.TotalBet += uint64(player.ValidBet)
 			user.TotalNetBalance += player.ChangeBalance
-			effectRow, err := txOrm.Update(&user)
+			res, err := txOrm.Raw("UPDATE g3q_user SET balance=?, balance_lock=?, game_id=?, last_played=?, total_game_count=?, total_bet=?, total_net_balance=?, update_at=? WHERE user_id=?",
+				user.Balance, user.BalanceLock, user.GameId, user.LastPlayed, user.TotalGameCount, user.TotalBet, user.TotalNetBalance, time.Now(), user.UserId).Exec()
+			if err != nil {
+				return err
+			}
+			effectRow, err := res.RowsAffected()
 			if err != nil {
 				return err
 			}
@@ -218,6 +223,9 @@ func UpdateUserSetting(setting *GameSettletruct) ([]*ModelUser, error) {
 					return err
 				}
 			}
+			logrus.WithField("userId", player.UserId).WithField("oldBalance", oldBalance).WithField(
+				"lockBalance", user.BalanceLock).WithField("newBalance", user.Balance).WithField("changeBalance", player.ChangeBalance).WithField(
+				"validBet", player.ValidBet).Info("settringDoTx")
 		}
 		return nil
 	})

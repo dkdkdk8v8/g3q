@@ -1089,19 +1089,15 @@ const displayName = computed(() => {
 
 .opponent-hand {
     position: absolute !important;
-    top: -28px !important; /* Align with animation target (InfoBox Top - CardHeight/2) */
+    top: -32px !important;
     left: 0;
     width: 100%;
-    margin-top: 0 !important; /* Override seat-specific margins */
-    z-index: 5; /* Below InfoBox (10) but visible? InfoBox is 10. Card should be above? 
-                   If Card bottom touches Info Top, it is physically above InfoBox.
-                   So z-index should be higher than Avatar maybe? Avatar is in flow.
-                   Let's try z-index 15. InfoBox is 10. */
+    margin-top: 0 !important;
     z-index: 15;
-    pointer-events: none; /* Let clicks pass through if needed, though cards have clicks */
+    pointer-events: none;
 }
 .opponent-hand .hand-card {
-    pointer-events: auto; /* Re-enable clicks on cards */
+    pointer-events: auto;
 }
 
 .seat-bottom .hand-area {

@@ -161,13 +161,14 @@ type QZNNRoomData struct {
 // Room 代表一个游戏房间
 type QZNNRoom struct {
 	QZNNRoomData
-	StateDeadline time.Time            `json:"-"`
-	RoomMu        deadlock.RWMutex     `json:"-"` // 保护房间数据并发安全
-	Deck          []int                `json:"-"` // 牌堆
-	TargetResults map[string]int       `json:"-"` // 记录每个玩家本局被分配的目标分数 (牛几)
-	TotalBet      int64                `json:"-"` // 本局总下注额，用于更新库存
-	driverGo      chan struct{}        `json:"-"`
-	OnBotAction   func(room *QZNNRoom) `json:"-"`
+	StateDeadline     time.Time            `json:"-"`
+	RoomMu            deadlock.RWMutex     `json:"-"` // 保护房间数据并发安全
+	Deck              []int                `json:"-"` // 牌堆
+	TargetResults     map[string]int       `json:"-"` // 记录每个玩家本局被分配的目标分数 (牛几)
+	TotalBet          int64                `json:"-"` // 本局总下注额，用于更新库存
+	driverGo          chan struct{}        `json:"-"`
+	OnBotAction       func(room *QZNNRoom) `json:"-"`
+	LastUserCheckTime time.Time            `json:"-"` // 上次检查用户状态的时间
 }
 
 func (r *QZNNRoom) ResetGameData() {
@@ -185,7 +186,7 @@ func (r *QZNNRoom) ResetGameData() {
 	}
 }
 
-func (r *QZNNRoom) ResetOb() {
+func (r *QZNNRoom) resetOb() {
 	for _, p := range r.Players {
 		if p != nil {
 			p.Mu.Lock()
@@ -226,10 +227,14 @@ func (r *QZNNRoom) UpdateStateLeftSec() {
 
 func (r *QZNNRoom) GetClientRoom(pushId string) *QZNNRoom {
 	r.RoomMu.RLock()
+	defer r.RoomMu.RUnlock()
+	return r.getClientRoom(pushId)
+}
+
+func (r *QZNNRoom) getClientRoom(pushId string) *QZNNRoom {
 	n := &QZNNRoom{
 		QZNNRoomData: r.QZNNRoomData,
 	}
-	r.RoomMu.RUnlock()
 	n.Players = make([]*Player, 0, 5) // 清空 Players，重新生成，避免指向原切片
 	preCard := PlayerCardMax
 	bSecret := true
@@ -243,7 +248,7 @@ func (r *QZNNRoom) GetClientRoom(pushId string) *QZNNRoom {
 	case StateSettling:
 		bSecret = false
 	}
-	pushPlayers := r.GetBroadCasePlayers(nil)
+	pushPlayers := r.getBroadCasePlayers(nil)
 	for _, p := range pushPlayers {
 		n.Players = append(n.Players, p.GetClientPlayer(preCard, bSecret && !p.IsShow && p.ID != pushId))
 	}

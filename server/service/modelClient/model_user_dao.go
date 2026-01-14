@@ -181,6 +181,15 @@ func UpdateUserSetting(setting *GameSettletruct) ([]*ModelUser, error) {
 	ormDb := GetDb()
 	//用事物保持多个player的金额,在一个事务内修改
 	var ret []*ModelUser
+	type logInfo struct {
+		UserId        string
+		OldBalance    int64
+		LockBalance   int64
+		NewBalance    int64
+		ChangeBalance int64
+		ValidBet      int64
+	}
+	var logs []logInfo
 	err := ormDb.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
 		for _, player := range setting.Players {
 			var user ModelUser
@@ -196,7 +205,12 @@ func UpdateUserSetting(setting *GameSettletruct) ([]*ModelUser, error) {
 			user.TotalGameCount++
 			user.TotalBet += uint64(player.ValidBet)
 			user.TotalNetBalance += player.ChangeBalance
-			effectRow, err := txOrm.Update(&user)
+			res, err := txOrm.Raw("UPDATE g3q_user SET balance=?, balance_lock=?, game_id=?, last_played=?, total_game_count=?, total_bet=?, total_net_balance=?, update_at=? WHERE user_id=?",
+				user.Balance, user.BalanceLock, user.GameId, user.LastPlayed, user.TotalGameCount, user.TotalBet, user.TotalNetBalance, time.Now(), user.UserId).Exec()
+			if err != nil {
+				return err
+			}
+			effectRow, err := res.RowsAffected()
 			if err != nil {
 				return err
 			}
@@ -218,11 +232,24 @@ func UpdateUserSetting(setting *GameSettletruct) ([]*ModelUser, error) {
 					return err
 				}
 			}
+			logs = append(logs, logInfo{
+				UserId:        player.UserId,
+				OldBalance:    oldBalance,
+				LockBalance:   user.BalanceLock,
+				NewBalance:    user.Balance,
+				ChangeBalance: player.ChangeBalance,
+				ValidBet:      player.ValidBet,
+			})
 		}
 		return nil
 	})
 	if err != nil {
 		return nil, err
+	}
+	for _, l := range logs {
+		logrus.WithField("userId", l.UserId).WithField("oldBalance", l.OldBalance).WithField(
+			"lockBalance", l.LockBalance).WithField("newBalance", l.NewBalance).WithField("changeBalance", l.ChangeBalance).WithField(
+			"validBet", l.ValidBet).Info("settringDoTx")
 	}
 	return ret, nil
 }

@@ -40,7 +40,7 @@ func HandlerPlayerLeave(r *QZNNRoom, userID string) error {
 		}
 	}
 
-	r.BroadcastWithPlayer(func(p *Player) interface{} {
+	r.BroadcastWithPlayer(func(p *Player) any {
 		return comm.PushData{
 			Cmd:      comm.ServerPush,
 			PushType: PushPlayLeave,
@@ -80,7 +80,7 @@ func HandleCallBanker(r *QZNNRoom, userID string, mult int64) error {
 		return err
 	}
 
-	r.BroadcastWithPlayer(func(p *Player) interface{} {
+	r.BroadcastWithPlayer(func(p *Player) any {
 		return comm.PushData{
 			Cmd:      comm.ServerPush,
 			PushType: PushPlayerCallBanker,
@@ -129,7 +129,7 @@ func HandlePlaceBet(r *QZNNRoom, userID string, mult int64) error {
 		return err
 	}
 
-	r.BroadcastWithPlayer(func(p *Player) interface{} {
+	r.BroadcastWithPlayer(func(p *Player) any {
 		return comm.PushData{
 			Cmd:      comm.ServerPush,
 			PushType: PushPlayerPlaceBet,
@@ -172,7 +172,7 @@ func HandleShowCards(r *QZNNRoom, userID string) error {
 		return err
 	}
 
-	r.BroadcastWithPlayer(func(p *Player) interface{} {
+	r.BroadcastWithPlayer(func(p *Player) any {
 		return comm.PushData{
 			Cmd:      comm.ServerPush,
 			PushType: PushPlayerShowCard,

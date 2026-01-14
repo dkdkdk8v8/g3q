@@ -133,7 +133,7 @@ func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []b
 	}
 
 	room.BroadcastWithPlayer(
-		func(p *qznn.Player) interface{} {
+		func(p *qznn.Player) any {
 			return comm.PushData{
 				Cmd:      comm.ServerPush,
 				PushType: qznn.PushPlayJoin,
@@ -237,7 +237,7 @@ func handlerPlayerTalk(userId string, data []byte) error {
 	room := game.GetMgr().GetRoomByRoomId(req.RoomId)
 	if room != nil {
 		room.BroadcastWithPlayer(
-			func(p *qznn.Player) interface{} {
+			func(p *qznn.Player) any {
 				return comm.PushData{
 					Cmd:      comm.ServerPush,
 					PushType: qznn.PushTalk,

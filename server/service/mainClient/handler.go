@@ -22,7 +22,7 @@ import (
 )
 
 type LobbyConfigRsp struct {
-	LobbyConfigs interface{} `json:"LobbyConfigs"`
+	LobbyConfigs any `json:"LobbyConfigs"`
 }
 
 func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []byte) error {
@@ -83,7 +83,6 @@ func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []b
 	//player初始化完成，看房间
 	p := qznn.NewPlayer()
 	p.ID = userId
-	p.Balance = user.Balance
 	p.IsRobot = user.IsRobot
 	p.ConnWrap = connWrap
 	p.NickName = func() string {
@@ -107,8 +106,8 @@ func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []b
 		logrus.WithField("!", nil).WithField("userId", p.ID).WithError(err).Error("PlayerLockBal-Fail")
 		return err
 	}
-	//锁后设置金额
-	p.Balance = user.BalanceLock
+	//设置金额
+	p.Balance = modelUser.BalanceLock
 	logrus.WithField("userId", p.ID).WithField(
 		"balance", modelUser.Balance).WithField("balanceLock", modelUser.BalanceLock).Info("RoomJoin-LockBalOk")
 

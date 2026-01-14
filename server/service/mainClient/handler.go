@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"math"
-	"math/rand"
 	"service/comm"
 	"service/mainClient/game"
 	"service/mainClient/game/qznn"
@@ -91,13 +90,7 @@ func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []b
 		}
 		return user.NickName
 	}()
-	p.Avatar = func() string {
-		if user.Avatar == "" {
-			return game.ConstAvatorUrlPathPrefix + "/" +
-				strconv.Itoa(rand.Intn(game.ConstAvator)) + ".jpg"
-		}
-		return user.Avatar
-	}()
+	p.Avatar = user.Avatar
 
 	//锁用户的balance，进房间就锁
 	modelUser, err := modelClient.GameLockUserBalance(p.ID, cfg.MinBalance)

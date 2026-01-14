@@ -4,10 +4,17 @@ import (
 	"beego/v2/client/orm"
 	"compoment/ormutil"
 	"context"
+	"math/rand"
 	"service/comm"
+	"strconv"
 	"time"
 
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	ConstAvator              = 49
+	ConstAvatorUrlPathPrefix = "gwd3czq"
 )
 
 var ErrorBalanceNotEnough = comm.NewMyError("用户余额不足")
@@ -33,6 +40,8 @@ func GetOrCreateUser(appId string, appUserId string) (*ModelUser, error) {
 		Talk:      true,
 		Effect:    true,
 		Music:     true,
+		Avatar: ConstAvatorUrlPathPrefix + "/" +
+			strconv.Itoa(rand.Intn(ConstAvator)) + ".jpg",
 	}
 
 	_, err = WrapInsert(&user)

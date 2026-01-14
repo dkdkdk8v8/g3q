@@ -341,6 +341,11 @@ func (r *QZNNRoom) AddPlayer(p *Player) (int, error) {
 	// 检查玩家是否已在房间
 	for seatNum, existingPlayer := range r.Players {
 		if existingPlayer != nil && existingPlayer.ID == p.ID {
+			// Fix: 如果玩家已在房间（可能是断线重连或GameMgr状态不同步），需要更新余额
+			// 因为外部 handlePlayerJoin 已经完成了 GameLockUserBalance，p.Balance 是最新的
+			existingPlayer.Mu.Lock()
+			existingPlayer.Balance = p.Balance
+			existingPlayer.Mu.Unlock()
 			r.RoomMu.Unlock()
 			return seatNum, nil
 		}
@@ -818,6 +823,16 @@ func (r *QZNNRoom) startGame() {
 		logrus.WithField("gameId", r.GameID).WithField("roomId", r.ID).WithField("players", activePlayerIds).Info("GameStart-ActivePlayers")
 	}
 
+	if r.CanLog() {
+		balanceLog := make(map[string]int64)
+		for _, p := range activePlayer {
+			p.Mu.RLock()
+			balanceLog[p.ID] = p.Balance
+			p.Mu.RUnlock()
+		}
+		logrus.WithField("gameId", r.GameID).WithField("balances", balanceLog).Info("GameStart-PlayerBalances")
+	}
+
 	//检查是否有重复id在游戏内
 	allPlayers := r.GetPlayers()
 	playerSet := make(map[string]*Player, 5)
@@ -1182,7 +1197,9 @@ func (r *QZNNRoom) startGame() {
 	finalBalanceChanges := logrus.Fields{}
 	for _, p := range activePlayer {
 		finalBalanceChanges[p.ID] = p.BalanceChange
+		p.Mu.Lock()
 		p.Balance += p.BalanceChange
+		p.Mu.Unlock()
 	}
 	if r.CanLog() {
 		logrus.WithField("gameId", r.GameID).WithField("final_balance_changes", finalBalanceChanges).Info("FinalBalanceChanges")
@@ -1220,14 +1237,15 @@ func (r *QZNNRoom) startGame() {
 	settle := modelClient.GameSettletruct{RoomId: r.ID, GameRecordId: uint64(nGameRecordId),
 		GameId: r.GameID}
 	for _, p := range activePlayer {
-		insertUserRecord := true
-		if p.IsRobot && !initMain.DefCtx.IsTest {
+		insertUserRecord := !p.IsRobot
+		if initMain.DefCtx.IsTest {
 			//非测试模式下，机器人不记录对局记录
-			insertUserRecord = false
+			insertUserRecord = true
 		}
 		settle.Players = append(settle.Players, modelClient.UserSettingStruct{
 			UserId:               p.ID,
 			ChangeBalance:        p.BalanceChange,
+			PlayerBalance:        p.Balance,
 			ValidBet:             p.ValidBet,
 			UserGameRecordInsert: insertUserRecord,
 		})
@@ -1258,6 +1276,7 @@ func (r *QZNNRoom) startGame() {
 		for _, player := range activePlayer {
 			//用最新数据更新balance
 			if player.ID == modelU.UserId {
+				player.Mu.Lock()
 				//检查内存player 的balance和最终数据库的差异
 				if player.Balance != modelU.BalanceLock {
 					//可能外面有余额，这里和数据库有的不一样
@@ -1266,11 +1285,12 @@ func (r *QZNNRoom) startGame() {
 							WithField("userId", player.ID).
 							WithField("memBal", player.Balance).
 							WithField("dbBalLock", modelU.BalanceLock).
-							Warn("BalanceMismatchAfterSettle")
+							Error("BalanceMismatchAfterSettle")
 					}
 				}
 				//最终以数据库的数据为准
 				player.Balance = modelU.BalanceLock
+				player.Mu.Unlock()
 				break
 			}
 		}

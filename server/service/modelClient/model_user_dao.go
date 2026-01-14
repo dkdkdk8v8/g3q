@@ -30,7 +30,7 @@ func GetOrCreateUser(appId string, appUserId string) (*ModelUser, error) {
 		AppUserId: appUserId,
 		Enable:    true,
 		Balance:   200000, // 默认2000元 用于测试
-		Talk:      false,
+		Talk:      true,
 		Effect:    true,
 		Music:     true,
 	}
@@ -190,6 +190,7 @@ type GameSettletruct struct {
 }
 type UserSettingStruct struct {
 	UserId               string
+	PlayerBalance        int64
 	ChangeBalance        int64
 	ValidBet             int64
 	UserGameRecordInsert bool

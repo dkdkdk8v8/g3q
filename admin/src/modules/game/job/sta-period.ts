@@ -281,7 +281,7 @@ export class StaPeriodJob implements IJob {
 
           const user = userMap.get(userId);
           const app_id = user?.app_id || '';
-          if (!user) return;
+          if (!user || user.is_robot) return;
           involvedGroups.add(`${app_id}`);
 
           const stats = this.getStats(statsMap, timeKey, app_id, game_name, roomLevel, roomType);

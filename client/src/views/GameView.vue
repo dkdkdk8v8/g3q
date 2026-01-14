@@ -1243,15 +1243,19 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                 <!-- Avatar and Info Box - adapted from PlayerSeat -->
                 <div class="avatar-area my-player-avatar-info">
                     <div class="avatar-wrapper">
-                        <div class="avatar-frame" :style="{ backgroundImage: `url(${avatarFrameImg})` }" :class="{
+                        <!-- Avatar Container -->
+                        <div class="avatar-frame" :class="{
                             'banker-candidate-highlight': myPlayer.id === currentlyHighlightedPlayerId,
                             'banker-confirm-anim': showBankerConfirmAnim && myPlayer.isBanker,
                             'is-banker': myPlayer.isBanker && !['SETTLEMENT', 'GAME_OVER'].includes(store.currentPhase),
                             'win-neon-flash': !!winEffects[myPlayer.id]
                         }">
-                            <van-image :src="myPlayer.avatar" class="avatar"
+                            <van-image :src="myPlayer.avatar" class="avatar" fit="cover"
                                 :class="{ 'avatar-gray': myPlayer.isObserver }" />
                         </div>
+                        
+                        <!-- Avatar Frame Overlay -->
+                        <img :src="avatarFrameImg" class="avatar-border-overlay" />
 
                         <!-- Speech Bubble -->
                         <div v-show="showSpeechBubble(myPlayer.id)" class="speech-bubble"
@@ -2232,8 +2236,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     width: 62px;
     height: 62px;
     flex-shrink: 0;
-    z-index: 6;
-    /* Ensure above info box */
+    /* Removed z-index to allow child badge to pop over sibling info-box */
 }
 
 .my-player-info-row .avatar-frame {
@@ -2255,7 +2258,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     justify-content: center;
     align-items: center;
     transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
-    padding: 2px;
+    padding: 0;
 }
 
 .my-player-info-row .avatar-frame.banker-candidate-highlight {
@@ -2409,6 +2412,18 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     /* Push to the right */
 }
 
+.my-player-info-row .avatar-border-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 5; /* Above avatar (in frame), below banker badge (100) */
+    pointer-events: none;
+    object-fit: fill; /* Or contain, depending on image */
+}
+
+/* Ensure controls container has enough height */
 .controls-container {
     margin-bottom: 20px;
     min-height: 120px;

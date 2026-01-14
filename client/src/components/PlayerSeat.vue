@@ -257,16 +257,19 @@ const displayName = computed(() => {
         <!-- ... (keep avatar area) -->
         <div class="avatar-area">
             <div class="avatar-wrapper">
-                <div class="avatar-frame" :style="{ backgroundImage: `url(${avatarFrameImg})` }" :class="{
+                <div class="avatar-frame" :class="{
                     'banker-candidate-highlight': isAnimatingHighlight,
                     'banker-confirm-anim': triggerBankerAnimation,
                     'is-banker': player.isBanker && !['SETTLEMENT', 'GAME_OVER'].includes(store.currentPhase),
                     'win-neon-flash': isWin,
                     'is-opponent': true
                 }">
-                    <van-image :src="player.avatar" class="avatar"
+                    <van-image :src="player.avatar" class="avatar" fit="cover"
                         :class="{ 'avatar-gray': player.isObserver, 'opponent-avatar': true }" />
                 </div>
+                
+                <!-- Avatar Frame Overlay -->
+                <img :src="avatarFrameImg" class="avatar-border-overlay" />
 
                 <!-- Speech Bubble -->
                 <div v-show="showSpeechBubble" class="speech-bubble" :style="speechBubbleStyle"
@@ -441,7 +444,7 @@ const displayName = computed(() => {
     height: 52px;
     flex-shrink: 0;
     /* Prevent avatar shrinking */
-    z-index: 6; /* Ensure avatar is above info box if they overlap slightly */
+    /* Removed z-index: 6 to allow banker badge (z-100) to be above info-box (z-10) */
 }
 
 /* Increase avatar size for opponents */
@@ -482,6 +485,17 @@ const displayName = computed(() => {
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
+.avatar-border-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 5; /* Above avatar, below banker badge (100) */
+    pointer-events: none;
+    object-fit: fill;
+}
+
 .avatar-frame {
     width: 100%;
     height: 100%;
@@ -502,7 +516,7 @@ const displayName = computed(() => {
     justify-content: center;
     align-items: center;
     transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
-    padding: 2px; /* Inner padding for avatar */
+    padding: 0; /* Inner padding for avatar */
 }
 
 /* Avatar Frame: Round for ALL */

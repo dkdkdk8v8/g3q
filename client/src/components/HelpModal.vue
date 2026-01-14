@@ -1,5 +1,7 @@
 <script setup>
 import menuHelpImg from '@/assets/common/menu_help.png';
+import flowerLeft from '@/assets/common/flower_left.png';
+import flowerRight from '@/assets/common/flower_right.png';
 
 const props = defineProps({
     visible: Boolean,
@@ -32,7 +34,11 @@ const close = () => {
             <div class="help-content">
                 <!-- 这个是不看牌抢庄牛牛的基本规则 -->
                 <section v-if="mode === 0">
-                    <h4>基本规则</h4>
+                    <h4 class="flower-header">
+                        <img :src="flowerLeft" class="flower-icon" />
+                        基本规则
+                        <img :src="flowerRight" class="flower-icon" />
+                    </h4>
                     <p>• <b>抢庄阶段：</b>玩家可以选择“1倍”、“2倍”、“3倍”、“4倍”、“不抢”。抢庄倍数最高的玩家做庄。若多名玩家抢庄最高倍数相同，则携带金币越多的玩家坐庄几率越大，如果所有玩家都不叫分，则系统随机选择一个玩家作为庄家，倍率默认为“1倍”。
                     </p>
                     <p>• <b>加倍阶段：</b>确定庄家后，闲家可以选择“1倍”、“5倍”、“10倍”、“15倍”、“20倍”倍率进行加倍。不选则默认以最小的“1倍”进行加倍。</p>
@@ -42,7 +48,11 @@ const close = () => {
 
                 <!-- 这个是看三张抢庄牛牛的基本规则 -->
                 <section v-else-if="mode === 1">
-                    <h4>基本规则</h4>
+                    <h4 class="flower-header">
+                        <img :src="flowerLeft" class="flower-icon" />
+                        基本规则
+                        <img :src="flowerRight" class="flower-icon" />
+                    </h4>
                     <p>• <b>发牌阶段</b>游戏开始，系统会发给所有玩家三张手牌，并先翻开给玩家看。翻开的三张牌只有玩家自己能看见，无法看见其他人先翻开的三张牌。</p>
                     <p>• <b>抢庄阶段：</b>玩家可以选择“1倍”、“2倍”、“3倍”、“4倍”、“不抢”。抢庄倍数最高的玩家做庄。若多名玩家抢庄最高倍数相同，则携带金币越多的玩家坐庄几率越大，如果所有玩家都不叫分，则系统随机选择一个玩家作为庄家，倍率默认为“1倍”。
                     </p>
@@ -53,7 +63,11 @@ const close = () => {
 
                 <!-- 这个是看四张抢庄牛牛的基本规则 -->
                 <section v-else-if="mode === 2">
-                    <h4>基本规则</h4>
+                    <h4 class="flower-header">
+                        <img :src="flowerLeft" class="flower-icon" />
+                        基本规则
+                        <img :src="flowerRight" class="flower-icon" />
+                    </h4>
                     <p>• <b>发牌阶段</b>游戏开始，系统会发给所有玩家四张手牌，并先翻开给玩家看。翻开的四张牌只有玩家自己能看见，无法看见其他人先翻开的四张牌。</p>
                     <p>• <b>抢庄阶段：</b>玩家可以选择“1倍”、“2倍”、“3倍”、“4倍”、“不抢”。抢庄倍数最高的玩家做庄。若多名玩家抢庄最高倍数相同，则携带金币越多的玩家坐庄几率越大，如果所有玩家都不叫分，则系统随机选择一个玩家作为庄家，倍率默认为“1倍”。
                     </p>
@@ -63,7 +77,11 @@ const close = () => {
                 </section>
 
                 <section>
-                    <h4>牌型</h4>
+                    <h4 class="flower-header">
+                        <img :src="flowerLeft" class="flower-icon" />
+                        牌型
+                        <img :src="flowerRight" class="flower-icon" />
+                    </h4>
                     <p>抢庄牛牛游戏中采用一副52张牌，没有大小王。J、Q、K都是10点，其他按照排面的点数计算。</p>
                     <p>• <b>无牛：</b>没有任意三张牌能加起来成为10的倍数。</p>
                     <p>• <b>有牛：</b>从牛一到牛九。任意三张牌相加是10的倍数，剩余两张牌相加不是10的倍数，然后取个位数，各位数是几，就是牛几。</p>
@@ -75,7 +93,11 @@ const close = () => {
                 </section>
 
                 <section>
-                    <h4>牌型比较</h4>
+                    <h4 class="flower-header">
+                        <img :src="flowerLeft" class="flower-icon" />
+                        牌型比较
+                        <img :src="flowerRight" class="flower-icon" />
+                    </h4>
                     <p>• <b>单张大小：</b>从大到小排序为：K > Q > J > 10 > 9 > 8 > 7 > 6 > 5 > 4 > 3 > 2 > A。</p>
                     <p>• <b>花色大小：</b>花色由大到小排序为：黑桃 <span
                             style="color: black; font-size: 1.3em; text-shadow: 1px 0 0 #aaa, 0 1px 0 #aaa, -1px 0 0 #aaa, 0 -1px 0 #aaa;">♠</span>
@@ -93,7 +115,11 @@ const close = () => {
 
 
                 <section>
-                    <h4>结算说明</h4>
+                    <h4 class="flower-header">
+                        <img :src="flowerLeft" class="flower-icon" />
+                        结算说明
+                        <img :src="flowerRight" class="flower-icon" />
+                    </h4>
 
                     <h3>赔率</h3>
                     <p>• 无牛到牛六：1倍</p>
@@ -109,7 +135,11 @@ const close = () => {
                     <p>• <b>闲家胜利：</b>房间底注 × 闲家牌型倍数 × 庄家抢庄倍数 × 闲家下注倍数。</p>
                     <p>• <b>闲家失败：</b>房间底注 × 庄家牌型倍数 × 庄家抢庄倍数 × 闲家下注倍数。</p>
 
-                    <h4>结算</h4>
+                    <h4 class="flower-header">
+                        <img :src="flowerLeft" class="flower-icon" />
+                        结算
+                        <img :src="flowerRight" class="flower-icon" />
+                    </h4>
                     <p>• 为了游戏公平，玩家在一局游戏胜利后，赢得的金币总额不会超过身上携带的金币，如某玩家按照游戏规则计算应该赢100金币，但是因为它身上值携带了30金币，所以本局该玩家最多只能赢取30金币，输家按照对应比例相应减少所输的金币。所以如果玩家携带很少的金币进行游戏，很可能会出现赢到的金币低于预期，不够赔付输掉的金币甚至输掉本金的情况，所以强烈建议您携带足够的金币进行游戏。
                     </p>
                     <p>• 在每局游戏中获胜后，系统会收取本局总赢钱金额的5%作为税收。</p>
@@ -210,10 +240,35 @@ const close = () => {
 }
 
 .help-content h4 {
+    /* Base styles, potentially overridden by .flower-header */
     color: #fff;
     margin-bottom: 10px;
-    border-left: 4px solid #3b82f6;
-    padding-left: 10px;
+    /* border-left removed here for safety, will be overridden */
+    /* padding-left removed here for safety */
+}
+
+.flower-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    /* Space between text and flowers */
+    color: #fff;
+    font-weight: bold;
+    margin-bottom: 15px;
+    /* Increased margin for better look */
+    border-left: none !important;
+    /* Force remove left border */
+    padding-left: 0 !important;
+    font-size: 1.2em;
+    /* Force remove left padding */
+}
+
+.flower-icon {
+    height: 10px;
+    /* Adjust size as needed */
+    width: auto;
+    object-fit: contain;
 }
 
 .help-content p {

@@ -45,6 +45,7 @@ import goldImg from '@/assets/common/gold.png';
 import zhuangImg from '@/assets/common/zhuang.png';
 import tanpaiImg from '@/assets/common/tanpai.png';
 import gameTopDifenBg from '@/assets/common/game_top_difen_bg.png';
+import gameChatBtnImg from '@/assets/common/game_chat_btn.png';
 
 // Niu hand type images
 import niu1Img from '@/assets/niu/niu_1.png';
@@ -1281,7 +1282,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                             <div v-if="shouldShowRobMult" class="status-content">
                                 <span v-if="myPlayer.robMultiplier > 0" class="status-text rob-text text-large">抢{{
                                     myPlayer.robMultiplier
-                                }}倍</span>
+                                    }}倍</span>
                                 <span v-else class="status-text no-rob-text text-large">不抢</span>
                             </div>
                         </Transition>
@@ -1296,7 +1297,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
                 <!-- Chat button -->
                 <div class="chat-toggle-btn" @click="toggleShowChatSelector()">
-                    <van-icon name="comment" size="24" color="white" />
+                    <img :src="gameChatBtnImg" class="chat-btn-img" />
                 </div>
             </div>
 
@@ -2484,10 +2485,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     bottom: 20px;
     right: 20px;
     /* Removed width and height to allow padding to control size */
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 8px;
-    padding: 4px 8px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+
     display: flex;
     justify-content: center;
     align-items: center;
@@ -2496,6 +2494,13 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     cursor: pointer;
     z-index: 100;
     transition: transform 0.1s;
+}
+
+.chat-btn-img {
+    width: 40px;
+    height: auto;
+    object-fit: contain;
+    margin-right: 10px;
 }
 
 .chat-toggle-btn:active {

@@ -852,20 +852,21 @@ func (r *QZNNRoom) startGame() {
 
 	//锁用户的balance
 	for _, p := range activePlayer {
-		err := modelClient.GameLockUserBalance(p.ID, r.GameID, r.Config.MinBalance)
+		modelUser, err := modelClient.GameLockUserBalance(p.ID, r.GameID, r.Config.MinBalance)
 		if err != nil {
 			//有用户的金额不够锁住,尝试踢出用户
 			logrus.WithField("!", nil).WithField("userId", p.ID).WithField("gameId", r.GameID).WithError(err).Error("InvalidPlayerLockBalance")
 			r.SetStatus([]RoomState{StateStartGame}, StateWaiting, 0)
 			return
 		}
-		logrus.WithField("userId", p.ID).WithField("gameId", r.GameID).Info("QZNNGameStart-LockBalanceSuccess")
+		p.Balance = modelUser.Balance + modelUser.BalanceLock
+		logrus.WithField("userId", p.ID).WithField("gameId", r.GameID).WithField(
+			"balance", modelUser.Balance).WithField("balanceLock", modelUser.BalanceLock).Info("QZNNGameStart-LockBalanceSuccess")
 	}
 
 	if len(activePlayer) < 2 {
 		logrus.WithField("!", nil).WithField("roomId", r.ID).WithField("playerCount", len(activePlayer)).Error("InvalidPlayerCountForGame-NotEnough")
 		r.SetStatus([]RoomState{StateStartGame}, StateWaiting, 0)
-		//不判断set status 成功与否，强行return，保护数据
 		return
 	}
 
@@ -880,7 +881,7 @@ func (r *QZNNRoom) startGame() {
 		}
 		p.Mu.RUnlock()
 	}
-	logrus.WithField("gameId", r.GameID).WithField("deck_len", len(r.Deck)).WithField("players_cards", playerCardLog).Info("QZNNGame-PrepareDeck")
+	logrus.WithField("gameId", r.GameID).WithField("deck_len", len(r.Deck)).WithField("players_cards", playerCardLog).Info("PrepareDeck")
 
 	r.WaitStateLeftTicker()
 
@@ -909,7 +910,7 @@ func (r *QZNNRoom) startGame() {
 		callBankerLog[p.ID] = p.CallMult
 		p.Mu.RUnlock()
 	}
-	logrus.WithField("gameId", r.GameID).WithField("call_mults", callBankerLog).Info("QZNNGame-CallBankerResults")
+	logrus.WithField("gameId", r.GameID).WithField("call_mults", callBankerLog).Info("CallBankerResults")
 
 	// 查看是否已经有人抢庄
 	allCallPlayer := r.GetActivePlayers(func(p *Player) bool {
@@ -971,7 +972,7 @@ func (r *QZNNRoom) startGame() {
 		WithField("candidates", candidateIds).
 		WithField("is_random", bRandomBanker).
 		WithField("bankerId", r.BankerID).
-		Info("QZNNGame-BankerSelection")
+		Info("BankerSelection")
 
 	r.SetStatus([]RoomState{StateBanking, StateRandomBank}, StateBankerConfirm, 0)
 
@@ -1003,7 +1004,7 @@ func (r *QZNNRoom) startGame() {
 			p.BetMult = r.Config.BetMult[0]
 		}
 	}
-	logrus.WithField("gameId", r.GameID).WithField("bets", betLog).Info("QZNNGame-BetResults")
+	logrus.WithField("gameId", r.GameID).WithField("bets", betLog).Info("BetResults")
 
 	//补牌到5张，不看牌发5张，看3补2，看4
 	if !r.SetStatus([]RoomState{StateBetting}, StateDealing, 0) {
@@ -1033,7 +1034,7 @@ func (r *QZNNRoom) startGame() {
 			bankerPlayer = p
 		}
 	}
-	logrus.WithField("gameId", r.GameID).WithField("card_results", cardResultLog).Info("QZNNGame-CardResults")
+	logrus.WithField("gameId", r.GameID).WithField("card_results", cardResultLog).Info("CardResults")
 
 	if bankerPlayer == nil {
 		logrus.WithField("gameId", r.GameID).WithField("bankerId", r.BankerID).Error("QZNNRoom-BankerInvalid")
@@ -1087,7 +1088,7 @@ func (r *QZNNRoom) startGame() {
 		"player_wins":        playerWins,
 		"player_loses":       playerLoses,
 	}
-	logrus.WithField("gameId", r.GameID).WithField("pre_settlement", preSettleLog).Info("QZNNGame-PreSettlement")
+	logrus.WithField("gameId", r.GameID).WithField("pre_settlement", preSettleLog).Info("PreSettlement")
 
 	// 先算输的闲家给庄家赔付
 	playerLoss2Banker := int64(0)
@@ -1187,7 +1188,9 @@ func (r *QZNNRoom) startGame() {
 			p.BalanceChange -= tax
 		}
 	}
-	logrus.WithField("gameId", r.GameID).WithField("taxes", taxLog).Info("QZNNGame-Taxes")
+	logrus.WithField("gameId", r.GameID).WithField("taxes", taxLog).Info("Taxes")
+
+	//5
 
 	//内存预先结算
 	finalBalanceChanges := logrus.Fields{}
@@ -1195,7 +1198,7 @@ func (r *QZNNRoom) startGame() {
 		finalBalanceChanges[p.ID] = p.BalanceChange
 		p.Balance += p.BalanceChange
 	}
-	logrus.WithField("gameId", r.GameID).WithField("final_balance_changes", finalBalanceChanges).Info("QZNNGame-FinalBalanceChanges")
+	logrus.WithField("gameId", r.GameID).WithField("final_balance_changes", finalBalanceChanges).Info("FinalBalanceChanges")
 
 	//结算状态
 	if !r.SetStatus([]RoomState{StateShowCard}, StateSettling, 0) {
@@ -1215,9 +1218,9 @@ func (r *QZNNRoom) startGame() {
 		GameData: string(roomBytes),
 	})
 	if err != nil {
-		logrus.WithField("gameId", r.GameID).WithError(err).Error("QZNNGame-InsertGameRecord-Fail")
+		logrus.WithField("gameId", r.GameID).WithError(err).Error("InsertGameRecord-Fail")
 	} else {
-		logrus.WithField("gameId", r.GameID).WithField("recordId", nGameRecordId).Info("QZNNGame-InsertGameRecord-Success")
+		logrus.WithField("gameId", r.GameID).WithField("recordId", nGameRecordId).Info("InsertGameRecord-Success")
 	}
 
 	settle := modelClient.GameSettletruct{RoomId: r.ID, GameRecordId: uint64(nGameRecordId)}
@@ -1234,7 +1237,7 @@ func (r *QZNNRoom) startGame() {
 			UserGameRecordInsert: insertUserRecord,
 		})
 	}
-	logrus.WithField("gameId", r.GameID).WithField("settlement_data", settle).Info("QZNNGame-PreUpdateUserSetting")
+	logrus.WithField("gameId", r.GameID).WithField("settlement_data", settle).Info("PreUpdateUserSetting")
 
 	//
 	modelUsers, err := modelClient.UpdateUserSetting(&settle)
@@ -1250,7 +1253,7 @@ func (r *QZNNRoom) startGame() {
 				"changeBal", u.ChangeBalance).Error("UpdateUserSetting-Restore")
 		}
 		logrus.WithField("gameId", r.GameID).WithField(
-			"userIds", strings.Join(allUserIds, ",")).Error("QZNNGame-UpdateUserSetting-Fail-Exiting")
+			"userIds", strings.Join(allUserIds, ",")).Error("UpdateUserSetting-Fail-Exiting")
 		return
 	}
 
@@ -1265,7 +1268,7 @@ func (r *QZNNRoom) startGame() {
 						WithField("userId", player.ID).
 						WithField("mem_balance", player.Balance).
 						WithField("db_balance", modelU.Balance).
-						Warn("QZNNGame-BalanceMismatchAfterSettle")
+						Warn("BalanceMismatchAfterSettle")
 				}
 				//最终以数据库的数据为准
 				player.Balance = modelU.Balance
@@ -1300,7 +1303,7 @@ func (r *QZNNRoom) startGame() {
 	for _, p := range activePlayer {
 		if p.Balance < r.Config.MinBalance {
 			if r.Leave(p.ID) {
-				logrus.WithField("gameId", r.GameID).WithField("userId", p.ID).WithField("balance", p.Balance).Info("QZNNGame-KickingPlayerBalanceNotEnough")
+				logrus.WithField("gameId", r.GameID).WithField("userId", p.ID).WithField("balance", p.Balance).Info("KickingPlayerBalanceNotEnough")
 				r.PushPlayer(p, comm.PushData{
 					Cmd:      comm.ServerPush,
 					PushType: znet.PushRouter,
@@ -1311,7 +1314,7 @@ func (r *QZNNRoom) startGame() {
 		}
 	}
 
-	logrus.WithField("gameId", r.GameID).WithField("nextState", nextState).WithField("prepareSec", prepareSec).Info("QZNNGame-Finished")
+	logrus.WithField("gameId", r.GameID).WithField("nextState", nextState).WithField("prepareSec", prepareSec).Info("Finished")
 
 	r.SetStatus([]RoomState{StateSettling, RoomState("")}, nextState, prepareSec)
 }

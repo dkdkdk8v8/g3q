@@ -860,7 +860,7 @@ const startDealingAnimation = (isSupplemental = false) => {
     targets.forEach((t, pIndex) => {
         const cardTargets = [];
         // Scale adjustment: Opponent seats have transform: scale(0.85) in CSS, so we must match that.
-        const scale = t.isMe ? 1 : (0.85 * gameScale.value);
+        const scale = (t.isMe ? 1 : 0.85) * gameScale.value;
 
         // Viewport scaling to match postcss-px-to-viewport (assuming 375 design width)
         const viewportRatio = window.innerWidth / 375;

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math"
+	"math/rand"
 	"service/comm"
 	"service/mainClient/game"
 	"service/mainClient/game/qznn"
@@ -91,22 +92,25 @@ func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []b
 		}
 		return user.NickName
 	}()
-	//注意这里，如果无感发布，不会有问题。如果房间异常直接关闭进程
-	//确认用户没有在任何房间,但是记录了gameID
-	if user.GameId != "" {
-		//把用户的lockBalance 被gameId锁了，更新user
-		var err1 error
-		user, err1 = modelClient.RecoveryGameId(userId, user.GameId)
-		if err1 != nil {
-			return err1
+	p.Avatar = func() string {
+		if user.Avatar == "" {
+			return game.ConstAvatorUrlPathPrefix + "/" +
+				strconv.Itoa(rand.Intn(game.ConstAvator)) + ".jpg"
 		}
-		logrus.WithField("userId", userId).WithField("gameId", user.GameId).Warn("RecoveryGameId-Ok")
+		return user.Avatar
+	}()
+
+	//锁用户的balance，进房间就锁
+	modelUser, err := modelClient.GameLockUserBalance(p.ID, cfg.MinBalance)
+	if err != nil {
+		//有用户的金额不够锁住,尝试踢出用户
+		logrus.WithField("!", nil).WithField("userId", p.ID).WithError(err).Error("PlayerLockBal-Fail")
+		return err
 	}
-	if user.Balance < cfg.MinBalance {
-		return comm.NewMyError("用户余额不足")
-	} else {
-		p.Balance = user.Balance
-	}
+	//锁后设置金额
+	p.Balance = user.BalanceLock
+	logrus.WithField("userId", p.ID).WithField(
+		"balance", modelUser.Balance).WithField("balanceLock", modelUser.BalanceLock).Info("RoomJoin-LockBalOk")
 
 	//处理进房间逻辑
 	var room *qznn.QZNNRoom
@@ -126,6 +130,7 @@ func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []b
 	if room == nil {
 		room = game.GetMgr().CreateRoom(req.Level, req.BankerType, cfg)
 	}
+
 	room, err = game.GetMgr().JoinQZNNRoom(room, user, p)
 	if err != nil {
 		return err

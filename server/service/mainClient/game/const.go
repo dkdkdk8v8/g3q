@@ -6,8 +6,10 @@ import (
 )
 
 const (
-	DefaultAvatar                  = "app/default_avatar.jpg"
-	DurationDay                    = time.Hour * 24
-	CmdPingPong      comm.CmdType  = "PingPong"
-	PushOtherConnect comm.PushType = "PushOtherConnect"
+	DefaultAvatar                          = "app/default_avatar.jpg"
+	DurationDay                            = time.Hour * 24
+	CmdPingPong              comm.CmdType  = "PingPong"
+	PushOtherConnect         comm.PushType = "PushOtherConnect"
+	ConstAvator                            = 49
+	ConstAvatorUrlPathPrefix               = "gwd3czq"
 )

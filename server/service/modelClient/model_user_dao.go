@@ -4,7 +4,6 @@ import (
 	"beego/v2/client/orm"
 	"compoment/ormutil"
 	"context"
-	"errors"
 	"service/comm"
 	"time"
 
@@ -98,8 +97,8 @@ func InsertUserRecord(user *ModelUserRecord) (int64, error) {
 // 	 ormutil.UpdateFields[ModelUser](GetDb(), model, fields)
 // }
 
-// RecoveryGameId
-func RecoveryGameId(userId string, gameId string) (*ModelUser, error) {
+// ResetBalanceLock
+func ResetBalanceLock(userId string) (*ModelUser, error) {
 	ormDb := GetDb()
 	var user ModelUser
 	err := ormDb.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
@@ -109,12 +108,8 @@ func RecoveryGameId(userId string, gameId string) (*ModelUser, error) {
 		if err != nil {
 			return err
 		}
-		if user.GameId != gameId {
-			return errors.New("gameIdNotMatch")
-		}
 		user.Balance += user.BalanceLock
 		user.BalanceLock = 0
-		user.GameId = ""
 		//这个orm的update的列名字，是struct的内变量名
 		//如果不指定明确字段名，会有0值判断的问题，orm自动过滤0值，“”空字符串
 		_, err = txOrm.Update(&user, "Balance", "BalanceLock", "GameId")
@@ -130,8 +125,8 @@ func RecoveryGameId(userId string, gameId string) (*ModelUser, error) {
 	return &user, nil
 }
 
-// 用户进入游戏，锁定余额
-func GameLockUserBalance(userId string, gameId string, minBalance int64) (*ModelUser, error) {
+// 用户离开游戏，释放锁定金额
+func GameResetUserBalance(userId string) (*ModelUser, error) {
 	ormDb := GetDb()
 	var user ModelUser
 	err := ormDb.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
@@ -141,22 +136,10 @@ func GameLockUserBalance(userId string, gameId string, minBalance int64) (*Model
 		if err != nil {
 			return err
 		}
-		userTotalBalance := int64(0)
-		if user.GameId == gameId {
-			userTotalBalance = user.Balance + user.BalanceLock
-		} else {
-			userTotalBalance = user.Balance
-		}
-		if userTotalBalance < minBalance {
-			logrus.WithField("userId", userId).WithField(
-				"balance", user.Balance).WithField("balanceLock", user.BalanceLock).WithField(
-				"gameId", user.GameId).Error("LockUserBal-NotEnough")
-			return ErrorBalanceNotEnough
-		}
-		user.BalanceLock += user.Balance
-		user.Balance = 0
-		user.GameId = gameId
-		_, err = txOrm.Update(&user, "Balance", "BalanceLock", "GameId")
+
+		user.Balance += user.BalanceLock
+		user.BalanceLock = 0
+		_, err = txOrm.Update(&user, "Balance", "BalanceLock")
 		if err != nil {
 			return err
 		}
@@ -165,12 +148,42 @@ func GameLockUserBalance(userId string, gameId string, minBalance int64) (*Model
 	if err != nil {
 		return nil, err
 	}
+	return &user, nil
+}
 
+// 用户进入游戏，锁定余额
+func GameLockUserBalance(userId string, minBalance int64) (*ModelUser, error) {
+	ormDb := GetDb()
+	var user ModelUser
+	err := ormDb.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
+		var err error
+		// 使用 ForUpdate 锁行，防止并发问题
+		err = txOrm.QueryTable(new(ModelUser)).Filter("user_id", userId).ForUpdate().One(&user)
+		if err != nil {
+			return err
+		}
+		if user.Balance+user.BalanceLock < minBalance {
+			logrus.WithField("userId", userId).WithField(
+				"balance", user.Balance).WithField("balanceLock", user.BalanceLock).Error("LockUserBal-NotEnough")
+			return ErrorBalanceNotEnough
+		}
+		user.BalanceLock += user.Balance
+		user.Balance = 0
+		_, err = txOrm.Update(&user, "Balance", "BalanceLock")
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
 	return &user, nil
 }
 
 type GameSettletruct struct {
 	RoomId       string
+	GameId       string
 	GameRecordId uint64
 	GameName     string
 	Players      []UserSettingStruct
@@ -202,16 +215,14 @@ func UpdateUserSetting(setting *GameSettletruct) ([]*ModelUser, error) {
 			if err != nil {
 				return err
 			}
-			oldBalance := user.Balance + user.BalanceLock
-			user.Balance += user.BalanceLock + player.ChangeBalance
-			user.BalanceLock = 0
-			user.GameId = ""
+			oldBalanceLock := user.BalanceLock
+			user.BalanceLock += player.ChangeBalance
 			user.LastPlayed = time.Now()
 			user.TotalGameCount++
 			user.TotalBet += uint64(player.ValidBet)
 			user.TotalNetBalance += player.ChangeBalance
-			res, err := txOrm.Raw("UPDATE g3q_user SET balance=?, balance_lock=?, game_id=?, last_played=?, total_game_count=?, total_bet=?, total_net_balance=?, update_at=? WHERE user_id=?",
-				user.Balance, user.BalanceLock, user.GameId, user.LastPlayed, user.TotalGameCount, user.TotalBet, user.TotalNetBalance, time.Now(), user.UserId).Exec()
+			res, err := txOrm.Raw("UPDATE g3q_user SET balance_lock=?, last_played=?, total_game_count=?, total_bet=?, total_net_balance=?, update_at=? WHERE user_id=?",
+				user.BalanceLock, user.LastPlayed, user.TotalGameCount, user.TotalBet, user.TotalNetBalance, time.Now(), user.UserId).Exec()
 			if err != nil {
 				return err
 			}
@@ -227,8 +238,8 @@ func UpdateUserSetting(setting *GameSettletruct) ([]*ModelUser, error) {
 				//插入用户的userRecord
 				userRecord := ModelUserRecord{
 					UserId:        user.UserId,
-					BalanceBefore: oldBalance,
-					BalanceAfter:  user.Balance,
+					BalanceBefore: oldBalanceLock,
+					BalanceAfter:  user.BalanceLock,
 					GameRecordId:  setting.GameRecordId,
 					RecordType:    RecordTypeGame,
 				}
@@ -239,7 +250,7 @@ func UpdateUserSetting(setting *GameSettletruct) ([]*ModelUser, error) {
 			}
 			logs = append(logs, logInfo{
 				UserId:        player.UserId,
-				OldBalance:    oldBalance,
+				OldBalance:    oldBalanceLock,
 				LockBalance:   user.BalanceLock,
 				NewBalance:    user.Balance,
 				ChangeBalance: player.ChangeBalance,
@@ -254,7 +265,7 @@ func UpdateUserSetting(setting *GameSettletruct) ([]*ModelUser, error) {
 	for _, l := range logs {
 		logrus.WithField("userId", l.UserId).WithField("oldBalance", l.OldBalance).WithField(
 			"lockBalance", l.LockBalance).WithField("newBalance", l.NewBalance).WithField("changeBalance", l.ChangeBalance).WithField(
-			"validBet", l.ValidBet).Info("settringDoTx")
+			"validBet", l.ValidBet).WithField("gameId", setting.GameId).Info("settringDoTx")
 	}
 	return ret, nil
 }

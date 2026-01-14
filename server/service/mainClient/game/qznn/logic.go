@@ -33,11 +33,19 @@ func NewRoom(id string, bankerType, level int) *QZNNRoom {
 		TargetResults: make(map[string]int, 5),
 		Deck:          []int{},
 		driverGo:      make(chan struct{}),
+		AllIsRobot:    true,
 	}
 	nRoom.Config = *GetConfig(level)
 	nRoom.Config.BankerType = bankerType
 	go nRoom.driverLogicTick()
 	return nRoom
+}
+
+func (r *QZNNRoom) CanLog() bool {
+	if !r.AllIsRobot {
+		return true
+	}
+	return initMain.DefCtx.IsTest
 }
 
 func (r *QZNNRoom) Destory() {
@@ -143,12 +151,14 @@ func (r *QZNNRoom) changeState(oldStates []RoomState, newState RoomState, stateL
 	} else {
 		r.StateDeadline = time.Time{}
 	}
-	logrus.WithFields(logrus.Fields{
-		"roomId":  r.ID,
-		"old":     oldState,
-		"new":     newState,
-		"leftSec": stateLeftSec,
-	}).Info("StatuChanged")
+	if r.CanLog() {
+		logrus.WithFields(logrus.Fields{
+			"roomId":  r.ID,
+			"old":     oldState,
+			"new":     newState,
+			"leftSec": stateLeftSec,
+		}).Info("StatuChanged")
+	}
 	return true
 }
 
@@ -261,13 +271,9 @@ func (r *QZNNRoom) GetPlayerAndRealPlayerCount() (int, int) {
 
 // todo::StateSettlingDirectPreCard 这个 也要判断kickoff
 func (r *QZNNRoom) kickOffByWsDisconnect() ([]string, bool) {
-	type delHolder struct {
-		index int
-		id    string
-	}
-	var delIndex []delHolder
+	var delIds []string
 
-	for i, p := range r.Players {
+	for _, p := range r.Players {
 		if p == nil {
 			continue
 		}
@@ -280,25 +286,21 @@ func (r *QZNNRoom) kickOffByWsDisconnect() ([]string, bool) {
 		conn := p.ConnWrap
 		p.Mu.RUnlock()
 		if conn == nil || !conn.IsConnected() {
-			delIndex = append(delIndex, delHolder{index: i, id: p.ID})
+			delIds = append(delIds, p.ID)
 		}
 	}
 
-	if len(delIndex) <= 0 {
+	if len(delIds) <= 0 {
 		return nil, false
 	}
 
-	var delId []string
 	if slices.Contains([]RoomState{StateWaiting, StatePrepare}, r.State) {
-		for _, delIndex := range delIndex {
+		for _, delUserId := range delIds {
 			// 再次检查防止并发修改导致空指针或误删
-			if r.Players[delIndex.index] != nil && delIndex.id == r.Players[delIndex.index].ID {
-				delId = append(delId, r.Players[delIndex.index].ID)
-				r.Players[delIndex.index] = nil
-			}
+			r.leave(delUserId)
 		}
 	}
-	return delId, true
+	return delIds, true
 }
 
 // 包含机器人
@@ -388,6 +390,14 @@ func (r *QZNNRoom) AddPlayer(p *Player) (int, error) {
 	p.Mu.Unlock()
 
 	r.Players[emptySeat] = p
+
+	r.AllIsRobot = true
+	for _, pl := range r.Players {
+		if pl != nil && !pl.IsRobot {
+			r.AllIsRobot = false
+			break
+		}
+	}
 	r.RoomMu.Unlock()
 
 	r.BroadcastWithPlayer(func(p *Player) any {
@@ -508,7 +518,21 @@ func (r *QZNNRoom) Leave(userId string) bool {
 func (r *QZNNRoom) leave(userId string) bool {
 	for i, pl := range r.Players {
 		if pl != nil && pl.ID == userId {
+			//modelUser balanceLock -> balance
+			modelUser, err := modelClient.GameResetUserBalance(userId)
+			if err != nil {
+				logrus.WithField("userId", userId).WithField("balanceLock", modelUser.BalanceLock).WithField(
+					"balance", modelUser.Balance).WithError(err).Error("ResetBalLock-Fail")
+			}
 			r.Players[i] = nil
+
+			r.AllIsRobot = true
+			for _, p := range r.Players {
+				if p != nil && !p.IsRobot {
+					r.AllIsRobot = false
+					break
+				}
+			}
 			return true
 		}
 	}
@@ -637,52 +661,6 @@ func (r *QZNNRoom) tickWaiting() {
 	leaveIds, _ := r.kickOffByWsDisconnect()
 	r.resetOb()
 
-	players := r.getPlayers()
-
-	// 优化：每3秒检查一次用户状态，避免每200ms频繁访问数据库导致 logicTick 阻塞
-	if time.Since(r.LastUserCheckTime) >= 3*time.Second {
-		r.LastUserCheckTime = time.Now()
-		for _, p := range players {
-			//check balance_lock and game_id
-			modelUser, err := modelClient.GetUserByUserId(p.ID)
-			if err != nil {
-				logrus.WithField("!", nil).WithField("userId", p.ID).WithError(err).Error("GetUserByUserId-Fail")
-				continue // 遇到错误跳过当前用户，不要直接 return 导致其他人无法检查
-			}
-			bKiffOffPlayer := false
-			kiffOffMsg := ""
-			if modelUser.GameId != "" {
-				logrus.WithField("userId", p.ID).WithField("gameId", modelUser.GameId).WithField(
-					"balance", modelUser.Balance).WithField("balance_lock", modelUser.BalanceLock).Error("userGameIdInvalid")
-				bKiffOffPlayer = true
-				kiffOffMsg = "还有未计算游戏,稍等重新进房"
-			}
-
-			if modelUser.Balance != p.Balance {
-				logrus.WithField("userId", p.ID).WithField(
-					"balance", modelUser.Balance).WithField("balance_lock", modelUser.BalanceLock).Error("userBalanceInvalid")
-				bKiffOffPlayer = true
-				kiffOffMsg = "正在计算钱包,稍等重新进房"
-			}
-
-			if p.Balance < r.Config.MinBalance {
-				logrus.WithField("userId", p.ID).WithField(
-					"balance", modelUser.Balance).WithField("balance_lock", modelUser.BalanceLock).Info("userBalanceNotEnough")
-				bKiffOffPlayer = true
-				kiffOffMsg = "余额不足,离开房间"
-			}
-
-			if bKiffOffPlayer && r.leave(p.ID) {
-				leaveIds = append(leaveIds, p.ID)
-				r.PushPlayer(p, comm.PushData{
-					Cmd:      comm.ServerPush,
-					PushType: znet.PushRouter,
-					Data: znet.PushRouterStruct{
-						Router:  znet.Lobby,
-						Message: kiffOffMsg}})
-			}
-		}
-	}
 	if len(leaveIds) > 0 {
 		leaveIds = util.RemoveDuplicatesString(leaveIds)
 		r.broadcastWithPlayer(
@@ -696,7 +674,8 @@ func (r *QZNNRoom) tickWaiting() {
 	}
 
 	//加入已经有2个人在房间，可以进行倒计时开始游戏
-	if len(players) >= 2 {
+	activePlayers := r.getActivePlayers(nil)
+	if len(activePlayers) >= 2 {
 		r.setStatus([]RoomState{StateWaiting}, StatePrepare, SecStatePrepareSec)
 	}
 }
@@ -711,9 +690,9 @@ func (r *QZNNRoom) tickPrepare() {
 		})
 	}
 	// 倒计时等待开始
-	countExistPlayerNum := r.getPlayerCount()
+	activePlayers := r.getActivePlayers(nil)
 	//加入已经有2个人在房间，可以进行倒计时开始游戏
-	if countExistPlayerNum < 2 {
+	if len(activePlayers) < 2 {
 		if r.setStatus([]RoomState{StatePrepare}, StateWaiting, 0) {
 			return
 		}
@@ -825,7 +804,9 @@ func (r *QZNNRoom) logicTick() {
 func (r *QZNNRoom) startGame() {
 
 	r.GameID = fmt.Sprintf("%d_%s", time.Now().Unix(), r.ID)
-	logrus.WithField("gameId", r.GameID).WithField("roomId", r.ID).Info("GameStart")
+	if r.CanLog() {
+		logrus.WithField("gameId", r.GameID).WithField("roomId", r.ID).Info("GameStart")
+	}
 
 	//保底的检查，用户能不能玩，至少2个有效用户，不够要再踢回waiting
 	activePlayer := r.GetActivePlayers(nil)
@@ -833,7 +814,9 @@ func (r *QZNNRoom) startGame() {
 	for _, p := range activePlayer {
 		activePlayerIds = append(activePlayerIds, p.ID)
 	}
-	logrus.WithField("gameId", r.GameID).WithField("roomId", r.ID).WithField("players", activePlayerIds).Info("GameStart-ActivePlayers")
+	if r.CanLog() {
+		logrus.WithField("gameId", r.GameID).WithField("roomId", r.ID).WithField("players", activePlayerIds).Info("GameStart-ActivePlayers")
+	}
 
 	//检查是否有重复id在游戏内
 	allPlayers := r.GetPlayers()
@@ -850,19 +833,7 @@ func (r *QZNNRoom) startGame() {
 		}
 	}
 
-	//锁用户的balance
-	for _, p := range activePlayer {
-		modelUser, err := modelClient.GameLockUserBalance(p.ID, r.GameID, r.Config.MinBalance)
-		if err != nil {
-			//有用户的金额不够锁住,尝试踢出用户
-			logrus.WithField("!", nil).WithField("userId", p.ID).WithField("gameId", r.GameID).WithError(err).Error("InvalidPlayerLockBal")
-			r.SetStatus([]RoomState{StateStartGame}, StateWaiting, 0)
-			return
-		}
-		p.Balance = modelUser.Balance + modelUser.BalanceLock
-		logrus.WithField("userId", p.ID).WithField("gameId", r.GameID).WithField(
-			"balance", modelUser.Balance).WithField("balanceLock", modelUser.BalanceLock).Info("GameStart-LockBalOk")
-	}
+	//todo::检查用户的modelUser 里面的 balance_lock 和 player 的balance 是否相等
 
 	if len(activePlayer) < 2 {
 		logrus.WithField("!", nil).WithField("roomId", r.ID).WithField("playerCount", len(activePlayer)).Error("InvalidPlayerCountForGame-NotEnough")
@@ -881,7 +852,9 @@ func (r *QZNNRoom) startGame() {
 		}
 		p.Mu.RUnlock()
 	}
-	logrus.WithField("gameId", r.GameID).WithField("deck_len", len(r.Deck)).WithField("players_cards", playerCardLog).Info("PrepareDeck")
+	if r.CanLog() {
+		logrus.WithField("gameId", r.GameID).WithField("deck_len", len(r.Deck)).WithField("players_cards", playerCardLog).Info("PrepareDeck")
+	}
 
 	r.WaitStateLeftTicker()
 
@@ -910,7 +883,10 @@ func (r *QZNNRoom) startGame() {
 		callBankerLog[p.ID] = p.CallMult
 		p.Mu.RUnlock()
 	}
-	logrus.WithField("gameId", r.GameID).WithField("call_mults", callBankerLog).Info("CallBankerResults")
+
+	if r.CanLog() {
+		logrus.WithField("gameId", r.GameID).WithField("call_mults", callBankerLog).Info("CallBankerResults")
+	}
 
 	// 查看是否已经有人抢庄
 	allCallPlayer := r.GetActivePlayers(func(p *Player) bool {
@@ -968,11 +944,13 @@ func (r *QZNNRoom) startGame() {
 	for _, c := range candidates {
 		candidateIds = append(candidateIds, c.ID)
 	}
-	logrus.WithField("gameId", r.GameID).
-		WithField("candidates", candidateIds).
-		WithField("is_random", bRandomBanker).
-		WithField("bankerId", r.BankerID).
-		Info("BankerSelection")
+	if r.CanLog() {
+		logrus.WithField("gameId", r.GameID).
+			WithField("candidates", candidateIds).
+			WithField("is_random", bRandomBanker).
+			WithField("bankerId", r.BankerID).
+			Info("BankerSelection")
+	}
 
 	r.SetStatus([]RoomState{StateBanking, StateRandomBank}, StateBankerConfirm, 0)
 
@@ -1004,7 +982,9 @@ func (r *QZNNRoom) startGame() {
 			p.BetMult = r.Config.BetMult[0]
 		}
 	}
-	logrus.WithField("gameId", r.GameID).WithField("bets", betLog).Info("BetResults")
+	if r.CanLog() {
+		logrus.WithField("gameId", r.GameID).WithField("bets", betLog).Info("BetResults")
+	}
 
 	//补牌到5张，不看牌发5张，看3补2，看4
 	if !r.SetStatus([]RoomState{StateBetting}, StateDealing, 0) {
@@ -1034,7 +1014,9 @@ func (r *QZNNRoom) startGame() {
 			bankerPlayer = p
 		}
 	}
-	logrus.WithField("gameId", r.GameID).WithField("card_results", cardResultLog).Info("CardResults")
+	if r.CanLog() {
+		logrus.WithField("gameId", r.GameID).WithField("card_results", cardResultLog).Info("CardResults")
+	}
 
 	if bankerPlayer == nil {
 		logrus.WithField("gameId", r.GameID).WithField("bankerId", r.BankerID).Error("Room-BankerInvalid")
@@ -1088,7 +1070,9 @@ func (r *QZNNRoom) startGame() {
 		"player_wins":        playerWins,
 		"player_loses":       playerLoses,
 	}
-	logrus.WithField("gameId", r.GameID).WithField("pre_settlement", preSettleLog).Info("PreSettlement")
+	if r.CanLog() {
+		logrus.WithField("gameId", r.GameID).WithField("pre_settlement", preSettleLog).Info("PreSettlement")
+	}
 
 	// 先算输的闲家给庄家赔付
 	playerLoss2Banker := int64(0)
@@ -1188,9 +1172,11 @@ func (r *QZNNRoom) startGame() {
 			p.BalanceChange -= tax
 		}
 	}
-	logrus.WithField("gameId", r.GameID).WithField("taxes", taxLog).Info("Taxes")
+	if r.CanLog() {
+		logrus.WithField("gameId", r.GameID).WithField("taxes", taxLog).Info("Taxes")
+	}
 
-	//5
+	//5 todo 有效投注
 
 	//内存预先结算
 	finalBalanceChanges := logrus.Fields{}
@@ -1198,7 +1184,9 @@ func (r *QZNNRoom) startGame() {
 		finalBalanceChanges[p.ID] = p.BalanceChange
 		p.Balance += p.BalanceChange
 	}
-	logrus.WithField("gameId", r.GameID).WithField("final_balance_changes", finalBalanceChanges).Info("FinalBalanceChanges")
+	if r.CanLog() {
+		logrus.WithField("gameId", r.GameID).WithField("final_balance_changes", finalBalanceChanges).Info("FinalBalanceChanges")
+	}
 
 	//结算状态
 	if !r.SetStatus([]RoomState{StateShowCard}, StateSettling, 0) {
@@ -1210,20 +1198,27 @@ func (r *QZNNRoom) startGame() {
 	type qznnGameData struct {
 		Room *QZNNRoom
 	}
-	roomBytes, _ := json.Marshal(qznnGameData{Room: r})
-	//产生对局记录
-	nGameRecordId, err := modelClient.InsertGameRecord(&modelClient.ModelGameRecord{
-		GameId:   r.GameID,
-		GameName: GameName,
-		GameData: string(roomBytes),
-	})
-	if err != nil {
-		logrus.WithField("gameId", r.GameID).WithError(err).Error("InsertGameRecord-Fail")
-	} else {
-		logrus.WithField("gameId", r.GameID).WithField("recordId", nGameRecordId).Info("InsertGameRecord-Success")
+	nGameRecordId := int64(0)
+	if r.CanLog() {
+		roomBytes, _ := json.Marshal(qznnGameData{Room: r})
+		//产生对局记录
+		var err1 error
+		nGameRecordId, err1 = modelClient.InsertGameRecord(&modelClient.ModelGameRecord{
+			GameId:   r.GameID,
+			GameName: GameName,
+			GameData: string(roomBytes),
+		})
+		if err1 != nil {
+			logrus.WithField("gameId", r.GameID).WithError(err1).Error("InsertGameRecord-Fail")
+		} else {
+			if r.CanLog() {
+				logrus.WithField("gameId", r.GameID).WithField("recordId", nGameRecordId).Info("InsertGameRecord-Success")
+			}
+		}
 	}
 
-	settle := modelClient.GameSettletruct{RoomId: r.ID, GameRecordId: uint64(nGameRecordId)}
+	settle := modelClient.GameSettletruct{RoomId: r.ID, GameRecordId: uint64(nGameRecordId),
+		GameId: r.GameID}
 	for _, p := range activePlayer {
 		insertUserRecord := true
 		if p.IsRobot && !initMain.DefCtx.IsTest {
@@ -1237,7 +1232,9 @@ func (r *QZNNRoom) startGame() {
 			UserGameRecordInsert: insertUserRecord,
 		})
 	}
-	logrus.WithField("gameId", r.GameID).WithField("settlement_data", settle).Info("PreUpdateUserSetting")
+	if r.CanLog() {
+		logrus.WithField("gameId", r.GameID).WithField("settlement_data", settle).Info("PreUpdateUserSetting")
+	}
 
 	//
 	modelUsers, err := modelClient.UpdateUserSetting(&settle)
@@ -1262,16 +1259,18 @@ func (r *QZNNRoom) startGame() {
 			//用最新数据更新balance
 			if player.ID == modelU.UserId {
 				//检查内存player 的balance和最终数据库的差异
-				if player.Balance != modelU.Balance {
+				if player.Balance != modelU.BalanceLock {
 					//可能外面有余额，这里和数据库有的不一样
-					logrus.WithField("gameId", r.GameID).
-						WithField("userId", player.ID).
-						WithField("mem_balance", player.Balance).
-						WithField("db_balance", modelU.Balance).
-						Warn("BalanceMismatchAfterSettle")
+					if r.CanLog() {
+						logrus.WithField("gameId", r.GameID).
+							WithField("userId", player.ID).
+							WithField("memBal", player.Balance).
+							WithField("dbBalLock", modelU.BalanceLock).
+							Warn("BalanceMismatchAfterSettle")
+					}
 				}
 				//最终以数据库的数据为准
-				player.Balance = modelU.Balance
+				player.Balance = modelU.BalanceLock
 				break
 			}
 		}
@@ -1303,7 +1302,9 @@ func (r *QZNNRoom) startGame() {
 	for _, p := range activePlayer {
 		if p.Balance < r.Config.MinBalance {
 			if r.Leave(p.ID) {
-				logrus.WithField("gameId", r.GameID).WithField("userId", p.ID).WithField("balance", p.Balance).Info("KickingPlayerBalanceNotEnough")
+				if r.CanLog() {
+					logrus.WithField("gameId", r.GameID).WithField("userId", p.ID).WithField("balance", p.Balance).Info("KickingPlayerBalanceNotEnough")
+				}
 				r.PushPlayer(p, comm.PushData{
 					Cmd:      comm.ServerPush,
 					PushType: znet.PushRouter,
@@ -1314,7 +1315,9 @@ func (r *QZNNRoom) startGame() {
 		}
 	}
 
-	logrus.WithField("gameId", r.GameID).WithField("nextState", nextState).WithField("prepareSec", prepareSec).Info("Finished")
+	if r.CanLog() {
+		logrus.WithField("gameId", r.GameID).WithField("nextState", nextState).WithField("prepareSec", prepareSec).Info("Finished")
+	}
 
 	r.SetStatus([]RoomState{StateSettling, RoomState("")}, nextState, prepareSec)
 }

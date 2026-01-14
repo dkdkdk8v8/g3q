@@ -335,7 +335,7 @@ const displayName = computed(() => {
         </div>
 
         <!-- 手牌区域 (始终渲染以占位) -->
-        <div class="hand-area">
+        <div class="hand-area" :class="{ 'opponent-hand': !isMe }">
             <div class="cards" :class="{ 'is-me-cards': isMe }"
                 :style="{ visibility: showCards ? 'visible' : 'hidden' }">
                 <PokerCard v-for="(card, idx) in displayedHand" :key="idx"
@@ -1085,6 +1085,19 @@ const displayName = computed(() => {
 /* 机器人手牌下移，避免遮挡信息 */
 .seat-top .hand-area {
     margin-top: 6.6667vw;
+}
+
+.opponent-hand {
+    position: absolute !important;
+    top: -32px !important;
+    left: 0;
+    width: 100%;
+    margin-top: 0 !important;
+    z-index: 15;
+    pointer-events: none;
+}
+.opponent-hand .hand-card {
+    pointer-events: auto;
 }
 
 .seat-bottom .hand-area {

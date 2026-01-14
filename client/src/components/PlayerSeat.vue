@@ -335,7 +335,7 @@ const displayName = computed(() => {
         </div>
 
         <!-- 手牌区域 (始终渲染以占位) -->
-        <div class="hand-area">
+        <div class="hand-area" :class="{ 'opponent-hand': !isMe }">
             <div class="cards" :class="{ 'is-me-cards': isMe }"
                 :style="{ visibility: showCards ? 'visible' : 'hidden' }">
                 <PokerCard v-for="(card, idx) in displayedHand" :key="idx"
@@ -1085,6 +1085,23 @@ const displayName = computed(() => {
 /* 机器人手牌下移，避免遮挡信息 */
 .seat-top .hand-area {
     margin-top: 6.6667vw;
+}
+
+.opponent-hand {
+    position: absolute !important;
+    top: -28px !important; /* Align with animation target (InfoBox Top - CardHeight/2) */
+    left: 0;
+    width: 100%;
+    margin-top: 0 !important; /* Override seat-specific margins */
+    z-index: 5; /* Below InfoBox (10) but visible? InfoBox is 10. Card should be above? 
+                   If Card bottom touches Info Top, it is physically above InfoBox.
+                   So z-index should be higher than Avatar maybe? Avatar is in flow.
+                   Let's try z-index 15. InfoBox is 10. */
+    z-index: 15;
+    pointer-events: none; /* Let clicks pass through if needed, though cards have clicks */
+}
+.opponent-hand .hand-card {
+    pointer-events: auto; /* Re-enable clicks on cards */
 }
 
 .seat-bottom .hand-area {

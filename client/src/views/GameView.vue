@@ -838,15 +838,35 @@ const startDealingAnimation = (isSupplemental = false) => {
 
             const seatEl = seatRefs.value[p.id];
             if (seatEl) {
-                const handArea = seatEl.querySelector('.hand-area');
-                const rect = handArea ? handArea.getBoundingClientRect() : seatEl.getBoundingClientRect();
-
                 const isMe = p.id === store.myPlayerId;
+                
+                let targetX, targetY;
+                const viewportRatio = window.innerWidth / 375;
+                
+                if (isMe) {
+                    const handArea = seatEl.querySelector('.hand-area');
+                    const rect = handArea ? handArea.getBoundingClientRect() : seatEl.getBoundingClientRect();
+                    targetX = rect.left + rect.width / 2;
+                    targetY = rect.top + rect.height / 2;
+                } else {
+                    // For opponents: Card bottom touches InfoBox top
+                    const infoBox = seatEl.querySelector('.info-box');
+                    // Fallback to seat if infoBox not found (should not happen)
+                    const refEl = infoBox || seatEl; 
+                    const rect = refEl.getBoundingClientRect();
+                    
+                    targetX = rect.left + rect.width / 2;
+                    
+                    // Card Height for opponent is 70 * viewportRatio (from DealingLayer)
+                    const cardHeight = 70 * viewportRatio;
+                    // Center Y = Top of InfoBox - Half Card Height
+                    targetY = rect.top - (cardHeight / 2);
+                }
 
                 targets.push({
                     id: p.id,
-                    x: rect.left + rect.width / 2,
-                    y: rect.top + rect.height / 2,
+                    x: targetX,
+                    y: targetY,
                     count: toDeal,
                     startIdx: currentVisible + currentDealing, // Offset by both visible and flying
                     total: total,

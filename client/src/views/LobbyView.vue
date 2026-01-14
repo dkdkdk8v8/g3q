@@ -27,10 +27,10 @@ import tabSan from '@/assets/lobby/tab_kansanzhang.png';
 import tabSanSel from '@/assets/lobby/tab_kansanzhang_choose.png';
 import tabSi from '@/assets/lobby/tab_kansizhang.png';
 import tabSiSel from '@/assets/lobby/tab_kansizhang_choose.png';
-import tabLineImg from '@/assets/lobby/tab_line.png';
 import tabBgImg from '@/assets/lobby/tab_bg.png';
 
 // Room Assets Explicit Import
+import roomAreaBg from '@/assets/lobby/room_bg.jpg';
 import roomTiyanBg from '@/assets/lobby/room_tiyan_bg.png';
 import roomChujiBg from '@/assets/lobby/room_chuji_bg.png';
 import roomZhongjiBg from '@/assets/lobby/room_zhongji_bg.png';
@@ -244,50 +244,29 @@ const goBack = () => {
 
         <div class="tabs-container" :style="{ backgroundImage: `url(${tabBgImg})` }">
 
+            <!-- Stacked Images (Display Only) -->
             <!-- Mode 0: Bukan (No Look) -->
-
             <img :src="currentMode === 0 ? tabBukanSel : tabBukan" class="tab-btn"
-                :class="{ 'active': currentMode === 0 }" @click="setMode(0)" />
-
-
+                :class="{ 'active': currentMode === 0 }" />
 
             <!-- Mode 1: San (3 cards) -->
-
-            <div class="tab-separator" :style="{ visibility: currentMode === 2 ? 'visible' : 'hidden' }"></div>
-
-            <img :src="currentMode === 1 ? tabSanSel : tabSan" class="tab-btn" :class="{ 'active': currentMode === 1 }"
-                @click="setMode(1)" />
-
-
-
-
-
-
-
-            <!-- Vertical Separator -->
-
-
-
-            <div class="tab-separator" :style="{ visibility: currentMode === 0 ? 'visible' : 'hidden' }"></div>
-
-
-
-
-
-
+            <img :src="currentMode === 1 ? tabSanSel : tabSan" class="tab-btn"
+                :class="{ 'active': currentMode === 1 }" />
 
             <!-- Mode 2: Si (4 cards) -->
+            <img :src="currentMode === 2 ? tabSiSel : tabSi" class="tab-btn" :class="{ 'active': currentMode === 2 }" />
 
-            <img :src="currentMode === 2 ? tabSiSel : tabSi" class="tab-btn" :class="{ 'active': currentMode === 2 }"
-                @click="setMode(2)" />
-
-            <!-- Divider Line -->
-            <img :src="tabLineImg" class="lobby-divider" />
+            <!-- Click Layer (Interaction) -->
+            <div class="tab-click-layer">
+                <div class="tab-click-zone" @click="setMode(0)"></div>
+                <div class="tab-click-zone" @click="setMode(1)"></div>
+                <div class="tab-click-zone" @click="setMode(2)"></div>
+            </div>
 
         </div>
 
         <!-- 4. Room Grid -->
-        <div class="rooms-scroll-area">
+        <div class="rooms-scroll-area" :style="{ backgroundImage: `url(${roomAreaBg})` }">
             <div class="rooms-grid">
                 <div v-for="(room, index) in rooms" :key="room.level" class="room-item" :class="['room-idx-' + index]"
                     @click="enterGame(room.level)">
@@ -347,7 +326,7 @@ const goBack = () => {
 
     align-items: center;
 
-    padding: 10px 15px;
+    padding: 20px 15px;
 
     /* Reduced padding */
 
@@ -654,7 +633,7 @@ const goBack = () => {
 
 .logo-img {
 
-    width: 50vw;
+    width: 60vw;
 
     /* 1/2 of screen width */
 
@@ -671,195 +650,95 @@ const goBack = () => {
 /* 3. Tabs Row */
 
 .tabs-container {
-
     display: flex;
-
     justify-content: center;
-
     align-items: center;
-
-    gap: 5px;
-
     z-index: 5;
 
-
-
-    /* Changed from width: 100% to fit content */
-
-    width: auto;
+    /* Container fits screen width */
+    width: 100vw;
+    /* Height matches the tab height */
+    height: 40px;
 
     align-self: center;
-
-    /* Center in the flex column parent */
-
-
-
-    /* Background properties */
-
-    background-size: 100% 100%;
-
-    /* Stretch bg to fit the container size perfectly */
-
-    background-repeat: no-repeat;
-
-    background-position: center;
-
     position: relative;
-
+    /* Ensure background behaves correctly if needed, or remove if tabs cover it */
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-position: center;
 }
-
-
 
 .tab-btn {
-
-
-
-    width: 28vw;
-
-    /* ~1/4 of screen width */
-
-
-
-    max-width: 200px;
-
-
-
-    height: auto;
-
-
-
+    /* Each tab takes full screen width */
+    width: 100vw;
+    height: 48px;
     cursor: pointer;
-
-
-
     transition: filter 0.2s ease-in-out;
+    object-fit: fill;
 
+    /* Overlay them */
+    position: absolute;
+    top: 0;
+    left: 0;
 
-
-    object-fit: contain;
-
-
-
-    /* Default state (inactive): visually smaller */
-
-
-
+    /* Default lower z-index for inactive tabs */
+    z-index: 1;
+    /* Opacity logic: if you want non-selected to be invisible, set opacity: 0. 
+       If they are transparent PNGs designed to overlay, keep opacity: 1.
+       Assuming they are full opaque bars where only one shows 'selected' state:
+    */
 }
-
-
-
-
-
-
 
 .tab-btn.active {
-
-
-
-    /* Active state: fully bright */
-
-
-
-    /* Removed transform scale */
-
-
-
-    filter: brightness(1.1);
-
-
-
+    /* Active tab on top */
     z-index: 2;
-
-    /* Bring to front */
-
-
-
+    filter: brightness(1.1);
 }
 
+/* Specific z-index ordering for clicking if needed, 
+   but since they are stacked, click handling might need explicit areas 
+   if the images are full width.
+   
+   HOWEVER, if the images are 100vw wide, they stack on top of each other.
+   Clicking anywhere will click the top-most one (z-index 2).
+   This prevents clicking the other tabs if they are fully covered.
+   
+   CRITICAL: If the images are designed such that the visual "tab" part 
+   is only a portion, but the image file is 100vw transparent, 
+   we need to know where the click zones are.
+   
+   If the user says "images are width of screen wide", and they are stacked, 
+   we can't click the ones underneath unless we use a map or invisible divs for clicks.
+   
+   Assumption: The user implies the visual design is a single bar where the "selected" state
+   changes the whole look, but logically they are 3 buttons.
+   
+   If the IMAGES contain all 3 tabs visually but highlight one, then stacking them 
+   works purely for display, BUT we need a way to click.
+   
+   Solution: Create an invisible click layer on top with 3 columns.
+*/
 
+.tab-click-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    z-index: 10;
+    /* Above images */
+}
 
-
-
-
+.tab-click-zone {
+    flex: 1;
+    /* 3 equal zones */
+    height: 100%;
+    cursor: pointer;
+}
 
 .tab-btn:hover {
-
-
-
-
-
-
-
-    /* Hover effect (optional, maybe just scale up a bit more if active or inactive) */
-
-
-
-
-
-
-
     filter: brightness(1.2);
-
-
-
-
-
-
-
-}
-
-
-
-
-
-
-
-
-
-
-
-.tab-separator {
-
-
-
-
-
-
-
-    width: 1px;
-
-
-
-    border-radius: 10px;
-
-
-
-    height: 20px;
-
-    /* Approx 80% of typical tab height */
-
-
-
-
-
-
-
-    background-color: #666;
-
-
-
-
-
-
-
-    opacity: 0.6;
-
-
-
-
-
-
-
 }
 
 
@@ -903,7 +782,12 @@ const goBack = () => {
     width: 100%;
 
     padding: 10px 0 40px 0;
-    background-color: #0006;
+
+    background-size: cover;
+
+    background-position: center;
+
+    background-repeat: no-repeat;
 
 }
 
@@ -1015,10 +899,6 @@ const goBack = () => {
 
 
     overflow: hidden;
-
-
-
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
 
 
 

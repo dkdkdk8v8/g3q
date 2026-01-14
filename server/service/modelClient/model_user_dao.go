@@ -181,6 +181,15 @@ func UpdateUserSetting(setting *GameSettletruct) ([]*ModelUser, error) {
 	ormDb := GetDb()
 	//用事物保持多个player的金额,在一个事务内修改
 	var ret []*ModelUser
+	type logInfo struct {
+		UserId        string
+		OldBalance    int64
+		LockBalance   int64
+		NewBalance    int64
+		ChangeBalance int64
+		ValidBet      int64
+	}
+	var logs []logInfo
 	err := ormDb.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
 		for _, player := range setting.Players {
 			var user ModelUser
@@ -223,14 +232,24 @@ func UpdateUserSetting(setting *GameSettletruct) ([]*ModelUser, error) {
 					return err
 				}
 			}
-			logrus.WithField("userId", player.UserId).WithField("oldBalance", oldBalance).WithField(
-				"lockBalance", user.BalanceLock).WithField("newBalance", user.Balance).WithField("changeBalance", player.ChangeBalance).WithField(
-				"validBet", player.ValidBet).Info("settringDoTx")
+			logs = append(logs, logInfo{
+				UserId:        player.UserId,
+				OldBalance:    oldBalance,
+				LockBalance:   user.BalanceLock,
+				NewBalance:    user.Balance,
+				ChangeBalance: player.ChangeBalance,
+				ValidBet:      player.ValidBet,
+			})
 		}
 		return nil
 	})
 	if err != nil {
 		return nil, err
+	}
+	for _, l := range logs {
+		logrus.WithField("userId", l.UserId).WithField("oldBalance", l.OldBalance).WithField(
+			"lockBalance", l.LockBalance).WithField("newBalance", l.NewBalance).WithField("changeBalance", l.ChangeBalance).WithField(
+			"validBet", l.ValidBet).Info("settringDoTx")
 	}
 	return ret, nil
 }

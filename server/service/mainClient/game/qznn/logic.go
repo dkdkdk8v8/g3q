@@ -1175,7 +1175,17 @@ func (r *QZNNRoom) startGame() {
 		}
 	}
 
-	// 4. 扣税 (只扣赢家的)
+	// 4 有效投注
+	for _, p := range activePlayer {
+		if p.BalanceChange < 0 {
+			p.ValidBet = -p.BalanceChange
+		} else {
+			p.ValidBet = p.BalanceChange
+		}
+
+	}
+
+	// 5. 扣税 (只扣赢家的)
 	taxLog := logrus.Fields{}
 	for _, p := range activePlayer {
 		if p.BalanceChange > 0 {
@@ -1190,8 +1200,6 @@ func (r *QZNNRoom) startGame() {
 	if r.CanLog() {
 		logrus.WithField("gameId", r.GameID).WithField("taxes", taxLog).Info("Taxes")
 	}
-
-	//5 todo 有效投注
 
 	//内存预先结算
 	finalBalanceChanges := logrus.Fields{}

@@ -1174,9 +1174,9 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                 <div class="phase-info">
                     <span v-if="store.currentPhase === 'WAITING_FOR_PLAYERS'">匹配玩家中...</span>
                     <span v-else-if="store.currentPhase === 'READY_COUNTDOWN'">游戏即将开始 {{ store.countdown }}</span>
-                    <span v-else-if="store.currentPhase === 'ROB_BANKER'">开始抢庄 {{ store.countdown }}</span>
-                    <span v-else-if="store.currentPhase === 'BETTING'">闲家下注 {{ store.countdown }}</span>
-                    <span v-else-if="store.currentPhase === 'SHOWDOWN'">摊牌比拼 {{ store.countdown }}</span>
+                    <span v-else-if="store.currentPhase === 'ROB_BANKER'">等待其他玩家抢庄 {{ store.countdown }}</span>
+                    <span v-else-if="store.currentPhase === 'BETTING'">等待其他玩家投注 {{ store.countdown }}</span>
+                    <span v-else-if="store.currentPhase === 'SHOWDOWN'">等待玩家摊牌比拼 {{ store.countdown }}</span>
                     <span v-else-if="store.currentPhase === 'BANKER_SELECTION_ANIMATION'">正在选庄...</span>
                     <span v-else-if="store.currentPhase === 'BANKER_CONFIRMED'">庄家已定</span>
                     <span v-else-if="store.currentPhase === 'SETTLEMENT'">结算中...</span>
@@ -1411,12 +1411,14 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     /* Light gold/cream */
     font-size: 16px;
     font-weight: bold;
-    background: linear-gradient(to right, rgba(0, 0, 0, 0.7), rgba(17, 24, 39, 0.9), rgba(0, 0, 0, 0.7));
+    background: rgba(19, 41, 40, 0.6);
     padding: 6px 24px;
     border-radius: 24px;
-    border: 1px solid rgba(251, 191, 36, 0.4);
-    /* Gold border */
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    border: 0.2667vw solid rgba(255, 255, 253, 0.3);
+    /* Distinct bottom frame/border */
+    box-shadow: 0 1vw 2.2vw rgba(0, 0, 0, 0.6), 0 0 4vw rgba(251, 191, 36, 0.2);
+    /* Deep shadow + Glow */
+    text-shadow: 0 0.5333vw 1.0667vw rgba(0, 0, 0, 0.9);
     display: flex;
     align-items: center;
     align-self: center;
@@ -2044,19 +2046,18 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .phase-info {
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.7));
-    color: #fbbf24;
+    background: rgba(19, 41, 40, 0.6);
+    color: #fdfdfc;
     /* Golden text */
-    padding: 2.1333vw 6.4vw;
+    padding: 1.1333vw 3.4vw;
     /* Slightly larger padding */
     border-radius: 6.4vw;
     font-size: 1.8vh;
     font-weight: bold;
     margin-top: 8vw;
-    border: 0.2667vw solid rgba(251, 191, 36, 0.4);
-    border-bottom: 0.8vw solid rgba(180, 83, 9, 0.8);
+    border: 0.2667vw solid rgba(255, 255, 253, 0.3);
     /* Distinct bottom frame/border */
-    box-shadow: 0 1.6vw 3.2vw rgba(0, 0, 0, 0.6), 0 0 4vw rgba(251, 191, 36, 0.2);
+    box-shadow: 0 1vw 2.2vw rgba(0, 0, 0, 0.6), 0 0 4vw rgba(251, 191, 36, 0.2);
     /* Deep shadow + Glow */
     text-shadow: 0 0.5333vw 1.0667vw rgba(0, 0, 0, 0.9);
     display: flex;

@@ -240,8 +240,8 @@ func (r *QZNNRoom) getClientRoom(pushId string) *QZNNRoom {
 	preCard := PlayerCardMax
 	bSecret := true
 	switch n.State {
-	//只有这3个状态，推牌数据，需要处理预看牌
-	case StatePreCard, StateBanking, StateRandomBank, StateBankerConfirm, StateBetting:
+	//只有这4个状态，推牌数据，需要处理预看牌
+	case StateStartGame, StatePreCard, StateBanking, StateRandomBank, StateBankerConfirm, StateBetting:
 		preCard = r.Config.GetPreCard()
 	}
 	switch n.State {

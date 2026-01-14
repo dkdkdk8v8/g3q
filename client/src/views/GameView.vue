@@ -1174,7 +1174,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                 <div class="phase-info">
                     <span v-if="store.currentPhase === 'WAITING_FOR_PLAYERS'">匹配玩家中...</span>
                     <span v-else-if="store.currentPhase === 'READY_COUNTDOWN'">游戏即将开始 {{ store.countdown }}</span>
-                    <span v-else-if="store.currentPhase === 'ROB_BANKER'">看牌抢庄 {{ store.countdown }}</span>
+                    <span v-else-if="store.currentPhase === 'ROB_BANKER'">开始抢庄 {{ store.countdown }}</span>
                     <span v-else-if="store.currentPhase === 'BETTING'">闲家下注 {{ store.countdown }}</span>
                     <span v-else-if="store.currentPhase === 'SHOWDOWN'">摊牌比拼 {{ store.countdown }}</span>
                     <span v-else-if="store.currentPhase === 'BANKER_SELECTION_ANIMATION'">正在选庄...</span>

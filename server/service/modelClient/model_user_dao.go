@@ -115,7 +115,9 @@ func RecoveryGameId(userId string, gameId string) (*ModelUser, error) {
 		user.Balance += user.BalanceLock
 		user.BalanceLock = 0
 		user.GameId = ""
-		_, err = txOrm.Update(&user)
+		//这个orm的update的列名字，是struct的内变量名
+		//如果不指定明确字段名，会有0值判断的问题，orm自动过滤0值，“”空字符串
+		_, err = txOrm.Update(&user, "Balance", "BalanceLock", "GameId")
 		if err != nil {
 			return err
 		}
@@ -129,10 +131,10 @@ func RecoveryGameId(userId string, gameId string) (*ModelUser, error) {
 }
 
 // 用户进入游戏，锁定余额
-func GameLockUserBalance(userId string, gameId string, minBalance int64) error {
+func GameLockUserBalance(userId string, gameId string, minBalance int64) (*ModelUser, error) {
 	ormDb := GetDb()
+	var user ModelUser
 	err := ormDb.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
-		var user ModelUser
 		var err error
 		// 使用 ForUpdate 锁行，防止并发问题
 		err = txOrm.QueryTable(new(ModelUser)).Filter("user_id", userId).ForUpdate().One(&user)
@@ -146,22 +148,25 @@ func GameLockUserBalance(userId string, gameId string, minBalance int64) error {
 			userTotalBalance = user.Balance
 		}
 		if userTotalBalance < minBalance {
+			logrus.WithField("userId", userId).WithField(
+				"balance", user.Balance).WithField("balanceLock", user.BalanceLock).WithField(
+				"gameId", user.GameId).Error("LockUserBal-NotEnough")
 			return ErrorBalanceNotEnough
 		}
 		user.BalanceLock += user.Balance
 		user.Balance = 0
 		user.GameId = gameId
-		_, err = txOrm.Update(&user)
+		_, err = txOrm.Update(&user, "Balance", "BalanceLock", "GameId")
 		if err != nil {
 			return err
 		}
 		return nil
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return &user, nil
 }
 
 type GameSettletruct struct {

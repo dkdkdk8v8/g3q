@@ -21,7 +21,7 @@ func InitLog(isTerminal bool, serverName string, disableFilePos bool, rotateType
 	if isTerminal {
 		txtFmt.ForceColors = true
 	}
-	txtFmt.DisableSorting = true
+	//txtFmt.DisableSorting = true
 	logrus.SetFormatter(txtFmt)
 	var logfile io.Writer
 	if !isTerminal {

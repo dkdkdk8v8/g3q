@@ -24,7 +24,6 @@ type ModelUser struct {
 	Balance         int64     `orm:"column(balance);default(0)"`                         // 余额（分）
 	BalanceLock     int64     `orm:"column(balance_lock);default(0)" json:"balanceLock"` // 锁定余额（分）
 	GameCount       int       `orm:"column(game_count);default(0)" json:"gameCount"`     // 游戏次数
-	GameId          string    `orm:"column(game_id);size(64)" json:"gameId"`             // 游戏ID
 	Remark          string    `orm:"column(remark);size(256)" json:"-"`                  // 备注
 	LastPlayed      time.Time `orm:"column(last_played);type(datetime);null" json:"-"`   // 最后游戏时间
 	IsRobot         bool      `orm:"column(is_robot);default(0)" json:"-"`               // 是否机器人

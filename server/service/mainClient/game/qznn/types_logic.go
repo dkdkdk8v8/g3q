@@ -51,6 +51,7 @@ type CardResult struct {
 type PlayerData struct {
 	ID            string
 	NickName      string
+	Avatar        string
 	Balance       int64      // 玩家余额,单位分
 	Cards         []int      // 手牌 (0-51)
 	CallMult      int64      // 抢庄倍数
@@ -161,14 +162,14 @@ type QZNNRoomData struct {
 // Room 代表一个游戏房间
 type QZNNRoom struct {
 	QZNNRoomData
-	StateDeadline     time.Time            `json:"-"`
-	RoomMu            deadlock.RWMutex     `json:"-"` // 保护房间数据并发安全
-	Deck              []int                `json:"-"` // 牌堆
-	TargetResults     map[string]int       `json:"-"` // 记录每个玩家本局被分配的目标分数 (牛几)
-	TotalBet          int64                `json:"-"` // 本局总下注额，用于更新库存
-	driverGo          chan struct{}        `json:"-"`
-	OnBotAction       func(room *QZNNRoom) `json:"-"`
-	LastUserCheckTime time.Time            `json:"-"` // 上次检查用户状态的时间
+	StateDeadline time.Time            `json:"-"`
+	RoomMu        deadlock.RWMutex     `json:"-"` // 保护房间数据并发安全
+	Deck          []int                `json:"-"` // 牌堆
+	TargetResults map[string]int       `json:"-"` // 记录每个玩家本局被分配的目标分数 (牛几)
+	TotalBet      int64                `json:"-"` // 本局总下注额，用于更新库存
+	driverGo      chan struct{}        `json:"-"`
+	OnBotAction   func(room *QZNNRoom) `json:"-"`
+	AllIsRobot    bool                 `json:"-"` // 是否全是机器人
 }
 
 func (r *QZNNRoom) ResetGameData() {

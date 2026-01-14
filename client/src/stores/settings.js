@@ -42,8 +42,10 @@ export const useSettingsStore = defineStore('settings', () => {
         if (data.Effect !== undefined) soundEnabled.value = data.Effect;
         else if (data.effect !== undefined) soundEnabled.value = data.effect;
 
-        if (data.Talk !== undefined) muteUsers.value = data.Talk;
-        else if (data.talk !== undefined) muteUsers.value = data.talk;
+        // Server 'Talk' means 'Accept Talk' (True = Unmuted). Client 'muteUsers' means 'Mute Others' (True = Muted).
+        // So we invert the value.
+        if (data.Talk !== undefined) muteUsers.value = !data.Talk;
+        else if (data.talk !== undefined) muteUsers.value = !data.talk;
 
         // Use setTimeout to ensure watchers have fired and completed before enabling sync
         setTimeout(() => {
@@ -57,7 +59,7 @@ export const useSettingsStore = defineStore('settings', () => {
         const payload = {
             Music: musicEnabled.value,
             Effect: soundEnabled.value,
-            Talk: muteUsers.value
+            Talk: !muteUsers.value // Invert for server: muteUsers=true -> Talk=false (don't accept)
         };
         // Send SaveSetting to server
         gameClient.send("SaveSetting", payload);

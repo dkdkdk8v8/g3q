@@ -12,13 +12,6 @@
 
                 <el-button type="primary" @click="refresh" class="ml-20">刷新</el-button>
             </div>
-            <div class="filter-row mt-10">
-                <el-radio-group v-model="userType" @change="refresh">
-                    <el-radio-button label="all">全部</el-radio-button>
-                    <el-radio-button label="real">真实用户</el-radio-button>
-                    <el-radio-button label="robot">机器人</el-radio-button>
-                </el-radio-group>
-            </div>
         </el-card>
 
         <el-card shadow="never" class="chart-card">
@@ -53,7 +46,6 @@ const options = reactive({
 
 const date = ref(dayjs().format("YYYY-MM-DD"));
 const appId = ref("");
-const userType = ref("real");
 
 const chartRef = ref();
 const chartBoxRef = ref();
@@ -121,7 +113,6 @@ async function refresh() {
         const res = await service.game.staPeriod.getCardResultStats({
             date: date.value,
             app: appId.value,
-            userType: userType.value
         });
 
         // 转换数据格式

@@ -102,7 +102,6 @@ const Table = useTable({
 				return (row.balance_lock / 100).toFixed(2);
 			},
 		},
-		{ label: "游戏ID", prop: "game_id", minWidth: 180, showOverflowTooltip: true },
 		{
 			label: "最近游戏",
 			prop: "last_played",
@@ -139,16 +138,16 @@ function openBatchAdd() {
 		title: "批量添加机器人",
 		width: "500px",
 		items: [
-			{
-				component: {
-					name: "el-alert",
-					props: {
-						title: "提示：增加的余额会在最小和最大值之间随机",
-						type: "warning",
-						closable: false,
-					},
-				},
-			},
+			// {
+			// 	component: {
+			// 		name: "el-alert",
+			// 		props: {
+			// 			title: "提示：增加的余额会在最小和最大值之间随机",
+			// 			type: "warning",
+			// 			closable: false,
+			// 		},
+			// 	},
+			// },
 			{
 				label: "数量",
 				prop: "count",
@@ -173,40 +172,40 @@ function openBatchAdd() {
 				},
 				required: true,
 			},
-			{
-				label: "最小余额(元)",
-				prop: "balanceMin",
-				value: 100,
-				component: {
-					name: "el-input-number",
-					props: {
-						min: 0,
-						precision: 2,
-					},
-				},
-				required: true,
-			},
-			{
-				label: "最大余额(元)",
-				prop: "balanceMax",
-				value: 1000,
-				component: {
-					name: "el-input-number",
-					props: {
-						min: 0,
-						precision: 2,
-					},
-				},
-				required: true,
-			},
+			// {
+			// 	label: "最小余额(元)",
+			// 	prop: "balanceMin",
+			// 	value: 100,
+			// 	component: {
+			// 		name: "el-input-number",
+			// 		props: {
+			// 			min: 0,
+			// 			precision: 2,
+			// 		},
+			// 	},
+			// 	required: true,
+			// },
+			// {
+			// 	label: "最大余额(元)",
+			// 	prop: "balanceMax",
+			// 	value: 1000,
+			// 	component: {
+			// 		name: "el-input-number",
+			// 		props: {
+			// 			min: 0,
+			// 			precision: 2,
+			// 		},
+			// 	},
+			// 	required: true,
+			// },
 		],
 		on: {
 			submit(data, { close, done }) {
 				service.game.robot
 					.createRobotBatch({
 						...data,
-						balanceMin: data.balanceMin * 100,
-						balanceMax: data.balanceMax * 100,
+						// balanceMin: data.balanceMin * 100,
+						// balanceMax: data.balanceMax * 100,
 					})
 				ElMessage.success("添加成功，刷新后可以查看。");
 				close();

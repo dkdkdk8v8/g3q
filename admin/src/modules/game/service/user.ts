@@ -6,6 +6,7 @@ import { Repository } from "typeorm";
 import { GameUserEntity } from "../entityGame/user";
 import { GameUserRecordEntity } from '../entityGame/user-record';
 import { GameRecordEntity } from '../entityGame/game-record';
+import { BaseSysParamService } from '../../base/service/sys/param';
 
 @Provide()
 export class GameUserService extends BaseService {
@@ -21,6 +22,9 @@ export class GameUserService extends BaseService {
     @InjectEntityModel(GameRecordEntity)
     gameRecordEntity: Repository<GameRecordEntity>;
 
+    @Inject()
+    baseSysParamService: BaseSysParamService;
+
 
     async batchDisable(ids: number[]) {
         return this.userEntity.update(ids, { enable: false });
@@ -28,6 +32,15 @@ export class GameUserService extends BaseService {
 
     async batchEnable(ids: number[]) {
         return this.userEntity.update(ids, { enable: true });
+    }
+
+    async page(query, option, connectionName) {
+        const host = await this.baseSysParamService.dataByKey('avatar_host');
+        const result = await super.page(query, option, connectionName);
+        result?.list?.map((item: GameUserEntity) => {
+            if (item.avatar) item.avatar = `${host}/${item.avatar}`;
+        });
+        return result;
     }
 
     async pageUserRecords(user_id: string, page = 1, size = 10): Promise<{

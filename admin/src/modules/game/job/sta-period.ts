@@ -17,7 +17,8 @@ interface StatsData {
   timeKey: Date;
   appId: string;
   gameName: string;
-  isRobot: boolean;
+  roomLevel: number;
+  roomType: number;
   gameUserCount: number;
   gameCount: number;
   betCount: number;
@@ -31,7 +32,6 @@ interface StatsData {
 interface UserStatsData {
   date: Date;
   userId: string;
-  isRobot: boolean;
   appId: string;
   betCount: number;
   betAmount: number;
@@ -71,6 +71,8 @@ export class StaPeriodJob implements IJob {
 
   private static isRunning = false;
 
+  private static COUNT = 10;
+
   async getLastId() {
     let lastId = await this.midwayCache.get('game:sta:lastId');
     if (!lastId) return 0;
@@ -93,14 +95,15 @@ export class StaPeriodJob implements IJob {
   /**
    * 获取或初始化统计对象
    */
-  private getStats(statsMap: Map<string, StatsData>, timeKey: Date, appId: string, gameName: string, isRobot: boolean): StatsData {
-    const mapKey = `${timeKey.getTime()}_${appId}_${gameName}_${isRobot}`;
+  private getStats(statsMap: Map<string, StatsData>, timeKey: Date, appId: string, gameName: string, roomLevel: number, roomType: number): StatsData {
+    const mapKey = `${timeKey.getTime()}_${appId}_${gameName}_${roomLevel}_${roomType}`;
     if (!statsMap.has(mapKey)) {
       statsMap.set(mapKey, {
         timeKey,
         appId,
         gameName,
-        isRobot,
+        roomLevel,
+        roomType,
         gameUserCount: 0,
         gameCount: 0,
         betCount: 0,
@@ -122,17 +125,19 @@ export class StaPeriodJob implements IJob {
     const dataSource = this.staPeriodEntity.manager.connection;
     await dataSource.transaction(async manager => {
       for (const stats of statsMap.values()) {
-        this.logger.info(stats.timeKey, stats.appId, stats.gameName, stats.isRobot, stats.gameCount);
+        const where = { timeKey: stats.timeKey, appId: stats.appId, gameName: stats.gameName, roomLevel: stats.roomLevel, roomType: stats.roomType };
         let entity = await manager.findOne(StaPeriodEntity, {
-          where: { timeKey: stats.timeKey, appId: stats.appId, gameName: stats.gameName, isRobot: stats.isRobot },
+          where,
           lock: { mode: 'pessimistic_write' },
         });
+        this.logger.info(where);
         if (!entity) {
           entity = new StaPeriodEntity();
           entity.timeKey = stats.timeKey;
           entity.appId = stats.appId;
           entity.gameName = stats.gameName;
-          entity.isRobot = stats.isRobot;
+          entity.roomLevel = stats.roomLevel;
+          entity.roomType = stats.roomType;
           entity.gameUserCount = 0;
           entity.gameCount = 0;
           entity.betCount = 0;
@@ -224,7 +229,7 @@ export class StaPeriodJob implements IJob {
       const records = await this.recordEntity.find({
         where: { id: MoreThan(lastId) },
         order: { id: 'ASC' },
-        take: 1000,
+        take: StaPeriodJob.COUNT,
       });
       this.logger.info(`开始处理id大于${lastId}的数据，共${records.length}条`);
       const statsMap = new Map<string, StatsData>();
@@ -259,8 +264,10 @@ export class StaPeriodJob implements IJob {
       await Promise.all(parsedRecords.map(async ({ record, gameData }) => {
         const { id, game_name, create_at } = record;
         const { Room } = gameData;
-        let { Players = [] } = Room;
-        const { BankerID } = Room;
+        let { Players = [], Config, BankerID } = Room;
+
+        const roomLevel = Config?.Level || 0;
+        const roomType = Room?.BankerType || 0;
 
         const timeKey = this.getTimeKey(create_at);
         const dateKey = moment(create_at).startOf('day').toDate();
@@ -274,11 +281,10 @@ export class StaPeriodJob implements IJob {
 
           const user = userMap.get(userId);
           const app_id = user?.app_id || '';
-          if (!user) return;
-          const isRobot = !!user.is_robot;
-          involvedGroups.add(`${app_id}|${isRobot}`);
+          if (!user || user.is_robot) return;
+          involvedGroups.add(`${app_id}`);
 
-          const stats = this.getStats(statsMap, timeKey, app_id, game_name, isRobot);
+          const stats = this.getStats(statsMap, timeKey, app_id, game_name, roomLevel, roomType);
 
           stats.betCount++;
           stats.betAmount += Math.abs(ValidBet);
@@ -322,7 +328,6 @@ export class StaPeriodJob implements IJob {
               date: dateKey,
               userId: userId,
               appId: app_id,
-              isRobot: user.is_robot,
               betCount: 0,
               betAmount: 0,
               winCount: 0,
@@ -343,10 +348,8 @@ export class StaPeriodJob implements IJob {
         }));
 
         // 增加游戏次数 (每个涉及的APP都+1)
-        for (const group of involvedGroups) {
-          const [appId, isRobotStr] = group.split('|');
-          const isRobot = isRobotStr === 'true';
-          const stats = this.getStats(statsMap, timeKey, appId, game_name, isRobot);
+        for (const appId of involvedGroups) {
+          const stats = this.getStats(statsMap, timeKey, appId, game_name, roomLevel, roomType);
           stats.gameCount += 1;
         }
       }));

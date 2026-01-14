@@ -31,7 +31,7 @@ export class StaPeriodService extends BaseService {
     /**
      * 获取对应时间内的统计数据
      */
-    async getDateStats(startDate: string, endDate: string, app: string, showType: 'app' | 'date' | 'game', sort: string, order: string, gameName?: string, userType?: string) {
+    async getDateStats(startDate: string, endDate: string, app: string, showType: 'app' | 'date' | 'game' | 'roomLevel' | 'roomType', sort: string, order: string, gameName?: string, roomLevel?: string, roomType?: string) {
         const start = moment(startDate).startOf('day').toDate();
         const end = moment(endDate).endOf('day').toDate();
 
@@ -44,10 +44,11 @@ export class StaPeriodService extends BaseService {
         if (gameName) {
             where.gameName = gameName;
         }
-        if (userType === 'real') {
-            where.isRobot = false;
-        } else if (userType === 'robot') {
-            where.isRobot = true;
+        if (roomLevel !== undefined && roomLevel !== null && String(roomLevel) !== '') {
+            where.roomLevel = roomLevel;
+        }
+        if (roomType !== undefined && roomType !== null && String(roomType) !== '') {
+            where.roomType = roomType;
         }
 
         const list = await this.staPeriodEntity.find({
@@ -62,6 +63,10 @@ export class StaPeriodService extends BaseService {
                 key = item.appId || '';
             } else if (showType === 'game') {
                 key = item.gameName || '';
+            } else if (showType === 'roomLevel') {
+                key = String(item.roomLevel);
+            } else if (showType === 'roomType') {
+                key = String(item.roomType);
             } else {
                 key = moment(item.timeKey).format('YYYY-MM-DD');
             }
@@ -179,7 +184,7 @@ export class StaPeriodService extends BaseService {
         return false;
     }
 
-    async getUserStats(startDate: string, endDate: string, app: string, sort: string, order: string, userType?: string, userId?: string) {
+    async getUserStats(startDate: string, endDate: string, app: string, sort: string, order: string, userId?: string) {
         const start = moment(startDate).startOf('day').toDate();
         const end = moment(endDate).endOf('day').toDate();
 
@@ -235,12 +240,6 @@ export class StaPeriodService extends BaseService {
         if (result.length > 0) {
             const userIds = result.map(e => e.userId);
             const userWhere: any = { user_id: In(userIds) };
-            if (userType === 'real') {
-                userWhere.is_robot = false;
-            } else if (userType === 'robot') {
-                userWhere.is_robot = true;
-            }
-
             const users = await this.gameUserEntity.find({
                 where: userWhere,
                 select: ['user_id', 'nick_name', 'total_deposit', 'total_with_draw', 'total_game_count', 'total_bet', 'total_net_balance']
@@ -258,9 +257,7 @@ export class StaPeriodService extends BaseService {
                     item.totalNetBalance = u.total_net_balance;
                     validItems.push(item);
                 } else {
-                    if (!userType || userType === 'all') {
-                        validItems.push(item);
-                    }
+                    validItems.push(item);
                 }
             }
             result = validItems;
@@ -295,7 +292,7 @@ export class StaPeriodService extends BaseService {
     /**
      * 获取当日趋势对比（当日、昨日、上周同期）
      */
-    async getDayTrend(date: string, app: string, duration: number = 10, userType?: string) {
+    async getDayTrend(date: string, app: string, duration: number = 10) {
         const targetDate = moment(date);
         // 构造三个时间段：当日、昨日、上周同期
         const dates = [
@@ -352,11 +349,6 @@ export class StaPeriodService extends BaseService {
             };
             if (app) {
                 where.appId = app;
-            }
-            if (userType === 'real') {
-                where.isRobot = false;
-            } else if (userType === 'robot') {
-                where.isRobot = true;
             }
 
             const list = await this.staPeriodEntity.find({ where });
@@ -424,7 +416,7 @@ export class StaPeriodService extends BaseService {
     /**
      * 获取牌型结果统计
      */
-    async getCardResultStats(date: string, app: string, userType?: string) {
+    async getCardResultStats(date: string, app: string) {
         const start = moment(date).startOf('day').toDate();
         const end = moment(date).endOf('day').toDate();
 
@@ -433,11 +425,6 @@ export class StaPeriodService extends BaseService {
         };
         if (app) {
             where.appId = app;
-        }
-        if (userType === 'real') {
-            where.isRobot = false;
-        } else if (userType === 'robot') {
-            where.isRobot = true;
         }
 
         const list = await this.staPeriodEntity.find({

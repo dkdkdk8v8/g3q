@@ -46,6 +46,8 @@ import zhuangImg from '@/assets/common/zhuang.png';
 import tanpaiImg from '@/assets/common/tanpai.png';
 import gameTopDifenBg from '@/assets/common/game_top_difen_bg.png';
 import gameChatBtnImg from '@/assets/common/game_chat_btn.png';
+import avatarFrameImg from '@/assets/common/avatar_circle.png';
+import userInfoBgImg from '@/assets/common/user_info_rect.png';
 
 // Niu hand type images
 import niu1Img from '@/assets/niu/niu_1.png';
@@ -1241,15 +1243,19 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                 <!-- Avatar and Info Box - adapted from PlayerSeat -->
                 <div class="avatar-area my-player-avatar-info">
                     <div class="avatar-wrapper">
+                        <!-- Avatar Container -->
                         <div class="avatar-frame" :class="{
                             'banker-candidate-highlight': myPlayer.id === currentlyHighlightedPlayerId,
                             'banker-confirm-anim': showBankerConfirmAnim && myPlayer.isBanker,
                             'is-banker': myPlayer.isBanker && !['SETTLEMENT', 'GAME_OVER'].includes(store.currentPhase),
                             'win-neon-flash': !!winEffects[myPlayer.id]
                         }">
-                            <van-image :src="myPlayer.avatar" class="avatar"
+                            <van-image :src="myPlayer.avatar" class="avatar" fit="cover"
                                 :class="{ 'avatar-gray': myPlayer.isObserver }" />
                         </div>
+
+                        <!-- Avatar Frame Overlay -->
+                        <img :src="avatarFrameImg" class="avatar-border-overlay" />
 
                         <!-- Speech Bubble -->
                         <div v-show="showSpeechBubble(myPlayer.id)" class="speech-bubble"
@@ -1266,14 +1272,17 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                             class="banker-badge"><img :src="zhuangImg" alt="庄" class="banker-badge-img" /></div>
                     </div>
 
-                    <div class="info-box" :class="{ 'is-observer': myPlayer.isObserver }">
-                        <div class="name van-ellipsis">{{ myPlayer.name.length > 10 ? myPlayer.name.slice(0, 4) + '...'
-                            +
-                            myPlayer.name.slice(-4) : myPlayer.name }}</div>
+                    <div class="info-box" :style="{ backgroundImage: `url(${userInfoBgImg})` }"
+                        :class="{ 'is-observer': myPlayer.isObserver }">
+
+                        <div class="name van-ellipsis">{{ myPlayer.name }}</div>
+
                         <div class="coins-pill">
-                            <img :src="goldImg" class="coin-icon-seat" />
+
                             {{ formatCoins(myPlayer.coins) }}
+
                         </div>
+
                     </div>
 
                     <!-- Status float (rob/bet multiplier status) -->
@@ -2230,24 +2239,29 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     width: 62px;
     height: 62px;
     flex-shrink: 0;
-    z-index: 6;
-    /* Ensure above info box */
+    /* Removed z-index to allow child badge to pop over sibling info-box */
 }
 
 .my-player-info-row .avatar-frame {
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.3);
+    /* Use the imported image for background */
+
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-color: transparent;
+
     border-radius: 50%;
-    /* Circular */
-    border: 4px solid transparent;
-    box-sizing: border-box;
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2);
+    /* Remove old border properties */
+    border: none;
+    box-shadow: none;
+
     overflow: hidden;
     display: flex;
     justify-content: center;
     align-items: center;
     transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
+    padding: 0;
 }
 
 .my-player-info-row .avatar-frame.banker-candidate-highlight {
@@ -2316,7 +2330,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .my-player-info-row .info-box {
     margin-left: 0;
-    margin-top: -8px;
+    margin-top: -13px;
     /* Slight overlap */
     position: relative;
     z-index: 10;
@@ -2327,14 +2341,19 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     align-items: center;
     /* Center text */
     justify-content: center;
+    gap: 3px;
+    /* Space between name and coins */
 
-    /* Trapezoid Background */
-    background: rgba(0, 0, 0, 0.65);
-    /* Wide top, narrow bottom */
-    clip-path: polygon(0% 0%, 100% 0%, 90% 100%, 10% 100%);
+    /* Background Image */
 
-    padding: 8px 4px 4px 4px;
-    padding-top: 10px;
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-color: transparent;
+
+    /* Remove clip-path */
+    clip-path: none;
+
+    padding: 4px 6px;
 }
 
 .my-player-info-row .info-box.is-observer {
@@ -2397,6 +2416,20 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     /* Push to the right */
 }
 
+.my-player-info-row .avatar-border-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 5;
+    /* Above avatar (in frame), below banker badge (100) */
+    pointer-events: none;
+    object-fit: fill;
+    /* Or contain, depending on image */
+}
+
+/* Ensure controls container has enough height */
 .controls-container {
     margin-bottom: 20px;
     min-height: 120px;

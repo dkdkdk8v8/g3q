@@ -120,7 +120,7 @@ func (w *mainClientWork) Start(baseCtx *initMain.BaseCtx) error {
 		}
 
 		deadlockPath := filepath.Join(filepath.Dir(os.Args[0]), "log", logName+".deadlock")
-		if f, err := os.OpenFile(deadlockPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666); err == nil {
+		if f, err := os.OpenFile(deadlockPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0666); err == nil {
 			deadlock.Opts.LogBuf = f
 		} else {
 			logrus.WithError(err).Error("SetDeadlockOutput-Fail")

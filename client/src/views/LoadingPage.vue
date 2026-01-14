@@ -108,7 +108,7 @@ export default {
       }
       appId.value = '91xj';
       userId.value = result;
-      
+
       // Save immediately
       localStorage.setItem(LOCAL_STORAGE_APP_KEY, appId.value);
       localStorage.setItem(LOCAL_STORAGE_UID_KEY, userId.value);
@@ -133,7 +133,7 @@ export default {
 
       appId.value = urlAppId;
       userId.value = urlUserId;
-      
+
       // Save immediately
       localStorage.setItem(LOCAL_STORAGE_APP_KEY, urlAppId);
       localStorage.setItem(LOCAL_STORAGE_UID_KEY, urlUserId);
@@ -387,20 +387,13 @@ button:hover {
 }
 
 .loading-text-container {
-  background-color: rgba(30, 41, 59, 0.95);
   /* Dark blue-grey, similar to game modals */
   color: white;
-  padding: 20px 30px;
-  /* Reduced padding */
-  border-radius: 15px;
   /* Consistent border radius */
   font-size: 1.2em;
   /* Reduced font size */
   font-weight: bold;
   text-align: center;
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.7);
-  /* Stronger shadow */
-  border: 3px solid #ffcc00;
   /* Gold border */
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
   /* Text shadow for depth */

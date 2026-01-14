@@ -321,7 +321,8 @@ const displayName = computed(() => {
 
         <!-- 手牌区域 (始终渲染以占位) -->
         <div class="hand-area">
-            <div class="cards" :class="{ 'is-me-cards': isMe }" :style="{ visibility: showCards ? 'visible' : 'hidden' }">
+            <div class="cards" :class="{ 'is-me-cards': isMe }"
+                :style="{ visibility: showCards ? 'visible' : 'hidden' }">
                 <PokerCard v-for="(card, idx) in displayedHand" :key="idx"
                     :card="(shouldShowCardFace && (visibleCardCount === -1 || idx < visibleCardCount)) ? card : null"
                     :is-small="!isMe"
@@ -410,6 +411,7 @@ const displayName = computed(() => {
 }
 
 .avatar-area {
+    justify-content: center;
     position: relative;
     /* Ensure absolute positioning of children is relative to this parent */
     display: flex;
@@ -418,28 +420,18 @@ const displayName = computed(() => {
     width: 100%;
 }
 
-/* Opponent Avatar Area: Row Layout (Now includes seat-bottom based on user request) */
+/* Opponent Avatar Area: ALL Column Layout */
 .seat-top .avatar-area,
 .seat-left .avatar-area,
 .seat-right .avatar-area,
-.seat-bottom .avatar-area {
-    flex-direction: row;
+.seat-bottom .avatar-area,
+.seat-top-left .avatar-area,
+.seat-top-right .avatar-area {
+    flex-direction: column;
     align-items: center;
     justify-content: center;
 }
 
-/* Specific override for Right side to reverse */
-.seat-right .avatar-area,
-.seat-top-right .avatar-area {
-    flex-direction: row-reverse;
-}
-
-/* Left side (and now Top/Bottom) use standard row */
-.seat-left .avatar-area,
-.seat-top-left .avatar-area,
-.seat-bottom .avatar-area {
-    flex-direction: row;
-}
 
 .avatar-wrapper {
     position: relative;
@@ -447,6 +439,7 @@ const displayName = computed(() => {
     height: 52px;
     flex-shrink: 0;
     /* Prevent avatar shrinking */
+    z-index: 6; /* Ensure avatar is above info box if they overlap slightly */
 }
 
 /* Increase avatar size for opponents */
@@ -505,14 +498,14 @@ const displayName = computed(() => {
     transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
 }
 
-/* Avatar Frame: Rounded Square for ALL */
+/* Avatar Frame: Round for ALL */
 .avatar-frame.is-opponent {
-    border-radius: 8px;
+    border-radius: 50%;
 }
 
 /* Also ensure Van Image has border radius */
 .van-image.opponent-avatar {
-    border-radius: 8px !important;
+    border-radius: 50% !important;
     overflow: hidden;
 }
 
@@ -796,46 +789,37 @@ const displayName = computed(() => {
 
 
 .info-box {
-    margin-top: 2px;
-    /* Adjust to create a 2px gap from the avatar */
+    margin-top: -8px; /* Slight overlap with avatar */
     position: relative;
-    z-index: 5;
-    width: 100%;
+    z-index: 10; /* Higher than avatar-wrapper (z-index 6) */
+    width: 90px; /* Fixed width for the box */
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
+    
+    /* Trapezoid Background */
+    background: rgba(0, 0, 0, 0.65);
+    /* Clip path for trapezoid: Top width 100%, Bottom width 80% (Wide Top, Narrow Bottom) */
+    /* polygon(top-left, top-right, bottom-right, bottom-left) */
+    clip-path: polygon(0% 0%, 100% 0%, 90% 100%, 10% 100%);
+    
+    padding: 8px 4px 4px 4px; /* Padding top to push content down from overlap */
+    padding-top: 10px;
 }
 
-/* Opponent Info Box: Left aligned, margin left */
+/* Reset alignments for all seats to center because of column layout */
 .seat-top .info-box,
-/* Keep for fallback */
 .seat-left .info-box,
-.seat-top-left .info-box {
-    align-items: flex-start;
-    margin-top: 0;
-    margin-left: 8px;
-    width: auto;
-    /* Let it shrink/grow */
-}
-
-/* Right/Top-Right Opponent Info Box: Right aligned, margin right */
+.seat-top-left .info-box,
 .seat-right .info-box,
-.seat-top-right .info-box {
-    align-items: flex-end;
-    margin-top: 0;
-    margin-right: 8px;
-    margin-left: 0;
-    /* Override left margin if applied */
-    width: auto;
-    /* Let it shrink/grow */
-}
-
-/* Ensure Me player (seat-bottom) uses left alignment now */
+.seat-top-right .info-box,
 .seat-bottom .info-box {
-    align-items: flex-start;
-    margin-top: 0;
-    margin-left: 8px;
-    width: auto;
+    align-items: center;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: -8px;
+    width: 90px;
 }
 
 .info-box.is-observer {
@@ -844,12 +828,14 @@ const displayName = computed(() => {
 }
 
 .name {
-    font-size: 16px;
-    /* Increased from 12px */
+    font-size: 12px;
     font-weight: bold;
     color: white;
     text-shadow: 0 1px 2px black;
-    margin-bottom: 2px;
+    margin-bottom: 0px;
+    max-width: 80%;
+    text-align: center;
+    line-height: 1.2;
 }
 
 :not(.seat-bottom) .name {
@@ -857,24 +843,23 @@ const displayName = computed(() => {
 }
 
 .coins-pill {
-    background: rgba(0, 0, 0, 0.6);
-    border-radius: 20px;
-    /* More rounded */
-    padding: 2px 5px 2px 2px;
-    /* Adjusted padding */
-    font-size: 13px;
-    /* Increased from 14px */
+    /* Remove previous pill background */
+    background: transparent;
+    border-radius: 0;
+    padding: 0;
+    border: none;
+    
+    font-size: 12px;
     font-weight: bold;
     color: #fbbf24;
-    /* Changed to yellow */
     display: flex;
     align-items: center;
-    gap: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    gap: 2px;
+    justify-content: center;
 }
 
 :not(.seat-bottom) .coins-pill {
-    font-size: 10px;
+    font-size: 11px;
 }
 
 .coin-icon-seat {
@@ -1085,11 +1070,11 @@ const displayName = computed(() => {
     flex-shrink: 0;
 }
 
-.cards .hand-card + .hand-card {
+.cards .hand-card+.hand-card {
     margin-left: -7.4667vw;
 }
 
-.cards.is-me-cards .hand-card + .hand-card {
+.cards.is-me-cards .hand-card+.hand-card {
     margin-left: 0.2667vw;
 }
 

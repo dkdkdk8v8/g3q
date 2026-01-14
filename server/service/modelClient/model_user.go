@@ -13,6 +13,7 @@ const (
 	RecordTypeAdmin    RecordType = 3
 )
 
+// 此orm内部字段，不要随意rename
 type ModelUser struct {
 	Id              uint64    `orm:"column(id);auto" json:"-"`                           // 标识
 	UserId          string    `orm:"column(user_id);size(64)"`                           // 用户标识(带APPID前缀)

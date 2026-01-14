@@ -45,6 +45,7 @@ import goldImg from '@/assets/common/gold.png';
 import zhuangImg from '@/assets/common/zhuang.png';
 import tanpaiImg from '@/assets/common/tanpai.png';
 import gameTopDifenBg from '@/assets/common/game_top_difen_bg.png';
+import gameChatBtnImg from '@/assets/common/game_chat_btn.png';
 
 // Niu hand type images
 import niu1Img from '@/assets/niu/niu_1.png';
@@ -1173,9 +1174,9 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                 <div class="phase-info">
                     <span v-if="store.currentPhase === 'WAITING_FOR_PLAYERS'">匹配玩家中...</span>
                     <span v-else-if="store.currentPhase === 'READY_COUNTDOWN'">游戏即将开始 {{ store.countdown }}</span>
-                    <span v-else-if="store.currentPhase === 'ROB_BANKER'">看牌抢庄 {{ store.countdown }}</span>
-                    <span v-else-if="store.currentPhase === 'BETTING'">闲家下注 {{ store.countdown }}</span>
-                    <span v-else-if="store.currentPhase === 'SHOWDOWN'">摊牌比拼 {{ store.countdown }}</span>
+                    <span v-else-if="store.currentPhase === 'ROB_BANKER'">等待其他玩家抢庄 {{ store.countdown }}</span>
+                    <span v-else-if="store.currentPhase === 'BETTING'">等待其他玩家投注 {{ store.countdown }}</span>
+                    <span v-else-if="store.currentPhase === 'SHOWDOWN'">等待玩家摊牌比拼 {{ store.countdown }}</span>
                     <span v-else-if="store.currentPhase === 'BANKER_SELECTION_ANIMATION'">正在选庄...</span>
                     <span v-else-if="store.currentPhase === 'BANKER_CONFIRMED'">庄家已定</span>
                     <span v-else-if="store.currentPhase === 'SETTLEMENT'">结算中...</span>
@@ -1281,7 +1282,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                             <div v-if="shouldShowRobMult" class="status-content">
                                 <span v-if="myPlayer.robMultiplier > 0" class="status-text rob-text text-large">抢{{
                                     myPlayer.robMultiplier
-                                }}倍</span>
+                                    }}倍</span>
                                 <span v-else class="status-text no-rob-text text-large">不抢</span>
                             </div>
                         </Transition>
@@ -1296,7 +1297,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
                 <!-- Chat button -->
                 <div class="chat-toggle-btn" @click="toggleShowChatSelector()">
-                    <van-icon name="comment" size="24" color="white" />
+                    <img :src="gameChatBtnImg" class="chat-btn-img" />
                 </div>
             </div>
 
@@ -1410,12 +1411,14 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     /* Light gold/cream */
     font-size: 16px;
     font-weight: bold;
-    background: linear-gradient(to right, rgba(0, 0, 0, 0.7), rgba(17, 24, 39, 0.9), rgba(0, 0, 0, 0.7));
+    background: rgba(19, 41, 40, 0.6);
     padding: 6px 24px;
     border-radius: 24px;
-    border: 1px solid rgba(251, 191, 36, 0.4);
-    /* Gold border */
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    border: 0.2667vw solid rgba(255, 255, 253, 0.3);
+    /* Distinct bottom frame/border */
+    box-shadow: 0 1vw 2.2vw rgba(0, 0, 0, 0.6), 0 0 4vw rgba(251, 191, 36, 0.2);
+    /* Deep shadow + Glow */
+    text-shadow: 0 0.5333vw 1.0667vw rgba(0, 0, 0, 0.9);
     display: flex;
     align-items: center;
     align-self: center;
@@ -1958,24 +1961,24 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 .seat-right {
     top: 38%;
     /* Adjusted for fixed top alignment */
-    right: 4vw;
+    right: 0;
     /* transform: scale(0.85); Removed redundant scale */
 }
 
 .seat-right-top {
     top: 15%;
-    right: 12%;
+    right: 6vw;
 }
 
 .seat-left-top {
     top: 15%;
-    left: 12%;
+    left: 6vw;
 }
 
 .seat-left {
     top: 38%;
     /* Adjusted for fixed top alignment */
-    left: 10px;
+    left: 0;
     /* transform: scale(0.85); Removed redundant scale */
 }
 
@@ -2043,19 +2046,18 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .phase-info {
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.7));
-    color: #fbbf24;
+    background: rgba(19, 41, 40, 0.6);
+    color: #fdfdfc;
     /* Golden text */
-    padding: 2.1333vw 6.4vw;
+    padding: 1.1333vw 3.4vw;
     /* Slightly larger padding */
     border-radius: 6.4vw;
     font-size: 1.8vh;
     font-weight: bold;
     margin-top: 8vw;
-    border: 0.2667vw solid rgba(251, 191, 36, 0.4);
-    border-bottom: 0.8vw solid rgba(180, 83, 9, 0.8);
+    border: 0.2667vw solid rgba(255, 255, 253, 0.3);
     /* Distinct bottom frame/border */
-    box-shadow: 0 1.6vw 3.2vw rgba(0, 0, 0, 0.6), 0 0 4vw rgba(251, 191, 36, 0.2);
+    box-shadow: 0 1vw 2.2vw rgba(0, 0, 0, 0.6), 0 0 4vw rgba(251, 191, 36, 0.2);
     /* Deep shadow + Glow */
     text-shadow: 0 0.5333vw 1.0667vw rgba(0, 0, 0, 0.9);
     display: flex;
@@ -2215,9 +2217,10 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 .my-player-info-row .avatar-area {
     position: relative;
     display: flex;
-    flex-direction: row;
-    /* Horizontal layout for avatar and info-box */
+    flex-direction: column;
+    /* Changed to column */
     align-items: center;
+    /* Center align */
     width: auto;
     /* Let it shrink to content */
 }
@@ -2227,14 +2230,16 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     width: 62px;
     height: 62px;
     flex-shrink: 0;
+    z-index: 6;
+    /* Ensure above info box */
 }
 
 .my-player-info-row .avatar-frame {
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.3);
-    border-radius: 8px;
-    /* Rounded square for myPlayer avatar */
+    border-radius: 50%;
+    /* Circular */
     border: 4px solid transparent;
     box-sizing: border-box;
     box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2);
@@ -2310,15 +2315,26 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .my-player-info-row .info-box {
-    margin-left: 8px;
-    /* Gap between avatar and info */
+    margin-left: 0;
+    margin-top: -8px;
+    /* Slight overlap */
     position: relative;
-    z-index: 5;
-    width: auto;
+    z-index: 10;
+    /* Higher than avatar */
+    width: 90px;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    /* Align name and coins to the left */
+    align-items: center;
+    /* Center text */
+    justify-content: center;
+
+    /* Trapezoid Background */
+    background: rgba(0, 0, 0, 0.65);
+    /* Wide top, narrow bottom */
+    clip-path: polygon(0% 0%, 100% 0%, 90% 100%, 10% 100%);
+
+    padding: 8px 4px 4px 4px;
+    padding-top: 10px;
 }
 
 .my-player-info-row .info-box.is-observer {
@@ -2327,24 +2343,30 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .my-player-info-row .name {
-    font-size: 16px;
+    font-size: 14px;
+    /* Slightly larger than opponents */
     font-weight: bold;
     color: white;
     text-shadow: 0 1px 2px black;
-    margin-bottom: 2px;
+    margin-bottom: 0px;
+    max-width: 80%;
+    text-align: center;
+    line-height: 1.2;
 }
 
 .my-player-info-row .coins-pill {
-    background: rgba(0, 0, 0, 0.6);
-    border-radius: 20px;
-    padding: 2px 5px 2px 2px;
+    background: transparent;
+    border-radius: 0;
+    padding: 0;
+    border: none;
+
     font-size: 13px;
     font-weight: bold;
     color: #fbbf24;
     display: flex;
     align-items: center;
-    gap: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    gap: 2px;
+    justify-content: center;
 }
 
 .my-player-info-row .coin-icon-seat {
@@ -2355,15 +2377,18 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .my-player-info-row .status-float {
     position: absolute;
-    top: 50%;
-    left: 100%;
-    transform: translateY(-50%);
-    z-index: 8;
-    margin-left: 12px;
+    top: auto;
+    bottom: 100%;
+    /* Position above avatar */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 150;
+    margin-left: 0;
+    margin-bottom: 10px;
     width: max-content;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
 }
 
 /* Ensure chat button pushes to the right within my-player-info-row */
@@ -2409,7 +2434,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .multiplier-option-btn {
-    width: 20vw;
+    width: 25vw;
     height: auto;
 }
 
@@ -2484,10 +2509,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     bottom: 20px;
     right: 20px;
     /* Removed width and height to allow padding to control size */
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 8px;
-    padding: 4px 8px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+
     display: flex;
     justify-content: center;
     align-items: center;
@@ -2496,6 +2518,13 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     cursor: pointer;
     z-index: 100;
     transition: transform 0.1s;
+}
+
+.chat-btn-img {
+    width: 40px;
+    height: auto;
+    object-fit: contain;
+    margin-right: 10px;
 }
 
 .chat-toggle-btn:active {
@@ -2663,7 +2692,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .showdown-btn-img {
-    height: 45px;
+    height: 50px;
     width: auto;
     object-fit: contain;
 }

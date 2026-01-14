@@ -2436,6 +2436,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     /* Reserve space for multiplier options */
     display: flex;
     justify-content: center;
+    align-items: flex-start;
     width: 100%;
 }
 

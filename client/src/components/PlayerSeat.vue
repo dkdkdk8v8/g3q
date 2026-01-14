@@ -246,10 +246,20 @@ const displayName = computed(() => {
         return name;
     }
     if (name.length <= 1) return name;
-    // For names with length >= 2, show first and last char, separated by 6 asterisks
+
     const first = name.charAt(0);
     const last = name.charAt(name.length - 1);
-    return `${first}******${last}`;
+
+    // Check if first character is Chinese
+    if (/^[\u4e00-\u9fa5]/.test(name)) {
+        // Chinese: first + stars (length - 2) + last
+        // If length is 2, stars will be 0, showing full name "张三"
+        const starCount = Math.max(0, name.length - 2);
+        return `${first}${'*'.repeat(starCount)}${last}`;
+    } else {
+        // Pure English / Other: first + fixed 6 stars + last
+        return `${first}******${last}`;
+    }
 });
 </script>
 <template>

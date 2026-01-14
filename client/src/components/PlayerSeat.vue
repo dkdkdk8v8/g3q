@@ -528,8 +528,8 @@ const displayName = computed(() => {
 .van-image.opponent-avatar {
     border-radius: 50% !important;
     overflow: hidden;
-    width: 90% !important;
-    height: 90% !important;
+    width: 100% !important;
+    height: 100% !important;
 }
 
 .avatar-frame.banker-candidate-highlight {

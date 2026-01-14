@@ -97,7 +97,7 @@ func managerRound() {
 	// 1. 读取全部房间数据
 	rooms, err := fetchRooms()
 	if err != nil {
-		logrus.Errorf("获取房间列表失败: %v", err)
+		logrus.Errorf("Failed to fetch room list: %v", err)
 		return
 	}
 
@@ -294,7 +294,7 @@ func launchRobot(user *modelClient.ModelUser, action RobotAction) {
 	logrus.WithFields(logrus.Fields{
 		"uid":    user.UserId,
 		"roomId": action.RoomId,
-	}).Info("机器人-开始调度")
+	}).Info("Robot - Start scheduling")
 
 	runRobot(user, ctx, action)
 }
@@ -313,7 +313,7 @@ func runRobot(user *modelClient.ModelUser, ctx context.Context, action RobotActi
 		mult := ROBOT_BALANCE_MULT_MIN + rand.Float64()*(ROBOT_BALANCE_MULT_MAX-ROBOT_BALANCE_MULT_MIN)
 		user.Balance = int64(float64(cfg.MinBalance) * mult)
 		if _, err := modelClient.UpdateUser(user); err != nil {
-			logrus.WithField("uid", user.UserId).WithField("roomId", action.RoomId).WithError(err).Error("更新机器人余额失败")
+			logrus.WithField("uid", user.UserId).WithField("roomId", action.RoomId).WithError(err).Error("Failed to update robot balance")
 		}
 	}
 
@@ -408,7 +408,7 @@ func (r *Robot) Run() {
 
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
-		logrus.WithField("roomId", r.Target.RoomId).Errorf("机器人 %s 连接服务器失败: %v", r.Uid, err)
+		logrus.WithField("uid", r.Uid).WithField("roomId", r.Target.RoomId).Errorf("Robot failed to connect to server: %v", err)
 		return
 	}
 
@@ -447,17 +447,21 @@ func (r *Robot) Run() {
 		if err != nil {
 			r.mu.Lock()
 			closing := r.isClosing
+			roomId := r.RoomId
 			r.mu.Unlock()
 			if closing {
 				return
 			}
-			// logrus.Errorf("机器人 %s 读取消息错误: %v", r.Uid, err)
+			logrus.WithFields(logrus.Fields{
+				"uid":    r.Uid,
+				"roomId": roomId,
+			}).Errorf("Robot read message error: %v", err)
 			return
 		}
 
 		if msg.Code != 0 {
-			logrus.WithField("roomId", r.RoomId).Errorf("机器人 %s 收到错误: %d %s", r.Uid, msg.Code, msg.Msg)
-			return
+			logrus.WithField("uid", r.Uid).WithField("roomId", r.RoomId).Errorf("Robot received error: %d %s", msg.Code, msg.Msg)
+			continue
 		}
 
 		if msg.Cmd == comm.ServerPush {
@@ -512,7 +516,7 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 			logrus.WithFields(logrus.Fields{
 				"uid":    r.Uid,
 				"roomId": r.Target.RoomId,
-			}).Info("机器人-发送进入房间请求")
+			}).Info("Robot - Sending join room request")
 
 		case znet.Game:
 			var room qznn.QZNNRoom
@@ -521,7 +525,7 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 				logrus.WithFields(logrus.Fields{
 					"uid":    r.Uid,
 					"roomId": room.ID,
-				}).Info("机器人-进入房间同步成功")
+				}).Info("Robot - Successfully synced room entry")
 				r.handleStateChange(room.State)
 			}
 		}
@@ -530,6 +534,13 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 		var d qznn.PushChangeStateStruct
 		if err := json.Unmarshal(data, &d); err != nil {
 			return
+		}
+		if d.Room != nil {
+			logrus.WithFields(logrus.Fields{
+				"uid":    r.Uid,
+				"roomId": d.Room.ID,
+				"state":  d.State,
+			}).Info("Robot - Received state change")
 		}
 		r.updateRoomInfo(d.Room)
 		r.handleStateChange(d.State)
@@ -544,7 +555,7 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 			logrus.WithFields(logrus.Fields{
 				"uid":    r.Uid,
 				"roomId": d.Room.ID,
-			}).Info("机器人-加入房间成功")
+			}).Info("Robot - Successfully joined room")
 		}
 
 	case qznn.PushPlayLeave:
@@ -559,7 +570,7 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 					logrus.WithFields(logrus.Fields{
 						"uid":    r.Uid,
 						"roomId": d.Room.ID,
-					}).Info("机器人-离开房间成功")
+					}).Info("Robot - Successfully left room")
 				}
 			}
 		}
@@ -630,6 +641,11 @@ func (r *Robot) handleStateChange(state qznn.RoomState) {
 			} else {
 				mult = int64(rand.Intn(4))
 			}
+			logrus.WithFields(logrus.Fields{
+				"uid":    r.Uid,
+				"roomId": currentRoomId,
+				"mult":   mult,
+			}).Info("Robot - Sending call banker request")
 			r.Send(qznn.CmdPlayerCallBanker, map[string]interface{}{"RoomId": currentRoomId, "Mult": mult})
 
 		case qznn.StateBetting:
@@ -643,9 +659,18 @@ func (r *Robot) handleStateChange(state qznn.RoomState) {
 			} else {
 				mult = int64(rand.Intn(5) + 1)
 			}
+			logrus.WithFields(logrus.Fields{
+				"uid":    r.Uid,
+				"roomId": currentRoomId,
+				"mult":   mult,
+			}).Info("Robot - Sending place bet request")
 			r.Send(qznn.CmdPlayerPlaceBet, map[string]interface{}{"RoomId": currentRoomId, "Mult": mult})
 
 		case qznn.StateShowCard:
+			logrus.WithFields(logrus.Fields{
+				"uid":    r.Uid,
+				"roomId": currentRoomId,
+			}).Info("Robot - Sending show card request")
 			r.Send(qznn.CmdPlayerShowCard, map[string]interface{}{"RoomId": currentRoomId})
 
 		case qznn.StateSettling:
@@ -678,10 +703,10 @@ func (r *Robot) checkTalk(state qznn.RoomState) {
 	r.mu.Unlock()
 
 	// 任意阶段都有概率说话
-	if rand.Float64() < 0.02 {
+	if rand.Float64() < PROB_CHAT {
 		go func() {
-			// 随机延迟 0.5 - 2.5 秒
-			time.Sleep(time.Duration(rand.Intn(2000)+500) * time.Millisecond)
+			// 随机延迟 1 - 5 秒
+			time.Sleep(time.Duration(rand.Intn(4000)+1000) * time.Millisecond)
 			talkType := rand.Intn(2) // 0 or 1
 			var index int
 			if talkType == 0 {
@@ -697,7 +722,7 @@ func (r *Robot) checkTalk(state qznn.RoomState) {
 				"state":       state,
 				"type":        talkType,
 				"index":       index,
-			}).Info("机器人-发送聊天/表情")
+			}).Info("Robot - Sending chat/emoji")
 
 			r.Send(qznn.CmdTalk, map[string]interface{}{
 				"RoomId": roomId,
@@ -758,7 +783,7 @@ func (r *Robot) checkLeave() {
 			roomLeaveCooldown[roomId] = time.Now()
 			roomLeaveMu.Unlock()
 
-			logrus.WithField("roomId", roomId).Infof("机器人 %s 决定退出房间，当前房间人数: %d, 已玩局数: %d, 概率: %.2f", r.Uid, count, gamesPlayed, prob)
+			logrus.WithFields(logrus.Fields{"uid": r.Uid, "roomId": roomId}).Infof("Robot decided to leave room, current players: %d, games played: %d, probability: %.2f", count, gamesPlayed, prob)
 			r.Send(qznn.CmdPlayerLeave, map[string]interface{}{"RoomId": roomId})
 			r.Close()
 		}

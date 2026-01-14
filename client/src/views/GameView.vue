@@ -1958,24 +1958,24 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 .seat-right {
     top: 38%;
     /* Adjusted for fixed top alignment */
-    right: 4vw;
+    right: 0;
     /* transform: scale(0.85); Removed redundant scale */
 }
 
 .seat-right-top {
     top: 15%;
-    right: 12%;
+    right: 6vw;
 }
 
 .seat-left-top {
     top: 15%;
-    left: 12%;
+    left: 6vw;
 }
 
 .seat-left {
     top: 38%;
     /* Adjusted for fixed top alignment */
-    left: 10px;
+    left: 0;
     /* transform: scale(0.85); Removed redundant scale */
 }
 

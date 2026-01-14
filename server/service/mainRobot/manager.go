@@ -22,6 +22,7 @@ import (
 
 var targetHost = HOST_PROD
 
+// StartRobot 启动机器人管理服务
 func StartRobot() {
 	if initMain.DefCtx.IsTerm {
 		targetHost = HOST_DEV
@@ -29,6 +30,7 @@ func StartRobot() {
 	go managerLoop()
 }
 
+// RobotRuntime 机器人运行时状态
 type RobotRuntime struct {
 	Cancel context.CancelFunc
 	Action RobotAction
@@ -39,6 +41,9 @@ var (
 	activeRobots   = make(map[string]*RobotRuntime)
 	activeRobotsMu sync.Mutex
 	robotOffset    = 0 // 用于轮询数据库中的机器人
+
+	roomLeaveMu       sync.Mutex
+	roomLeaveCooldown = make(map[string]time.Time)
 )
 
 // PlayerSimple 用于解析 HTTP 接口返回的玩家数据
@@ -55,24 +60,44 @@ type RoomDataSimple struct {
 	BankerType int
 }
 
+// RobotAction 机器人调度动作
 type RobotAction struct {
 	Level      int
 	BankerType int
 	RoomId     string // 如果为空则创建新房间
 }
 
+// managerLoop 管理器主循环
 func managerLoop() {
 	for {
 		managerRound()
+		cleanupRoomLeaveCooldown()
 		time.Sleep(time.Second * MANAGER_LOOP_INTERVAL)
 	}
 }
 
+// cleanupRoomLeaveCooldown 清理过期的房间退出记录
+func cleanupRoomLeaveCooldown() {
+	roomLeaveMu.Lock()
+	defer roomLeaveMu.Unlock()
+
+	if len(roomLeaveCooldown) == 0 {
+		return
+	}
+
+	for roomId, lastTime := range roomLeaveCooldown {
+		if time.Since(lastTime) > ROOM_LEAVE_COOLDOWN*time.Second {
+			delete(roomLeaveCooldown, roomId)
+		}
+	}
+}
+
+// managerRound 执行一轮调度
 func managerRound() {
 	// 1. 读取全部房间数据
 	rooms, err := fetchRooms()
 	if err != nil {
-		logrus.Errorf("获取房间列表失败: %v", err)
+		logrus.Errorf("Failed to fetch room list: %v", err)
 		return
 	}
 
@@ -82,8 +107,8 @@ func managerRound() {
 		return
 	}
 
-	// 3. 获取闲置机器人 (固定500个)
-	robots := fetchIdleRobots(500)
+	// 3. 获取闲置机器人 (固定200个)
+	robots := fetchIdleRobots(200)
 	if len(robots) == 0 {
 		return
 	}
@@ -100,6 +125,7 @@ func managerRound() {
 	}
 }
 
+// planActions 根据房间状态生成调度计划
 func planActions(rooms []*RoomDataSimple) []RobotAction {
 	var actions []RobotAction
 
@@ -132,7 +158,7 @@ func planActions(rooms []*RoomDataSimple) []RobotAction {
 			if playerCount == 1 && robotCount == 0 {
 				realUserRooms = append(realUserRooms, room)
 			} else if robotCount > 0 {
-				// 优先级4条件：有真人也有机器人
+				// 混合房间：有真人也有机器人
 				mixedRooms = append(mixedRooms, room)
 			}
 		} else {
@@ -144,7 +170,7 @@ func planActions(rooms []*RoomDataSimple) []RobotAction {
 		}
 	}
 
-	// 真实用户房间 (1人0机器人) -> 进1个机器人
+	// 策略1：真实用户房间 (1人0机器人) -> 进1个机器人
 	for _, room := range realUserRooms {
 		actions = append(actions, RobotAction{
 			Level:      room.Config.Level,
@@ -153,7 +179,7 @@ func planActions(rooms []*RoomDataSimple) []RobotAction {
 		})
 	}
 
-	// 补充纯机器人房间
+	// 策略2：维护纯机器人房间数量
 	for _, level := range ALLOWED_LEVELS {
 		for _, bt := range ALLOWED_BANKER_TYPES {
 			existing := pureRobotRooms[level][bt]
@@ -170,7 +196,7 @@ func planActions(rooms []*RoomDataSimple) []RobotAction {
 				}
 			}
 
-			// 只有机器人的房间，人数不满4个 -> 50%进1个机器人
+			// 策略3：只有机器人的房间，人数不满4个 -> 50%概率进1个机器人
 			for _, room := range existing {
 				pCount := 0
 				for _, p := range room.Players {
@@ -190,7 +216,7 @@ func planActions(rooms []*RoomDataSimple) []RobotAction {
 		}
 	}
 
-	// 当房间内有真人时并且也有机器人时，还有空余位置时随机派一个机器人进入该房间。
+	// 策略4：混合房间 (有真人也有机器人)，若有空位则派机器人进入
 	for _, room := range mixedRooms {
 		pCount := 0
 		for _, p := range room.Players {
@@ -211,6 +237,7 @@ func planActions(rooms []*RoomDataSimple) []RobotAction {
 	return actions
 }
 
+// fetchIdleRobots 获取指定数量的闲置机器人
 func fetchIdleRobots(count int) []*modelClient.ModelUser {
 	var result []*modelClient.ModelUser
 	// 尝试获取更多以过滤掉忙碌的机器人
@@ -248,6 +275,7 @@ func fetchIdleRobots(count int) []*modelClient.ModelUser {
 	return result
 }
 
+// launchRobot 启动机器人任务
 func launchRobot(user *modelClient.ModelUser, action RobotAction) {
 	activeRobotsMu.Lock()
 	// 双重检查
@@ -264,14 +292,14 @@ func launchRobot(user *modelClient.ModelUser, action RobotAction) {
 	activeRobotsMu.Unlock()
 
 	logrus.WithFields(logrus.Fields{
-		"uid":        user.UserId,
-		"targetRoom": action.RoomId,
-		"level":      action.Level,
-	}).Info("机器人-开始调度")
+		"uid":    user.UserId,
+		"roomId": action.RoomId,
+	}).Info("Robot - Start scheduling")
 
 	runRobot(user, ctx, action)
 }
 
+// runRobot 机器人运行逻辑
 func runRobot(user *modelClient.ModelUser, ctx context.Context, action RobotAction) {
 	defer func() {
 		activeRobotsMu.Lock()
@@ -285,7 +313,7 @@ func runRobot(user *modelClient.ModelUser, ctx context.Context, action RobotActi
 		mult := ROBOT_BALANCE_MULT_MIN + rand.Float64()*(ROBOT_BALANCE_MULT_MAX-ROBOT_BALANCE_MULT_MIN)
 		user.Balance = int64(float64(cfg.MinBalance) * mult)
 		if _, err := modelClient.UpdateUser(user); err != nil {
-			logrus.WithField("uid", user.UserId).WithError(err).Error("更新机器人余额失败")
+			logrus.WithField("uid", user.UserId).WithField("roomId", action.RoomId).WithError(err).Error("Failed to update robot balance")
 		}
 	}
 
@@ -311,6 +339,7 @@ func runRobot(user *modelClient.ModelUser, ctx context.Context, action RobotActi
 	close(done)
 }
 
+// fetchRooms 获取房间列表
 func fetchRooms() ([]*RoomDataSimple, error) {
 	u := url.URL{
 		Scheme: "http",
@@ -350,6 +379,7 @@ func fetchRooms() ([]*RoomDataSimple, error) {
 	return rooms, nil
 }
 
+// Robot 机器人实例
 type Robot struct {
 	Uid         string
 	AppId       string
@@ -364,6 +394,7 @@ type Robot struct {
 	Target      RobotAction
 }
 
+// Run 运行机器人 WebSocket 连接
 func (r *Robot) Run() {
 	u := url.URL{
 		Scheme: "ws",
@@ -377,7 +408,7 @@ func (r *Robot) Run() {
 
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
-		logrus.Errorf("机器人 %s 连接服务器失败: %v", r.Uid, err)
+		logrus.WithField("uid", r.Uid).WithField("roomId", r.Target.RoomId).Errorf("Robot failed to connect to server: %v", err)
 		return
 	}
 
@@ -416,17 +447,21 @@ func (r *Robot) Run() {
 		if err != nil {
 			r.mu.Lock()
 			closing := r.isClosing
+			roomId := r.RoomId
 			r.mu.Unlock()
 			if closing {
 				return
 			}
-			// logrus.Errorf("机器人 %s 读取消息错误: %v", r.Uid, err)
+			logrus.WithFields(logrus.Fields{
+				"uid":    r.Uid,
+				"roomId": roomId,
+			}).Errorf("Robot read message error: %v", err)
 			return
 		}
 
 		if msg.Code != 0 {
-			logrus.Errorf("机器人 %s 收到错误: %d %s", r.Uid, msg.Code, msg.Msg)
-			return
+			logrus.WithField("uid", r.Uid).WithField("roomId", r.RoomId).Errorf("Robot received error: %d %s", msg.Code, msg.Msg)
+			continue
 		}
 
 		if msg.Cmd == comm.ServerPush {
@@ -435,6 +470,7 @@ func (r *Robot) Run() {
 	}
 }
 
+// Send 发送请求
 func (r *Robot) Send(cmd comm.CmdType, data interface{}) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -446,6 +482,7 @@ func (r *Robot) Send(cmd comm.CmdType, data interface{}) error {
 	return r.Conn.WriteJSON(req)
 }
 
+// Close 关闭连接
 func (r *Robot) Close() {
 	r.mu.Lock()
 	r.isClosing = true
@@ -456,6 +493,7 @@ func (r *Robot) Close() {
 	}
 }
 
+// handlePush 处理推送消息
 func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 	switch pushType {
 	case znet.PushRouter:
@@ -478,7 +516,7 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 			logrus.WithFields(logrus.Fields{
 				"uid":    r.Uid,
 				"roomId": r.Target.RoomId,
-			}).Info("机器人-发送进入房间请求")
+			}).Info("Robot - Sending join room request")
 
 		case znet.Game:
 			var room qznn.QZNNRoom
@@ -487,7 +525,7 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 				logrus.WithFields(logrus.Fields{
 					"uid":    r.Uid,
 					"roomId": room.ID,
-				}).Info("机器人-进入房间同步成功")
+				}).Info("Robot - Successfully synced room entry")
 				r.handleStateChange(room.State)
 			}
 		}
@@ -496,6 +534,13 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 		var d qznn.PushChangeStateStruct
 		if err := json.Unmarshal(data, &d); err != nil {
 			return
+		}
+		if d.Room != nil {
+			logrus.WithFields(logrus.Fields{
+				"uid":    r.Uid,
+				"roomId": d.Room.ID,
+				"state":  d.State,
+			}).Info("Robot - Received state change")
 		}
 		r.updateRoomInfo(d.Room)
 		r.handleStateChange(d.State)
@@ -510,7 +555,7 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 			logrus.WithFields(logrus.Fields{
 				"uid":    r.Uid,
 				"roomId": d.Room.ID,
-			}).Info("机器人-加入房间成功")
+			}).Info("Robot - Successfully joined room")
 		}
 
 	case qznn.PushPlayLeave:
@@ -525,7 +570,7 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 					logrus.WithFields(logrus.Fields{
 						"uid":    r.Uid,
 						"roomId": d.Room.ID,
-					}).Info("机器人-离开房间成功")
+					}).Info("Robot - Successfully left room")
 				}
 			}
 		}
@@ -560,6 +605,7 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 	}
 }
 
+// updateRoomInfo 更新房间数据
 func (r *Robot) updateRoomInfo(room *qznn.QZNNRoom) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -575,6 +621,7 @@ func (r *Robot) updateRoomInfo(room *qznn.QZNNRoom) {
 	}
 }
 
+// handleStateChange 处理游戏状态变化
 func (r *Robot) handleStateChange(state qznn.RoomState) {
 	r.mu.Lock()
 	roomSnapshot := r.RoomData
@@ -584,6 +631,7 @@ func (r *Robot) handleStateChange(state qznn.RoomState) {
 	go func() {
 		// 模拟用户随机等待 1-2 秒
 		time.Sleep(time.Duration(rand.Intn(2)+1) * time.Second)
+		r.checkTalk(state)
 
 		switch state {
 		case qznn.StateBanking:
@@ -593,6 +641,11 @@ func (r *Robot) handleStateChange(state qznn.RoomState) {
 			} else {
 				mult = int64(rand.Intn(4))
 			}
+			logrus.WithFields(logrus.Fields{
+				"uid":    r.Uid,
+				"roomId": currentRoomId,
+				"mult":   mult,
+			}).Info("Robot - Sending call banker request")
 			r.Send(qznn.CmdPlayerCallBanker, map[string]interface{}{"RoomId": currentRoomId, "Mult": mult})
 
 		case qznn.StateBetting:
@@ -606,20 +659,81 @@ func (r *Robot) handleStateChange(state qznn.RoomState) {
 			} else {
 				mult = int64(rand.Intn(5) + 1)
 			}
+			logrus.WithFields(logrus.Fields{
+				"uid":    r.Uid,
+				"roomId": currentRoomId,
+				"mult":   mult,
+			}).Info("Robot - Sending place bet request")
 			r.Send(qznn.CmdPlayerPlaceBet, map[string]interface{}{"RoomId": currentRoomId, "Mult": mult})
 
 		case qznn.StateShowCard:
+			logrus.WithFields(logrus.Fields{
+				"uid":    r.Uid,
+				"roomId": currentRoomId,
+			}).Info("Robot - Sending show card request")
 			r.Send(qznn.CmdPlayerShowCard, map[string]interface{}{"RoomId": currentRoomId})
 
 		case qznn.StateSettling:
+			isOb := true
+			if roomSnapshot != nil {
+				for _, p := range roomSnapshot.Players {
+					if p != nil && p.ID == r.Uid {
+						isOb = p.IsOb
+						break
+					}
+				}
+			}
+
 			r.mu.Lock()
-			r.gamesPlayed++
+			if !isOb {
+				r.gamesPlayed++
+			}
 			r.mu.Unlock()
 			r.checkLeave()
 		}
 	}()
 }
 
+// checkTalk 检查是否发送聊天
+func (r *Robot) checkTalk(state qznn.RoomState) {
+	r.mu.Lock()
+	gamesPlayed := r.gamesPlayed
+	roomId := r.RoomId
+	uid := r.Uid
+	r.mu.Unlock()
+
+	// 任意阶段都有概率说话
+	if rand.Float64() < PROB_CHAT {
+		go func() {
+			// 随机延迟 1 - 5 秒
+			time.Sleep(time.Duration(rand.Intn(4000)+1000) * time.Millisecond)
+			talkType := rand.Intn(2) // 0 or 1
+			var index int
+			if talkType == 0 {
+				index = rand.Intn(11) // 0-10
+			} else {
+				index = rand.Intn(16) // 0-15
+			}
+
+			logrus.WithFields(logrus.Fields{
+				"uid":         uid,
+				"roomId":      roomId,
+				"gamesPlayed": gamesPlayed,
+				"state":       state,
+				"type":        talkType,
+				"index":       index,
+			}).Info("Robot - Sending chat/emoji")
+
+			r.Send(qznn.CmdTalk, map[string]interface{}{
+				"RoomId": roomId,
+				"Type":   talkType,
+				"Index":  index,
+			})
+		}()
+	}
+}
+
+// checkLeave 检查是否退出房间
 func (r *Robot) checkLeave() {
 	go func() {
 		// 随机等待 1-3 秒
@@ -661,7 +775,15 @@ func (r *Robot) checkLeave() {
 		}
 
 		if prob > 0 && rand.Float64() < prob {
-			logrus.Infof("机器人 %s 决定退出房间，当前房间人数: %d, 概率: %.2f", r.Uid, count, prob)
+			roomLeaveMu.Lock()
+			if lastTime, ok := roomLeaveCooldown[roomId]; ok && time.Since(lastTime) < ROOM_LEAVE_COOLDOWN*time.Second {
+				roomLeaveMu.Unlock()
+				return
+			}
+			roomLeaveCooldown[roomId] = time.Now()
+			roomLeaveMu.Unlock()
+
+			logrus.WithFields(logrus.Fields{"uid": r.Uid, "roomId": roomId}).Infof("Robot decided to leave room, current players: %d, games played: %d, probability: %.2f", count, gamesPlayed, prob)
 			r.Send(qznn.CmdPlayerLeave, map[string]interface{}{"RoomId": roomId})
 			r.Close()
 		}

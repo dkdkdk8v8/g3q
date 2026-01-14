@@ -22,7 +22,7 @@ var (
 )
 
 func StartStress() {
-	logrus.Info("压测：开始监控并自动加入模拟真实用户")
+	logrus.Info("Stress test: Start monitoring and automatically adding simulated real users")
 	go func() {
 		ticker := time.NewTicker(5 * time.Second)
 		defer ticker.Stop()
@@ -30,7 +30,7 @@ func StartStress() {
 		for range ticker.C {
 			users, err := modelClient.GetUserRobots()
 			if err != nil {
-				logrus.Errorf("压测：获取用户列表失败: %v", err)
+				logrus.Errorf("Stress test: Failed to get user list: %v", err)
 				continue
 			}
 
@@ -68,9 +68,10 @@ func runStressUser(user *modelClient.ModelUser) {
 
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
-		logrus.Errorf("压测用户 %s: 连接服务器失败: %v", user.UserId, err)
+		logrus.WithField("uid", user.UserId).Errorf("Stress test user: Failed to connect to server: %v", err)
 		return
 	}
+	logrus.WithField("uid", user.UserId).Info("Stress test user: Connected to server")
 	defer conn.Close()
 
 	// 心跳协程，保持连接活跃
@@ -100,7 +101,7 @@ func runStressUser(user *modelClient.ModelUser) {
 		}
 
 		if msg.Code != 0 {
-			logrus.Errorf("压测用户 %s 收到错误: %d %s", user.UserId, msg.Code, msg.Msg)
+			logrus.WithField("uid", user.UserId).Errorf("Stress test user received error: %d %s", msg.Code, msg.Msg)
 			return
 		}
 
@@ -120,10 +121,10 @@ func runStressUser(user *modelClient.ModelUser) {
 					Data: reqData,
 				}
 				if err := conn.WriteJSON(req); err != nil {
-					logrus.Errorf("压测用户 %s 发送加入房间请求失败: %v", user.UserId, err)
+					logrus.WithField("uid", user.UserId).Errorf("Stress test user failed to send join room request: %v", err)
 					return
 				}
-				logrus.Infof("压测用户 %s 已成功发送加入房间请求", user.UserId)
+				logrus.WithField("uid", user.UserId).Infof("Stress test user successfully sent join room request")
 			}
 		}
 	}

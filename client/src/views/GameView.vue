@@ -2049,7 +2049,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     padding: 2.1333vw 6.4vw;
     /* Slightly larger padding */
     border-radius: 6.4vw;
-    font-size: 1.5vh;
+    font-size: 1.8vh;
     font-weight: bold;
     margin-top: 8vw;
     border: 0.2667vw solid rgba(251, 191, 36, 0.4);

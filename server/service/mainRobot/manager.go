@@ -649,8 +649,20 @@ func (r *Robot) handleStateChange(state qznn.RoomState) {
 			r.Send(qznn.CmdPlayerShowCard, map[string]interface{}{"RoomId": currentRoomId})
 
 		case qznn.StateSettling:
+			isOb := true
+			if roomSnapshot != nil {
+				for _, p := range roomSnapshot.Players {
+					if p != nil && p.ID == r.Uid {
+						isOb = p.IsOb
+						break
+					}
+				}
+			}
+
 			r.mu.Lock()
-			r.gamesPlayed++
+			if !isOb {
+				r.gamesPlayed++
+			}
 			r.mu.Unlock()
 			r.checkLeave()
 		}
@@ -746,7 +758,7 @@ func (r *Robot) checkLeave() {
 			roomLeaveCooldown[roomId] = time.Now()
 			roomLeaveMu.Unlock()
 
-			logrus.WithField("roomId", roomId).Infof("机器人 %s 决定退出房间，当前房间人数: %d, 概率: %.2f", r.Uid, count, prob)
+			logrus.WithField("roomId", roomId).Infof("机器人 %s 决定退出房间，当前房间人数: %d, 已玩局数: %d, 概率: %.2f", r.Uid, count, gamesPlayed, prob)
 			r.Send(qznn.CmdPlayerLeave, map[string]interface{}{"RoomId": roomId})
 			r.Close()
 		}

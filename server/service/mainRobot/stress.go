@@ -111,9 +111,8 @@ func runStressUser(user *modelClient.ModelUser) {
 			}
 			if err := json.Unmarshal(msg.Data, &d); err == nil && d.Router == znet.Lobby {
 				joinReq := map[string]interface{}{
-					"Level":               ALLOWED_LEVELS[rand.Intn(len(ALLOWED_LEVELS))],
-					"BankerType":          ALLOWED_BANKER_TYPES[rand.Intn(len(ALLOWED_BANKER_TYPES))],
-					"IsBotFakeRealPlayer": true,
+					"Level":      ALLOWED_LEVELS[rand.Intn(len(ALLOWED_LEVELS))],
+					"BankerType": ALLOWED_BANKER_TYPES[rand.Intn(len(ALLOWED_BANKER_TYPES))],
 				}
 				reqData, _ := json.Marshal(joinReq)
 				req := comm.Request{

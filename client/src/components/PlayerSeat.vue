@@ -321,7 +321,8 @@ const displayName = computed(() => {
 
         <!-- 手牌区域 (始终渲染以占位) -->
         <div class="hand-area">
-            <div class="cards" :class="{ 'is-me-cards': isMe }" :style="{ visibility: showCards ? 'visible' : 'hidden' }">
+            <div class="cards" :class="{ 'is-me-cards': isMe }"
+                :style="{ visibility: showCards ? 'visible' : 'hidden' }">
                 <PokerCard v-for="(card, idx) in displayedHand" :key="idx"
                     :card="(shouldShowCardFace && (visibleCardCount === -1 || idx < visibleCardCount)) ? card : null"
                     :is-small="!isMe"
@@ -410,6 +411,7 @@ const displayName = computed(() => {
 }
 
 .avatar-area {
+    justify-content: center;
     position: relative;
     /* Ensure absolute positioning of children is relative to this parent */
     display: flex;
@@ -1085,11 +1087,11 @@ const displayName = computed(() => {
     flex-shrink: 0;
 }
 
-.cards .hand-card + .hand-card {
+.cards .hand-card+.hand-card {
     margin-left: -7.4667vw;
 }
 
-.cards.is-me-cards .hand-card + .hand-card {
+.cards.is-me-cards .hand-card+.hand-card {
     margin-left: 0.2667vw;
 }
 

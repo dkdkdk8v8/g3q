@@ -1958,18 +1958,18 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 .seat-right {
     top: 38%;
     /* Adjusted for fixed top alignment */
-    right: 10px;
+    right: 4vw;
     /* transform: scale(0.85); Removed redundant scale */
 }
 
 .seat-right-top {
     top: 15%;
-    right: 8%;
+    right: 12%;
 }
 
 .seat-left-top {
     top: 15%;
-    left: 8%;
+    left: 12%;
 }
 
 .seat-left {

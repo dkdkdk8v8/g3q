@@ -869,7 +869,7 @@ const startDealingAnimation = (isSupplemental = false) => {
         // Me: 60px width + 1px margin = 61px
         // Opponent: 48px width - 28px margin = 20px
         const baseSpacing = t.isMe ? 61 : 20;
-        
+
         // Spacing must be scaled because the static cards are inside a scaled container
         // and thus the visual distance between centers is scaled.
         // We apply the same scale to the flying card spacing.
@@ -1168,7 +1168,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
         <div class="table-center" ref="tableCenterRef">
             <!-- 阶段提示信息容器 -->
-            <div v-if="['READY_COUNTDOWN', 'ROB_BANKER', 'BETTING', 'SHOWDOWN', 'BANKER_SELECTION_ANIMATION', 'BANKER_CONFIRMED', 'SETTLEMENT'].includes(store.currentPhase)"
+            <div v-if="['READY_COUNTDOWN', 'ROB_BANKER', 'BETTING', 'SHOWDOWN', 'BANKER_SELECTION_ANIMATION', 'BANKER_CONFIRMED'].includes(store.currentPhase)"
                 class="clock-and-info-wrapper">
                 <div class="phase-info">
                     <span v-if="store.currentPhase === 'WAITING_FOR_PLAYERS'">匹配玩家中...</span>
@@ -2021,8 +2021,9 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     display: flex;
     flex-direction: column;
     align-items: center;
-    /* Removed gap: 10px; as it will be managed by clock-and-info-wrapper */
-    width: 200px;
+    gap: 0.8vw;
+    /* This handles the 3px distance between clock and phase info */
+    width: 53.3333vw;
     min-height: 120px;
     /* 允许高度自适应，防止挤压 */
     height: auto;
@@ -2035,7 +2036,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 3px;
+    gap: 0.8vw;
     /* This handles the 3px distance between clock and phase info */
     pointer-events: auto;
     /* Allow interaction with children if needed */
@@ -2045,18 +2046,18 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     background: linear-gradient(to bottom, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.7));
     color: #fbbf24;
     /* Golden text */
-    padding: 8px 24px;
+    padding: 2.1333vw 6.4vw;
     /* Slightly larger padding */
-    border-radius: 24px;
-    font-size: 16px;
+    border-radius: 6.4vw;
+    font-size: 1.5vh;
     font-weight: bold;
-    margin-top: 30px;
-    border: 1px solid rgba(251, 191, 36, 0.4);
-    border-bottom: 3px solid rgba(180, 83, 9, 0.8);
+    margin-top: 8vw;
+    border: 0.2667vw solid rgba(251, 191, 36, 0.4);
+    border-bottom: 0.8vw solid rgba(180, 83, 9, 0.8);
     /* Distinct bottom frame/border */
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.6), 0 0 15px rgba(251, 191, 36, 0.2);
+    box-shadow: 0 1.6vw 3.2vw rgba(0, 0, 0, 0.6), 0 0 4vw rgba(251, 191, 36, 0.2);
     /* Deep shadow + Glow */
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
+    text-shadow: 0 0.5333vw 1.0667vw rgba(0, 0, 0, 0.9);
     display: flex;
     justify-content: center;
     align-items: center;

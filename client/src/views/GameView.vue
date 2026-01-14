@@ -46,6 +46,8 @@ import zhuangImg from '@/assets/common/zhuang.png';
 import tanpaiImg from '@/assets/common/tanpai.png';
 import gameTopDifenBg from '@/assets/common/game_top_difen_bg.png';
 import gameChatBtnImg from '@/assets/common/game_chat_btn.png';
+import avatarFrameImg from '@/assets/common/avatar_circle.png';
+import userInfoBgImg from '@/assets/common/user_info_rect.png';
 
 // Niu hand type images
 import niu1Img from '@/assets/niu/niu_1.png';
@@ -1241,7 +1243,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                 <!-- Avatar and Info Box - adapted from PlayerSeat -->
                 <div class="avatar-area my-player-avatar-info">
                     <div class="avatar-wrapper">
-                        <div class="avatar-frame" :class="{
+                        <div class="avatar-frame" :style="{ backgroundImage: `url(${avatarFrameImg})` }" :class="{
                             'banker-candidate-highlight': myPlayer.id === currentlyHighlightedPlayerId,
                             'banker-confirm-anim': showBankerConfirmAnim && myPlayer.isBanker,
                             'is-banker': myPlayer.isBanker && !['SETTLEMENT', 'GAME_OVER'].includes(store.currentPhase),
@@ -1266,7 +1268,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                             class="banker-badge"><img :src="zhuangImg" alt="庄" class="banker-badge-img" /></div>
                     </div>
 
-                    <div class="info-box" :class="{ 'is-observer': myPlayer.isObserver }">
+                    <div class="info-box" :style="{ backgroundImage: `url(${userInfoBgImg})` }" :class="{ 'is-observer': myPlayer.isObserver }">
                         <div class="name van-ellipsis">{{ myPlayer.name.length > 10 ? myPlayer.name.slice(0, 4) + '...'
                             +
                             myPlayer.name.slice(-4) : myPlayer.name }}</div>
@@ -2237,17 +2239,23 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 .my-player-info-row .avatar-frame {
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.3);
+    /* Use the imported image for background */
+    
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-color: transparent;
+
     border-radius: 50%;
-    /* Circular */
-    border: 4px solid transparent;
-    box-sizing: border-box;
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2);
+    /* Remove old border properties */
+    border: none;
+    box-shadow: none;
+
     overflow: hidden;
     display: flex;
     justify-content: center;
     align-items: center;
     transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
+    padding: 2px;
 }
 
 .my-player-info-row .avatar-frame.banker-candidate-highlight {
@@ -2328,10 +2336,14 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     /* Center text */
     justify-content: center;
 
-    /* Trapezoid Background */
-    background: rgba(0, 0, 0, 0.65);
-    /* Wide top, narrow bottom */
-    clip-path: polygon(0% 0%, 100% 0%, 90% 100%, 10% 100%);
+    /* Background Image */
+    
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-color: transparent;
+    
+    /* Remove clip-path */
+    clip-path: none;
 
     padding: 8px 4px 4px 4px;
     padding-top: 10px;

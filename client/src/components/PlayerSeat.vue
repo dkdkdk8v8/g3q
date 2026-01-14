@@ -5,6 +5,8 @@ import PokerCard from './PokerCard.vue';
 import { formatCoins } from '../utils/format.js';
 import goldImg from '@/assets/common/gold.png';
 import zhuangImg from '@/assets/common/zhuang.png';
+import avatarFrameImg from '@/assets/common/avatar_circle.png';
+import userInfoBgImg from '@/assets/common/user_info_rect.png';
 
 // Niu hand type images
 import niu1Img from '@/assets/niu/niu_1.png';
@@ -255,7 +257,7 @@ const displayName = computed(() => {
         <!-- ... (keep avatar area) -->
         <div class="avatar-area">
             <div class="avatar-wrapper">
-                <div class="avatar-frame" :class="{
+                <div class="avatar-frame" :style="{ backgroundImage: `url(${avatarFrameImg})` }" :class="{
                     'banker-candidate-highlight': isAnimatingHighlight,
                     'banker-confirm-anim': triggerBankerAnimation,
                     'is-banker': player.isBanker && !['SETTLEMENT', 'GAME_OVER'].includes(store.currentPhase),
@@ -303,7 +305,7 @@ const displayName = computed(() => {
                 <div v-if="player.isObserver" class="observer-badge">等待下一局</div>
             </div>
 
-            <div class="info-box" :class="{ 'is-observer': player.isObserver }">
+            <div class="info-box" :style="{ backgroundImage: `url(${userInfoBgImg})` }" :class="{ 'is-observer': player.isObserver }">
                 <div class="name van-ellipsis">{{ displayName }}</div>
                 <div class="coins-pill">
                     <img :src="goldImg" class="coin-icon-seat" />
@@ -483,19 +485,24 @@ const displayName = computed(() => {
 .avatar-frame {
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.3);
+    /* Use the imported image for background */
+    
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-color: transparent;
+
     border-radius: 50%;
-    /* Default round for Me */
-    border: 4px solid transparent;
-    /* Increased width, transparent default */
-    box-sizing: border-box;
-    /* Ensure border doesn't expand size */
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2);
+    /* Remove old border properties */
+    border: none;
+    box-shadow: none;
+
+    /* Keep overflow hidden for the avatar image inside */
     overflow: hidden;
     display: flex;
     justify-content: center;
     align-items: center;
     transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
+    padding: 2px; /* Inner padding for avatar */
 }
 
 /* Avatar Frame: Round for ALL */
@@ -507,6 +514,8 @@ const displayName = computed(() => {
 .van-image.opponent-avatar {
     border-radius: 50% !important;
     overflow: hidden;
+    width: 90% !important;
+    height: 90% !important;
 }
 
 .avatar-frame.banker-candidate-highlight {
@@ -789,22 +798,25 @@ const displayName = computed(() => {
 
 
 .info-box {
-    margin-top: -8px; /* Slight overlap with avatar */
+    margin-top: -8px; 
     position: relative;
-    z-index: 10; /* Higher than avatar-wrapper (z-index 6) */
-    width: 90px; /* Fixed width for the box */
+    z-index: 10; 
+    width: 90px; 
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     
-    /* Trapezoid Background */
-    background: rgba(0, 0, 0, 0.65);
-    /* Clip path for trapezoid: Top width 100%, Bottom width 80% (Wide Top, Narrow Bottom) */
-    /* polygon(top-left, top-right, bottom-right, bottom-left) */
-    clip-path: polygon(0% 0%, 100% 0%, 90% 100%, 10% 100%);
+    /* Background Image */
     
-    padding: 8px 4px 4px 4px; /* Padding top to push content down from overlap */
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-color: transparent; /* Remove old bg */
+    
+    /* Remove clip-path as image handles the shape */
+    clip-path: none;
+    
+    padding: 8px 4px 4px 4px; 
     padding-top: 10px;
 }
 

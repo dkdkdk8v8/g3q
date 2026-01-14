@@ -150,7 +150,7 @@ func GameLockUserBalance(userId string, gameId string, minBalance int64) (*Model
 		if userTotalBalance < minBalance {
 			logrus.WithField("userId", userId).WithField(
 				"balance", user.Balance).WithField("balanceLock", user.BalanceLock).WithField(
-				"gameId", user.GameId).Error("GameLockUserBalance-balanceNotEnough")
+				"gameId", user.GameId).Error("LockUserBal-NotEnough")
 			return ErrorBalanceNotEnough
 		}
 		user.BalanceLock += user.Balance

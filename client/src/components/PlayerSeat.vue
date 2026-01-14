@@ -267,7 +267,7 @@ const displayName = computed(() => {
                     <van-image :src="player.avatar" class="avatar" fit="cover"
                         :class="{ 'avatar-gray': player.isObserver, 'opponent-avatar': true }" />
                 </div>
-                
+
                 <!-- Avatar Frame Overlay -->
                 <img :src="avatarFrameImg" class="avatar-border-overlay" />
 
@@ -308,10 +308,10 @@ const displayName = computed(() => {
                 <div v-if="player.isObserver" class="observer-badge">等待下一局</div>
             </div>
 
-            <div class="info-box" :style="{ backgroundImage: `url(${userInfoBgImg})` }" :class="{ 'is-observer': player.isObserver }">
+            <div class="info-box" :style="{ backgroundImage: `url(${userInfoBgImg})` }"
+                :class="{ 'is-observer': player.isObserver }">
                 <div class="name van-ellipsis">{{ displayName }}</div>
                 <div class="coins-pill">
-                    <img :src="goldImg" class="coin-icon-seat" />
                     {{ formatCoins(player.coins) }}
                 </div>
             </div>
@@ -491,7 +491,8 @@ const displayName = computed(() => {
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 5; /* Above avatar, below banker badge (100) */
+    z-index: 5;
+    /* Above avatar, below banker badge (100) */
     pointer-events: none;
     object-fit: fill;
 }
@@ -500,7 +501,7 @@ const displayName = computed(() => {
     width: 100%;
     height: 100%;
     /* Use the imported image for background */
-    
+
     background-size: 100% 100%;
     background-repeat: no-repeat;
     background-color: transparent;
@@ -516,7 +517,8 @@ const displayName = computed(() => {
     justify-content: center;
     align-items: center;
     transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
-    padding: 0; /* Inner padding for avatar */
+    padding: 0;
+    /* Inner padding for avatar */
 }
 
 /* Avatar Frame: Round for ALL */
@@ -812,26 +814,28 @@ const displayName = computed(() => {
 
 
 .info-box {
-    margin-top: -8px; 
+    margin-top: -8px;
     position: relative;
-    z-index: 10; 
-    width: 90px; 
+    z-index: 10;
+    width: 90px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    
+    gap: 3px;
+    /* Space between name and coins */
+
     /* Background Image */
-    
+
     background-size: 100% 100%;
     background-repeat: no-repeat;
-    background-color: transparent; /* Remove old bg */
-    
+    background-color: transparent;
+    /* Remove old bg */
+
     /* Remove clip-path as image handles the shape */
     clip-path: none;
-    
-    padding: 8px 4px 4px 4px; 
-    padding-top: 10px;
+
+    padding: 4px 0;
 }
 
 /* Reset alignments for all seats to center because of column layout */
@@ -844,7 +848,7 @@ const displayName = computed(() => {
     align-items: center;
     margin-left: 0;
     margin-right: 0;
-    margin-top: -8px;
+    margin-top: -13px;
     width: 90px;
 }
 
@@ -874,7 +878,7 @@ const displayName = computed(() => {
     border-radius: 0;
     padding: 0;
     border: none;
-    
+
     font-size: 12px;
     font-weight: bold;
     color: #fbbf24;

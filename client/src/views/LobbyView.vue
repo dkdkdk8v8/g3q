@@ -215,8 +215,8 @@ const goBack = () => {
             <div class="top-left-btns">
                 <img :src="btnExit" class="icon-btn" @click="goBack" alt="Exit" />
                 <img :src="btnHistory" class="icon-btn" @click="openHistoryDebounced" alt="History" />
-                <img :src="btnSetting" class="icon-btn" @click="openSettingsDebounced" alt="Settings" />
                 <img :src="btnHelp" class="icon-btn" @click="openHelpDebounced" alt="Help" />
+                <img :src="btnSetting" class="icon-btn" @click="openSettingsDebounced" alt="Settings" />
             </div>
 
             <!-- Right: User Info -->

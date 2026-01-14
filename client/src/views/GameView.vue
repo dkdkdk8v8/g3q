@@ -1274,13 +1274,15 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
                     <div class="info-box" :style="{ backgroundImage: `url(${userInfoBgImg})` }"
                         :class="{ 'is-observer': myPlayer.isObserver }">
-                        <div class="name van-ellipsis">{{ myPlayer.name.length > 10 ? myPlayer.name.slice(0, 4) + '...'
-                            +
-                            myPlayer.name.slice(-4) : myPlayer.name }}</div>
+
+                        <div class="name van-ellipsis">{{ myPlayer.name }}</div>
+
                         <div class="coins-pill">
-                            <img :src="goldImg" class="coin-icon-seat" />
+
                             {{ formatCoins(myPlayer.coins) }}
+
                         </div>
+
                     </div>
 
                     <!-- Status float (rob/bet multiplier status) -->
@@ -2328,7 +2330,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .my-player-info-row .info-box {
     margin-left: 0;
-    margin-top: -8px;
+    margin-top: -13px;
     /* Slight overlap */
     position: relative;
     z-index: 10;
@@ -2339,6 +2341,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     align-items: center;
     /* Center text */
     justify-content: center;
+    gap: 3px;
+    /* Space between name and coins */
 
     /* Background Image */
 
@@ -2349,8 +2353,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     /* Remove clip-path */
     clip-path: none;
 
-    padding: 8px 4px 4px 4px;
-    padding-top: 10px;
+    padding: 4px 6px;
 }
 
 .my-player-info-row .info-box.is-observer {

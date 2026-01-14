@@ -8,27 +8,17 @@
 
                 <div style="flex: 1"></div>
 
-                <span class="label ml-20">APP：</span>
-                <cl-select v-model="appId" :options="options.app_id" placeholder="全部APP" clearable @change="refresh"
-                    style="width: 200px" />
-
-                <el-button type="primary" @click="refresh" class="ml-20">刷新</el-button>
-            </div>
-
-            <div class="filter-row mt-10">
-                <el-radio-group v-model="userType" @change="refresh">
-                    <el-radio-button v-for="(item, index) in options.user_type" :key="index" :label="item.value">
-                        {{ item.label }}
-                    </el-radio-button>
-                </el-radio-group>
-
-                <div style="flex: 1"></div>
-
                 <el-radio-group v-model="duration" @change="refresh">
                     <el-radio-button v-for="(item, index) in options.sta_duration" :key="index" :label="item.value">
                         {{ item.label }}
                     </el-radio-button>
                 </el-radio-group>
+
+                <span class="label ml-20"></span>
+                <cl-select v-model="appId" :options="options.app_id" placeholder="全部APP" clearable @change="refresh"
+                    style="width: 200px" />
+
+                <el-button type="primary" @click="refresh" class="ml-20">刷新</el-button>
             </div>
         </el-card>
 
@@ -60,17 +50,11 @@ const { dict } = useDict();
 const options = reactive({
     app_id: dict.get("app_id"),
     sta_duration: dict.get("sta_duration"),
-    user_type: [
-        { label: "全部用户", value: "all" },
-        { label: "真实用户", value: "real" },
-        { label: "机器人", value: "robot" },
-    ],
 });
 
 const date = ref(dayjs().format("YYYY-MM-DD"));
 const appId = ref("");
 const duration = ref(10);
-const userType = ref("real");
 
 const chartList = ref<any[]>([]);
 const lastData = ref<any>(null);
@@ -109,7 +93,6 @@ async function refresh() {
             date: date.value,
             app: appId.value,
             duration: duration.value,
-            userType: userType.value
         });
         lastData.value = res;
         generateCharts(res);

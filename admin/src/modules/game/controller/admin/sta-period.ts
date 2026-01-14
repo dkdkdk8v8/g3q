@@ -16,12 +16,13 @@ export class StaPeriodController extends BaseController {
         @Query('endDate') endDate: string,
         @Query('app') app: string,
         @Query('gameName') gameName: string,
-        @Query('showType') showType: 'app' | 'date' | 'game',
-        @Query('userType') userType: string,
+        @Query('showType') showType: 'app' | 'date' | 'game' | 'roomLevel' | 'roomType',
         @Query('sort') sort: string,
         @Query('order') order: string,
+        @Query('roomLevel') roomLevel: string,
+        @Query('roomType') roomType: string,
     ) {
-        return this.staPeriodService.getDateStats(startDate, endDate, app, showType, sort, order, gameName, userType);
+        return this.staPeriodService.getDateStats(startDate, endDate, app, showType, sort, order, gameName, roomLevel, roomType);
     }
 
     @Get('/getUserStats', { summary: '某个时间段的统计数据(按用户)' })
@@ -31,10 +32,9 @@ export class StaPeriodController extends BaseController {
         @Query('app') app: string,
         @Query('sort') sort: string,
         @Query('order') order: string,
-        @Query('userType') userType: string,
         @Query('userId') userId: string,
     ) {
-        return this.staPeriodService.getUserStats(startDate, endDate, app, sort, order, userType, userId);
+        return this.staPeriodService.getUserStats(startDate, endDate, app, sort, order, userId);
     }
 
     @Get('/getDayTrend', { summary: '获取当日趋势对比' })
@@ -42,17 +42,15 @@ export class StaPeriodController extends BaseController {
         @Query('date') date: string,
         @Query('app') app: string,
         @Query('duration') duration: number,
-        @Query('userType') userType: string
     ) {
-        return this.staPeriodService.getDayTrend(date, app, duration, userType);
+        return this.staPeriodService.getDayTrend(date, app, duration);
     }
 
     @Get('/getCardResultStats', { summary: '获取牌型结果统计' })
     async getCardResultStats(
         @Query('date') date: string,
         @Query('app') app: string,
-        @Query('userType') userType: string
     ) {
-        return this.staPeriodService.getCardResultStats(date, app, userType);
+        return this.staPeriodService.getCardResultStats(date, app);
     }
 }

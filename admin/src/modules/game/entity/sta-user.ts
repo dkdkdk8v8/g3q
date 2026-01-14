@@ -18,10 +18,6 @@ export class StaUserEntity extends BaseEntity {
   @Column({ comment: '应用ID', default: '' })
   appId: string;
 
-  @Index()
-  @Column({ comment: '是否机器人的数据', default: false })
-  isRobot: boolean;
-
   @Column({ comment: '充值次数', default: 0 })
   depositCount: number;
 

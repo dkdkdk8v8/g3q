@@ -865,10 +865,15 @@ const startDealingAnimation = (isSupplemental = false) => {
         // Viewport scaling to match postcss-px-to-viewport (assuming 375 design width)
         const viewportRatio = window.innerWidth / 375;
 
-        // Spacing calculation:
-        // Me: 60px width + 1px margin = 61px (Scale 1) -> Scaled by viewport
-        // Opponent: (48px width - 20px overlap) * 0.85 scale = 23.8px -> Scaled by viewport
-        const spacing = (t.isMe ? 61 : 23.8) * viewportRatio;
+        // Spacing calculation (Base pixels at 375 width):
+        // Me: 60px width + 1px margin = 61px
+        // Opponent: 48px width - 28px margin = 20px
+        const baseSpacing = t.isMe ? 61 : 20;
+        
+        // Spacing must be scaled because the static cards are inside a scaled container
+        // and thus the visual distance between centers is scaled.
+        // We apply the same scale to the flying card spacing.
+        const spacing = baseSpacing * viewportRatio * scale;
 
         const totalWidth = (t.total - 1) * spacing;
         const startX = t.x - (totalWidth / 2);

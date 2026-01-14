@@ -13,24 +13,16 @@
 
             <cl-flex1 />
 
-            <!-- APP筛选 -->
-            <cl-filter label="APP">
-                <cl-select v-model="searchParams.app" :options="options.app_id" @change="refresh" clearable
-                    placeholder="全部APP" style="width: 150px" />
-            </cl-filter>
-        </cl-row>
-
-        <cl-row>
-            <el-radio-group v-model="searchParams.userType" @change="refresh">
-                <el-radio-button label="all">全部用户</el-radio-button>
-                <el-radio-button label="real">真实用户</el-radio-button>
-                <el-radio-button label="robot">机器人</el-radio-button>
-            </el-radio-group>
-            <cl-flex1 />
             <!-- 用户ID筛选 -->
             <cl-filter label="用户ID">
                 <el-input v-model="searchParams.userId" placeholder="搜索用户ID" clearable @keyup.enter="refresh"
                     @clear="refresh" style="width: 150px" />
+            </cl-filter>
+
+            <!-- APP筛选 -->
+            <cl-filter label="APP">
+                <cl-select v-model="searchParams.app" :options="options.app_id" @change="refresh" clearable
+                    placeholder="全部APP" style="width: 150px" />
             </cl-filter>
         </cl-row>
 
@@ -107,21 +99,19 @@ const searchParams = reactive({
     startDate: dateRange.value[0],
     endDate: dateRange.value[1],
     app: "",
-    userType: "real",
     userId: "",
 });
 
 // 自定义Service
 const crudService = {
     page: async (params: any) => {
-        const { app, startDate, endDate, userType, userId } = searchParams;
+        const { app, startDate, endDate, userId } = searchParams;
         const { sort, order, page, size } = params;
 
         const res = await service.game.staPeriod.getUserStats({
             startDate,
             endDate,
             app,
-            userType,
             userId,
             sort,
             order

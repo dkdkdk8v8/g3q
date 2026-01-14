@@ -12,6 +12,7 @@ const useDictStore = defineStore('dict', () => {
 
 	// 获取
 	function get(name: Dict.Key, sort?: 'desc' | 'asc') {
+		if (!sort) sort = 'desc';
 		return computed(() => orderBy(data[name] || [], 'orderNum', sort));
 	}
 

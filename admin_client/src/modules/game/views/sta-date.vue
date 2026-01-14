@@ -3,26 +3,35 @@
         <cl-row>
             <!-- 刷新按钮 -->
             <cl-refresh-btn />
-
             <!-- 日期筛选 -->
             <div style="margin-right: 10px">
                 <el-date-picker v-model="dateRange" type="daterange" range-separator="至" start-placeholder="开始日期"
                     end-placeholder="结束日期" value-format="YYYY-MM-DD" @change="onDateChange"
                     :shortcuts="dateShortcuts" />
             </div>
-
             <cl-flex1 />
-
             <!-- APP筛选 -->
-            <cl-filter label="APP">
+            <cl-filter label="">
                 <cl-select v-model="searchParams.app" :options="options.app_id" @change="refresh" clearable
                     placeholder="全部APP" style="width: 150px" />
             </cl-filter>
 
             <!-- 游戏筛选 -->
-            <cl-filter label="游戏">
+            <cl-filter label="">
                 <cl-select v-model="searchParams.gameName" :options="options.game_name" @change="refresh" clearable
                     placeholder="全部游戏" style="width: 150px" />
+            </cl-filter>
+
+            <!-- 房间等级筛选 -->
+            <cl-filter label="">
+                <cl-select v-model="searchParams.roomLevel" :options="options.qznn_room_level" @change="refresh"
+                    clearable placeholder="全部等级" style="width: 150px" />
+            </cl-filter>
+
+            <!-- 房间类型筛选 -->
+            <cl-filter label="">
+                <cl-select v-model="searchParams.roomType" :options="options.qznn_room_type" @change="refresh" clearable
+                    placeholder="全部类型" style="width: 150px" />
             </cl-filter>
         </cl-row>
 
@@ -31,12 +40,8 @@
                 <el-radio-button label="date">按日期</el-radio-button>
                 <el-radio-button label="app">按APP</el-radio-button>
                 <el-radio-button label="game">按游戏</el-radio-button>
-            </el-radio-group>
-            <cl-flex1 />
-            <el-radio-group v-model="searchParams.userType" @change="refresh">
-                <el-radio-button label="all">全部用户</el-radio-button>
-                <el-radio-button label="real">真实用户</el-radio-button>
-                <el-radio-button label="robot">机器人</el-radio-button>
+                <el-radio-button label="roomLevel">按房间等级</el-radio-button>
+                <el-radio-button label="roomType">按房间类型</el-radio-button>
             </el-radio-group>
         </cl-row>
 
@@ -67,6 +72,8 @@ const { service } = useCool();
 const options = reactive({
     app_id: dict.get("app_id"),
     game_name: dict.get("game_name"),
+    qznn_room_level: dict.get("qznn_room_level"),
+    qznn_room_type: dict.get("qznn_room_type"),
 });
 
 // 日期范围默认最近30天
@@ -82,24 +89,25 @@ const searchParams = reactive({
     app: "",
     gameName: "",
     showType: "date",
-    userType: "real",
+    roomLevel: "",
+    roomType: "",
 });
 
 // 自定义Service
 const crudService = {
     page: async (params: any) => {
-        const { app, showType, startDate, endDate, gameName, userType } = searchParams;
+        let { app, showType, startDate, endDate, gameName, roomLevel, roomType } = searchParams;
         const { sort, order } = params;
-
         const res = await service.game.staPeriod.getDateStats({
             startDate,
             endDate,
             app,
             gameName,
             showType,
-            userType,
             sort,
-            order
+            order,
+            roomLevel,
+            roomType
         });
 
         const list = res || [];
@@ -130,6 +138,12 @@ const Table = useTable({
                 }
                 if (searchParams.showType === "game") {
                     return options.game_name.find(i => row.title === i.value)?.label || row.title || '未知';
+                }
+                if (searchParams.showType === "roomLevel") {
+                    return options.qznn_room_level.find(i => String(row.title) === String(i.value))?.label || row.title || '未知';
+                }
+                if (searchParams.showType === "roomType") {
+                    return options.qznn_room_type.find(i => String(row.title) === String(i.value))?.label || row.title || '未知';
                 }
                 return row.title;
             },

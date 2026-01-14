@@ -14,13 +14,16 @@ export class StaPeriodEntity extends BaseEntity {
   @Column({ comment: '应用ID', default: '' })
   appId: string;
 
-  @Index()
   @Column({ comment: '游戏名称', default: '' })
   gameName: string;
 
   @Index()
-  @Column({ comment: '是否机器人的数据', default: false })
-  isRobot: boolean;
+  @Column({ comment: '房间等级', default: 0 })
+  roomLevel: number;
+
+  @Index()
+  @Column({ comment: '房间类型', default: 0 })
+  roomType: number;
 
   @Column({ comment: '游戏人数', default: 0 })
   gameUserCount: number;

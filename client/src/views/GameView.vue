@@ -2217,9 +2217,10 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 .my-player-info-row .avatar-area {
     position: relative;
     display: flex;
-    flex-direction: row;
-    /* Horizontal layout for avatar and info-box */
+    flex-direction: column;
+    /* Changed to column */
     align-items: center;
+    /* Center align */
     width: auto;
     /* Let it shrink to content */
 }
@@ -2229,14 +2230,16 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     width: 62px;
     height: 62px;
     flex-shrink: 0;
+    z-index: 6;
+    /* Ensure above info box */
 }
 
 .my-player-info-row .avatar-frame {
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.3);
-    border-radius: 8px;
-    /* Rounded square for myPlayer avatar */
+    border-radius: 50%;
+    /* Circular */
     border: 4px solid transparent;
     box-sizing: border-box;
     box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2);
@@ -2312,15 +2315,26 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .my-player-info-row .info-box {
-    margin-left: 8px;
-    /* Gap between avatar and info */
+    margin-left: 0;
+    margin-top: -8px;
+    /* Slight overlap */
     position: relative;
-    z-index: 5;
-    width: auto;
+    z-index: 10;
+    /* Higher than avatar */
+    width: 90px;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    /* Align name and coins to the left */
+    align-items: center;
+    /* Center text */
+    justify-content: center;
+
+    /* Trapezoid Background */
+    background: rgba(0, 0, 0, 0.65);
+    /* Wide top, narrow bottom */
+    clip-path: polygon(0% 0%, 100% 0%, 90% 100%, 10% 100%);
+
+    padding: 8px 4px 4px 4px;
+    padding-top: 10px;
 }
 
 .my-player-info-row .info-box.is-observer {
@@ -2329,24 +2343,30 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .my-player-info-row .name {
-    font-size: 16px;
+    font-size: 14px;
+    /* Slightly larger than opponents */
     font-weight: bold;
     color: white;
     text-shadow: 0 1px 2px black;
-    margin-bottom: 2px;
+    margin-bottom: 0px;
+    max-width: 80%;
+    text-align: center;
+    line-height: 1.2;
 }
 
 .my-player-info-row .coins-pill {
-    background: rgba(0, 0, 0, 0.6);
-    border-radius: 20px;
-    padding: 2px 5px 2px 2px;
+    background: transparent;
+    border-radius: 0;
+    padding: 0;
+    border: none;
+
     font-size: 13px;
     font-weight: bold;
     color: #fbbf24;
     display: flex;
     align-items: center;
-    gap: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    gap: 2px;
+    justify-content: center;
 }
 
 .my-player-info-row .coin-icon-seat {
@@ -2357,15 +2377,18 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .my-player-info-row .status-float {
     position: absolute;
-    top: 50%;
-    left: 100%;
-    transform: translateY(-50%);
-    z-index: 8;
-    margin-left: 12px;
+    top: auto;
+    bottom: 100%;
+    /* Position above avatar */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 150;
+    margin-left: 0;
+    margin-bottom: 10px;
     width: max-content;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
 }
 
 /* Ensure chat button pushes to the right within my-player-info-row */

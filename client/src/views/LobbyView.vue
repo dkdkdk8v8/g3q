@@ -13,7 +13,7 @@ import SettingsModal from '../components/SettingsModal.vue';
 import HelpModal from '../components/HelpModal.vue';
 
 // Assets
-import bgImg from '@/assets/lobby/bg.png';
+import bgImg from '@/assets/lobby/bg.jpg';
 import logoImg from '@/assets/lobby/logo.png';
 import btnExit from '@/assets/lobby/exit_btn.png';
 import btnHelp from '@/assets/lobby/help_btn.png';
@@ -27,39 +27,16 @@ import tabSan from '@/assets/lobby/tab_kansanzhang.png';
 import tabSanSel from '@/assets/lobby/tab_kansanzhang_choose.png';
 import tabSi from '@/assets/lobby/tab_kansizhang.png';
 import tabSiSel from '@/assets/lobby/tab_kansizhang_choose.png';
-import tabLineImg from '@/assets/lobby/tab_line.png';
 import tabBgImg from '@/assets/lobby/tab_bg.png';
 
 // Room Assets Explicit Import
+import roomAreaBg from '@/assets/lobby/room_bg.jpg';
 import roomTiyanBg from '@/assets/lobby/room_tiyan_bg.png';
-import roomTiyanText from '@/assets/lobby/room_tiyan_text.png';
-import roomTiyanShape from '@/assets/lobby/room_tiyan_shape.png';
-
 import roomChujiBg from '@/assets/lobby/room_chuji_bg.png';
-import roomChujiText from '@/assets/lobby/room_chuji_text.png';
-import roomChujiShape from '@/assets/lobby/room_chuji_shape.png';
-
 import roomZhongjiBg from '@/assets/lobby/room_zhongji_bg.png';
-import roomZhongjiText from '@/assets/lobby/room_zhongji_text.png';
-import roomZhongjiShape from '@/assets/lobby/room_zhongji_shape.png';
-
 import roomGaojiBg from '@/assets/lobby/room_gaoji_bg.png';
-import roomGaojiText from '@/assets/lobby/room_gaoji_text.png';
-import roomGaojiShape from '@/assets/lobby/room_gaoji_shape.png';
-
 import roomDashiBg from '@/assets/lobby/room_dashi_bg.png';
-import roomDashiText from '@/assets/lobby/room_dashi_text.png';
-import roomDashiShape from '@/assets/lobby/room_dashi_shape.png';
-
 import roomDianfengBg from '@/assets/lobby/room_dianfeng_bg.png';
-import roomDianfengText from '@/assets/lobby/room_dianfeng_text.png';
-import roomDianfengShape from '@/assets/lobby/room_dianfeng_shape.png';
-
-import dashiLine from '@/assets/lobby/dashi_line.png';
-import dianfengLine from '@/assets/lobby/dianfeng_line.png';
-
-import dashiXianzhiBg from '@/assets/lobby/dashi_xianzhi_bg.png';
-import dianfengXianzhiBg from '@/assets/lobby/dianfeng_xianzhi_bg.png';
 
 import defaultAvatar from '@/assets/common/default_avatar.png';
 import lobbyBgSound from '@/assets/sounds/lobby_bg.mp3';
@@ -79,12 +56,12 @@ const playBtnSound = () => {
 };
 
 const roomAssetsMap = {
-    tiyan: { bg: roomTiyanBg, text: roomTiyanText, shape: roomTiyanShape },
-    chuji: { bg: roomChujiBg, text: roomChujiText, shape: roomChujiShape },
-    zhongji: { bg: roomZhongjiBg, text: roomZhongjiText, shape: roomZhongjiShape },
-    gaoji: { bg: roomGaojiBg, text: roomGaojiText, shape: roomGaojiShape },
-    dashi: { bg: roomDashiBg, text: roomDashiText, shape: roomDashiShape },
-    dianfeng: { bg: roomDianfengBg, text: roomDianfengText, shape: roomDianfengShape },
+    tiyan: { bg: roomTiyanBg },
+    chuji: { bg: roomChujiBg },
+    zhongji: { bg: roomZhongjiBg },
+    gaoji: { bg: roomGaojiBg },
+    dashi: { bg: roomDashiBg },
+    dianfeng: { bg: roomDianfengBg },
 };
 
 const getRoomAssets = (levelIndex) => {
@@ -128,39 +105,13 @@ const enterGame = debounce(async (level) => {
     }
 }, 500);
 
-const roomTextColors = [
-    "rgb(150, 250, 230)", // Tiyan
-    "rgb(148, 230, 253)", // Chuji
-    "rgb(122, 188, 255)", // Zhongji (corrected 257 -> 255)
-    "rgb(181, 169, 247)", // Gaoji
-    "rgb(238, 171, 237)", // Dashi
-    "rgb(240, 173, 222)"  // Dianfeng
-];
-
 const rooms = computed(() => {
     const configs = userStore.roomConfigs || [];
     return configs.map((cfg, index) => {
-        let lineImg = null;
-        let limitBgImg = null;
-        if (index === 4) {
-            lineImg = dashiLine;
-            limitBgImg = dashiXianzhiBg;
-        }
-        if (index === 5) {
-            lineImg = dianfengLine;
-            limitBgImg = dianfengXianzhiBg;
-        }
-
         return {
             level: cfg.level,
             name: cfg.name,
-            base: formatCoins(cfg.base_bet, 0),
-            min: formatCoins(cfg.min_balance, 0),
-            assets: getRoomAssets(index),
-            limitColor: roomTextColors[index] || "rgb(255, 255, 255)",
-            isFullWidth: index === 4 || index === 5,
-            lineImg: lineImg,
-            limitBgImg: limitBgImg
+            assets: getRoomAssets(index)
         };
     });
 });
@@ -264,8 +215,8 @@ const goBack = () => {
             <div class="top-left-btns">
                 <img :src="btnExit" class="icon-btn" @click="goBack" alt="Exit" />
                 <img :src="btnHistory" class="icon-btn" @click="openHistoryDebounced" alt="History" />
-                <img :src="btnHelp" class="icon-btn" @click="openHelpDebounced" alt="Help" />
                 <img :src="btnSetting" class="icon-btn" @click="openSettingsDebounced" alt="Settings" />
+                <img :src="btnHelp" class="icon-btn" @click="openHelpDebounced" alt="Help" />
             </div>
 
             <!-- Right: User Info -->
@@ -293,107 +244,35 @@ const goBack = () => {
 
         <div class="tabs-container" :style="{ backgroundImage: `url(${tabBgImg})` }">
 
+            <!-- Stacked Images (Display Only) -->
             <!-- Mode 0: Bukan (No Look) -->
-
             <img :src="currentMode === 0 ? tabBukanSel : tabBukan" class="tab-btn"
-                :class="{ 'active': currentMode === 0 }" @click="setMode(0)" />
-
-
+                :class="{ 'active': currentMode === 0 }" />
 
             <!-- Mode 1: San (3 cards) -->
-
-            <div class="tab-separator" :style="{ visibility: currentMode === 2 ? 'visible' : 'hidden' }"></div>
-
-            <img :src="currentMode === 1 ? tabSanSel : tabSan" class="tab-btn" :class="{ 'active': currentMode === 1 }"
-                @click="setMode(1)" />
-
-
-
-
-
-
-
-            <!-- Vertical Separator -->
-
-
-
-            <div class="tab-separator" :style="{ visibility: currentMode === 0 ? 'visible' : 'hidden' }"></div>
-
-
-
-
-
-
+            <img :src="currentMode === 1 ? tabSanSel : tabSan" class="tab-btn"
+                :class="{ 'active': currentMode === 1 }" />
 
             <!-- Mode 2: Si (4 cards) -->
+            <img :src="currentMode === 2 ? tabSiSel : tabSi" class="tab-btn" :class="{ 'active': currentMode === 2 }" />
 
-            <img :src="currentMode === 2 ? tabSiSel : tabSi" class="tab-btn" :class="{ 'active': currentMode === 2 }"
-                @click="setMode(2)" />
-
-            <!-- Divider Line -->
-            <img :src="tabLineImg" class="lobby-divider" />
+            <!-- Click Layer (Interaction) -->
+            <div class="tab-click-layer">
+                <div class="tab-click-zone" @click="setMode(0)"></div>
+                <div class="tab-click-zone" @click="setMode(1)"></div>
+                <div class="tab-click-zone" @click="setMode(2)"></div>
+            </div>
 
         </div>
 
         <!-- 4. Room Grid -->
-        <div class="rooms-scroll-area">
+        <div class="rooms-scroll-area" :style="{ backgroundImage: `url(${roomAreaBg})` }">
             <div class="rooms-grid">
                 <div v-for="(room, index) in rooms" :key="room.level" class="room-item" :class="['room-idx-' + index]"
                     @click="enterGame(room.level)">
 
                     <!-- Background Layer -->
                     <img :src="room.assets.bg" class="room-bg" />
-
-                    <!-- Content Wrapper -->
-                    <div class="room-content-wrapper" :class="{ 'horizontal-layout': room.isFullWidth }">
-
-                        <!-- Full Width Layout -->
-                        <template v-if="room.isFullWidth">
-                            <div class="left-content-group">
-                                <!-- 1. Shape -->
-                                <div class="room-shape-box-horiz">
-                                    <img :src="room.assets.shape" class="room-shape-img" />
-                                </div>
-                                <!-- 2. Text -->
-                                <div class="room-text-box-horiz">
-                                    <img :src="room.assets.text" class="room-text-img-new" />
-                                </div>
-                                <!-- 3. Line -->
-                                <img v-if="room.lineImg" :src="room.lineImg" class="room-separator-line" />
-                            </div>
-
-                            <!-- 4. Info Column (Right) -->
-                            <div class="room-info-col-horiz">
-                                <div class="base-info-text">底注:{{ room.base }}</div>
-                                <div class="limit-info-text"
-                                    :style="{ color: room.limitColor, backgroundImage: `url(${room.limitBgImg})` }">
-                                    入场限制:
-                                    {{ room.min }}
-                                </div>
-                            </div>
-                        </template>
-
-                        <!-- Standard Layout -->
-                        <template v-else>
-                            <!-- Info Section -->
-                            <div class="room-info-section">
-                                <!-- Left: Shape -->
-                                <div class="room-shape-box">
-                                    <img :src="room.assets.shape" class="room-shape-img" />
-                                </div>
-                                <!-- Right: Text & Base Bet -->
-                                <div class="room-details-box">
-                                    <img :src="room.assets.text" class="room-text-img-new" />
-                                    <div class="base-info-text">底注: {{ room.base }}</div>
-                                </div>
-                            </div>
-
-                            <!-- Limit Section -->
-                            <div class="room-limit-section" :style="{ color: room.limitColor }">
-                                入场限制: {{ room.min }}
-                            </div>
-                        </template>
-                    </div>
                 </div>
             </div>
         </div>
@@ -447,7 +326,7 @@ const goBack = () => {
 
     align-items: center;
 
-    padding: 10px 15px;
+    padding: 20px 15px;
 
     /* Reduced padding */
 
@@ -523,8 +402,7 @@ const goBack = () => {
 
     gap: 5px;
 
-    max-width: 55%;
-
+    max-width: 55%
 }
 
 
@@ -539,7 +417,7 @@ const goBack = () => {
 
     /* Square with slight rounding */
 
-    border: 2px solid #fff;
+    border: 2px solid #fac27d;
 
     overflow: hidden;
 
@@ -755,7 +633,7 @@ const goBack = () => {
 
 .logo-img {
 
-    width: 50vw;
+    width: 60vw;
 
     /* 1/2 of screen width */
 
@@ -772,195 +650,95 @@ const goBack = () => {
 /* 3. Tabs Row */
 
 .tabs-container {
-
     display: flex;
-
     justify-content: center;
-
     align-items: center;
-
-    gap: 5px;
-
     z-index: 5;
 
-
-
-    /* Changed from width: 100% to fit content */
-
-    width: auto;
+    /* Container fits screen width */
+    width: 100vw;
+    /* Height matches the tab height */
+    height: 40px;
 
     align-self: center;
-
-    /* Center in the flex column parent */
-
-
-
-    /* Background properties */
-
-    background-size: 100% 100%;
-
-    /* Stretch bg to fit the container size perfectly */
-
-    background-repeat: no-repeat;
-
-    background-position: center;
-
     position: relative;
-
+    /* Ensure background behaves correctly if needed, or remove if tabs cover it */
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-position: center;
 }
-
-
 
 .tab-btn {
-
-
-
-    width: 28vw;
-
-    /* ~1/4 of screen width */
-
-
-
-    max-width: 200px;
-
-
-
-    height: auto;
-
-
-
+    /* Each tab takes full screen width */
+    width: 100vw;
+    height: 48px;
     cursor: pointer;
-
-
-
     transition: filter 0.2s ease-in-out;
+    object-fit: fill;
 
+    /* Overlay them */
+    position: absolute;
+    top: 0;
+    left: 0;
 
-
-    object-fit: contain;
-
-
-
-    /* Default state (inactive): visually smaller */
-
-
-
+    /* Default lower z-index for inactive tabs */
+    z-index: 1;
+    /* Opacity logic: if you want non-selected to be invisible, set opacity: 0. 
+       If they are transparent PNGs designed to overlay, keep opacity: 1.
+       Assuming they are full opaque bars where only one shows 'selected' state:
+    */
 }
-
-
-
-
-
-
 
 .tab-btn.active {
-
-
-
-    /* Active state: fully bright */
-
-
-
-    /* Removed transform scale */
-
-
-
-    filter: brightness(1.1);
-
-
-
+    /* Active tab on top */
     z-index: 2;
-
-    /* Bring to front */
-
-
-
+    filter: brightness(1.1);
 }
 
+/* Specific z-index ordering for clicking if needed, 
+   but since they are stacked, click handling might need explicit areas 
+   if the images are full width.
+   
+   HOWEVER, if the images are 100vw wide, they stack on top of each other.
+   Clicking anywhere will click the top-most one (z-index 2).
+   This prevents clicking the other tabs if they are fully covered.
+   
+   CRITICAL: If the images are designed such that the visual "tab" part 
+   is only a portion, but the image file is 100vw transparent, 
+   we need to know where the click zones are.
+   
+   If the user says "images are width of screen wide", and they are stacked, 
+   we can't click the ones underneath unless we use a map or invisible divs for clicks.
+   
+   Assumption: The user implies the visual design is a single bar where the "selected" state
+   changes the whole look, but logically they are 3 buttons.
+   
+   If the IMAGES contain all 3 tabs visually but highlight one, then stacking them 
+   works purely for display, BUT we need a way to click.
+   
+   Solution: Create an invisible click layer on top with 3 columns.
+*/
 
+.tab-click-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    z-index: 10;
+    /* Above images */
+}
 
-
-
-
+.tab-click-zone {
+    flex: 1;
+    /* 3 equal zones */
+    height: 100%;
+    cursor: pointer;
+}
 
 .tab-btn:hover {
-
-
-
-
-
-
-
-    /* Hover effect (optional, maybe just scale up a bit more if active or inactive) */
-
-
-
-
-
-
-
     filter: brightness(1.2);
-
-
-
-
-
-
-
-}
-
-
-
-
-
-
-
-
-
-
-
-.tab-separator {
-
-
-
-
-
-
-
-    width: 1px;
-
-
-
-    border-radius: 10px;
-
-
-
-    height: 20px;
-
-    /* Approx 80% of typical tab height */
-
-
-
-
-
-
-
-    background-color: #666;
-
-
-
-
-
-
-
-    opacity: 0.6;
-
-
-
-
-
-
-
 }
 
 
@@ -1004,7 +782,12 @@ const goBack = () => {
     width: 100%;
 
     padding: 10px 0 40px 0;
-    background-color: #0006;
+
+    background-size: cover;
+
+    background-position: center;
+
+    background-repeat: no-repeat;
 
 }
 
@@ -1119,10 +902,6 @@ const goBack = () => {
 
 
 
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-
-
-
 }
 
 
@@ -1142,624 +921,12 @@ const goBack = () => {
 }
 
 
-
-
-
-
-
-/* Custom Grid Layout Logic */
-
-
-
-/* Index 4: Row 3 (1 col, centered) -> Spans 2 columns */
-
-
-
-.room-item.room-idx-4 {
-
-
-
-    grid-column: span 2;
-
-    height: 100px !important;
-    /* Set specific height */
-
-
-
-}
-
-.room-item.room-idx-4 .room-text-img-new {
-    width: 100px !important;
-    /* Half of original 76% */
-}
-
-
-
-/* Index 5: Row 4 (1 col, centered) -> Spans 2 columns */
-
-
-
-.room-item.room-idx-5 {
-
-
-
-    grid-column: span 2;
-
-    height: 100px !important;
-    /* Set specific height */
-
-
-
-}
-
-
-.room-item.room-idx-5 .room-text-img-new {
-    width: 100px !important;
-    /* Half of original 76% */
-}
-
-
-
-
-
-
-
 /* Internal Room Assets */
 
-
-
 .room-bg {
-
-
-
-    position: absolute;
-
-
-
-    top: 0;
-
-
-
-    left: 0;
-
-
-
     width: 100%;
-
-
-
-    height: 100%;
-
-
-
-    object-fit: fill;
-
-
-
-    z-index: 0;
-
-
-
-}
-
-
-
-
-
-
-
-.room-content-wrapper {
-
-
-
-
-
-
-
-    position: relative;
-
-
-
-
-
-
-
-    z-index: 1;
-
-
-
-
-
-
-
-    width: 100%;
-
-
-
-
-
-
-
-    /* Flex 1 ensures it fills the parent height (which is stretched by grid) */
-
-
-
-
-
-
-
-    flex: 1;
-
-
-
-
-
-
-
-    display: flex;
-
-
-
-
-
-
-
-    flex-direction: column;
-
-
-
-
-
-
-
-    justify-content: space-between;
-
-
-
-
-
-
-
-}
-
-
-
-
-
-
-
-.room-info-section {
-
-
-
-    /* Allow it to grow with content */
-
-
-
-    display: flex;
-
-
-
-    flex-direction: row;
-
-
-
-    align-items: center;
-
-
-
-    padding: 15px 5px;
-    /* Added vertical padding for spacing */
-
-
-
-}
-
-
-
-
-
-
-
-.room-shape-box {
-
-
-
-    width: 35%;
-    /* Slightly larger shape area */
-
-
-
-    display: flex;
-
-
-
-    justify-content: center;
-
-
-
-    align-items: center;
-
-
-
-}
-
-
-
-
-
-
-
-.room-shape-img {
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    width: 100%;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    /* Fixed height requested */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    object-fit: contain;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-}
-
-
-
-
-
-
-
-.room-details-box {
-
-
-
-    flex: 1;
-
-
-
-    display: flex;
-
-
-
-    flex-direction: column;
-
-
-
-    justify-content: center;
-
-
-
-    align-items: center;
-
-
-
-    padding-left: 5px;
-
-
-
-}
-
-
-
-
-
-
-
-.room-text-img-new {
-
-
-
-    width: 76%;
-
-
-
-    height: auto;
-
-
-
-    object-fit: contain;
-
-
-
-    margin-bottom: 4px;
-
-
-
-}
-
-
-
-
-
-
-
-.base-info-text {
-
-
-
-    font-size: 16px;
-
-
-
-    color: #FFF;
-
-
-
-    font-weight: bold;
-
-
-
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
-
-
-
-}
-
-
-
-
-
-
-
-.room-item.room-idx-4 .base-info-text,
-
-
-
-
-
-
-
-.room-item.room-idx-5 .base-info-text {
-
-
-
-
-
-
-
-    font-size: 28px;
-    /* Doubled from 16px for single-row rooms */
-
-
-
-
-
-
-
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-.room-limit-section {
-
-
-
-
-
-
-
-    height: 30px;
-
-
-
-    /* Dark gray/black background */
-
-
-
-    background-color: rgba(30, 41, 59, 0.72);
-
-
-
-
-
-
-
-    /* Rounded corners handled by parent overflow:hidden, but we can keep them to be safe or specific design */
-
-
-
-    /* If the card is rounded, the bottom bar will be clipped to round. */
-
-
-
-
-
-
-
-    display: flex;
-
-
-
-    justify-content: center;
-
-
-
-    align-items: center;
-
-
-
-
-
-
-
-    color: #cbd5e1;
-
-
-
-    font-size: 15px;
-
-
-
-    font-weight: bold;
-
-
-
-    margin: 0;
-    /* Flush to bottom of container */
-
-
-
-    width: 100%;
-
-
-
-}
-
-
-
-@media (min-width: 600px) {
-
-    .base-info-text {
-
-        font-size: 16px;
-
-    }
-
-    .room-limit-section {
-        font-size: 14px;
-    }
-}
-
-/* Horizontal Layout Styles */
-.horizontal-layout {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 20px;
-    height: 100%;
-}
-
-.left-content-group {
-    display: flex;
-    align-items: center;
-    flex: 1;
-    /* Spacing between shape, text, and line */
-}
-
-.room-shape-box-horiz {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    /* Remove fixed width, let content define it, but constrain img */
-}
-
-.room-shape-box-horiz .room-shape-img {
-    height: 60px !important;
-    object-fit: contain;
-    margin-right: 10px;
-}
-
-.room-text-box-horiz {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.room-text-box-horiz .room-text-img-new {
-    /* Fixed width, approx 38% of original visual */
     height: auto;
     object-fit: contain;
-}
-
-.room-separator-line {
-    height: 40px;
-    /* Adjust height to match text roughly */
-    width: auto;
-    object-fit: contain;
-    margin-right: 10px;
-    margin-left: 10px;
-}
-
-.room-info-col-horiz {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    /* Ensure enough space for text */
-    gap: 4px;
-    margin-right: 30px;
-}
-
-.limit-info-text {
-    padding: 2px 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    font-weight: bold;
-    color: #cbd5e1;
-    background-size: 100% 100%;
-    background-repeat: no-repeat;
+    display: block;
 }
 </style>

@@ -21,25 +21,19 @@
             </div>
         </el-card>
 
-        <el-card shadow="never" class="chart-card mb-10">
+        <el-card shadow="never" class="chart-card">
             <el-row :gutter="20">
-                <el-col :span="12">
-                    <div class="chart-box">
-                        <v-chart :option="pieOption" autoresize />
+                <el-col :span="16">
+                    <div class="chart-box" ref="chartBoxRef">
+                        <v-chart ref="chartRef" :option="chartOption" autoresize />
                     </div>
                 </el-col>
-                <el-col :span="12">
+                <el-col :span="8">
                     <div class="chart-box">
                         <v-chart :option="barRankOption" autoresize />
                     </div>
                 </el-col>
             </el-row>
-        </el-card>
-
-        <el-card shadow="never" class="chart-card">
-            <div class="chart-box" ref="chartBoxRef">
-                <v-chart ref="chartRef" :option="chartOption" autoresize />
-            </div>
         </el-card>
     </div>
 </template>
@@ -64,7 +58,6 @@ const userType = ref("real");
 const chartRef = ref();
 const chartBoxRef = ref();
 const chartOption = ref({});
-const pieOption = ref({});
 const barRankOption = ref({});
 const isDark = ref(false);
 
@@ -154,7 +147,7 @@ async function refresh() {
         }
 
         updateChart();
-        updatePieChart();
+        updateRankChart();
     } catch (e) {
         console.error(e);
     }
@@ -292,7 +285,7 @@ function updateChart() {
     };
 }
 
-function updatePieChart() {
+function updateRankChart() {
     if (!rawDataCache.length) return;
 
     const el = document.documentElement;
@@ -313,42 +306,6 @@ function updatePieChart() {
 
     const grandTotal = pieData.reduce((sum, item) => sum + item.value, 0);
     const sortedData = [...pieData].sort((a, b) => b.value - a.value);
-
-    pieOption.value = {
-        title: {
-            text: '牌型分布',
-            left: 'center',
-            textStyle: { color: textColor }
-        },
-        tooltip: {
-            trigger: 'item',
-            confine: true
-        },
-        legend: {
-            orient: 'vertical',
-            left: 'left',
-            textStyle: { color: textColor }
-        },
-        series: [
-            {
-                name: '牌型',
-                type: 'pie',
-                radius: '50%',
-                data: pieData,
-                label: {
-                    show: false,
-                    formatter: '{b}: {d}%'
-                },
-                emphasis: {
-                    itemStyle: {
-                        shadowBlur: 10,
-                        shadowOffsetX: 0,
-                        shadowColor: 'rgba(0, 0, 0, 0.5)'
-                    }
-                },
-            }
-        ]
-    };
 
     barRankOption.value = {
         title: {
@@ -432,7 +389,7 @@ onUnmounted(() => {
 
 watch(isDark, () => {
     updateChart();
-    updatePieChart();
+    updateRankChart();
 });
 </script>
 

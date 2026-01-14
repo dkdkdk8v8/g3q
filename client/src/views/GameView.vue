@@ -2411,7 +2411,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .multiplier-option-btn {
-    width: 20vw;
+    width: 25vw;
     height: auto;
 }
 
@@ -2669,7 +2669,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .showdown-btn-img {
-    height: 45px;
+    height: 50px;
     width: auto;
     object-fit: contain;
 }

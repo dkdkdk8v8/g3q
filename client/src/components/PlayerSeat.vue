@@ -821,7 +821,7 @@ const displayName = computed(() => {
 
     font-weight: bold;
 
-    z-index: 1000;
+    z-index: 9999;
 
     border: 1px solid #fff;
 

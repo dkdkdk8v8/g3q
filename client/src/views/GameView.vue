@@ -2311,7 +2311,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
   font-size: 14px;
   border-radius: 50%;
   font-weight: bold;
-  z-index: 1000;
+  z-index: 9999;
   border: 1px solid #fff;  box-shadow: 0 0 10px #fbbf24;
   animation: shine 2s infinite;
   transform: translate(50%, -50%); /* Adjusted transform for top-right positioning */

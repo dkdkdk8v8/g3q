@@ -2358,7 +2358,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
     border-radius: 6.4vw;
     font-size: 1.8vh;
     font-weight: bold;
-    margin-top: 8vw;
+    margin-top: calc(8vw - 36px);
     border: 0.2667vw solid rgba(255, 255, 253, 0.3);
     /* Distinct bottom frame/border */
     box-shadow: 0 1vw 2.2vw rgba(0, 0, 0, 0.6), 0 0 4vw rgba(251, 191, 36, 0.2);

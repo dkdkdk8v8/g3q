@@ -315,7 +315,7 @@ const displayName = computed(() => {
                 <div v-if="player.isObserver" class="observer-badge">等待下一局</div>
             </div>
 
-            <div class="info-box" :style="{ backgroundImage: `url(${userInfoBgImg})` }"
+            <div class="info-box" :style="{ '--bg-img': `url(${userInfoBgImg})` }"
                 :class="{ 'is-observer': player.isObserver }">
                 <!-- 庄家徽章，现在移动到 info-box 内部 -->
                 <div v-if="player.isBanker && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)"
@@ -849,8 +849,6 @@ const displayName = computed(() => {
 
 
 .info-box {
-    background-size: 100% 100%;
-    background-repeat: no-repeat;
     width: 120px;
     height: 44px;
     z-index: 101;
@@ -867,6 +865,26 @@ const displayName = computed(() => {
     /* Adjust for better vertical alignment */
     position: relative;
     /* Added for absolute positioning of children */
+}
+
+.info-box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: var(--bg-img);
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    opacity: 0.7;
+    z-index: 0;
+}
+
+/* Ensure content sits above the background */
+.info-box > :not(.banker-badge) {
+    position: relative;
+    z-index: 1;
 }
 
 /* Reset alignments for all seats to center because of column layout */

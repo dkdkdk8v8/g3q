@@ -1267,7 +1267,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                         </div>
                     </div>
 
-                    <div class="info-box" :style="{ backgroundImage: `url(${userInfoBgImg})` }"
+                    <div class="info-box" :style="{ '--bg-img': `url(${userInfoBgImg})` }"
                         :class="{ 'is-observer': myPlayer.isObserver }">
                         <!-- Banker Badge -->
                         <div v-if="myPlayer.isBanker && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)"
@@ -2354,16 +2354,32 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     gap: 3px;
     /* Space between name and coins */
 
-    /* Background Image */
-
-    background-size: 100% 100%;
-    background-repeat: no-repeat;
+    /* Background Image handled by ::before */
     background-color: transparent;
 
     /* Remove clip-path */
     clip-path: none;
 
     padding: 4px 6px;
+}
+
+.my-player-info-row .info-box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: var(--bg-img);
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    opacity: 0.7;
+    z-index: 0;
+}
+
+.my-player-info-row .info-box > :not(.banker-badge) {
+    position: relative;
+    z-index: 1;
 }
 
 .my-player-info-row .info-box.is-observer {

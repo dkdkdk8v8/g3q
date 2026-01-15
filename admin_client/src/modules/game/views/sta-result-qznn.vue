@@ -28,6 +28,12 @@
                 </el-col>
             </el-row>
         </el-card>
+
+        <el-card shadow="never" class="chart-card mt-10">
+            <div class="chart-box">
+                <v-chart :option="cardCountOption" autoresize />
+            </div>
+        </el-card>
     </div>
 </template>
 
@@ -51,6 +57,7 @@ const chartRef = ref();
 const chartBoxRef = ref();
 const chartOption = ref({});
 const barRankOption = ref({});
+const cardCountOption = ref({});
 const isDark = ref(false);
 
 // 牌型定义
@@ -107,6 +114,7 @@ const colors = [
 
 let rawDataCache: number[][] = [];
 let totalDataCache: number[] = [];
+let cardCountCache: number[] = [];
 
 async function refresh() {
     try {
@@ -115,10 +123,11 @@ async function refresh() {
             app: appId.value,
         });
 
-        // 转换数据格式
-        // res 是长度24的数组，每个元素是对象 { NiuNone: 10, ... }
-        // rawData 需要是 [SeriesIndex][HourIndex]
-        const data = res || [];
+        const hourlyData = res.hourly || [];
+        const cardCountData = res.cardCount || [];
+        cardCountCache = cardCountData;
+
+        const data = hourlyData;
 
         // 确保有24小时数据
         const hoursData = Array.from({ length: 24 }, (_, i) => data[i] || {});
@@ -139,6 +148,7 @@ async function refresh() {
 
         updateChart();
         updateRankChart();
+        updateCardCountChart(cardCountData);
     } catch (e) {
         console.error(e);
     }
@@ -349,6 +359,104 @@ function updateRankChart() {
     };
 }
 
+function updateCardCountChart(data: number[]) {
+    if (!data || data.length === 0) {
+        cardCountOption.value = {};
+        return;
+    }
+
+    const el = document.documentElement;
+    const getVar = (name: string) => getComputedStyle(el).getPropertyValue(name).trim();
+    const textColor = getVar('--el-text-color-primary');
+    const borderColor = getVar('--el-border-color-lighter');
+
+    const total = data.reduce((a, b) => a + b, 0);
+
+    // 顺序参考: 0-3 (A♠, A♥, A♣, A♦), 4-7 (2♠, 2♥, 2♣, 2♦)...
+    const rankMap = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+    const suitMap = ["♠", "♥", "♣", "♦"];
+
+    // 4色配色：黑、红、绿、蓝
+    const suitColors = [
+        isDark.value ? '#E5EAF3' : '#303133', // ♠
+        '#f56c6c', // ♥
+        '#67c23a', // ♣
+        '#409eff'  // ♦
+    ];
+
+    const seriesList: any[] = [];
+    for (let s = 0; s < 4; s++) {
+        const seriesData: number[] = [];
+        for (let r = 0; r < 13; r++) {
+            const idx = r * 4 + s;
+            const val = data[idx] || 0;
+            const prob = total > 0 ? (val / total) : 0;
+            seriesData.push(prob);
+        }
+        seriesList.push({
+            name: suitMap[s],
+            type: 'bar',
+            data: seriesData,
+            itemStyle: {
+                color: suitColors[s]
+            },
+            barGap: 0
+        });
+    }
+
+    cardCountOption.value = {
+        title: {
+            text: '单张牌出现概率',
+            left: 'center',
+            textStyle: { color: textColor }
+        },
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'shadow' },
+            backgroundColor: isDark.value ? 'rgba(0,0,0,0.7)' : '#fff',
+            borderColor: borderColor,
+            textStyle: { color: isDark.value ? '#fff' : '#333' },
+            formatter: (params: any[]) => {
+                let res = `${params[0].axisValue}<br/>`;
+                params.forEach(item => {
+                    const val = (item.value * 100).toFixed(2) + '%';
+                    const idx = item.dataIndex * 4 + item.seriesIndex;
+                    const count = data[idx];
+                    res += `${item.marker} ${item.seriesName}: ${val} (${count}次)<br/>`;
+                });
+                return res;
+            }
+        },
+        legend: {
+            data: suitMap,
+            bottom: 0,
+            textStyle: { color: textColor }
+        },
+        grid: {
+            left: '3%',
+            right: '3%',
+            bottom: '10%',
+            containLabel: true
+        },
+        xAxis: {
+            type: 'category',
+            data: rankMap,
+            axisLabel: {
+                interval: 0,
+                color: textColor
+            }
+        },
+        yAxis: {
+            type: 'value',
+            axisLabel: {
+                formatter: (value: number) => (value * 100).toFixed(1) + '%',
+                color: textColor
+            }
+        },
+        series: seriesList
+    };
+}
+
 let resizeObserver: ResizeObserver | null = null;
 let observer: MutationObserver | null = null;
 
@@ -381,6 +489,7 @@ onUnmounted(() => {
 watch(isDark, () => {
     updateChart();
     updateRankChart();
+    updateCardCountChart(cardCountCache);
 });
 </script>
 

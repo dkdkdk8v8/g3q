@@ -49,4 +49,7 @@ export class StaPeriodEntity extends BaseEntity {
   @Column({ comment: '牌型结果', type: 'json' })
   cardResult: any;
 
+  @Column({ comment: '牌型结果', type: 'json' })
+  cartCount: number[];
+
 }

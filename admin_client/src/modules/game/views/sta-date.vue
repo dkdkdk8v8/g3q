@@ -209,7 +209,7 @@ const Table = useTable({
             },
         },
         {
-            label: "抽水比例",
+            label: "杀率",
             prop: "rakeRatio",
             minWidth: 100,
             sortable: "custom",

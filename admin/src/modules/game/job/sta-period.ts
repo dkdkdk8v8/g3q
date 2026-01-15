@@ -27,6 +27,7 @@ interface StatsData {
   firstGameUserCount: number;
   firstGameUserIds: string[];
   cardResult: Record<string, number>;
+  cartCount: number[];
 }
 
 interface UserStatsData {
@@ -112,6 +113,7 @@ export class StaPeriodJob implements IJob {
         firstGameUserCount: 0,
         firstGameUserIds: [],
         cardResult: {},
+        cartCount: new Array(52).fill(0),
       });
     }
     return statsMap.get(mapKey);
@@ -146,6 +148,7 @@ export class StaPeriodJob implements IJob {
           entity.firstGameUserCount = 0;
           entity.firstGameUserIds = [];
           entity.cardResult = {};
+          entity.cartCount = new Array(52).fill(0);
         }
         entity.gameUserCount += stats.gameUserCount;
         entity.gameCount += stats.gameCount;
@@ -162,6 +165,12 @@ export class StaPeriodJob implements IJob {
           existingCardResult[key] = (existingCardResult[key] || 0) + stats.cardResult[key];
         }
         entity.cardResult = existingCardResult;
+
+        const existingCartCount = entity.cartCount || new Array(52).fill(0);
+        for (let i = 0; i < 52; i++) {
+          existingCartCount[i] = (existingCartCount[i] || 0) + stats.cartCount[i];
+        }
+        entity.cartCount = existingCartCount;
 
         await manager.save(entity);
       }
@@ -296,6 +305,15 @@ export class StaPeriodJob implements IJob {
           if (game_name === QznnCardUtil.GameNameQZNN) {
             const cardType = QznnCardUtil.calculateCardResult(Cards);
             stats.cardResult[cardType] = (stats.cardResult[cardType] || 0) + 1;
+          }
+
+          // 统计单张牌
+          if (Cards && Array.isArray(Cards)) {
+            for (const card of Cards) {
+              if (typeof card === 'number' && card >= 0 && card < 52) {
+                stats.cartCount[card]++;
+              }
+            }
           }
 
           // 首次游戏判断

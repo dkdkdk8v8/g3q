@@ -308,9 +308,6 @@ const displayName = computed(() => {
                     </Transition>
                 </div>
 
-                <!-- 庄家徽章，现在移动到 avatar-area 内部 -->
-                <div v-if="player.isBanker && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)"
-                    class="banker-badge"><img :src="zhuangImg" alt="庄" class="banker-badge-img" /></div>
                 <!-- Ready Badge -->
                 <div v-if="player.isReady && store.currentPhase === 'READY_COUNTDOWN'" class="ready-badge">✔ 准备</div>
 
@@ -320,6 +317,9 @@ const displayName = computed(() => {
 
             <div class="info-box" :style="{ backgroundImage: `url(${userInfoBgImg})` }"
                 :class="{ 'is-observer': player.isObserver }">
+                <!-- 庄家徽章，现在移动到 info-box 内部 -->
+                <div v-if="player.isBanker && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)"
+                    class="banker-badge"><img :src="zhuangImg" alt="庄" class="banker-badge-img" /></div>
                 <div class="name van-ellipsis">{{ displayName }}</div>
                 <div class="coins-pill">
                     {{ formatCoins(player.coins) }}
@@ -792,26 +792,45 @@ const displayName = computed(() => {
 }
 
 .banker-badge {
+
     position: absolute;
-    bottom: 0px;
-    right: 0px;
+
+    top: -5px; /* Position at the top edge of info-box, with slight offset */
+
+    right: -5px; /* Position at the right edge of info-box, with slight offset */
+
     width: 24px;
+
     height: 24px;
+
     /* 使用 flex 完美居中 */
+
     display: flex;
+
     justify-content: center;
+
     align-items: center;
+
     background: radial-gradient(circle at 30% 30%, #fcd34d 0%, #d97706 100%);
+
     color: #78350f;
+
     font-size: 14px;
+
     border-radius: 50%;
+
     font-weight: bold;
+
     z-index: 100;
+
     border: 1px solid #fff;
+
     box-shadow: 0 0 10px #fbbf24;
+
     animation: shine 2s infinite;
-    transform: translate(50%, 50%);
-    /* 移动自身宽度的一半和高度的一半 */
+
+    transform: translate(50%, -50%); /* Adjusted transform for top-right positioning */
+
 }
 
 .banker-badge-img {
@@ -838,6 +857,7 @@ const displayName = computed(() => {
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
     box-sizing: border-box;
     padding-top: 4px; /* Adjust for better vertical alignment */
+    position: relative; /* Added for absolute positioning of children */
 }
 
 /* Reset alignments for all seats to center because of column layout */

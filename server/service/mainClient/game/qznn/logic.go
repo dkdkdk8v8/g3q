@@ -591,47 +591,42 @@ func (r *QZNNRoom) prepareDeck() {
 	r.RoomMu.Lock()
 	defer r.RoomMu.Unlock()
 
-	// 1. 洗牌
-	r.Deck = rand.Perm(52)
+	// 1. 初始化牌堆 (0-51)
+	// 优化：复用切片容量，避免重复分配内存
+	if cap(r.Deck) < 52 {
+		r.Deck = make([]int, 52)
+	}
+	r.Deck = r.Deck[:52]
+	for i := 0; i < 52; i++ {
+		r.Deck[i] = i
+	}
 
-	// 2. 发牌逻辑
+	// 2. 洗牌 - 使用 Fisher-Yates 算法 (Go rand.Shuffle 内部实现即为此算法)
+	// 确保完全随机，不依赖 arithmetic.go 的库存控制
+	rand.Shuffle(len(r.Deck), func(i, j int) {
+		r.Deck[i], r.Deck[j] = r.Deck[j], r.Deck[i]
+	})
+
+	// 3. 发牌逻辑
 	for _, p := range r.Players {
-		if p == nil {
-			continue
-		}
-		if p.IsOb {
+		if p == nil || p.IsOb {
 			continue
 		}
 		// 注意：这里持有 RoomMu，然后获取 p.Mu (在 ResetGameData 内部)，符合 Room -> Player 的锁序
 		p.ResetGameData()
-		// 决定输赢概率 (目标牛几)
-		targetScore := GetArithmetic().DecideOutcome(p.ID, 0)
-		r.TargetResults[p.ID] = targetScore
 
-		// 尝试从剩余牌堆中寻找符合目标分数的牌
-		foundCards := GetCardsByNiu(r.Deck, targetScore)
-		rand.Shuffle(len(foundCards), func(i, j int) {
-			foundCards[i], foundCards[j] = foundCards[j], foundCards[i]
-		})
-		if foundCards != nil {
+		// 发5张牌
+		if len(r.Deck) >= 5 {
+			// 切片拷贝，避免引用底层数组导致后续逻辑问题
+			hand := make([]int, 5)
+			copy(hand, r.Deck[:5])
 			p.Mu.Lock()
-			p.Cards = foundCards
+			p.Cards = hand
 			p.Mu.Unlock()
-			// 从牌堆中移除这些牌
-			r.Deck = RemoveCardsFromDeck(r.Deck, foundCards)
+			r.Deck = r.Deck[5:]
 		} else {
-			// 兜底：如果找不到符合条件的牌（概率极低），直接发牌堆顶端的5张
-			if len(r.Deck) >= 5 {
-				p.Mu.Lock()
-				p.Cards = make([]int, 5)
-				copy(p.Cards, r.Deck[:5])
-				p.Mu.Unlock()
-				r.Deck = r.Deck[5:]
-			} else {
-				// 极端情况：牌不够了（理论上不应发生，除非人数过多）
-				//p.Cards = []int{0, 1, 2, 3, 4} // 错误保护
-				panic("")
-			}
+			// 极端情况：牌不够了（理论上不应发生，除非人数过多）
+			panic("deck not enough")
 		}
 	}
 }

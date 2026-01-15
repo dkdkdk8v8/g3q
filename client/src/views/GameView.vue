@@ -838,32 +838,14 @@ const startDealingAnimation = (isSupplemental = false) => {
 
             const seatEl = seatRefs.value[p.id];
             if (seatEl) {
+                const handArea = seatEl.querySelector('.hand-area');
+                const rect = handArea ? handArea.getBoundingClientRect() : seatEl.getBoundingClientRect();
                 const isMe = p.id === store.myPlayerId;
-                let targetX, targetY;
-
-                if (isMe) {
-                    const infoBox = seatEl.querySelector('.info-box');
-                    if (infoBox) {
-                        const infoRect = infoBox.getBoundingClientRect();
-                        targetX = infoRect.left + infoRect.width / 2;
-                        targetY = infoRect.top;
-                    } else {
-                        const handArea = seatEl.querySelector('.hand-area');
-                        const rect = handArea ? handArea.getBoundingClientRect() : seatEl.getBoundingClientRect();
-                        targetX = rect.left + rect.width / 2;
-                        targetY = rect.top + rect.height / 2;
-                    }
-                } else {
-                    const handArea = seatEl.querySelector('.hand-area');
-                    const rect = handArea ? handArea.getBoundingClientRect() : seatEl.getBoundingClientRect();
-                    targetX = rect.left + rect.width / 2;
-                    targetY = rect.top + rect.height / 2;
-                }
 
                 targets.push({
                     id: p.id,
-                    x: targetX,
-                    y: targetY,
+                    x: rect.left + rect.width / 2,
+                    y: rect.top + rect.height / 2,
                     count: toDeal,
                     startIdx: currentVisible + currentDealing, // Offset by both visible and flying
                     total: total,
@@ -2169,7 +2151,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     align-items: center;
     width: 100%;
     margin-top: 10px;
-    margin-bottom: -105px;
+    margin-bottom: -50px;
     position: relative;
     z-index: 1;
 }
@@ -2234,7 +2216,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     padding: 0 20px;
     /* Padding for spacing from screen edges */
 
-    margin-top: 10px;
+    margin-top: 0;
     /* Adjust spacing from element above */
 
     margin-bottom: 10px;

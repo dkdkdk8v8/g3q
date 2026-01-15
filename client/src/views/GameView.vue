@@ -1583,7 +1583,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                             <div v-if="shouldShowBetMult" class="status-content">
 
-                                <span class="status-text bet-text text-large">押{{ myPlayer.betMultiplier }}倍</span>
+                                <span class="status-text bet-text text-large">压{{ myPlayer.betMultiplier }}倍</span>
 
                             </div>
 

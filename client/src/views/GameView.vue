@@ -522,6 +522,43 @@ watch(() => settingsStore.musicEnabled, (val) => {
     }
 });
 
+const candidatePlayers = computed(() => {
+    return (store.bankerCandidates || []).map(id => store.players.find(p => p.id === id)).filter(p => !!p);
+});
+
+const candidatePositions = ref({});
+
+const updateCandidatePositions = () => {
+    const newPositions = {};
+    if (!store.bankerCandidates) return;
+    
+    store.bankerCandidates.forEach(pid => {
+        const seatEl = seatRefs.value[pid];
+        if (seatEl) {
+            // Try to find the avatar frame specifically
+            const avatarEl = seatEl.querySelector('.avatar-frame') || seatEl.querySelector('.avatar-wrapper');
+            if (avatarEl) {
+                const rect = avatarEl.getBoundingClientRect();
+                newPositions[pid] = {
+                    top: `${rect.top}px`,
+                    left: `${rect.left}px`,
+                    width: `${rect.width}px`,
+                    height: `${rect.height}px`,
+                };
+            }
+        }
+    });
+    candidatePositions.value = newPositions;
+};
+
+watch(() => store.currentPhase, (val) => {
+    if (val === 'BANKER_SELECTION_ANIMATION') {
+        setTimeout(() => {
+             updateCandidatePositions();
+        }, 50); // Slight delay to ensure DOM is stable
+    }
+});
+
 const opponentSeats = computed(() => {
     const seats = [null, null, null, null]; // Represents client seats 1, 2, 3, 4
 
@@ -1108,6 +1145,21 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
         <DealingLayer ref="dealingLayer" />
         <CoinLayer ref="coinLayer" />
 
+        <!-- Random Banker Selection Overlay -->
+        <transition name="fade">
+            <div v-if="store.currentPhase === 'BANKER_SELECTION_ANIMATION'" class="banker-selection-overlay">
+                <div v-for="p in candidatePlayers" :key="p.id" 
+                     class="candidate-item-absolute"
+                     :style="candidatePositions[p.id]">
+                    <div class="avatar-wrapper-overlay" :class="{ 'highlight': p.id === currentlyHighlightedPlayerId }">
+                        <van-image :src="p.avatar" class="avatar-overlay" fit="cover" />
+                        <img :src="avatarFrameImg" class="avatar-border-overlay" />
+                    </div>
+                </div>
+                <div class="selection-text-centered">正在随机选庄...</div>
+            </div>
+        </transition>
+
         <!-- 顶部栏 -->
         <div class="top-bar">
             <div class="menu-container">
@@ -1288,7 +1340,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                             <div v-if="shouldShowRobMult" class="status-content">
                                 <span v-if="myPlayer.robMultiplier > 0" class="status-text rob-text text-large">抢{{
                                     myPlayer.robMultiplier
-                                }}倍</span>
+                                    }}倍</span>
                                 <span v-else class="status-text no-rob-text text-large">不抢</span>
                             </div>
                         </Transition>
@@ -2141,7 +2193,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     align-items: center;
     background: linear-gradient(to top, rgba(0, 0, 0, 0.6) 0%, transparent 100%);
     width: 100%;
-    padding-bottom: 50px;
+    padding-bottom: 30px;
 }
 
 /* GameView.vue specific styles for myPlayer components */
@@ -3171,6 +3223,78 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
         -2px 2px 0 #166534,
         2px 2px 0 #166534,
         0 4px 8px rgba(0, 0, 0, 0.6);
+}
+
+/* Banker Selection Overlay */
+.banker-selection-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.3); /* Changed to 0.3 */
+    z-index: 2000; /* Above table (200) and most UI, below result (6000) */
+    pointer-events: none; /* Let clicks pass through if needed, but here mainly for visual */
+}
+
+.candidate-item-absolute {
+    position: absolute;
+    z-index: 2001;
+    transition: transform 0.2s;
+}
+
+.avatar-wrapper-overlay {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    border-radius: 50%;
+    transition: transform 0.1s;
+}
+
+.avatar-overlay {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    box-sizing: border-box;
+    display: block;
+}
+
+.avatar-wrapper-overlay .avatar-border-overlay {
+    position: absolute;
+    top: -5%;
+    left: -5%;
+    width: 110%;
+    height: 110%;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.avatar-wrapper-overlay.highlight {
+    transform: scale(1.15);
+    z-index: 10;
+}
+
+.avatar-wrapper-overlay.highlight .avatar-overlay {
+    border-color: #facc15;
+    box-shadow: 0 0 20px #facc15, 0 0 40px #d97706;
+}
+
+.selection-text-centered {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #facc15;
+    font-size: 24px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    animation: pulse 1.5s infinite;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+    z-index: 2002;
+    background: rgba(0,0,0,0.4);
+    padding: 10px 20px;
+    border-radius: 10px;
 }
 </style>
 

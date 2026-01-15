@@ -55,30 +55,31 @@
             <el-col v-for="item in group.rooms" :key="item.ID" :xs="24" :sm="12" :md="12" :lg="8" :xl="6">
               <el-card shadow="hover" class="room-card" :class="getRoomClass(item.ID)">
                 <template #header>
-                  <div class="card-header">
-                    <div class="header-left">
-                      <div class="tags">
-                        <el-tag size="small" :type="getRoomTagType(item.ID)" effect="plain">{{ getRoomInfo(item.ID).type
+                  <el-tooltip placement="top">
+                    <template #content>
+                      <span>{{ item.GameID }}</span>
+                      <el-icon style="margin-left: 5px; cursor: pointer; vertical-align: middle;"
+                        @click="copyGameID(item.GameID)">
+                        <CopyDocument />
+                      </el-icon>
+                    </template>
+                    <div class="card-header">
+                      <div class="header-left">
+                        <div class="tags">
+                          <el-tag size="small" :type="getRoomTagType(item.ID)" effect="plain">{{
+                            getRoomInfo(item.ID).type
                           }}
-                        </el-tag>
-                        <el-tooltip placement="top">
-                          <template #content>
-                            <span>{{ item.GameID }}</span>
-                            <el-icon style="margin-left: 5px; cursor: pointer; vertical-align: middle;"
-                              @click="copyGameID(item.GameID)">
-                              <CopyDocument />
-                            </el-icon>
-                          </template>
+                          </el-tag>
                           <el-tag size="small" type="danger" effect="plain" style="cursor: pointer">{{
                             getRoomInfo(item.ID).level }}</el-tag>
-                        </el-tooltip>
+                        </div>
                       </div>
+                      <el-tag size="small" effect="dark" :type="(stateTypeMap[item.State] || 'info') as any">
+                        {{ stateMap[item.State] || item.State }}
+                        <span v-if="item.StateLeftSec > 0" style="margin-left: 2px">{{ item.StateLeftSec }}秒</span>
+                      </el-tag>
                     </div>
-                    <el-tag size="small" effect="dark" :type="stateTypeMap[item.State] as any">
-                      {{ stateMap[item.State] || item.State }}
-                      <span v-if="item.StateLeftSec > 0" style="margin-left: 2px">{{ item.StateLeftSec }}秒</span>
-                    </el-tag>
-                  </div>
+                  </el-tooltip>
                 </template>
 
                 <div class="room-content">
@@ -236,7 +237,7 @@ function getRoomTagType(id: string) {
   for (let i = 0; i < typeStr.length; i++) {
     typeCode += typeStr.charCodeAt(i);
   }
-  const types = ['', 'success', 'warning', 'danger', 'info', ''];
+  const types = ['primary', 'success', 'warning', 'danger', 'info', 'primary'];
   return types[typeCode % 6] as any;
 }
 
@@ -652,7 +653,7 @@ onUnmounted(() => {
           overflow: hidden;
 
           &.is-human {
-            background-color: var(--el-color-success-light-7);
+            background: linear-gradient(to right, var(--el-color-success-light-7), var(--el-color-success-light-9));
           }
 
           &.is-robot {

@@ -1288,7 +1288,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                             <div v-if="shouldShowRobMult" class="status-content">
                                 <span v-if="myPlayer.robMultiplier > 0" class="status-text rob-text text-large">抢{{
                                     myPlayer.robMultiplier
-                                    }}倍</span>
+                                }}倍</span>
                                 <span v-else class="status-text no-rob-text text-large">不抢</span>
                             </div>
                         </Transition>
@@ -2110,7 +2110,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     color: #55a773;
     font-size: 14px;
     font-weight: bold;
-    z-index: 5; /* Adjusted to be just above background */
+    z-index: 5;
+    /* Adjusted to be just above background */
     font-weight: bold;
     /* Adjust padding to center text within the background image, if image has borders */
     padding: 0 20px;
@@ -2298,23 +2299,27 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .my-player-info-row .banker-badge {
-  position: absolute;
-  top: -5px; /* Position at the top edge of info-box, with slight offset */
-  right: -5px; /* Position at the right edge of info-box, with slight offset */
-  width: 24px;
-  height: 24px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: radial-gradient(circle at 30% 30%, #fcd34d 0%, #d97706 100%);
-  color: #78350f;
-  font-size: 14px;
-  border-radius: 50%;
-  font-weight: bold;
-  z-index: 9999;
-  border: 1px solid #fff;  box-shadow: 0 0 10px #fbbf24;
-  animation: shine 2s infinite;
-  transform: translate(50%, -50%); /* Adjusted transform for top-right positioning */
+    position: absolute;
+    bottom: -5px;
+    /* Position at the top edge of info-box, with slight offset */
+    right: -5px;
+    /* Position at the right edge of info-box, with slight offset */
+    width: 24px;
+    height: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: radial-gradient(circle at 30% 30%, #fcd34d 0%, #d97706 100%);
+    color: #78350f;
+    font-size: 14px;
+    border-radius: 50%;
+    font-weight: bold;
+    z-index: 9999;
+    border: 1px solid #fff;
+    box-shadow: 0 0 10px #fbbf24;
+    animation: shine 2s infinite;
+    transform: translate(50%, -50%);
+    /* Adjusted transform for top-right positioning */
 }
 
 .banker-badge-img {
@@ -2329,7 +2334,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     margin-top: -13px;
     /* Slight overlap */
     position: relative;
-    z-index: 101; /* Higher than banker badge (100) */
+    z-index: 101;
+    /* Higher than banker badge (100) */
     width: 90px;
     display: flex;
     flex-direction: column;
@@ -2408,7 +2414,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 /* Position chat button absolutely to the right */
 .my-player-info-row .chat-toggle-btn {
     position: absolute;
-    right: 20px; /* Align with padding */
+    right: 20px;
+    /* Align with padding */
     top: 50%;
     transform: translateY(-50%);
 }

@@ -795,9 +795,11 @@ const displayName = computed(() => {
 
     position: absolute;
 
-    top: -5px; /* Position at the top edge of info-box, with slight offset */
+    bottom: -5px;
+    /* Position at the top edge of info-box, with slight offset */
 
-    right: -5px; /* Position at the right edge of info-box, with slight offset */
+    right: -5px;
+    /* Position at the right edge of info-box, with slight offset */
 
     width: 24px;
 
@@ -829,7 +831,8 @@ const displayName = computed(() => {
 
     animation: shine 2s infinite;
 
-    transform: translate(50%, -50%); /* Adjusted transform for top-right positioning */
+    transform: translate(50%, -50%);
+    /* Adjusted transform for top-right positioning */
 
 }
 
@@ -847,7 +850,8 @@ const displayName = computed(() => {
     background-repeat: no-repeat;
     width: 120px;
     height: 44px;
-    z-index: 101; /* Higher than banker badge (100) */
+    z-index: 101;
+    /* Higher than banker badge (100) */
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -856,8 +860,10 @@ const displayName = computed(() => {
     font-size: 12px;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
     box-sizing: border-box;
-    padding-top: 4px; /* Adjust for better vertical alignment */
-    position: relative; /* Added for absolute positioning of children */
+    padding-top: 4px;
+    /* Adjust for better vertical alignment */
+    position: relative;
+    /* Added for absolute positioning of children */
 }
 
 /* Reset alignments for all seats to center because of column layout */
@@ -1108,6 +1114,7 @@ const displayName = computed(() => {
     z-index: 15;
     pointer-events: none;
 }
+
 .opponent-hand .hand-card {
     pointer-events: auto;
 }

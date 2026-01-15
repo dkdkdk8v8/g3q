@@ -2620,14 +2620,13 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 .pop-up-enter-active,
 .pop-up-leave-active {
     transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-    transform-origin: center left;
-    /* Origin from the left side (avatar side) */
+    transform-origin: bottom center; /* Changed from center left */
 }
 
 .pop-up-enter-from {
     opacity: 0;
-    /* Start slightly to the left (towards avatar) and small */
-    transform: translateX(-30px) scale(0.2);
+    /* Start from center and small */
+    transform: scale(0.2);
 }
 
 .pop-up-leave-to {

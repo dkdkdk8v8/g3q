@@ -552,7 +552,7 @@ const displayName = computed(() => {
 
 .avatar-frame.is-banker {
     border-color: #fbbf24;
-    box-shadow: 0 0 6px #fbbf24;
+    box-shadow: 0 0 10px 3px #fbbf24, 0 0 5px 1px #d97706; /* Slightly weaker shadow */
 }
 
 .avatar-frame.banker-confirm-anim {
@@ -796,14 +796,12 @@ const displayName = computed(() => {
     position: absolute;
 
     bottom: -5px;
-    /* Position at the top edge of info-box, with slight offset */
 
     right: -5px;
-    /* Position at the right edge of info-box, with slight offset */
 
-    width: 24px;
+    width: 27px; /* Slightly reduced size */
 
-    height: 24px;
+    height: 27px; /* Slightly reduced size */
 
     /* 使用 flex 完美居中 */
 
@@ -827,11 +825,12 @@ const displayName = computed(() => {
 
     border: 1px solid #fff;
 
-    box-shadow: 0 0 10px #fbbf24;
+    box-shadow: 0 0 12px #facc15; /* Slightly reduced shadow */
 
     animation: shine 2s infinite;
 
     transform: translate(50%, -50%);
+
     /* Adjusted transform for top-right positioning */
 
 }

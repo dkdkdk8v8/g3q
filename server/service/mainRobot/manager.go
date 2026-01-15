@@ -770,7 +770,7 @@ func (r *Robot) checkTalk(state qznn.RoomState) {
 	r.mu.Unlock()
 
 	// 任意阶段都有概率说话
-	if rand.Float64() < PROB_CHAT {
+	if rand.Intn(10000) < PROB_CHAT {
 		go func() {
 			// 随机延迟 1 - 5 秒
 			time.Sleep(time.Duration(rand.Intn(4000)+1000) * time.Millisecond)

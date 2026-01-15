@@ -63,6 +63,7 @@ type PlayerData struct {
 	BalanceChange int64      // 本局输赢
 	ValidBet      int64      //有效投注流水
 	IsRobot       bool       `json:"-" DiyJson:"IsRobot"`
+	GameCount     int        `json:"-"` // 游戏次数
 }
 
 // Player 代表房间内的一个玩家
@@ -159,6 +160,9 @@ type QZNNRoomData struct {
 	CreateAt     time.Time
 }
 
+// 扩展 QZNNRoom 结构体以包含策略数据
+// 注意：在实际 Go 项目中，这应该在结构体定义处修改。
+// 如果没有，你需要修改 NewRoom 函数上方的结构体定义：
 // Room 代表一个游戏房间
 type QZNNRoom struct {
 	QZNNRoomData
@@ -170,6 +174,7 @@ type QZNNRoom struct {
 	driverGo      chan struct{}        `json:"-"`
 	OnBotAction   func(room *QZNNRoom) `json:"-"`
 	AllIsRobot    bool                 `json:"-"` // 是否全是机器人
+	Strategy      *RoomStrategy        // 新增字段
 }
 
 func (r *QZNNRoom) ResetGameData() {

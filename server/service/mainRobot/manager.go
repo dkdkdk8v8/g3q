@@ -687,7 +687,6 @@ func (r *Robot) handleStateChange(state qznn.RoomState) {
 	go func() {
 		// 模拟用户随机等待 1-5 秒
 		time.Sleep(time.Duration(rand.Intn(5)+1) * time.Second)
-		r.checkTalk(state)
 
 		switch state {
 		case qznn.StateBanking:
@@ -760,43 +759,6 @@ func (r *Robot) handleStateChange(state qznn.RoomState) {
 			r.checkLeave()
 		}
 	}()
-}
-
-// checkTalk 检查是否发送聊天
-func (r *Robot) checkTalk(state qznn.RoomState) {
-	r.mu.Lock()
-	roomId := r.RoomId
-	uid := r.Uid
-	r.mu.Unlock()
-
-	// 任意阶段都有概率说话
-	if rand.Intn(10000) < PROB_CHAT {
-		go func() {
-			// 随机延迟 1 - 5 秒
-			time.Sleep(time.Duration(rand.Intn(4000)+1000) * time.Millisecond)
-			talkType := rand.Intn(2) // 0 or 1
-			var index int
-			if talkType == 0 {
-				index = rand.Intn(11) // 0-10
-			} else {
-				index = rand.Intn(16) // 0-15
-			}
-
-			logrus.WithFields(logrus.Fields{
-				"roomId": roomId,
-				"uid":    uid,
-				"state":  state,
-				"type":   talkType,
-				"index":  index,
-			}).Info("Robot - Sending chat/emoji")
-
-			r.Send(qznn.CmdTalk, map[string]interface{}{
-				"RoomId": roomId,
-				"Type":   talkType,
-				"Index":  index,
-			})
-		}()
-	}
 }
 
 // checkLeave 检查是否退出房间

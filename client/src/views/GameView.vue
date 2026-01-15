@@ -531,7 +531,7 @@ const candidatePositions = ref({});
 const updateCandidatePositions = () => {
     const newPositions = {};
     if (!store.bankerCandidates) return;
-    
+
     store.bankerCandidates.forEach(pid => {
         const seatEl = seatRefs.value[pid];
         if (seatEl) {
@@ -554,7 +554,7 @@ const updateCandidatePositions = () => {
 watch(() => store.currentPhase, (val) => {
     if (val === 'BANKER_SELECTION_ANIMATION') {
         setTimeout(() => {
-             updateCandidatePositions();
+            updateCandidatePositions();
         }, 50); // Slight delay to ensure DOM is stable
     }
 });
@@ -1136,6 +1136,14 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
         selectedCardIndices.value = [];
     }
 });
+
+const shouldMoveStatusFloat = computed(() => {
+    // If cards are showing, move it
+    if (showCards.value) return true;
+    // If dealing is in progress, move it (anticipate cards)
+    if (store.currentPhase === 'DEALING' || isDealingProcessing.value) return true;
+    return false;
+});
 </script>
 
 <template>
@@ -1148,9 +1156,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
         <!-- Random Banker Selection Overlay -->
         <transition name="fade">
             <div v-if="store.currentPhase === 'BANKER_SELECTION_ANIMATION'" class="banker-selection-overlay">
-                <div v-for="p in candidatePlayers" :key="p.id" 
-                     class="candidate-item-absolute"
-                     :style="candidatePositions[p.id]">
+                <div v-for="p in candidatePlayers" :key="p.id" class="candidate-item-absolute"
+                    :style="candidatePositions[p.id]">
                     <div class="avatar-wrapper-overlay" :class="{ 'highlight': p.id === currentlyHighlightedPlayerId }">
                         <div class="avatar-clip">
                             <van-image :src="p.avatar" class="avatar-img-content" fit="cover" />
@@ -1338,12 +1345,12 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                     </div>
 
                     <!-- Status float (rob/bet multiplier status) -->
-                    <div class="status-float">
+                    <div class="status-float" :class="{ 'move-up-high': shouldMoveStatusFloat }">
                         <Transition name="pop-up">
                             <div v-if="shouldShowRobMult" class="status-content">
                                 <span v-if="myPlayer.robMultiplier > 0" class="status-text rob-text text-large">抢{{
                                     myPlayer.robMultiplier
-                                    }}倍</span>
+                                }}倍</span>
                                 <span v-else class="status-text no-rob-text text-large">不抢</span>
                             </div>
                         </Transition>
@@ -2490,6 +2497,12 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     display: flex;
     flex-direction: column;
     align-items: center;
+    transition: bottom 0.3s ease;
+}
+
+.my-player-info-row .status-float.move-up-high {
+    bottom: calc(100% + 23vw);
+    /* Approx 140px on mobile, clears cards + calc area */
 }
 
 /* Position chat button absolutely to the right */
@@ -3235,9 +3248,12 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.3); /* Changed to 0.3 */
-    z-index: 2000; /* Above table (200) and most UI, below result (6000) */
-    pointer-events: none; /* Let clicks pass through if needed, but here mainly for visual */
+    background: rgba(0, 0, 0, 0.3);
+    /* Changed to 0.3 */
+    z-index: 2000;
+    /* Above table (200) and most UI, below result (6000) */
+    pointer-events: none;
+    /* Let clicks pass through if needed, but here mainly for visual */
 }
 
 .candidate-item-absolute {
@@ -3250,7 +3266,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     width: 100%;
     height: 100%;
     position: relative;
-    border-radius: 50%; /* Ensure base shape is circle */
+    border-radius: 50%;
+    /* Ensure base shape is circle */
     transition: transform 0.1s;
 }
 
@@ -3258,12 +3275,14 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     width: 100%;
     height: 100%;
     border-radius: 50%;
-    overflow: hidden; /* This clips the square avatar to a circle */
+    overflow: hidden;
+    /* This clips the square avatar to a circle */
     position: absolute;
     top: 0;
     left: 0;
     z-index: 1;
-    background: #000; /* Fallback background */
+    background: #000;
+    /* Fallback background */
 }
 
 .avatar-img-content {
@@ -3281,7 +3300,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     border-radius: 50%;
     border: 3px solid transparent;
     box-sizing: border-box;
-    z-index: 2; /* Above image, below frame overlay */
+    z-index: 2;
+    /* Above image, below frame overlay */
     pointer-events: none;
     transition: border-color 0.1s, box-shadow 0.1s;
 }
@@ -3293,7 +3313,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     width: 110%;
     height: 110%;
     pointer-events: none;
-    z-index: 3; /* Topmost decoration */
+    z-index: 3;
+    /* Topmost decoration */
 }
 
 .avatar-wrapper-overlay.highlight {
@@ -3316,9 +3337,9 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     font-weight: bold;
     letter-spacing: 2px;
     animation: pulse 1.5s infinite;
-    text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
     z-index: 2002;
-    background: rgba(0,0,0,0.4);
+    background: rgba(0, 0, 0, 0.4);
     padding: 10px 20px;
     border-radius: 10px;
 }

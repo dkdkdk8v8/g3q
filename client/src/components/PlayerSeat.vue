@@ -303,7 +303,7 @@ const displayName = computed(() => {
                     <Transition :name="slideTransitionName">
                         <div v-if="shouldShowBetMult" class="status-content">
                             <span class="status-text bet-text" :class="{ 'text-large': isMe }">押{{ player.betMultiplier
-                                }}倍</span>
+                            }}倍</span>
                         </div>
                     </Transition>
                 </div>
@@ -1152,28 +1152,22 @@ const displayName = computed(() => {
 
 .hand-result-badge {
     position: absolute;
-    top: 90%;
+    bottom: 0;
+    /* Adjust as needed */
     left: 50%;
-    transform: translate(-50%, -50%);
-    /* Remove background, border, padding, gap */
+    transform: translateX(-50%);
     color: #fbbf24;
-    /* Keep text color for fallback */
     font-size: 14px;
-    /* Keep text size for fallback */
     font-weight: bold;
-    /* Keep text weight for fallback */
     white-space: nowrap;
     z-index: 10;
-    /* Remove box-shadow */
     display: flex;
     align-items: center;
     justify-content: center;
-    /* Center content horizontally */
 }
 
 .hand-type-img {
-    height: 40px;
-    /* Scaled up by 2x from 20px */
+    height: 27px;
     object-fit: contain;
     vertical-align: middle;
 }

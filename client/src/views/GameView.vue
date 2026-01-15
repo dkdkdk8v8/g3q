@@ -1155,19 +1155,27 @@ const shouldMoveStatusFloat = computed(() => {
 
 const shouldMoveStatusToHighPosition = computed(() => {
 
-    // If settlement, drop down (Make Bull is gone)
 
-    if (store.currentPhase === 'SETTLEMENT') return false;
 
-    // If Showdown and Hand Shown, drop down (Make Bull is gone)
-
-    if (store.currentPhase === 'SHOWDOWN' && myPlayer.value && myPlayer.value.isShowHand) return false;
+    // Strictly match the visibility of the calculation area (Make Bull)
 
 
 
-    // Otherwise, stay high (Dealing, Betting/Robbing with cards, Showdown thinking)
+    if (store.currentPhase === 'SHOWDOWN' && myPlayer.value && !myPlayer.value.isShowHand && store.countdown > 0 && !myPlayer.value.isObserver) {
 
-    return true;
+
+
+        return true;
+
+
+
+    }
+
+
+
+    return false;
+
+
 
 });
 

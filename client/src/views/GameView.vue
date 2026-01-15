@@ -3581,6 +3581,26 @@ const shouldMoveStatusToHighPosition = computed(() => {
     }
 }
 
+@keyframes bankerConfirmPop {
+    0% {
+        border-color: transparent;
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2);
+        transform: scale(1);
+    }
+
+    50% {
+        border-color: #fbbf24;
+        box-shadow: 0 0 25px 8px rgba(251, 191, 36, 0.9);
+        transform: scale(1.2);
+    }
+
+    100% {
+        border-color: #fbbf24;
+        box-shadow: 0 0 6px #fbbf24;
+        transform: scale(1);
+    }
+}
+
 .dark-theme-popup {
     --van-popup-background: #1e293b;
     --van-picker-background: #1e293b;

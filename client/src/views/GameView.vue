@@ -1288,7 +1288,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                             <div v-if="shouldShowRobMult" class="status-content">
                                 <span v-if="myPlayer.robMultiplier > 0" class="status-text rob-text text-large">抢{{
                                     myPlayer.robMultiplier
-                                    }}倍</span>
+                                }}倍</span>
                                 <span v-else class="status-text no-rob-text text-large">不抢</span>
                             </div>
                         </Transition>
@@ -2193,7 +2193,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .my-hand-cards-area .hand-type-img {
-    height: 27px;
+    height: 50px;
+    /* Doubled size */
     object-fit: contain;
     vertical-align: middle;
 }
@@ -2271,7 +2272,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .my-player-info-row .avatar-frame.is-banker {
     border-color: #fbbf24;
-    box-shadow: 0 0 10px 3px #fbbf24, 0 0 5px 1px #d97706; /* Slightly weaker shadow */
+    box-shadow: 0 0 10px 3px #fbbf24, 0 0 5px 1px #d97706;
+    /* Slightly weaker shadow */
 }
 
 .my-player-info-row .avatar-frame.banker-confirm-anim {
@@ -2305,8 +2307,10 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     /* Position at the top edge of info-box, with slight offset */
     right: -5px;
     /* Position at the right edge of info-box, with slight offset */
-    width: 27px; /* Slightly reduced size */
-    height: 27px; /* Slightly reduced size */
+    width: 27px;
+    /* Slightly reduced size */
+    height: 27px;
+    /* Slightly reduced size */
     /* 使用 flex 完美居中 */
     display: flex;
     justify-content: center;
@@ -2318,7 +2322,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     font-weight: bold;
     z-index: 9999;
     border: 1px solid #fff;
-    box-shadow: 0 0 12px #facc15; /* Slightly reduced shadow */
+    box-shadow: 0 0 12px #facc15;
+    /* Slightly reduced shadow */
     animation: shine 2s infinite;
     transform: translate(50%, -50%);
     /* Adjusted transform for top-right positioning */

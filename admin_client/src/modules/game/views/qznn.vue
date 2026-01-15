@@ -42,7 +42,8 @@
       </div>
     </div>
 
-    <div class="room-list" v-infinite-scroll="loadMore" :infinite-scroll-distance="200">
+    <div class="room-list" v-infinite-scroll="loadMore" :infinite-scroll-distance="200"
+      :infinite-scroll-disabled="noMore">
       <el-empty v-if="errorMessage" :description="errorMessage" />
 
       <el-empty v-else-if="Object.keys(list).length === 0" description="暂时没有房间数据" />
@@ -252,6 +253,10 @@ const groupedList = computed(() => {
 // 懒加载控制：当前显示的房间总数限制
 const displayedRoomsCount = ref(20);
 
+const noMore = computed(() => {
+  return displayedRoomsCount.value >= filteredList.value.length;
+});
+
 // 根据限制计算当前需要渲染的分组数据
 const displayedGroups = computed(() => {
   const limit = displayedRoomsCount.value;
@@ -357,8 +362,9 @@ const copyGameID = (id: any) => {
 };
 
 const loadMore = () => {
-  // 每次滚动到底部增加显示 20 个房间
-  displayedRoomsCount.value += 20;
+  if (noMore.value) return;
+  // 每次滚动到底部增加显示 50 个房间
+  displayedRoomsCount.value += 50;
 };
 
 // 当筛选条件变化时，重置显示数量，避免数据错乱或停留在底部

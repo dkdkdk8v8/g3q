@@ -1265,15 +1265,13 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                             <img v-else-if="getSpeech(myPlayer.id) && getSpeech(myPlayer.id).type === 'emoji'"
                                 :src="getSpeech(myPlayer.id).content" class="speech-emoji" />
                         </div>
-
-                        <!-- Banker Badge -->
-                        <div v-if="myPlayer.isBanker && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)"
-                            class="banker-badge"><img :src="zhuangImg" alt="庄" class="banker-badge-img" /></div>
                     </div>
 
                     <div class="info-box" :style="{ backgroundImage: `url(${userInfoBgImg})` }"
                         :class="{ 'is-observer': myPlayer.isObserver }">
-
+                        <!-- Banker Badge -->
+                        <div v-if="myPlayer.isBanker && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)"
+                            class="banker-badge"><img :src="zhuangImg" alt="庄" class="banker-badge-img" /></div>
                         <div class="name van-ellipsis">{{ myPlayer.name }}</div>
 
                         <div class="coins-pill">
@@ -2112,7 +2110,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     color: #55a773;
     font-size: 14px;
     font-weight: bold;
-    z-index: 250;
+    z-index: 5; /* Adjusted to be just above background */
     font-weight: bold;
     /* Adjust padding to center text within the background image, if image has borders */
     padding: 0 20px;
@@ -2300,24 +2298,23 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .my-player-info-row .banker-badge {
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: radial-gradient(circle at 30% 30%, #fcd34d 0%, #d97706 100%);
-    color: #78350f;
-    font-size: 14px;
-    border-radius: 50%;
-    font-weight: bold;
-    z-index: 100;
-    border: 1px solid #fff;
-    box-shadow: 0 0 10px #fbbf24;
-    animation: shine 2s infinite;
-    transform: translate(50%, 50%);
+  position: absolute;
+  top: -5px; /* Position at the top edge of info-box, with slight offset */
+  right: -5px; /* Position at the right edge of info-box, with slight offset */
+  width: 24px;
+  height: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: radial-gradient(circle at 30% 30%, #fcd34d 0%, #d97706 100%);
+  color: #78350f;
+  font-size: 14px;
+  border-radius: 50%;
+  font-weight: bold;
+  z-index: 1000;
+  border: 1px solid #fff;  box-shadow: 0 0 10px #fbbf24;
+  animation: shine 2s infinite;
+  transform: translate(50%, -50%); /* Adjusted transform for top-right positioning */
 }
 
 .banker-badge-img {
@@ -2332,8 +2329,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     margin-top: -13px;
     /* Slight overlap */
     position: relative;
-    z-index: 10;
-    /* Higher than avatar */
+    z-index: 101; /* Higher than banker badge (100) */
     width: 90px;
     display: flex;
     flex-direction: column;

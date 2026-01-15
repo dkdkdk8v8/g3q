@@ -554,8 +554,8 @@ const shouldMoveStatusFloat = computed(() => {
 }
 
 .avatar-frame.banker-candidate-highlight {
-    box-shadow: 0 0 15px 5px #facc15, 0 0 8px 2px #d97706;
-    border-color: #facc15;
+    box-shadow: 0 0 10px 3px #fbbf24, 0 0 5px 1px #d97706;
+    border-color: #fbbf24;
     animation: pulse-border-glow 1s infinite alternate;
 }
 
@@ -593,11 +593,11 @@ const shouldMoveStatusFloat = computed(() => {
 
 @keyframes pulse-border-glow {
     from {
-        box-shadow: 0 0 15px 5px #facc15, 0 0 8px 2px #d97706;
+        box-shadow: 0 0 10px 3px #fbbf24, 0 0 5px 1px #d97706;
     }
 
     to {
-        box-shadow: 0 0 20px 8px #fcd34d, 0 0 10px 3px #fbbf24;
+        box-shadow: 0 0 15px 5px #fbbf24, 0 0 8px 2px #d97706;
     }
 }
 

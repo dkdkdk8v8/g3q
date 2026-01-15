@@ -791,11 +791,6 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
 }, { immediate: true });
 
 const startDealingAnimation = (isSupplemental = false) => {
-    if (settingsStore.soundEnabled) {
-        const audio = new Audio(sendCardSound);
-        audio.play().catch(() => { });
-    }
-
     if (!isSupplemental) {
         visibleCounts.value = {}; // Reset visible counts ONLY if not supplemental
         store.players.forEach(p => {
@@ -858,6 +853,11 @@ const startDealingAnimation = (isSupplemental = false) => {
     });
 
     if (targets.length === 0) return;
+
+    if (settingsStore.soundEnabled) {
+        const audio = new Audio(sendCardSound);
+        audio.play().catch(() => { });
+    }
 
     targets.forEach((t, pIndex) => {
         const cardTargets = [];

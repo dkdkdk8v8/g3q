@@ -877,12 +877,12 @@ const displayName = computed(() => {
     background-image: var(--bg-img);
     background-size: 100% 100%;
     background-repeat: no-repeat;
-    opacity: 0.7;
+    opacity: 0.8;
     z-index: 0;
 }
 
 /* Ensure content sits above the background */
-.info-box > :not(.banker-badge) {
+.info-box> :not(.banker-badge) {
     position: relative;
     z-index: 1;
 }

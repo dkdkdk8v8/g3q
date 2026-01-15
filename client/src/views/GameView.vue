@@ -1288,7 +1288,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                             <div v-if="shouldShowRobMult" class="status-content">
                                 <span v-if="myPlayer.robMultiplier > 0" class="status-text rob-text text-large">抢{{
                                     myPlayer.robMultiplier
-                                    }}倍</span>
+                                }}倍</span>
                                 <span v-else class="status-text no-rob-text text-large">不抢</span>
                             </div>
                         </Transition>
@@ -2373,11 +2373,11 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     background-image: var(--bg-img);
     background-size: 100% 100%;
     background-repeat: no-repeat;
-    opacity: 0.7;
+    opacity: 0.8;
     z-index: 0;
 }
 
-.my-player-info-row .info-box > :not(.banker-badge) {
+.my-player-info-row .info-box> :not(.banker-badge) {
     position: relative;
     z-index: 1;
 }
@@ -2584,7 +2584,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .chat-btn-img {
-    width: 40px;
+    width: 30px;
     height: auto;
     object-fit: contain;
     margin-right: 10px;

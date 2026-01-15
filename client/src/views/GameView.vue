@@ -1603,6 +1603,12 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                 </div>
 
+                <!-- My Score Float -->
+                <div v-if="myPlayer.roundScore !== 0 && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)"
+                    class="score-float" :class="myPlayer.roundScore > 0 ? 'win' : 'lose'">
+                    {{ myPlayer.roundScore > 0 ? '+' : '' }}<img :src="goldImg" class="coin-icon-float" />{{
+                        formatCoins(myPlayer.roundScore) }}
+                </div>
             </div>
 
             <!-- 4. Multiplier Options (controls-container) -->
@@ -3576,6 +3582,61 @@ const shouldMoveStatusToHighPosition = computed(() => {
 .avatar-wrapper-overlay.highlight .highlight-ring {
     border-color: #fbbf24;
     box-shadow: 0 0 10px 3px #fbbf24, 0 0 5px 1px #d97706;
+}
+
+.score-float {
+    position: absolute;
+    top: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-weight: bold;
+    font-size: 24px;
+    text-shadow: 2px 2px 0 #000;
+    animation: floatUpCentered 3s forwards;
+    z-index: 200;
+    font-family: 'Arial Black', sans-serif;
+    pointer-events: none;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+}
+
+.score-float.win {
+    color: #facc15;
+}
+
+.score-float.lose {
+    color: #ef4444;
+}
+
+.coin-icon-float {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    vertical-align: middle;
+    margin: 0 2px;
+}
+
+@keyframes floatUpCentered {
+    0% {
+        transform: translate(-50%, 0) scale(0.5);
+        opacity: 0;
+    }
+
+    10% {
+        transform: translate(-50%, 0) scale(1.2);
+        opacity: 1;
+    }
+
+    80% {
+        transform: translate(-50%, -50px) scale(1);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translate(-50%, -60px) scale(1);
+        opacity: 0;
+    }
 }
 </style>
 

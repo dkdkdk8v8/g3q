@@ -796,9 +796,9 @@ const displayName = computed(() => {
 
     position: absolute;
 
-    bottom: -5px;
+    bottom: 25%;
 
-    right: -5px;
+    right: -10px;
 
     width: 21px;
     /* 3/4 of original size (24px) */

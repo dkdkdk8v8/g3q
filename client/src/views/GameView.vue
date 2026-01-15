@@ -2280,7 +2280,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .my-player-info-row .avatar-frame.banker-confirm-anim {
     position: relative;
-    z-index: 50;
+    z-index: 5;
     animation: bankerConfirmPop 1.2s ease-out forwards;
 }
 
@@ -2305,10 +2305,10 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .my-player-info-row .banker-badge {
     position: absolute;
-    bottom: -5px;
-    /* Position at the top edge of info-box, with slight offset */
-    right: -5px;
-    /* Position at the right edge of info-box, with slight offset */
+    top: 25%;
+    /* Center vertically */
+    right: -6px;
+    /* Position on the right edge */
     width: 21px;
     /* 3/4 of original size (24px) */
     height: 21px;
@@ -2327,8 +2327,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     box-shadow: 0 0 12px #facc15;
     /* Slightly reduced shadow */
     animation: shine 2s infinite;
-    transform: translate(50%, -50%);
-    /* Adjusted transform for top-right positioning */
+    transform: translateY(-50%);
+    /* Adjust only Y to center vertically */
 }
 
 .banker-badge-img {
@@ -2435,7 +2435,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 5;
+    z-index: 0;
     /* Above avatar (in frame), below banker badge (100) */
     pointer-events: none;
     object-fit: fill;

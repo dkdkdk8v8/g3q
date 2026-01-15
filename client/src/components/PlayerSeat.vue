@@ -552,7 +552,8 @@ const displayName = computed(() => {
 
 .avatar-frame.is-banker {
     border-color: #fbbf24;
-    box-shadow: 0 0 6px #fbbf24;
+    box-shadow: 0 0 10px 3px #fbbf24, 0 0 5px 1px #d97706;
+    /* Slightly weaker shadow */
 }
 
 .avatar-frame.banker-confirm-anim {
@@ -795,13 +796,15 @@ const displayName = computed(() => {
 
     position: absolute;
 
-    top: -5px; /* Position at the top edge of info-box, with slight offset */
+    bottom: -5px;
 
-    right: -5px; /* Position at the right edge of info-box, with slight offset */
+    right: -5px;
 
-    width: 24px;
+    width: 21px;
+    /* 3/4 of original size (24px) */
 
-    height: 24px;
+    height: 21px;
+    /* 3/4 of original size (24px) */
 
     /* 使用 flex 完美居中 */
 
@@ -821,15 +824,18 @@ const displayName = computed(() => {
 
     font-weight: bold;
 
-    z-index: 1000;
+    z-index: 9999;
 
     border: 1px solid #fff;
 
-    box-shadow: 0 0 10px #fbbf24;
+    box-shadow: 0 0 12px #facc15;
+    /* Slightly reduced shadow */
 
     animation: shine 2s infinite;
 
-    transform: translate(50%, -50%); /* Adjusted transform for top-right positioning */
+    transform: translate(50%, -50%);
+
+    /* Adjusted transform for top-right positioning */
 
 }
 
@@ -847,7 +853,8 @@ const displayName = computed(() => {
     background-repeat: no-repeat;
     width: 120px;
     height: 44px;
-    z-index: 101; /* Higher than banker badge (100) */
+    z-index: 101;
+    /* Higher than banker badge (100) */
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -856,8 +863,10 @@ const displayName = computed(() => {
     font-size: 12px;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
     box-sizing: border-box;
-    padding-top: 4px; /* Adjust for better vertical alignment */
-    position: relative; /* Added for absolute positioning of children */
+    padding-top: 4px;
+    /* Adjust for better vertical alignment */
+    position: relative;
+    /* Added for absolute positioning of children */
 }
 
 /* Reset alignments for all seats to center because of column layout */
@@ -892,6 +901,7 @@ const displayName = computed(() => {
 
 :not(.seat-bottom) .name {
     font-size: 12px;
+    margin-bottom: 3.6px;
 }
 
 .coins-pill {
@@ -1108,6 +1118,7 @@ const displayName = computed(() => {
     z-index: 15;
     pointer-events: none;
 }
+
 .opponent-hand .hand-card {
     pointer-events: auto;
 }
@@ -1145,28 +1156,22 @@ const displayName = computed(() => {
 
 .hand-result-badge {
     position: absolute;
-    top: 90%;
+    bottom: 0;
+    /* Adjust as needed */
     left: 50%;
-    transform: translate(-50%, -50%);
-    /* Remove background, border, padding, gap */
+    transform: translateX(-50%);
     color: #fbbf24;
-    /* Keep text color for fallback */
     font-size: 14px;
-    /* Keep text size for fallback */
     font-weight: bold;
-    /* Keep text weight for fallback */
     white-space: nowrap;
     z-index: 10;
-    /* Remove box-shadow */
     display: flex;
     align-items: center;
     justify-content: center;
-    /* Center content horizontally */
 }
 
 .hand-type-img {
-    height: 40px;
-    /* Scaled up by 2x from 20px */
+    height: 27px;
     object-fit: contain;
     vertical-align: middle;
 }

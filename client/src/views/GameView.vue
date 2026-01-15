@@ -2110,7 +2110,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     color: #55a773;
     font-size: 14px;
     font-weight: bold;
-    z-index: 5; /* Adjusted to be just above background */
+    z-index: 5;
+    /* Adjusted to be just above background */
     font-weight: bold;
     /* Adjust padding to center text within the background image, if image has borders */
     padding: 0 20px;
@@ -2177,9 +2178,10 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .my-hand-cards-area .hand-result-badge {
     position: absolute;
-    top: 90%;
+    bottom: -5px;
+    /* Adjust as needed */
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translateX(-50%);
     color: #fbbf24;
     font-size: 14px;
     font-weight: bold;
@@ -2191,7 +2193,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .my-hand-cards-area .hand-type-img {
-    height: 40px;
+    height: 50px;
+    /* Doubled size */
     object-fit: contain;
     vertical-align: middle;
 }
@@ -2269,7 +2272,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .my-player-info-row .avatar-frame.is-banker {
     border-color: #fbbf24;
-    box-shadow: 0 0 6px #fbbf24;
+    box-shadow: 0 0 10px 3px #fbbf24, 0 0 5px 1px #d97706;
+    /* Slightly weaker shadow */
 }
 
 .my-player-info-row .avatar-frame.banker-confirm-anim {
@@ -2298,23 +2302,31 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .my-player-info-row .banker-badge {
-  position: absolute;
-  top: -5px; /* Position at the top edge of info-box, with slight offset */
-  right: -5px; /* Position at the right edge of info-box, with slight offset */
-  width: 24px;
-  height: 24px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: radial-gradient(circle at 30% 30%, #fcd34d 0%, #d97706 100%);
-  color: #78350f;
-  font-size: 14px;
-  border-radius: 50%;
-  font-weight: bold;
-  z-index: 1000;
-  border: 1px solid #fff;  box-shadow: 0 0 10px #fbbf24;
-  animation: shine 2s infinite;
-  transform: translate(50%, -50%); /* Adjusted transform for top-right positioning */
+    position: absolute;
+    bottom: -5px;
+    /* Position at the top edge of info-box, with slight offset */
+    right: -5px;
+    /* Position at the right edge of info-box, with slight offset */
+    width: 21px;
+    /* 3/4 of original size (24px) */
+    height: 21px;
+    /* 3/4 of original size (24px) */
+    /* 使用 flex 完美居中 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: radial-gradient(circle at 30% 30%, #fcd34d 0%, #d97706 100%);
+    color: #78350f;
+    font-size: 14px;
+    border-radius: 50%;
+    font-weight: bold;
+    z-index: 9999;
+    border: 1px solid #fff;
+    box-shadow: 0 0 12px #facc15;
+    /* Slightly reduced shadow */
+    animation: shine 2s infinite;
+    transform: translate(50%, -50%);
+    /* Adjusted transform for top-right positioning */
 }
 
 .banker-badge-img {
@@ -2329,7 +2341,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     margin-top: -13px;
     /* Slight overlap */
     position: relative;
-    z-index: 101; /* Higher than banker badge (100) */
+    z-index: 101;
+    /* Higher than banker badge (100) */
     width: 90px;
     display: flex;
     flex-direction: column;
@@ -2408,7 +2421,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 /* Position chat button absolutely to the right */
 .my-player-info-row .chat-toggle-btn {
     position: absolute;
-    right: 20px; /* Align with padding */
+    right: 20px;
+    /* Align with padding */
     top: 50%;
     transform: translateY(-50%);
 }
@@ -2606,14 +2620,14 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 .pop-up-enter-active,
 .pop-up-leave-active {
     transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-    transform-origin: center left;
-    /* Origin from the left side (avatar side) */
+    transform-origin: bottom center;
+    /* Changed from center left */
 }
 
 .pop-up-enter-from {
     opacity: 0;
-    /* Start slightly to the left (towards avatar) and small */
-    transform: translateX(-30px) scale(0.2);
+    /* Start from center and small */
+    transform: scale(0.2);
 }
 
 .pop-up-leave-to {

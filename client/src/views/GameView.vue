@@ -2110,7 +2110,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     color: #55a773;
     font-size: 14px;
     font-weight: bold;
-    z-index: 250;
+    z-index: 5; /* Adjusted to be just above background */
     font-weight: bold;
     /* Adjust padding to center text within the background image, if image has borders */
     padding: 0 20px;
@@ -2311,9 +2311,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
   font-size: 14px;
   border-radius: 50%;
   font-weight: bold;
-  z-index: 100;
-  border: 1px solid #fff;
-  box-shadow: 0 0 10px #fbbf24;
+  z-index: 1000;
+  border: 1px solid #fff;  box-shadow: 0 0 10px #fbbf24;
   animation: shine 2s infinite;
   transform: translate(50%, -50%); /* Adjusted transform for top-right positioning */
 }

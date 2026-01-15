@@ -2425,7 +2425,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     position: absolute;
     right: 20px;
     /* Align with padding */
-    top: 50%;
+    top: 73%;
     transform: translateY(-50%);
 }
 

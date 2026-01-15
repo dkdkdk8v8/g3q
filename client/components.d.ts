@@ -19,11 +19,5 @@ declare module 'vue' {
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SettingsModal: typeof import('./src/components/SettingsModal.vue')['default']
-    VanDatePicker: typeof import('vant/es')['DatePicker']
-    VanIcon: typeof import('vant/es')['Icon']
-    VanImage: typeof import('vant/es')['Image']
-    VanLoading: typeof import('vant/es')['Loading']
-    VanPopup: typeof import('vant/es')['Popup']
-    VanSwitch: typeof import('vant/es')['Switch']
   }
 }

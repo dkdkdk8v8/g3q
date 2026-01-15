@@ -261,6 +261,15 @@ const displayName = computed(() => {
         return `${first}******${last}`;
     }
 });
+
+const shouldMoveStatusFloat = computed(() => {
+    // If cards are showing, move it
+    if (showCards.value) return true;
+    // If dealing is in progress, move it (anticipate cards)
+    if (store.currentPhase === 'DEALING' || isDealingProcessing.value) return true;
+    // Also during SHOWDOWN/SETTLEMENT if cards are there
+    return false;
+});
 </script>
 <template>
     <div class="player-seat" :class="`seat-${position}`">
@@ -289,7 +298,7 @@ const displayName = computed(() => {
                 </div>
 
                 <!-- 状态浮层，移到 avatar-area 以便相对于头像定位 -->
-                <div class="status-float" :class="{ 'is-me': isMe }"
+                <div class="status-float" :class="{ 'is-me': isMe, 'move-up': shouldMoveStatusFloat }"
                     v-if="!['IDLE', 'READY_COUNTDOWN'].includes(store.currentPhase)">
                     <Transition :name="slideTransitionName">
                         <div v-if="shouldShowRobMult" class="status-content">
@@ -980,6 +989,7 @@ const displayName = computed(() => {
     align-items: center;
     pointer-events: none;
     /* Let clicks pass through */
+    transition: bottom 0.3s ease;
 }
 
 .status-float.is-me {
@@ -987,6 +997,14 @@ const displayName = computed(() => {
     /* Higher for self */
     margin-bottom: 10px;
     /* Extra spacing for self */
+}
+
+.status-float.move-up {
+    bottom: calc(100% + 40px);
+}
+
+.status-float.is-me.move-up {
+    bottom: calc(100% + 24vw + 10px);
 }
 
 /* 右侧玩家的状态浮层显示在左侧 - Removed as overridden by generic opponent rule */

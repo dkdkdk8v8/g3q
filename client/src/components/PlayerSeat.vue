@@ -552,7 +552,8 @@ const displayName = computed(() => {
 
 .avatar-frame.is-banker {
     border-color: #fbbf24;
-    box-shadow: 0 0 10px 3px #fbbf24, 0 0 5px 1px #d97706; /* Slightly weaker shadow */
+    box-shadow: 0 0 10px 3px #fbbf24, 0 0 5px 1px #d97706;
+    /* Slightly weaker shadow */
 }
 
 .avatar-frame.banker-confirm-anim {
@@ -799,9 +800,11 @@ const displayName = computed(() => {
 
     right: -5px;
 
-    width: 27px; /* Slightly reduced size */
+    width: 27px;
+    /* Slightly reduced size */
 
-    height: 27px; /* Slightly reduced size */
+    height: 27px;
+    /* Slightly reduced size */
 
     /* 使用 flex 完美居中 */
 
@@ -825,7 +828,8 @@ const displayName = computed(() => {
 
     border: 1px solid #fff;
 
-    box-shadow: 0 0 12px #facc15; /* Slightly reduced shadow */
+    box-shadow: 0 0 12px #facc15;
+    /* Slightly reduced shadow */
 
     animation: shine 2s infinite;
 
@@ -897,6 +901,7 @@ const displayName = computed(() => {
 
 :not(.seat-bottom) .name {
     font-size: 12px;
+    margin-bottom: 3.6px;
 }
 
 .coins-pill {

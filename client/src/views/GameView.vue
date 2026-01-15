@@ -1152,7 +1152,10 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                      class="candidate-item-absolute"
                      :style="candidatePositions[p.id]">
                     <div class="avatar-wrapper-overlay" :class="{ 'highlight': p.id === currentlyHighlightedPlayerId }">
-                        <van-image :src="p.avatar" class="avatar-overlay" fit="cover" />
+                        <div class="avatar-clip">
+                            <van-image :src="p.avatar" class="avatar-img-content" fit="cover" />
+                        </div>
+                        <div class="highlight-ring"></div>
                         <img :src="avatarFrameImg" class="avatar-border-overlay" />
                     </div>
                 </div>
@@ -3247,17 +3250,40 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     width: 100%;
     height: 100%;
     position: relative;
-    border-radius: 50%;
+    border-radius: 50%; /* Ensure base shape is circle */
     transition: transform 0.1s;
 }
 
-.avatar-overlay {
+.avatar-clip {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    overflow: hidden; /* This clips the square avatar to a circle */
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    background: #000; /* Fallback background */
+}
+
+.avatar-img-content {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.highlight-ring {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
     border-radius: 50%;
     border: 3px solid transparent;
     box-sizing: border-box;
-    display: block;
+    z-index: 2; /* Above image, below frame overlay */
+    pointer-events: none;
+    transition: border-color 0.1s, box-shadow 0.1s;
 }
 
 .avatar-wrapper-overlay .avatar-border-overlay {
@@ -3267,7 +3293,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     width: 110%;
     height: 110%;
     pointer-events: none;
-    z-index: 2;
+    z-index: 3; /* Topmost decoration */
 }
 
 .avatar-wrapper-overlay.highlight {
@@ -3275,7 +3301,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     z-index: 10;
 }
 
-.avatar-wrapper-overlay.highlight .avatar-overlay {
+.avatar-wrapper-overlay.highlight .highlight-ring {
     border-color: #facc15;
     box-shadow: 0 0 20px #facc15, 0 0 40px #d97706;
 }

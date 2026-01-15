@@ -824,28 +824,20 @@ const displayName = computed(() => {
 
 
 .info-box {
-    margin-top: -8px;
-    position: relative;
-    z-index: 10;
-    width: 90px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 3px;
-    /* Space between name and coins */
-
-    /* Background Image */
-
     background-size: 100% 100%;
     background-repeat: no-repeat;
-    background-color: transparent;
-    /* Remove old bg */
-
-    /* Remove clip-path as image handles the shape */
-    clip-path: none;
-
-    padding: 4px 0;
+    width: 120px;
+    height: 44px;
+    z-index: 101; /* Higher than banker badge (100) */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: #fff;
+    font-size: 12px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    box-sizing: border-box;
+    padding-top: 4px; /* Adjust for better vertical alignment */
 }
 
 /* Reset alignments for all seats to center because of column layout */

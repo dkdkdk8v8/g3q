@@ -2332,8 +2332,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     margin-top: -13px;
     /* Slight overlap */
     position: relative;
-    z-index: 10;
-    /* Higher than avatar */
+    z-index: 101; /* Higher than banker badge (100) */
     width: 90px;
     display: flex;
     flex-direction: column;

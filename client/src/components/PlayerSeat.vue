@@ -311,8 +311,8 @@ const shouldMoveStatusFloat = computed(() => {
 
                     <Transition :name="slideTransitionName">
                         <div v-if="shouldShowBetMult" class="status-content">
-                            <span class="status-text bet-text" :class="{ 'text-large': isMe }">押{{ player.betMultiplier
-                            }}倍</span>
+                            <span class="status-text bet-text" :class="{ 'text-large': isMe }">压{{ player.betMultiplier
+                                }}倍</span>
                         </div>
                     </Transition>
                 </div>
@@ -554,8 +554,8 @@ const shouldMoveStatusFloat = computed(() => {
 }
 
 .avatar-frame.banker-candidate-highlight {
-    box-shadow: 0 0 15px 5px #facc15, 0 0 8px 2px #d97706;
-    border-color: #facc15;
+    box-shadow: 0 0 10px 3px #fbbf24, 0 0 5px 1px #d97706;
+    border-color: #fbbf24;
     animation: pulse-border-glow 1s infinite alternate;
 }
 
@@ -573,14 +573,14 @@ const shouldMoveStatusFloat = computed(() => {
 
 @keyframes bankerConfirmPop {
     0% {
-        border-color: transparent;
-        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2);
+        border-color: #fbbf24;
+        box-shadow: 0 0 25px 8px rgba(251, 191, 36, 0.9);
         transform: scale(1);
     }
 
     50% {
         border-color: #fbbf24;
-        box-shadow: 0 0 25px 8px rgba(251, 191, 36, 0.9);
+        box-shadow: 0 0 35px 10px rgba(251, 191, 36, 1);
         transform: scale(1.2);
     }
 
@@ -593,11 +593,11 @@ const shouldMoveStatusFloat = computed(() => {
 
 @keyframes pulse-border-glow {
     from {
-        box-shadow: 0 0 15px 5px #facc15, 0 0 8px 2px #d97706;
+        box-shadow: 0 0 10px 3px #fbbf24, 0 0 5px 1px #d97706;
     }
 
     to {
-        box-shadow: 0 0 20px 8px #fcd34d, 0 0 10px 3px #fbbf24;
+        box-shadow: 0 0 15px 5px #fbbf24, 0 0 8px 2px #d97706;
     }
 }
 
@@ -1215,62 +1215,12 @@ const shouldMoveStatusFloat = computed(() => {
     font-weight: bold;
     font-size: 24px;
     text-shadow: 2px 2px 0 #000;
-    animation: floatUp 1.5s forwards;
+    animation: floatUp 3s forwards;
     z-index: 20;
     font-family: 'Arial Black', sans-serif;
 }
 
-.score-float.win {
-    color: #facc15;
-}
-
-.score-float.lose {
-    color: #ef4444;
-}
-
-.slide-from-left-enter-active,
-.slide-from-right-enter-active {
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.slide-from-left-enter-from {
-    opacity: 0;
-    transform: translateX(-30px);
-}
-
-.slide-from-right-enter-from {
-    opacity: 0;
-    transform: translateX(30px);
-}
-
-/* Pop Up Animation for Opponents (Above Avatar) */
-.pop-up-enter-active,
-.pop-up-leave-active {
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    transform-origin: bottom center;
-    /* Grow from bottom */
-}
-
-.pop-up-enter-from {
-    opacity: 0;
-    /* Start from below (inside avatar) and small */
-    /* REMOVED translateX(-50%) to fix centering issue */
-    transform: translateY(20px) scale(0.2);
-}
-
-.pop-up-leave-to {
-    opacity: 0;
-    /* REMOVED translateX(-50%) to fix centering issue */
-    transform: scale(0.5);
-}
-
-.hand-card.bull-card-overlay {
-    filter: brightness(60%) grayscale(50%);
-    /* Apply a grey filter */
-    opacity: 0.8;
-    /* Slightly reduce opacity */
-    transition: filter 0.3s ease, opacity 0.3s ease;
-}
+/* ... */
 
 @keyframes floatUp {
     0% {
@@ -1278,8 +1228,13 @@ const shouldMoveStatusFloat = computed(() => {
         opacity: 0;
     }
 
-    20% {
+    10% {
         transform: translateY(0) scale(1.2);
+        opacity: 1;
+    }
+
+    80% {
+        transform: translateY(-50px) scale(1);
         opacity: 1;
     }
 

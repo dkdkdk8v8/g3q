@@ -1155,19 +1155,27 @@ const shouldMoveStatusFloat = computed(() => {
 
 const shouldMoveStatusToHighPosition = computed(() => {
 
-    // If settlement, drop down (Make Bull is gone)
 
-    if (store.currentPhase === 'SETTLEMENT') return false;
 
-    // If Showdown and Hand Shown, drop down (Make Bull is gone)
-
-    if (store.currentPhase === 'SHOWDOWN' && myPlayer.value && myPlayer.value.isShowHand) return false;
+    // Strictly match the visibility of the calculation area (Make Bull)
 
 
 
-    // Otherwise, stay high (Dealing, Betting/Robbing with cards, Showdown thinking)
+    if (store.currentPhase === 'SHOWDOWN' && myPlayer.value && !myPlayer.value.isShowHand && store.countdown > 0 && !myPlayer.value.isObserver) {
 
-    return true;
+
+
+        return true;
+
+
+
+    }
+
+
+
+    return false;
+
+
 
 });
 
@@ -1575,7 +1583,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                             <div v-if="shouldShowBetMult" class="status-content">
 
-                                <span class="status-text bet-text text-large">押{{ myPlayer.betMultiplier }}倍</span>
+                                <span class="status-text bet-text text-large">压{{ myPlayer.betMultiplier }}倍</span>
 
                             </div>
 
@@ -1595,6 +1603,12 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                 </div>
 
+                <!-- My Score Float -->
+                <div v-if="myPlayer.roundScore !== 0 && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)"
+                    class="score-float" :class="myPlayer.roundScore > 0 ? 'win' : 'lose'">
+                    {{ myPlayer.roundScore > 0 ? '+' : '' }}<img :src="goldImg" class="coin-icon-float" />{{
+                        formatCoins(myPlayer.roundScore) }}
+                </div>
             </div>
 
             <!-- 4. Multiplier Options (controls-container) -->
@@ -2350,7 +2364,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
     border-radius: 6.4vw;
     font-size: 1.8vh;
     font-weight: bold;
-    margin-top: 8vw;
+    margin-top: calc(8vw - 36px);
     border: 0.2667vw solid rgba(255, 255, 253, 0.3);
     /* Distinct bottom frame/border */
     box-shadow: 0 1vw 2.2vw rgba(0, 0, 0, 0.6), 0 0 4vw rgba(251, 191, 36, 0.2);
@@ -2558,9 +2572,19 @@ const shouldMoveStatusToHighPosition = computed(() => {
 }
 
 .my-player-info-row .avatar-frame.banker-candidate-highlight {
-    box-shadow: 0 0 15px 5px #facc15, 0 0 8px 2px #d97706;
-    border-color: #facc15;
+    box-shadow: 0 0 10px 3px #fbbf24, 0 0 5px 1px #d97706;
+    border-color: #fbbf24;
     animation: pulse-border-glow 1s infinite alternate;
+}
+
+@keyframes pulse-border-glow {
+    from {
+        box-shadow: 0 0 10px 3px #fbbf24, 0 0 5px 1px #d97706;
+    }
+
+    to {
+        box-shadow: 0 0 15px 5px #fbbf24, 0 0 8px 2px #d97706;
+    }
 }
 
 .my-player-info-row .avatar-frame.is-banker {
@@ -3556,8 +3580,63 @@ const shouldMoveStatusToHighPosition = computed(() => {
 }
 
 .avatar-wrapper-overlay.highlight .highlight-ring {
-    border-color: #facc15;
-    box-shadow: 0 0 20px #facc15, 0 0 40px #d97706;
+    border-color: #fbbf24;
+    box-shadow: 0 0 10px 3px #fbbf24, 0 0 5px 1px #d97706;
+}
+
+.score-float {
+    position: absolute;
+    top: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-weight: bold;
+    font-size: 24px;
+    text-shadow: 2px 2px 0 #000;
+    animation: floatUpCentered 3s forwards;
+    z-index: 200;
+    font-family: 'Arial Black', sans-serif;
+    pointer-events: none;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+}
+
+.score-float.win {
+    color: #facc15;
+}
+
+.score-float.lose {
+    color: #ef4444;
+}
+
+.coin-icon-float {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    vertical-align: middle;
+    margin: 0 2px;
+}
+
+@keyframes floatUpCentered {
+    0% {
+        transform: translate(-50%, 0) scale(0.5);
+        opacity: 0;
+    }
+
+    10% {
+        transform: translate(-50%, 0) scale(1.2);
+        opacity: 1;
+    }
+
+    80% {
+        transform: translate(-50%, -50px) scale(1);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translate(-50%, -60px) scale(1);
+        opacity: 0;
+    }
 }
 </style>
 
@@ -3583,14 +3662,14 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
 @keyframes bankerConfirmPop {
     0% {
-        border-color: transparent;
-        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2);
+        border-color: #fbbf24;
+        box-shadow: 0 0 25px 8px rgba(251, 191, 36, 0.9);
         transform: scale(1);
     }
 
     50% {
         border-color: #fbbf24;
-        box-shadow: 0 0 25px 8px rgba(251, 191, 36, 0.9);
+        box-shadow: 0 0 35px 10px rgba(251, 191, 36, 1);
         transform: scale(1.2);
     }
 

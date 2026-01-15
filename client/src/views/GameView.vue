@@ -2301,7 +2301,21 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
   position: absolute;
   top: -5px; /* Position at the top edge of info-box, with slight offset */
   right: -5px; /* Position at the right edge of info-box, with slight offset */
-  z-index: 100; /* Ensure it's above info-box content */
+  width: 24px;
+  height: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: radial-gradient(circle at 30% 30%, #fcd34d 0%, #d97706 100%);
+  color: #78350f;
+  font-size: 14px;
+  border-radius: 50%;
+  font-weight: bold;
+  z-index: 100;
+  border: 1px solid #fff;
+  box-shadow: 0 0 10px #fbbf24;
+  animation: shine 2s infinite;
+  transform: translate(50%, -50%); /* Adjusted transform for top-right positioning */
 }
 
 .banker-badge-img {

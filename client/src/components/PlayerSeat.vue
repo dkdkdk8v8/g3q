@@ -261,6 +261,15 @@ const displayName = computed(() => {
         return `${first}******${last}`;
     }
 });
+
+const shouldMoveStatusFloat = computed(() => {
+    // If cards are showing, move it
+    if (showCards.value) return true;
+    // If dealing is in progress, move it (anticipate cards)
+    if (store.currentPhase === 'DEALING' || isDealingProcessing.value) return true;
+    // Also during SHOWDOWN/SETTLEMENT if cards are there
+    return false;
+});
 </script>
 <template>
     <div class="player-seat" :class="`seat-${position}`">
@@ -289,7 +298,7 @@ const displayName = computed(() => {
                 </div>
 
                 <!-- 状态浮层，移到 avatar-area 以便相对于头像定位 -->
-                <div class="status-float" :class="{ 'is-me': isMe }"
+                <div class="status-float" :class="{ 'is-me': isMe, 'move-up': shouldMoveStatusFloat }"
                     v-if="!['IDLE', 'READY_COUNTDOWN'].includes(store.currentPhase)">
                     <Transition :name="slideTransitionName">
                         <div v-if="shouldShowRobMult" class="status-content">
@@ -303,14 +312,11 @@ const displayName = computed(() => {
                     <Transition :name="slideTransitionName">
                         <div v-if="shouldShowBetMult" class="status-content">
                             <span class="status-text bet-text" :class="{ 'text-large': isMe }">押{{ player.betMultiplier
-                                }}倍</span>
+                            }}倍</span>
                         </div>
                     </Transition>
                 </div>
 
-                <!-- 庄家徽章，现在移动到 avatar-area 内部 -->
-                <div v-if="player.isBanker && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)"
-                    class="banker-badge"><img :src="zhuangImg" alt="庄" class="banker-badge-img" /></div>
                 <!-- Ready Badge -->
                 <div v-if="player.isReady && store.currentPhase === 'READY_COUNTDOWN'" class="ready-badge">✔ 准备</div>
 
@@ -318,8 +324,11 @@ const displayName = computed(() => {
                 <div v-if="player.isObserver" class="observer-badge">等待下一局</div>
             </div>
 
-            <div class="info-box" :style="{ backgroundImage: `url(${userInfoBgImg})` }"
+            <div class="info-box" :style="{ '--bg-img': `url(${userInfoBgImg})` }"
                 :class="{ 'is-observer': player.isObserver }">
+                <!-- 庄家徽章，现在移动到 info-box 内部 -->
+                <div v-if="player.isBanker && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)"
+                    class="banker-badge"><img :src="zhuangImg" alt="庄" class="banker-badge-img" /></div>
                 <div class="name van-ellipsis">{{ displayName }}</div>
                 <div class="coins-pill">
                     {{ formatCoins(player.coins) }}
@@ -552,7 +561,8 @@ const displayName = computed(() => {
 
 .avatar-frame.is-banker {
     border-color: #fbbf24;
-    box-shadow: 0 0 6px #fbbf24;
+    box-shadow: 0 0 10px 3px #fbbf24, 0 0 5px 1px #d97706;
+    /* Slightly weaker shadow */
 }
 
 .avatar-frame.banker-confirm-anim {
@@ -792,26 +802,50 @@ const displayName = computed(() => {
 }
 
 .banker-badge {
+
     position: absolute;
-    bottom: 0px;
-    right: 0px;
-    width: 24px;
-    height: 24px;
+
+    bottom: 25%;
+
+    right: -10px;
+
+    width: 21px;
+    /* 3/4 of original size (24px) */
+
+    height: 21px;
+    /* 3/4 of original size (24px) */
+
     /* 使用 flex 完美居中 */
+
     display: flex;
+
     justify-content: center;
+
     align-items: center;
+
     background: radial-gradient(circle at 30% 30%, #fcd34d 0%, #d97706 100%);
+
     color: #78350f;
+
     font-size: 14px;
+
     border-radius: 50%;
+
     font-weight: bold;
-    z-index: 100;
+
+    z-index: 9999;
+
     border: 1px solid #fff;
-    box-shadow: 0 0 10px #fbbf24;
+
+    box-shadow: 0 0 12px #facc15;
+    /* Slightly reduced shadow */
+
     animation: shine 2s infinite;
-    transform: translate(50%, 50%);
-    /* 移动自身宽度的一半和高度的一半 */
+
+    transform: translate(50%, -50%);
+
+    /* Adjusted transform for top-right positioning */
+
 }
 
 .banker-badge-img {
@@ -824,28 +858,42 @@ const displayName = computed(() => {
 
 
 .info-box {
-    margin-top: -8px;
-    position: relative;
-    z-index: 10;
-    width: 90px;
+    width: 120px;
+    height: 44px;
+    z-index: 101;
+    /* Higher than banker badge (100) */
     display: flex;
     flex-direction: column;
-    align-items: center;
     justify-content: center;
-    gap: 3px;
-    /* Space between name and coins */
+    align-items: center;
+    color: #fff;
+    font-size: 12px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    box-sizing: border-box;
+    padding-top: 4px;
+    /* Adjust for better vertical alignment */
+    position: relative;
+    /* Added for absolute positioning of children */
+}
 
-    /* Background Image */
-
+.info-box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: var(--bg-img);
     background-size: 100% 100%;
     background-repeat: no-repeat;
-    background-color: transparent;
-    /* Remove old bg */
+    opacity: 0.8;
+    z-index: 0;
+}
 
-    /* Remove clip-path as image handles the shape */
-    clip-path: none;
-
-    padding: 4px 0;
+/* Ensure content sits above the background */
+.info-box> :not(.banker-badge) {
+    position: relative;
+    z-index: 1;
 }
 
 /* Reset alignments for all seats to center because of column layout */
@@ -880,6 +928,7 @@ const displayName = computed(() => {
 
 :not(.seat-bottom) .name {
     font-size: 12px;
+    margin-bottom: 3.6px;
 }
 
 .coins-pill {
@@ -940,6 +989,7 @@ const displayName = computed(() => {
     align-items: center;
     pointer-events: none;
     /* Let clicks pass through */
+    transition: bottom 0.3s ease;
 }
 
 .status-float.is-me {
@@ -947,6 +997,14 @@ const displayName = computed(() => {
     /* Higher for self */
     margin-bottom: 10px;
     /* Extra spacing for self */
+}
+
+.status-float.move-up {
+    bottom: calc(100% + 20px);
+}
+
+.status-float.is-me.move-up {
+    bottom: calc(100% + 24vw + 10px);
 }
 
 /* 右侧玩家的状态浮层显示在左侧 - Removed as overridden by generic opponent rule */
@@ -1096,6 +1154,7 @@ const displayName = computed(() => {
     z-index: 15;
     pointer-events: none;
 }
+
 .opponent-hand .hand-card {
     pointer-events: auto;
 }
@@ -1133,28 +1192,22 @@ const displayName = computed(() => {
 
 .hand-result-badge {
     position: absolute;
-    top: 90%;
+    bottom: 0;
+    /* Adjust as needed */
     left: 50%;
-    transform: translate(-50%, -50%);
-    /* Remove background, border, padding, gap */
+    transform: translateX(-50%);
     color: #fbbf24;
-    /* Keep text color for fallback */
     font-size: 14px;
-    /* Keep text size for fallback */
     font-weight: bold;
-    /* Keep text weight for fallback */
     white-space: nowrap;
     z-index: 10;
-    /* Remove box-shadow */
     display: flex;
     align-items: center;
     justify-content: center;
-    /* Center content horizontally */
 }
 
 .hand-type-img {
-    height: 40px;
-    /* Scaled up by 2x from 20px */
+    height: 27px;
     object-fit: contain;
     vertical-align: middle;
 }

@@ -522,6 +522,43 @@ watch(() => settingsStore.musicEnabled, (val) => {
     }
 });
 
+const candidatePlayers = computed(() => {
+    return (store.bankerCandidates || []).map(id => store.players.find(p => p.id === id)).filter(p => !!p);
+});
+
+const candidatePositions = ref({});
+
+const updateCandidatePositions = () => {
+    const newPositions = {};
+    if (!store.bankerCandidates) return;
+
+    store.bankerCandidates.forEach(pid => {
+        const seatEl = seatRefs.value[pid];
+        if (seatEl) {
+            // Try to find the avatar frame specifically
+            const avatarEl = seatEl.querySelector('.avatar-frame') || seatEl.querySelector('.avatar-wrapper');
+            if (avatarEl) {
+                const rect = avatarEl.getBoundingClientRect();
+                newPositions[pid] = {
+                    top: `${rect.top}px`,
+                    left: `${rect.left}px`,
+                    width: `${rect.width}px`,
+                    height: `${rect.height}px`,
+                };
+            }
+        }
+    });
+    candidatePositions.value = newPositions;
+};
+
+watch(() => store.currentPhase, (val) => {
+    if (val === 'BANKER_SELECTION_ANIMATION') {
+        setTimeout(() => {
+            updateCandidatePositions();
+        }, 50); // Slight delay to ensure DOM is stable
+    }
+});
+
 const opponentSeats = computed(() => {
     const seats = [null, null, null, null]; // Represents client seats 1, 2, 3, 4
 
@@ -791,11 +828,6 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
 }, { immediate: true });
 
 const startDealingAnimation = (isSupplemental = false) => {
-    if (settingsStore.soundEnabled) {
-        const audio = new Audio(sendCardSound);
-        audio.play().catch(() => { });
-    }
-
     if (!isSupplemental) {
         visibleCounts.value = {}; // Reset visible counts ONLY if not supplemental
         store.players.forEach(p => {
@@ -858,6 +890,11 @@ const startDealingAnimation = (isSupplemental = false) => {
     });
 
     if (targets.length === 0) return;
+
+    if (settingsStore.soundEnabled) {
+        const audio = new Audio(sendCardSound);
+        audio.play().catch(() => { });
+    }
 
     targets.forEach((t, pIndex) => {
         const cardTargets = [];
@@ -1099,214 +1136,467 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
         selectedCardIndices.value = [];
     }
 });
+
+const shouldMoveStatusFloat = computed(() => {
+
+    // If cards are showing, move it
+
+    if (showCards.value) return true;
+
+    // If dealing is in progress, move it (anticipate cards)
+
+    if (store.currentPhase === 'DEALING' || isDealingProcessing.value) return true;
+
+    return false;
+
+});
+
+
+
+const shouldMoveStatusToHighPosition = computed(() => {
+
+    // If settlement, drop down (Make Bull is gone)
+
+    if (store.currentPhase === 'SETTLEMENT') return false;
+
+    // If Showdown and Hand Shown, drop down (Make Bull is gone)
+
+    if (store.currentPhase === 'SHOWDOWN' && myPlayer.value && myPlayer.value.isShowHand) return false;
+
+
+
+    // Otherwise, stay high (Dealing, Betting/Robbing with cards, Showdown thinking)
+
+    return true;
+
+});
+
 </script>
 
+
+
 <template>
+
     <div class="game-table">
+
         <img v-if="showStartAnim" :src="iconGameStart" class="game-start-icon" :class="startAnimationClass" />
+
         <img v-if="showResultAnim" :src="resultImage" class="result-icon" :class="resultAnimClass" />
+
         <DealingLayer ref="dealingLayer" />
+
         <CoinLayer ref="coinLayer" />
 
-        <!-- 顶部栏 -->
-        <div class="top-bar">
-            <div class="menu-container">
-                <div class="menu-btn" @click.stop="toggleShowMenu()">
-                    <van-icon name="wap-nav" size="20" color="white" />
-                    <span style="margin-left:4px;font-size:14px;">菜单</span>
+
+
+        <!-- Random Banker Selection Overlay -->
+
+        <transition name="fade">
+
+            <div v-if="store.currentPhase === 'BANKER_SELECTION_ANIMATION'" class="banker-selection-overlay">
+
+                <div v-for="p in candidatePlayers" :key="p.id" class="candidate-item-absolute"
+                    :style="candidatePositions[p.id]">
+
+                    <div class="avatar-wrapper-overlay" :class="{ 'highlight': p.id === currentlyHighlightedPlayerId }">
+
+                        <div class="avatar-clip">
+
+                            <van-image :src="p.avatar" class="avatar-img-content" fit="cover" />
+
+                        </div>
+
+                        <div class="highlight-ring"></div>
+
+                        <img :src="avatarFrameImg" class="avatar-border-overlay" />
+
+                    </div>
+
                 </div>
+
+                <div class="selection-text-centered">正在随机选庄...</div>
+
+            </div>
+
+        </transition>
+
+
+
+        <!-- 顶部栏 -->
+
+        <div class="top-bar">
+
+            <div class="menu-container">
+
+                <div class="menu-btn" @click.stop="toggleShowMenu()">
+
+                    <van-icon name="wap-nav" size="20" color="white" />
+
+                    <span style="margin-left:4px;font-size:14px;">菜单</span>
+
+                </div>
+
+
 
                 <div class="network-badge" :class="networkStatusClass">
+
                     <div class="wifi-dot"></div>
+
                     <span>{{ networkLatency }}ms</span>
+
                 </div>
 
+
+
                 <!-- 下拉菜单 -->
+
                 <transition name="fade">
+
                     <div v-if="showMenu" class="menu-dropdown" @click.stop>
+
                         <div class="menu-item" @click="openHistoryDebounced()">
+
                             <van-icon name="balance-list-o" /> 投注记录
+
                         </div>
+
                         <div class="menu-divider"></div>
+
                         <div class="menu-item" @click="openSettingsDebounced()">
+
                             <van-icon name="setting-o" /> 游戏设置
+
                         </div>
+
                         <div class="menu-divider"></div>
+
                         <div class="menu-item" @click="openHelpDebounced()">
+
                             <van-icon name="question-o" /> 游戏帮助
+
                         </div>
+
                         <div class="menu-divider"></div>
+
                         <div class="menu-item danger" @click="quitGameDebounced()">
+
                             <van-icon name="close" /> 退出游戏
+
                         </div>
+
                     </div>
+
                 </transition>
+
             </div>
+
         </div>
 
+
+
         <!-- Base Bet Display -->
+
         <div class="base-bet-display" :style="{ '--game-top-difen-bg': 'url(' + gameTopDifenBg + ')' }">
+
             <span class="bet-amount">底分</span>
+
             <img :src="goldImg" class="gold-icon-small" />
+
             <span class="bet-amount">{{ formatCoins(store.baseBet, 0) }}</span>
+
         </div>
+
         <div class="opponents-layer">
+
             <div v-for="(p, index) in opponentSeats" :key="index" class="opponent-seat-abs"
                 :class="getOpponentClass(index + 1)" :style="getSeatStyle(index + 1)">
+
                 <PlayerSeat v-if="p && p.id" :player="p" :ref="(el) => setSeatRef(el, p.id)"
                     :position="getLayoutType(index + 1)"
                     :visible-card-count="visibleCounts[p.id] !== undefined ? visibleCounts[p.id] : 0"
                     :is-ready="p.isReady" :is-animating-highlight="p.id === currentlyHighlightedPlayerId"
                     :speech="playerSpeech.get(p.id)" :trigger-banker-animation="showBankerConfirmAnim && p.isBanker"
                     :is-win="!!winEffects[p.id]" />
+
                 <div v-else class="empty-seat">
+
                     <div class="empty-seat-avatar">
+
                         <van-icon name="plus" color="rgba(255,255,255,0.3)" size="20" />
+
                     </div>
+
                     <div class="empty-seat-text">等待加入</div>
+
                 </div>
+
             </div>
+
         </div>
+
+
 
         <div class="table-center" ref="tableCenterRef">
+
             <!-- 阶段提示信息容器 -->
+
             <div v-if="['READY_COUNTDOWN', 'ROB_BANKER', 'BETTING', 'SHOWDOWN', 'BANKER_SELECTION_ANIMATION', 'BANKER_CONFIRMED'].includes(store.currentPhase)"
                 class="clock-and-info-wrapper">
+
                 <div class="phase-info">
+
                     <span v-if="store.currentPhase === 'WAITING_FOR_PLAYERS'">匹配玩家中...</span>
+
                     <span v-else-if="store.currentPhase === 'READY_COUNTDOWN'">游戏即将开始 {{ store.countdown }}</span>
+
                     <span v-else-if="store.currentPhase === 'ROB_BANKER'">等待其他玩家抢庄 {{ store.countdown }}</span>
+
                     <span v-else-if="store.currentPhase === 'BETTING'">等待其他玩家投注 {{ store.countdown }}</span>
+
                     <span v-else-if="store.currentPhase === 'SHOWDOWN'">等待玩家摊牌比拼 {{ store.countdown }}</span>
+
                     <span v-else-if="store.currentPhase === 'BANKER_SELECTION_ANIMATION'">正在选庄...</span>
+
                     <span v-else-if="store.currentPhase === 'BANKER_CONFIRMED'">庄家已定</span>
+
                     <span v-else-if="store.currentPhase === 'SETTLEMENT'">结算中...</span>
+
                 </div>
+
             </div>
+
+
 
             <!-- 重新开始按钮 -->
+
             <div v-if="store.currentPhase === 'GAME_OVER'" class="restart-btn" @click="startGameDebounced()">
+
                 继续游戏
+
             </div>
+
         </div>
 
+
+
         <!-- Watermark for Room Name and Mode -->
+
         <div class="room-mode-watermark">
+
             {{ store.roomName }}•{{ modeName }}
+
         </div>
+
+
 
         <!-- 自己区域 -->
 
+
+
         <div class="my-area" v-if="myPlayer" :ref="(el) => setSeatRef(el, myPlayer.id)" :style="getMyAreaStyle()">
+
             <!-- 1. Calculation Formula Area -->
+
             <div v-show="store.currentPhase === 'SHOWDOWN' && !myPlayer.isShowHand && store.countdown > 0 && !myPlayer.isObserver"
                 class="showdown-wrapper">
+
                 <!-- Calculation Formula -->
+
                 <div class="calc-container">
+
                     <div class="calc-box">{{ calculationData.labels[0] || '' }}</div>
+
                     <div class="calc-symbol">+</div>
+
                     <div class="calc-box">{{ calculationData.labels[1] || '' }}</div>
+
                     <div class="calc-symbol">+</div>
+
                     <div class="calc-box">{{ calculationData.labels[2] || '' }}</div>
+
                     <div class="calc-symbol">=</div>
+
                     <div class="calc-box result">{{ calculationData.isFull ? calculationData.sum : '' }}</div>
+
                 </div>
+
             </div>
 
+
+
             <!-- 2. My Hand Cards Area -->
+
             <div class="my-hand-cards-area">
+
                 <div class="hand-area">
+
                     <div class="cards">
+
                         <PokerCard v-for="(card, idx) in myPlayer.hand" :key="idx"
                             :card="(shouldShowCardFace && (visibleCounts[myPlayer.id] === undefined || idx < visibleCounts[myPlayer.id])) ? card : null"
                             :is-small="false"
                             :class="{ 'hand-card': true, 'bull-card-overlay': isBullPart(idx), 'selected': selectedCardIndices.includes(idx) }"
                             :style="{
+
                                 marginLeft: idx === 0 ? '0' : '1px', /* for myPlayer */
+
                                 opacity: (visibleCounts[myPlayer.id] === undefined || idx < visibleCounts[myPlayer.id]) ? 1 : 0
+
                             }" @click="handleCardClick({ card, index: idx })" />
+
                     </div>
+
                     <!-- Hand Result Badge - adapted from PlayerSeat -->
+
                     <div v-if="myPlayer.handResult && myPlayer.handResult.typeName && shouldShowBadge"
                         class="hand-result-badge">
+
                         <img v-if="getHandTypeImageUrl(myPlayer.handResult.typeName)"
                             :src="getHandTypeImageUrl(myPlayer.handResult.typeName)" alt="手牌类型" class="hand-type-img" />
+
                         <template v-else>TypeName: "{{ myPlayer.handResult.typeName }}" - URL Debug: {{
+
                             getHandTypeImageUrl(myPlayer.handResult.typeName) || 'null' }}</template>
+
                     </div>
+
                 </div>
+
             </div>
 
+
+
             <!-- 3. My Personal Info + Chat Button -->
+
             <div class="my-player-info-row">
+
                 <!-- Avatar and Info Box - adapted from PlayerSeat -->
+
                 <div class="avatar-area my-player-avatar-info">
+
                     <div class="avatar-wrapper">
+
                         <!-- Avatar Container -->
+
                         <div class="avatar-frame" :class="{
+
                             'banker-candidate-highlight': myPlayer.id === currentlyHighlightedPlayerId,
+
                             'banker-confirm-anim': showBankerConfirmAnim && myPlayer.isBanker,
+
                             'is-banker': myPlayer.isBanker && !['SETTLEMENT', 'GAME_OVER'].includes(store.currentPhase),
+
                             'win-neon-flash': !!winEffects[myPlayer.id]
+
                         }">
+
                             <van-image :src="myPlayer.avatar" class="avatar" fit="cover"
                                 :class="{ 'avatar-gray': myPlayer.isObserver }" />
+
                         </div>
 
+
+
                         <!-- Avatar Frame Overlay -->
+
                         <img :src="avatarFrameImg" class="avatar-border-overlay" />
 
+
+
                         <!-- Speech Bubble -->
+
                         <div v-show="showSpeechBubble(myPlayer.id)" class="speech-bubble"
                             :style="getSpeechBubbleStyle(myPlayer.id)"
                             :class="{ 'speech-visible': showSpeechBubble(myPlayer.id) }">
+
                             <span v-if="getSpeech(myPlayer.id) && getSpeech(myPlayer.id).type === 'text'">{{
+
                                 getSpeech(myPlayer.id).content }}</span>
+
                             <img v-else-if="getSpeech(myPlayer.id) && getSpeech(myPlayer.id).type === 'emoji'"
                                 :src="getSpeech(myPlayer.id).content" class="speech-emoji" />
+
                         </div>
 
-                        <!-- Banker Badge -->
-                        <div v-if="myPlayer.isBanker && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)"
-                            class="banker-badge"><img :src="zhuangImg" alt="庄" class="banker-badge-img" /></div>
                     </div>
 
-                    <div class="info-box" :style="{ backgroundImage: `url(${userInfoBgImg})` }"
+
+
+                    <div class="info-box" :style="{ '--bg-img': `url(${userInfoBgImg})` }"
                         :class="{ 'is-observer': myPlayer.isObserver }">
+
+                        <!-- Banker Badge -->
+
+                        <div v-if="myPlayer.isBanker && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)"
+                            class="banker-badge"><img :src="zhuangImg" alt="庄" class="banker-badge-img" /></div>
 
                         <div class="name van-ellipsis">{{ myPlayer.name }}</div>
 
+
+
                         <div class="coins-pill">
+
+
 
                             {{ formatCoins(myPlayer.coins) }}
 
+
+
                         </div>
 
+
+
                     </div>
+
+
 
                     <!-- Status float (rob/bet multiplier status) -->
-                    <div class="status-float">
-                        <Transition name="pop-up">
-                            <div v-if="shouldShowRobMult" class="status-content">
-                                <span v-if="myPlayer.robMultiplier > 0" class="status-text rob-text text-large">抢{{
-                                    myPlayer.robMultiplier
-                                    }}倍</span>
-                                <span v-else class="status-text no-rob-text text-large">不抢</span>
-                            </div>
-                        </Transition>
+
+                    <div class="status-float"
+                        :class="{ 'move-up-high': shouldMoveStatusFloat && shouldMoveStatusToHighPosition, 'move-up-low': shouldMoveStatusFloat && !shouldMoveStatusToHighPosition }">
 
                         <Transition name="pop-up">
-                            <div v-if="shouldShowBetMult" class="status-content">
-                                <span class="status-text bet-text text-large">押{{ myPlayer.betMultiplier }}倍</span>
+
+                            <div v-if="shouldShowRobMult" class="status-content">
+
+                                <span v-if="myPlayer.robMultiplier > 0" class="status-text rob-text text-large">抢{{
+
+                                    myPlayer.robMultiplier
+
+                                }}倍</span>
+
+                                <span v-else class="status-text no-rob-text text-large">不抢</span>
+
                             </div>
+
                         </Transition>
+
+
+
+                        <Transition name="pop-up">
+
+                            <div v-if="shouldShowBetMult" class="status-content">
+
+                                <span class="status-text bet-text text-large">押{{ myPlayer.betMultiplier }}倍</span>
+
+                            </div>
+
+                        </Transition>
+
                     </div>
+
                 </div>
+
+
 
                 <!-- Chat button -->
+
                 <div class="chat-toggle-btn" @click="toggleShowChatSelector()">
+
                     <img :src="gameChatBtnImg" class="chat-btn-img" />
+
                 </div>
+
             </div>
 
             <!-- 4. Multiplier Options (controls-container) -->
@@ -2112,7 +2402,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     color: #55a773;
     font-size: 14px;
     font-weight: bold;
-    z-index: 250;
+    z-index: 5;
+    /* Adjusted to be just above background */
     font-weight: bold;
     /* Adjust padding to center text within the background image, if image has borders */
     padding: 0 20px;
@@ -2142,6 +2433,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     align-items: center;
     background: linear-gradient(to top, rgba(0, 0, 0, 0.6) 0%, transparent 100%);
     width: 100%;
+    padding-bottom: 30px;
 }
 
 /* GameView.vue specific styles for myPlayer components */
@@ -2152,7 +2444,9 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     align-items: center;
     width: 100%;
     margin-top: 10px;
-    /* Adjust spacing from element above */
+    margin-bottom: -50px;
+    position: relative;
+    z-index: 1;
 }
 
 /* Hand area styles (adapted from PlayerSeat.vue for myPlayer) */
@@ -2179,9 +2473,10 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .my-hand-cards-area .hand-result-badge {
     position: absolute;
-    top: 90%;
+    bottom: -5px;
+    /* Adjust as needed */
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translateX(-50%);
     color: #fbbf24;
     font-size: 14px;
     font-weight: bold;
@@ -2193,7 +2488,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .my-hand-cards-area .hand-type-img {
-    height: 40px;
+    height: 45px;
+    /* Doubled size */
     object-fit: contain;
     vertical-align: middle;
 }
@@ -2213,7 +2509,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     padding: 0 20px;
     /* Padding for spacing from screen edges */
 
-    margin-top: 10px;
+    margin-top: 0;
     /* Adjust spacing from element above */
 
     margin-bottom: 10px;
@@ -2271,12 +2567,13 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .my-player-info-row .avatar-frame.is-banker {
     border-color: #fbbf24;
-    box-shadow: 0 0 6px #fbbf24;
+    box-shadow: 0 0 10px 3px #fbbf24, 0 0 5px 1px #d97706;
+    /* Slightly weaker shadow */
 }
 
 .my-player-info-row .avatar-frame.banker-confirm-anim {
     position: relative;
-    z-index: 50;
+    z-index: 5;
     animation: bankerConfirmPop 1.2s ease-out forwards;
 }
 
@@ -2301,10 +2598,15 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .my-player-info-row .banker-badge {
     position: absolute;
-    bottom: 0;
-    right: 0;
-    width: 24px;
-    height: 24px;
+    top: 25%;
+    /* Center vertically */
+    right: -6px;
+    /* Position on the right edge */
+    width: 21px;
+    /* 3/4 of original size (24px) */
+    height: 21px;
+    /* 3/4 of original size (24px) */
+    /* 使用 flex 完美居中 */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -2313,11 +2615,13 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     font-size: 14px;
     border-radius: 50%;
     font-weight: bold;
-    z-index: 100;
+    z-index: 9999;
     border: 1px solid #fff;
-    box-shadow: 0 0 10px #fbbf24;
+    box-shadow: 0 0 12px #facc15;
+    /* Slightly reduced shadow */
     animation: shine 2s infinite;
-    transform: translate(50%, 50%);
+    transform: translateY(-50%);
+    /* Adjust only Y to center vertically */
 }
 
 .banker-badge-img {
@@ -2332,8 +2636,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     margin-top: -13px;
     /* Slight overlap */
     position: relative;
-    z-index: 10;
-    /* Higher than avatar */
+    z-index: 101;
+    /* Higher than banker badge (100) */
     width: 90px;
     display: flex;
     flex-direction: column;
@@ -2343,16 +2647,32 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     gap: 3px;
     /* Space between name and coins */
 
-    /* Background Image */
-
-    background-size: 100% 100%;
-    background-repeat: no-repeat;
+    /* Background Image handled by ::before */
     background-color: transparent;
 
     /* Remove clip-path */
     clip-path: none;
 
     padding: 4px 6px;
+}
+
+.my-player-info-row .info-box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: var(--bg-img);
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    opacity: 0.8;
+    z-index: 0;
+}
+
+.my-player-info-row .info-box> :not(.banker-badge) {
+    position: relative;
+    z-index: 1;
 }
 
 .my-player-info-row .info-box.is-observer {
@@ -2407,13 +2727,25 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     display: flex;
     flex-direction: column;
     align-items: center;
+    transition: bottom 0.3s ease;
+}
+
+.my-player-info-row .status-float.move-up-high {
+    bottom: calc(100% + 23vw);
+    /* Approx 140px on mobile, clears cards + calc area */
+}
+
+.my-player-info-row .status-float.move-up-low {
+    bottom: calc(100% + 6vw);
+    /* Approx 75px on mobile, clears cards only */
 }
 
 /* Position chat button absolutely to the right */
 .my-player-info-row .chat-toggle-btn {
     position: absolute;
-    right: 20px; /* Align with padding */
-    top: 50%;
+    right: 20px;
+    /* Align with padding */
+    top: 73%;
     transform: translateY(-50%);
 }
 
@@ -2423,7 +2755,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 5;
+    z-index: 0;
     /* Above avatar (in frame), below banker badge (100) */
     pointer-events: none;
     object-fit: fill;
@@ -2556,7 +2888,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .chat-btn-img {
-    width: 40px;
+    width: 30px;
     height: auto;
     object-fit: contain;
     margin-right: 10px;
@@ -2610,14 +2942,14 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 .pop-up-enter-active,
 .pop-up-leave-active {
     transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-    transform-origin: center left;
-    /* Origin from the left side (avatar side) */
+    transform-origin: bottom center;
+    /* Changed from center left */
 }
 
 .pop-up-enter-from {
     opacity: 0;
-    /* Start slightly to the left (towards avatar) and small */
-    transform: translateX(-30px) scale(0.2);
+    /* Start from center and small */
+    transform: scale(0.2);
 }
 
 .pop-up-leave-to {
@@ -3142,6 +3474,109 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
         -2px 2px 0 #166534,
         2px 2px 0 #166534,
         0 4px 8px rgba(0, 0, 0, 0.6);
+}
+
+/* Banker Selection Overlay */
+.banker-selection-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    /* Changed to 0.3 */
+    z-index: 2000;
+    /* Above table (200) and most UI, below result (6000) */
+    pointer-events: none;
+    /* Let clicks pass through if needed, but here mainly for visual */
+}
+
+.candidate-item-absolute {
+    position: absolute;
+    z-index: 2001;
+    transition: transform 0.2s;
+}
+
+.avatar-wrapper-overlay {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    border-radius: 50%;
+    /* Ensure base shape is circle */
+    transition: transform 0.1s;
+}
+
+.avatar-clip {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    overflow: hidden;
+    /* This clips the square avatar to a circle */
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    background: #000;
+    /* Fallback background */
+}
+
+.avatar-img-content {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.highlight-ring {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    box-sizing: border-box;
+    z-index: 2;
+    /* Above image, below frame overlay */
+    pointer-events: none;
+    transition: border-color 0.1s, box-shadow 0.1s;
+}
+
+.avatar-wrapper-overlay .avatar-border-overlay {
+    position: absolute;
+    top: -5%;
+    left: -5%;
+    width: 110%;
+    height: 110%;
+    pointer-events: none;
+    z-index: 3;
+    /* Topmost decoration */
+}
+
+.avatar-wrapper-overlay.highlight {
+    transform: scale(1.15);
+    z-index: 10;
+}
+
+.avatar-wrapper-overlay.highlight .highlight-ring {
+    border-color: #facc15;
+    box-shadow: 0 0 20px #facc15, 0 0 40px #d97706;
+}
+
+.selection-text-centered {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #facc15;
+    font-size: 24px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    animation: pulse 1.5s infinite;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+    z-index: 2002;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 10px 20px;
+    border-radius: 10px;
 }
 </style>
 

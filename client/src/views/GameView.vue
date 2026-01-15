@@ -6,7 +6,7 @@ import { useSettingsStore } from '../stores/settings.js';
 
 import CoinLayer from '../components/CoinLayer.vue';
 import DealingLayer from '../components/DealingLayer.vue';
-import ChatBubbleSelector from '../components/ChatBubbleSelector.vue';
+
 import SettingsModal from '../components/SettingsModal.vue';
 import HelpModal from '../components/HelpModal.vue';
 import HistoryModal from '../components/HistoryModal.vue';
@@ -17,17 +17,7 @@ import gameClient from '../socket.js';
 import { showToast as vantToast } from 'vant';
 import PokerCard from '../components/PokerCard.vue';
 
-import talk0 from '@/assets/sounds/talk_0.mp3';
-import talk1 from '@/assets/sounds/talk_1.mp3';
-import talk2 from '@/assets/sounds/talk_2.mp3';
-import talk3 from '@/assets/sounds/talk_3.mp3';
-import talk4 from '@/assets/sounds/talk_4.mp3';
-import talk5 from '@/assets/sounds/talk_5.mp3';
-import talk6 from '@/assets/sounds/talk_6.mp3';
-import talk7 from '@/assets/sounds/talk_7.mp3';
-import talk8 from '@/assets/sounds/talk_8.mp3';
-import talk9 from '@/assets/sounds/talk_9.mp3';
-import talk10 from '@/assets/sounds/talk_10.mp3';
+
 import gameBgSound from '@/assets/sounds/game_bg.mp3';
 import iconGameStart from '../assets/common/game_start.png';
 import gameStartSound from '@/assets/sounds/game_start.mp3';
@@ -45,7 +35,7 @@ import goldImg from '@/assets/common/gold.png';
 import zhuangImg from '@/assets/common/zhuang.png';
 import tanpaiImg from '@/assets/common/tanpai.png';
 import gameTopDifenBg from '@/assets/common/game_top_difen_bg.png';
-import gameChatBtnImg from '@/assets/common/game_chat_btn.png';
+
 import avatarFrameImg from '@/assets/common/avatar_circle.png';
 import userInfoBgImg from '@/assets/common/user_info_rect.png';
 
@@ -120,19 +110,7 @@ const getMultiplierImageUrl = (multiplier) => {
     return multiplierImageMap[multiplier] || null;
 };
 
-const phraseSounds = [
-    talk0, talk1, talk2, talk3, talk4, talk5, talk6, talk7, talk8, talk9, talk10
-];
 
-const playPhraseSound = (index) => {
-    // Check global sound setting
-    if (!settingsStore.soundEnabled) return;
-
-    if (index >= 0 && index < phraseSounds.length) {
-        const audio = new Audio(phraseSounds[index]);
-        audio.play().catch(() => { });
-    }
-};
 
 const store = useGameStore();
 
@@ -212,55 +190,7 @@ const resultAnimClass = ref('');
 const showResultAnim = ref(false);
 const resultTypeClass = ref('');
 
-// Chat/Emoji selector state
-const showChatSelector = ref(false);
 const showSettings = ref(false);
-const playerSpeech = ref(new Map());
-
-// Cooldown mechanism
-const lastSpeechTime = ref(0);
-const SPEECH_COOLDOWN_SECONDS = 3;
-const cooldownMessage = ref('');
-const showToast = ref(false);
-
-const checkCooldown = () => {
-    const currentTime = Date.now();
-    if (currentTime - lastSpeechTime.value < SPEECH_COOLDOWN_SECONDS * 1000) {
-        cooldownMessage.value = '您说话太快了，先休息一下吧！';
-        showToast.value = true;
-        setTimeout(() => {
-            showToast.value = false;
-        }, 2000);
-        return false;
-    }
-    lastSpeechTime.value = currentTime;
-    return true;
-};
-
-const onPhraseSelected = (phrase, index) => {
-    if (!checkCooldown()) {
-        return;
-    }
-    store.sendPlayerTalk(0, index); // Send PlayerTalk command
-    // Local display will be handled by PushTalk from server
-    // playPhraseSound(index); // Sound will be triggered by PushTalk
-    // playerSpeech.value.set(store.myPlayerId, { type: 'text', content: phrase });
-    // setTimeout(() => {
-    //     playerSpeech.value.delete(store.myPlayerId);
-    // }, 3000);
-};
-
-const onEmojiSelected = (emojiUrl, index) => { // Added index parameter
-    if (!checkCooldown()) {
-        return;
-    }
-    store.sendPlayerTalk(1, index); // Send PlayerTalk command
-    // Local display will be handled by PushTalk from server
-    // playerSpeech.value.set(store.myPlayerId, { type: 'emoji', content: emojiUrl });
-    // setTimeout(() => {
-    //     playerSpeech.value.delete(store.myPlayerId);
-    // }, 3000);
-};
 
 // Banker selection animation state
 const currentlyHighlightedPlayerId = ref(null);
@@ -274,41 +204,9 @@ const showAutoJoinMessage = ref(false);
 
 // Robot Speech/Emoji Logic Removed (now server-driven)
 
-const commonPhrases = [
-    "猜猜我是牛几呀",
-    "风水轮流转，底裤都要输光了",
-    "辛苦这么多年，一夜回到解放前",
-    "我又赢了，谢谢大家送钱",
-    "快点开牌，我是牛牛",
-    "唉，一手烂牌臭到底",
-    "快点吧，我等的花都谢了",
-    "吐了个槽的，整个一个杯具啊",
-    "你的牌也太好啦",
-    "不要吵啦，有什么好吵的，专心玩牌吧",
-    "作孽啊"
-];
 
-import emoji1 from '@/assets/emoji/emoji_0.png';
-import emoji2 from '@/assets/emoji/emoji_1.png';
-import emoji3 from '@/assets/emoji/emoji_2.png';
-import emoji4 from '@/assets/emoji/emoji_3.png';
-import emoji5 from '@/assets/emoji/emoji_4.png';
-import emoji6 from '@/assets/emoji/emoji_5.png';
-import emoji7 from '@/assets/emoji/emoji_6.png';
-import emoji8 from '@/assets/emoji/emoji_7.png';
-import emoji9 from '@/assets/emoji/emoji_8.png';
-import emoji10 from '@/assets/emoji/emoji_9.png';
-import emoji11 from '@/assets/emoji/emoji_10.png';
-import emoji12 from '@/assets/emoji/emoji_11.png';
-import emoji13 from '@/assets/emoji/emoji_12.png';
-import emoji14 from '@/assets/emoji/emoji_13.png';
-import emoji15 from '@/assets/emoji/emoji_14.png';
-import emoji16 from '@/assets/emoji/emoji_15.png';
 
-const allEmojis = [
-    emoji1, emoji2, emoji3, emoji4, emoji5, emoji6, emoji7, emoji8,
-    emoji9, emoji10, emoji11, emoji12, emoji13, emoji14, emoji15, emoji16
-];
+
 
 const showMenu = ref(false);
 const showHistory = ref(false);
@@ -469,47 +367,7 @@ const isControlsContentVisible = computed(() => {
     return false;
 });
 
-watch(() => [...store.playerSpeechQueue], (newQueue) => { // Watch a copy to trigger on push
-    if (newQueue.length > 0) {
-        const speechEvent = newQueue[0]; // Process the first event in the queue
-        const { userId, type, index } = speechEvent;
 
-        // Check for mute users setting - ignore others if muted
-        if (settingsStore.muteUsers && userId !== store.myPlayerId) {
-            store.playerSpeechQueue.shift();
-            return;
-        }
-
-        // Play sound if not muted and it's a phrase
-        if (settingsStore.soundEnabled && type === 0) {
-            playPhraseSound(index);
-        }
-
-        // Determine content for display
-        let content = '';
-        if (type === 0 && commonPhrases[index]) {
-            content = commonPhrases[index];
-        } else if (type === 1 && allEmojis[index]) {
-            content = allEmojis[index];
-        } else {
-            console.warn(`[GameView] Unknown speech type/index: Type=${type}, Index=${index}`);
-            return;
-        }
-
-        // Update playerSpeech map for display
-        playerSpeech.value.set(userId, { type: type === 0 ? 'text' : 'emoji', content: content });
-        playerSpeech.value = new Map(playerSpeech.value); // Trigger reactivity for Map
-
-        // Remove speech bubble after 3 seconds
-        setTimeout(() => {
-            playerSpeech.value.delete(userId);
-            playerSpeech.value = new Map(playerSpeech.value); // Trigger reactivity for Map
-        }, 3000);
-
-        // Remove the processed event from the queue
-        store.playerSpeechQueue.shift();
-    }
-}, { deep: true });
 
 // Watch Music Setting
 watch(() => settingsStore.musicEnabled, (val) => {
@@ -1037,9 +895,7 @@ const quitGameDebounced = debounce(() => {
     gameClient.send("QZNN.PlayerLeave", { RoomId: store.roomId });
 }, 500);
 
-const toggleShowChatSelector = debounce(() => {
-    showChatSelector.value = !showChatSelector.value;
-}, 500);
+
 
 const closeHistoryDebounced = debounce(() => {
     showHistory.value = false;
@@ -1071,18 +927,7 @@ const networkStatusClass = computed(() => {
 });
 
 // Card Calculation Logic
-// Speech Bubble Helpers
-const getSpeech = (playerId) => playerSpeech.value.get(playerId);
 
-const showSpeechBubble = (playerId) => {
-    const s = getSpeech(playerId);
-    return s && s.content;
-};
-
-const getSpeechBubbleStyle = (playerId) => {
-    // Return empty to let CSS handle width (responsive)
-    return {};
-};
 
 const selectedCardIndices = ref([]);
 
@@ -1321,7 +1166,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
                     :position="getLayoutType(index + 1)"
                     :visible-card-count="visibleCounts[p.id] !== undefined ? visibleCounts[p.id] : 0"
                     :is-ready="p.isReady" :is-animating-highlight="p.id === currentlyHighlightedPlayerId"
-                    :speech="playerSpeech.get(p.id)" :trigger-banker-animation="showBankerConfirmAnim && p.isBanker"
+                    :trigger-banker-animation="showBankerConfirmAnim && p.isBanker"
                     :is-win="!!winEffects[p.id]" />
 
                 <div v-else class="empty-seat">
@@ -1509,20 +1354,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
 
 
-                        <!-- Speech Bubble -->
 
-                        <div v-show="showSpeechBubble(myPlayer.id)" class="speech-bubble"
-                            :style="getSpeechBubbleStyle(myPlayer.id)"
-                            :class="{ 'speech-visible': showSpeechBubble(myPlayer.id) }">
-
-                            <span v-if="getSpeech(myPlayer.id) && getSpeech(myPlayer.id).type === 'text'">{{
-
-                                getSpeech(myPlayer.id).content }}</span>
-
-                            <img v-else-if="getSpeech(myPlayer.id) && getSpeech(myPlayer.id).type === 'emoji'"
-                                :src="getSpeech(myPlayer.id).content" class="speech-emoji" />
-
-                        </div>
 
                     </div>
 
@@ -1595,13 +1427,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
 
 
-                <!-- Chat button -->
 
-                <div class="chat-toggle-btn" @click="toggleShowChatSelector()">
-
-                    <img :src="gameChatBtnImg" class="chat-btn-img" />
-
-                </div>
 
                 <!-- My Score Float -->
                 <div v-if="myPlayer.roundScore !== 0 && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)"
@@ -1687,18 +1513,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
         <HelpModal v-model:visible="showHelp" :mode="store.gameMode" />
 
-        <!-- Wrap ChatBubbleSelector to avoid nextSibling error -->
-        <div>
-            <ChatBubbleSelector v-model:visible="showChatSelector" @selectPhrase="onPhraseSelected"
-                @selectEmoji="onEmojiSelected" />
-        </div>
 
-        <!-- Cooldown Toast -->
-        <transition name="toast-fade">
-            <div v-if="showToast" class="cooldown-toast">
-                {{ cooldownMessage }}
-            </div>
-        </transition>
     </div>
 </template>
 
@@ -2089,127 +1904,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
     }
 }
 
-.speech-bubble {
-    position: absolute;
-    bottom: 100%;
-    /* Position above avatar */
-    left: 50%;
-    /* Center horizontally */
-    transform: translateX(-50%) translateY(-10px);
-    /* Base position for centering and gap */
-    opacity: 0;
-    /* Initially hidden */
-    background: linear-gradient(to bottom, #f9fafb, #e5e7eb);
-    /* Light background */
-    border: 1px solid #d1d5db;
-    border-radius: 12px;
-    padding: 6px 10px;
-    font-size: 14px;
-    color: #333;
-    white-space: normal;
-    /* Allow normal text wrapping */
-    word-break: break-all;
-    /* Break long words */
-    z-index: 190;
-    /* High z-index to be above cards but below modals */
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    display: inline-flex;
-    /* Use inline-flex for adaptive width */
-    align-items: center;
-    /* Vertically center content */
-    justify-content: center;
-    /* Horizontally center content */
-    text-align: center;
-    /* Center text when wrapped */
-    max-width: 170px;
-    /* Max width for longer phrases (e.g., 2 lines of ~10 chars + padding) */
-    /* animation is now controlled by .speech-visible class */
-    transition: opacity 0.3s ease-out;
-    /* Smooth fade in/out */
-}
 
-.speech-bubble.speech-visible {
-    opacity: 1;
-    animation: speechBubbleBounceIn 0.3s ease-out forwards;
-}
-
-.speech-bubble::before {
-    content: '';
-    position: absolute;
-    top: 100%;
-    /* Position at bottom of bubble */
-    left: 50%;
-    transform: translateX(-50%) translateY(-2px);
-    /* Center and overlap slightly */
-    width: 0;
-    height: 0;
-    border-left: 10px solid transparent;
-    border-right: 10px solid transparent;
-    border-top: 12px solid #e5e7eb;
-    /* Tail color matches bubble */
-    z-index: 51;
-}
-
-.speech-bubble::after {
-    content: '';
-    position: absolute;
-    top: 100%;
-    /* Position at bottom of bubble (inner) */
-    left: 50%;
-    transform: translateX(-50%) translateY(-3px);
-    /* Center and overlap slightly */
-    width: 0;
-    height: 0;
-    border-left: 8px solid transparent;
-    /* Inner tail slightly smaller */
-    border-right: 8px solid transparent;
-    border-top: 10px solid #f9fafb;
-    /* Tail color matches bubble inner */
-    z-index: 52;
-}
-
-.speech-emoji {
-    width: 30px;
-    height: 30px;
-    object-fit: contain;
-}
-
-@keyframes speechBubbleBounceIn {
-
-    from,
-    20%,
-    40%,
-    60%,
-    80%,
-    to {
-        animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
-    }
-
-    from {
-        /* Maintain base transform, animate scale only */
-        transform: translateX(-50%) translateY(-10px) scale3d(0.3, 0.3, 0.3);
-    }
-
-    20% {
-        transform: translateX(-50%) translateY(-10px) scale3d(1.1, 1.1, 1.1);
-    }
-
-    40% {
-        transform: translateX(-50%) translateY(-10px) scale3d(0.9, 0.9, 0.9);
-    }
-
-    60% {
-        transform: translateX(-50%) translateY(-10px) scale3d(1.03, 1.03, 1.03);
-    }
-
-    80% {
-        transform: translateX(-50%) translateY(-10px) scale3d(0.97, 0.97, 0.97);
-    }
-
-    to {
-        transform: translateX(-50%) translateY(-10px) scale3d(1, 1, 1);
-    }
-}
 
 /* 顶部栏 */
 .top-bar {
@@ -2762,14 +2457,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
     /* Approx 75px on mobile, clears cards only */
 }
 
-/* Position chat button absolutely to the right */
-.my-player-info-row .chat-toggle-btn {
-    position: absolute;
-    right: 20px;
-    /* Align with padding */
-    top: 73%;
-    transform: translateY(-50%);
-}
+
 
 .my-player-info-row .avatar-border-overlay {
     position: absolute;
@@ -2894,31 +2582,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
     animation: pulse 2s infinite;
 }
 
-.chat-toggle-btn {
-    bottom: 20px;
-    right: 20px;
-    /* Removed width and height to allow padding to control size */
 
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    box-shadow: none;
-    /* Remove box-shadow for consistency with menu-btn */
-    cursor: pointer;
-    z-index: 100;
-    transition: transform 0.1s;
-}
-
-.chat-btn-img {
-    width: 30px;
-    height: auto;
-    object-fit: contain;
-    margin-right: 10px;
-}
-
-.chat-toggle-btn:active {
-    transform: scale(0.95);
-}
 
 @keyframes pulse {
     0% {
@@ -2934,31 +2598,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
     }
 }
 
-.cooldown-toast {
-    position: fixed;
-    bottom: 100px;
-    /* Position above the chat button */
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    padding: 10px 20px;
-    border-radius: 8px;
-    font-size: 16px;
-    z-index: 10001;
-    /* Ensure it's on top */
-    white-space: nowrap;
-}
 
-.toast-fade-enter-active,
-.toast-fade-leave-active {
-    transition: opacity 0.5s ease;
-}
-
-.toast-fade-enter-from,
-.toast-fade-leave-to {
-    opacity: 0;
-}
 
 /* Status Float Pop-up Animation */
 .pop-up-enter-active,

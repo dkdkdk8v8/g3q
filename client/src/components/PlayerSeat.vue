@@ -303,7 +303,7 @@ const displayName = computed(() => {
                     <Transition :name="slideTransitionName">
                         <div v-if="shouldShowBetMult" class="status-content">
                             <span class="status-text bet-text" :class="{ 'text-large': isMe }">押{{ player.betMultiplier
-                            }}倍</span>
+                                }}倍</span>
                         </div>
                     </Transition>
                 </div>
@@ -800,11 +800,11 @@ const displayName = computed(() => {
 
     right: -5px;
 
-    width: 27px;
-    /* Slightly reduced size */
+    width: 21px;
+    /* 3/4 of original size (24px) */
 
-    height: 27px;
-    /* Slightly reduced size */
+    height: 21px;
+    /* 3/4 of original size (24px) */
 
     /* 使用 flex 完美居中 */
 

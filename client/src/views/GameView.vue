@@ -1288,7 +1288,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
                             <div v-if="shouldShowRobMult" class="status-content">
                                 <span v-if="myPlayer.robMultiplier > 0" class="status-text rob-text text-large">抢{{
                                     myPlayer.robMultiplier
-                                }}倍</span>
+                                    }}倍</span>
                                 <span v-else class="status-text no-rob-text text-large">不抢</span>
                             </div>
                         </Transition>
@@ -2307,10 +2307,10 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     /* Position at the top edge of info-box, with slight offset */
     right: -5px;
     /* Position at the right edge of info-box, with slight offset */
-    width: 27px;
-    /* Slightly reduced size */
-    height: 27px;
-    /* Slightly reduced size */
+    width: 21px;
+    /* 3/4 of original size (24px) */
+    height: 21px;
+    /* 3/4 of original size (24px) */
     /* 使用 flex 完美居中 */
     display: flex;
     justify-content: center;
@@ -2620,7 +2620,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 .pop-up-enter-active,
 .pop-up-leave-active {
     transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-    transform-origin: bottom center; /* Changed from center left */
+    transform-origin: bottom center;
+    /* Changed from center left */
 }
 
 .pop-up-enter-from {

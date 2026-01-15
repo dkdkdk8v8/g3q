@@ -16,12 +16,12 @@
 
         <el-card shadow="never" class="chart-card">
             <el-row :gutter="20">
-                <el-col :span="16">
+                <el-col :xs="24" :sm="24" :md="24" :lg="16" :xl="16" class="mb-10">
                     <div class="chart-box" ref="chartBoxRef">
                         <v-chart ref="chartRef" :option="chartOption" autoresize />
                     </div>
                 </el-col>
-                <el-col :span="8">
+                <el-col :xs="24" :sm="24" :md="24" :lg="8" :xl="8" class="mb-10">
                     <div class="chart-box">
                         <v-chart :option="barRankOption" autoresize />
                     </div>
@@ -235,6 +235,11 @@ function updateChart() {
     }
 
     chartOption.value = {
+        title: {
+            text: '牌型趋势',
+            left: 'center',
+            textStyle: { color: textColor }
+        },
         color: colors,
         tooltip: {
             trigger: 'axis',

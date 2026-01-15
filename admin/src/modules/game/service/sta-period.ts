@@ -406,6 +406,22 @@ export class StaPeriodService extends BaseService {
         accumulate(dataMap.yesterday);
         accumulate(dataMap.lastWeek);
 
+        const calculateRate = (arr: any[]) => {
+            for (const item of arr) {
+                if (item.betAmount === null || item.betAmount === undefined) {
+                    item.platformKillRate = null;
+                } else if (Number(item.betAmount) !== 0) {
+                    item.platformKillRate = Number(item.gameWin) / Number(item.betAmount);
+                } else {
+                    item.platformKillRate = 0;
+                }
+            }
+        };
+
+        calculateRate(dataMap.current);
+        calculateRate(dataMap.yesterday);
+        calculateRate(dataMap.lastWeek);
+
         result.current = dataMap.current;
         result.yesterday = dataMap.yesterday;
         result.lastWeek = dataMap.lastWeek;
@@ -429,20 +445,26 @@ export class StaPeriodService extends BaseService {
 
         const list = await this.staPeriodEntity.find({
             where,
-            select: ['timeKey', 'cardResult']
+            select: ['timeKey', 'cardResult', 'cartCount']
         });
 
         // 0-23 hours
-        const result = Array.from({ length: 24 }, () => ({}));
+        const hourly = Array.from({ length: 24 }, () => ({}));
+        const cardCount = new Array(52).fill(0);
 
         for (const item of list) {
             const hour = moment(item.timeKey).hour();
             const cardResult = item.cardResult || {};
             for (const key in cardResult) {
-                result[hour][key] = (result[hour][key] || 0) + Number(cardResult[key]);
+                hourly[hour][key] = (hourly[hour][key] || 0) + Number(cardResult[key]);
+            }
+
+            const cc = item.cartCount || [];
+            for (let i = 0; i < 52; i++) {
+                cardCount[i] += (Number(cc[i]) || 0);
             }
         }
 
-        return result;
+        return { hourly, cardCount };
     }
 }

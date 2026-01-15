@@ -9,7 +9,7 @@
                 <div style="flex: 1"></div>
 
                 <el-radio-group v-model="duration" @change="refresh">
-                    <el-radio-button v-for="(item, index) in options.sta_duration" :key="index" :label="item.value">
+                    <el-radio-button v-for="(item, index) in options.sta_duration" :key="index" :value="item.value">
                         {{ item.label }}
                     </el-radio-button>
                 </el-radio-group>
@@ -67,6 +67,7 @@ const metrics = [
     { key: 'betCount', title: '投注次数', isMoney: false },
     { key: 'betAmount', title: '投注金额', isMoney: true },
     { key: 'gameWin', title: '平台盈亏', isMoney: true },
+    { key: 'platformKillRate', title: '平台杀率', isMoney: false, isRate: true },
 ];
 
 const loadingOptions = computed(() => {
@@ -105,8 +106,9 @@ async function refresh() {
 function generateCharts(data: any) {
     const hours = data.hours || [];
 
-    const getValue = (val: any, isMoney: boolean) => {
+    const getValue = (val: any, isMoney: boolean, isRate?: boolean) => {
         if (val === null || val === undefined) return null;
+        if (isRate) return Number((val * 100).toFixed(2));
         return isMoney ? Number((val / 100).toFixed(2)) : val;
     };
 
@@ -142,7 +144,7 @@ function generateCharts(data: any) {
     const textColor = getVar('--el-text-color-primary');
     const borderColor = getVar('--el-border-color-lighter');
 
-    metrics.forEach((m, i) => {
+    metrics.forEach((m: any, i) => {
         const option = {
             title: {
                 text: m.title,
@@ -157,7 +159,7 @@ function generateCharts(data: any) {
                     let res = `${params[0].axisValueLabel}<br/>`;
                     params.forEach(item => {
                         const val = (item.value === null || item.value === undefined) ? '-' : item.value;
-                        res += `${item.marker} ${item.seriesName}: ${val}<br/>`;
+                        res += `${item.marker} ${item.seriesName}: ${val}${m.isRate ? '%' : ''}<br/>`;
                     });
                     return res;
                 }
@@ -194,21 +196,21 @@ function generateCharts(data: any) {
                     areaStyle: {
                         color: getRgba(primary, 0.3)
                     },
-                    data: data.current.map((e: any) => getValue(e[m.key], m.isMoney)),
+                    data: data.current.map((e: any) => getValue(e[m.key], m.isMoney, m.isRate)),
                 },
                 {
                     name: '前一天',
                     type: 'line',
                     smooth: true,
                     symbol: 'none',
-                    data: data.yesterday.map((e: any) => getValue(e[m.key], m.isMoney)),
+                    data: data.yesterday.map((e: any) => getValue(e[m.key], m.isMoney, m.isRate)),
                 },
                 {
                     name: '上周同期',
                     type: 'line',
                     smooth: true,
                     symbol: 'none',
-                    data: data.lastWeek.map((e: any) => getValue(e[m.key], m.isMoney)),
+                    data: data.lastWeek.map((e: any) => getValue(e[m.key], m.isMoney, m.isRate)),
                 },
             ],
         };

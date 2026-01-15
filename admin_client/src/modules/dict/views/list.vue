@@ -29,20 +29,10 @@
 				<cl-upsert ref="Upsert">
 					<template #slot-value="{ scope }">
 						<div>
-							<el-input
-								v-model="scope.value"
-								:placeholder="$t('请填写值')"
-								clearable
-								type="textarea"
-								:rows="4"
-								class="mb-2"
-							/>
+							<el-input v-model="scope.value" :placeholder="$t('请填写值')" clearable type="textarea"
+								:rows="4" class="mb-2" />
 
-							<cl-upload-space
-								:text="$t('使用文件')"
-								:limit="1"
-								@confirm="onFileConfirm"
-							/>
+							<cl-upload-space :text="$t('使用文件')" :limit="1" @confirm="onFileConfirm" />
 						</div>
 					</template>
 				</cl-upsert>
@@ -196,13 +186,13 @@ const Table = useTable({
 			type: 'selection'
 		},
 		{ label: t('名称'), prop: 'name', align: 'left', minWidth: 200 },
-		{ label: t('ID'), prop: 'id', minWidth: 120 },
 		{
 			label: t('值'),
 			prop: 'value',
 			minWidth: 200,
 			showOverflowTooltip: true
 		},
+		{ label: t('ID'), prop: 'id', minWidth: 120 },
 		{
 			label: t('备注'),
 			prop: 'remark',

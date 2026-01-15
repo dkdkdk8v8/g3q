@@ -708,7 +708,7 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
                     const audio = new Audio(randomBankSound);
                     audio.play().catch(() => { });
                 }
-            }, 100);
+            }, 150);
         }
     }
 

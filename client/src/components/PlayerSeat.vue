@@ -886,7 +886,7 @@ const shouldMoveStatusFloat = computed(() => {
     background-image: var(--bg-img);
     background-size: 100% 100%;
     background-repeat: no-repeat;
-    opacity: 0.8;
+    opacity: 0.65;
     z-index: 0;
 }
 

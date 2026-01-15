@@ -708,7 +708,7 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
                     const audio = new Audio(randomBankSound);
                     audio.play().catch(() => { });
                 }
-            }, 200);
+            }, 100);
         }
     }
 
@@ -1214,8 +1214,6 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                 </div>
 
-                <div class="selection-text-centered">正在随机选庄...</div>
-
             </div>
 
         </transition>
@@ -1563,7 +1561,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                                     myPlayer.robMultiplier
 
-                                }}倍</span>
+                                    }}倍</span>
 
                                 <span v-else class="status-text no-rob-text text-large">不抢</span>
 
@@ -2666,7 +2664,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
     background-image: var(--bg-img);
     background-size: 100% 100%;
     background-repeat: no-repeat;
-    opacity: 0.8;
+    opacity: 0.65;
     z-index: 0;
 }
 
@@ -3560,23 +3558,6 @@ const shouldMoveStatusToHighPosition = computed(() => {
 .avatar-wrapper-overlay.highlight .highlight-ring {
     border-color: #facc15;
     box-shadow: 0 0 20px #facc15, 0 0 40px #d97706;
-}
-
-.selection-text-centered {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: #facc15;
-    font-size: 24px;
-    font-weight: bold;
-    letter-spacing: 2px;
-    animation: pulse 1.5s infinite;
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
-    z-index: 2002;
-    background: rgba(0, 0, 0, 0.4);
-    padding: 10px 20px;
-    border-radius: 10px;
 }
 </style>
 

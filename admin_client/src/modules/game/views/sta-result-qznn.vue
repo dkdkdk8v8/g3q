@@ -379,14 +379,14 @@ function updateCardCountChart(data: number[]) {
 
     // 顺序参考: 0-3 (A♠, A♥, A♣, A♦), 4-7 (2♠, 2♥, 2♣, 2♦)...
     const rankMap = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
-    const suitMap = ["♠", "♥", "♣", "♦"];
+    const suitMap = ["♠️", "♥️", "♣️", "♦️"];
 
     // 4色配色：黑、红、绿、蓝
     const suitColors = [
-        isDark.value ? '#E5EAF3' : '#303133', // ♠
-        '#f56c6c', // ♥
-        '#67c23a', // ♣
-        '#409eff'  // ♦
+        '#435188', // ♠
+        '#f2637b', // ♥
+        '#36cbcb', // ♣
+        '#4ecb73'  // ♦
     ];
 
     const seriesList: any[] = [];

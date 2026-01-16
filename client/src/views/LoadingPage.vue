@@ -288,7 +288,7 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
+  min-height: 100dvh;
   background-color: #2c3e50;
   color: #ecf0f1;
   font-family: Arial, sans-serif;

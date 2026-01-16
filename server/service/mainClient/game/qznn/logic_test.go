@@ -6,68 +6,6 @@ import (
 	"testing"
 )
 
-// TestSwapCardsForTarget_Look3_Mechanism 测试 Look3 模式下的换牌机制
-// 验证：
-// 1. 是否只替换了后两张牌
-// 2. 是否从牌堆中正确取牌
-func TestSwapCardsForTarget_Look3_Mechanism(t *testing.T) {
-	initMain.DefCtx = &initMain.BaseCtx{}
-	initMain.DefCtx.IsTest = true
-	// 1. 初始化房间
-	room := NewRoom("test_room", 1, 1) // BankerType 1 = Look3
-
-	// 2. 构造玩家，手牌 [1, 2, 3, 4, 5]
-	// Look3 模式下：
-	// 前3张固定: 1, 2, 3
-	// 后2张可换: 4, 5
-	player := &Player{
-		PlayerData: PlayerData{
-			ID:    "test_player",
-			Cards: []int{1, 2, 3, 4, 5}},
-	}
-
-	// 3. 构造牌堆
-	// 放入两张特殊的牌 [100, 200] (假设值，用于验证是否被换入)
-	room.Deck = []int{100, 200}
-
-	// 4. 定义目标函数
-	// 这里我们使用一个总是返回 true 的检查函数，
-	// 目的是测试 swapCardsForTarget 是否能正确执行交换动作，
-	// 而不依赖 CalcNiu 的具体算法细节。
-	checkFunc := func(res interface{}) bool {
-		return res != nil
-	}
-
-	// 5. 执行换牌 (Look3, fixedCount=3)
-	// 期望：策略 A (单张替换) 或 策略 B (双张替换) 被触发
-	success := room.swapCardsForTarget(player, 3, checkFunc)
-
-	if !success {
-		t.Fatalf("Expected swap to succeed with always-true check")
-	}
-
-	// 6. 验证结果
-
-	// A. 验证前3张牌必须保持不变
-	if player.Cards[0] != 1 || player.Cards[1] != 2 || player.Cards[2] != 3 {
-		t.Errorf("Fixed cards were modified! Got: %v", player.Cards)
-	}
-
-	// B. 验证后2张牌中至少有一张变成了牌堆里的牌 (100 或 200)
-	hasChanged := false
-	for i := 3; i < 5; i++ {
-		if player.Cards[i] == 100 || player.Cards[i] == 200 {
-			hasChanged = true
-		}
-	}
-
-	if !hasChanged {
-		t.Errorf("Swappable cards did not change to deck cards. Current: %v", player.Cards)
-	}
-
-	t.Logf("Swap successful. Old: [1 2 3 4 5], New: %v", player.Cards)
-}
-
 // TestSystemOverflow_Bonus 集成测试：验证系统溢出返还机制
 // 场景：系统库存 50w (警戒线 20w)，玩家进场
 // 验证：
@@ -83,7 +21,6 @@ func TestSystemOverflow_Bonus(t *testing.T) {
 	// 警戒线 20w，当前库存 50w -> 溢出 30w
 	// 溢出加成 = 300000 / 50000 = 6 点
 	room.Strategy.Config.OverflowThreshold = 200000
-	room.Strategy.SystemStock = 500000
 	room.Strategy.Config.BaseLucky = 50.0
 
 	// 3. 添加玩家

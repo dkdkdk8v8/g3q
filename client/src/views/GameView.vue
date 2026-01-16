@@ -889,14 +889,23 @@ const startGameDebounced = debounce(() => {
 }, 500);
 
 const openHistoryDebounced = debounce(() => {
+    if (settingsStore.soundEnabled) {
+        new Audio(btnClickSound).play().catch(() => { });
+    }
     showHistory.value = true;
 }, 500);
 
 const openSettingsDebounced = debounce(() => {
+    if (settingsStore.soundEnabled) {
+        new Audio(btnClickSound).play().catch(() => { });
+    }
     showSettings.value = true;
 }, 500);
 
 const quitGameDebounced = debounce(() => {
+    if (settingsStore.soundEnabled) {
+        new Audio(btnClickSound).play().catch(() => { });
+    }
     gameClient.send("QZNN.PlayerLeave", { RoomId: store.roomId });
 }, 500);
 
@@ -911,6 +920,12 @@ const closeSettingsDebounced = debounce(() => {
 }, 500);
 
 const openHelpDebounced = debounce(() => {
+
+    if (settingsStore.soundEnabled) {
+
+        new Audio(btnClickSound).play().catch(() => { });
+
+    }
 
     showHelp.value = true;
 }, 500);
@@ -1078,35 +1093,35 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
         <!-- 顶部栏 -->
 
-                <div class="top-bar">
+        <div class="top-bar">
 
-                    <!-- Left: Functional Buttons -->
+            <!-- Left: Functional Buttons -->
 
-                    <div class="top-left-btns">
+            <div class="top-left-btns">
 
-                        <img :src="btnExit" class="icon-btn" @click="quitGameDebounced" alt="Exit" />
+                <img :src="btnExit" class="icon-btn" @click="quitGameDebounced" alt="Exit" />
 
-                        <img :src="btnHistory" class="icon-btn" @click="openHistoryDebounced" alt="History" />
+                <img :src="btnHistory" class="icon-btn" @click="openHistoryDebounced" alt="History" />
 
-                        <img :src="btnHelp" class="icon-btn" @click="openHelpDebounced" alt="Help" />
+                <img :src="btnHelp" class="icon-btn" @click="openHelpDebounced" alt="Help" />
 
-                        <img :src="btnSetting" class="icon-btn" @click="openSettingsDebounced" alt="Settings" />
+                <img :src="btnSetting" class="icon-btn" @click="openSettingsDebounced" alt="Settings" />
 
-                    </div>
+            </div>
 
-        
 
-                    <!-- Network Latency -->
 
-                    <div class="network-badge" :class="networkStatusClass">
+            <!-- Network Latency -->
 
-                        <div class="wifi-dot"></div>
+            <div class="network-badge" :class="networkStatusClass">
 
-                        <span>{{ networkLatency }}ms</span>
+                <div class="wifi-dot"></div>
 
-                    </div>
+                <span>{{ networkLatency }}ms</span>
 
-                </div>
+            </div>
+
+        </div>
 
 
 
@@ -1131,8 +1146,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
                     :position="getLayoutType(index + 1)"
                     :visible-card-count="visibleCounts[p.id] !== undefined ? visibleCounts[p.id] : 0"
                     :is-ready="p.isReady" :is-animating-highlight="p.id === currentlyHighlightedPlayerId"
-                    :trigger-banker-animation="showBankerConfirmAnim && p.isBanker"
-                    :is-win="!!winEffects[p.id]" />
+                    :trigger-banker-animation="showBankerConfirmAnim && p.isBanker" :is-win="!!winEffects[p.id]" />
 
                 <div v-else class="empty-seat">
 
@@ -1366,7 +1380,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                                     myPlayer.robMultiplier
 
-                                    }}倍</span>
+                                }}倍</span>
 
                                 <span v-else class="status-text no-rob-text text-large">不抢</span>
 
@@ -1484,7 +1498,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 <style scoped>
 .game-table {
     width: 100vw;
-    height: 100vh;
+    height: 100dvh;
     background: url('@/assets/common/game_bg.jpg') no-repeat center center;
     background-size: 100% 100%;
     position: relative;
@@ -1629,9 +1643,11 @@ const shouldMoveStatusToHighPosition = computed(() => {
 /* New top-left buttons */
 .top-left-btns {
     display: flex;
-    gap: 8px; /* Space between buttons */
+    gap: 8px;
+    /* Space between buttons */
     align-items: center;
-    flex-shrink: 0; /* Prevent shrinking */
+    flex-shrink: 0;
+    /* Prevent shrinking */
 }
 
 .icon-btn {
@@ -1906,12 +1922,12 @@ const shouldMoveStatusToHighPosition = computed(() => {
 }
 
 .seat-right-top {
-    top: 15%;
+    top: 16%;
     right: 6vw;
 }
 
 .seat-left-top {
-    top: 15%;
+    top: 16%;
     left: 6vw;
 }
 

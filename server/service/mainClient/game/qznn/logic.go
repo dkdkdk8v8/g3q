@@ -1062,7 +1062,7 @@ func (r *QZNNRoom) startGame() {
 
 	// 【核心修改】在此处介入策略系统
 	// 在进入 StateDealing (发牌/补牌) 之前，根据倍数和库存调整手牌
-	r.applyStrategyRiskControl()
+	// r.applyStrategyRiskControl()
 
 	//补牌到5张，不看牌发5张，看3补2，看4
 	if !r.SetStatus([]RoomState{StateBetting}, StateDealing, 0) {

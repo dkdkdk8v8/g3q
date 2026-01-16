@@ -36,6 +36,12 @@ import zhuangImg from '@/assets/common/zhuang.png';
 import tanpaiImg from '@/assets/common/tanpai.png';
 import gameTopDifenBg from '@/assets/common/game_top_difen_bg.png';
 
+// Lobby style buttons
+import btnExit from '@/assets/lobby/exit_btn.png';
+import btnHelp from '@/assets/lobby/help_btn.png';
+import btnHistory from '@/assets/lobby/bet_history_btn.png';
+import btnSetting from '@/assets/lobby/sett_btn.png';
+
 import avatarFrameImg from '@/assets/common/avatar_circle.png';
 import userInfoBgImg from '@/assets/common/user_info_rect.png';
 import defaultAvatar from '@/assets/common/default_avatar.png';
@@ -209,7 +215,7 @@ const showAutoJoinMessage = ref(false);
 
 
 
-const showMenu = ref(false);
+
 const showHistory = ref(false);
 const showHelp = ref(false);
 
@@ -883,12 +889,10 @@ const startGameDebounced = debounce(() => {
 }, 500);
 
 const openHistoryDebounced = debounce(() => {
-    showMenu.value = false;
     showHistory.value = true;
 }, 500);
 
 const openSettingsDebounced = debounce(() => {
-    showMenu.value = false;
     showSettings.value = true;
 }, 500);
 
@@ -907,7 +911,7 @@ const closeSettingsDebounced = debounce(() => {
 }, 500);
 
 const openHelpDebounced = debounce(() => {
-    showMenu.value = false;
+
     showHelp.value = true;
 }, 500);
 
@@ -915,9 +919,7 @@ const closeHelpDebounced = debounce(() => {
     showHelp.value = false;
 }, 500);
 
-const toggleShowMenu = debounce(() => {
-    showMenu.value = !showMenu.value;
-}, 500);
+
 
 // Network Latency
 const networkLatency = ref(0);
@@ -1076,47 +1078,35 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
         <!-- 顶部栏 -->
 
-        <div class="top-bar">
+                <div class="top-bar">
 
-            <div class="menu-container">
+                    <!-- Left: Functional Buttons -->
 
-                <div class="menu-btn" @click.stop="toggleShowMenu()">
+                    <div class="top-left-btns">
 
-                    <van-icon name="wap-nav" size="20" color="white" />
+                        <img :src="btnExit" class="icon-btn" @click="quitGameDebounced" alt="Exit" />
 
-                    <span style="margin-left:4px;font-size:14px;">菜单</span>
+                        <img :src="btnHistory" class="icon-btn" @click="openHistoryDebounced" alt="History" />
+
+                        <img :src="btnHelp" class="icon-btn" @click="openHelpDebounced" alt="Help" />
+
+                        <img :src="btnSetting" class="icon-btn" @click="openSettingsDebounced" alt="Settings" />
+
+                    </div>
+
+        
+
+                    <!-- Network Latency -->
+
+                    <div class="network-badge" :class="networkStatusClass">
+
+                        <div class="wifi-dot"></div>
+
+                        <span>{{ networkLatency }}ms</span>
+
+                    </div>
 
                 </div>
-
-
-
-                                </div>
-
-
-
-                
-
-
-
-                                <!-- Network Latency -->
-
-
-
-                                <div class="network-badge" :class="networkStatusClass">
-
-
-
-                                    <div class="wifi-dot"></div>
-
-
-
-                                    <span>{{ networkLatency }}ms</span>
-
-
-
-                                </div>
-
-        </div>
 
 
 
@@ -1478,8 +1468,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
             </div>
         </div>
 
-        <!-- 全局点击关闭菜单 -->
-        <div v-if="showMenu" class="mask-transparent" @click="toggleShowMenu()"></div>
+
 
         <!-- Modals -->
         <HistoryModal v-model:visible="showHistory" />
@@ -1637,6 +1626,26 @@ const shouldMoveStatusToHighPosition = computed(() => {
     z-index: 300;
 }
 
+/* New top-left buttons */
+.top-left-btns {
+    display: flex;
+    gap: 8px; /* Space between buttons */
+    align-items: center;
+    flex-shrink: 0; /* Prevent shrinking */
+}
+
+.icon-btn {
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    transition: transform 0.1s;
+    object-fit: contain;
+}
+
+.icon-btn:active {
+    transform: scale(0.9);
+}
+
 .network-badge {
     display: flex;
     align-items: center;
@@ -1673,52 +1682,9 @@ const shouldMoveStatusToHighPosition = computed(() => {
     color: #ef4444;
 }
 
-.menu-dropdown {
-    position: absolute;
-    top: 40px;
-    left: 0;
-    width: 140px;
-    background: rgba(30, 41, 59, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    backdrop-filter: blur(10px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-    overflow: hidden;
-    animation: fadeIn 0.2s ease;
-}
 
-.menu-item {
-    padding: 12px 16px;
-    font-size: 14px;
-    color: white;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
 
-.menu-item:active {
-    background: rgba(255, 255, 255, 0.1);
-}
 
-.menu-item.danger {
-    color: #f87171;
-}
-
-.menu-divider {
-    height: 1px;
-    background: rgba(255, 255, 255, 0.1);
-    margin: 0 8px;
-}
-
-.mask-transparent {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 150;
-}
 
 /* 弹窗样式 */
 .modal-overlay {

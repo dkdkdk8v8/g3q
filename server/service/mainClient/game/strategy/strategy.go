@@ -2,16 +2,19 @@ package strategy
 
 import (
 	"math"
+	"math/rand"
 )
 
 // StrategyConfig 策略配置参数
 type StrategyConfig struct {
 	TargetProfitRate  float64 // 目标利润率 (e.g., 0.05 for 5%)
-	StockLine         int64   // 库存警戒线
+	ProtectK          float64 // 线性保护公式斜率 k
+	ProtectB          float64 // 线性保护公式截距 b
 	BaseLucky         float64 // 默认幸运值 (50)
 	HighRiskMult      int64   // 高风险倍数阈值 (抢庄*下注 > 此值时触发风控)
 	OverflowThreshold int64   // 溢出返还阈值 (库存超过此值时触发全员Lucky提升)
 	EnableNewbieBonus bool    // 是否开启新手光环
+	MinTurnover       int64   // 最小流水阈值 (低于此值时认为样本不足，不使用实时杀率)
 }
 
 // StrategyContext 策略上下文 (通用参数)
@@ -24,13 +27,19 @@ type StrategyContext struct {
 	RoomStock         int64 // 房间/系统库存 (SystemStock)
 	BaseBet           int64 // 房间底分
 
+	// 新增系统维度数据
+	KillRateYesterdayDelta float64 // 昨天已经产生的杀率补偿 系统昨日(UTC时间)盈利/ 系统昨日(UTC时间)流水 - 当时的系统 KillRateCfg
+	KillRateToday          float64 // 今日实时杀率 系统今日(UTC时间)盈利/ 系统今日(UTC时间)流水
+	SystemTurnoverToday    int64   // 今日系统流水
+
 	// 动态参数
-	TotalMult    int64 // 本局总倍数 (QZNN: 抢庄*下注, DDZ: 叫分*炸弹)
-	RiskExposure int64 // 本局风险敞口 (预计最大赔付额, 可选)
-	IsRobot      bool  // 是否机器人
-	IsNewbie     bool  // 是否新手 (例如: 局数 < 50)
-	WinningStreak int  // 连胜局数
-	LosingStreak  int  // 连败局数
+	TotalMult     int64 // 本局总倍数 (QZNN: 抢庄*下注, DDZ: 叫分*炸弹)
+	RiskExposure  int64 // 本局风险敞口 (预计最大赔付额, 可选)
+	IsRobot       bool  // 是否机器人
+	IsNewbie      bool  // 是否新手 (例如: 局数 < 50)
+	WinningStreak int   // 连胜局数
+	LosingStreak  int   // 连败局数
+
 }
 
 // IStrategyCore 策略核心接口
@@ -40,10 +49,6 @@ type IStrategyCore interface {
 
 	// ApplyRiskControl 实时风控修正 (下注/操作时调用)
 	ApplyRiskControl(baseLucky float64, ctx *StrategyContext) (finalLucky float64, isHighRisk bool)
-
-	// GetInventoryAction 获取库存干预指令 (发牌前调用)
-	// 返回：0-不干预, 1-强制赢, -1-强制输
-	GetInventoryAction(ctx *StrategyContext) int
 }
 
 // StrategyManager 通用策略管理器实现
@@ -152,12 +157,31 @@ func (s *StrategyManager) ApplyRiskControl(baseLucky float64, ctx *StrategyConte
 	}
 
 	// 2. 库存保护 (System Inventory Protection)
-	// 如果系统库存不足，额外压制 Lucky
-	if ctx.RoomStock < s.Config.StockLine {
+	// 改为基于利润率的梯度概率触发
+	shouldProtect := false
+
+	// 计算杀率贡献值：如果流水不足，使用目标杀率代替实时杀率，防止波动过大
+	var rateContribution float64
+	if ctx.SystemTurnoverToday > 0 && ctx.SystemTurnoverToday < s.Config.MinTurnover {
+		rateContribution = s.Config.ProtectK * s.Config.TargetProfitRate
+	} else {
+		rateContribution = s.Config.ProtectK * ctx.KillRateToday
+	}
+
+	// 线性公式: y = kx + b + delta
+	protectProb := rateContribution + s.Config.ProtectB + ctx.KillRateYesterdayDelta
+	if protectProb > 1.0 {
+		protectProb = 1.0
+	}
+	if protectProb > 0 && rand.Float64() < protectProb {
+		shouldProtect = true
+	}
+
+	if shouldProtect {
 		if isHighRisk {
-			tempLucky -= 15.0 // 高风险且库存不足，重罚
+			tempLucky -= 15.0 // 高风险且触发保护，重罚
 		} else {
-			tempLucky -= 5.0 // 普通情况库存不足，轻罚
+			tempLucky -= 5.0 // 普通情况触发保护，轻罚
 		}
 	}
 
@@ -165,16 +189,4 @@ func (s *StrategyManager) ApplyRiskControl(baseLucky float64, ctx *StrategyConte
 	finalLucky := math.Min(math.Max(tempLucky, 20.0), 85.0)
 
 	return finalLucky, isHighRisk
-}
-
-// GetInventoryAction 获取库存干预指令
-// 返回：0-不干预, 1-强制赢, -1-强制输
-func (s *StrategyManager) GetInventoryAction(ctx *StrategyContext) int {
-	// 简单实现：库存低于警戒线时，真人强制输 (返回 -1)
-	if ctx.RoomStock < s.Config.StockLine {
-		if !ctx.IsRobot {
-			return -1
-		}
-	}
-	return 0
 }

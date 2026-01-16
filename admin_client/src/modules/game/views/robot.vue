@@ -12,6 +12,17 @@
 				批量禁用
 			</el-button>
 			<cl-flex1 />
+			<cl-filter label="APP">
+				<cl-select :options="options.app_id" prop="app_id" :width="120" />
+			</cl-filter>
+			<cl-search-key field="user_id" :field-list="[
+				{
+					label: '用户ID',
+					value: 'user_id'
+				},
+			]" />
+		</cl-row>
+		<cl-row>
 			<cl-filter label="">
 				<el-radio-group v-model="enable" @change="refresh({ enable })">
 					<el-radio-button v-for="(item, index) in DictEnable" :key="index" :value="item.value">
@@ -19,13 +30,6 @@
 					</el-radio-button>
 				</el-radio-group>
 			</cl-filter>
-			<cl-flex1 />
-			<cl-search-key field="user_id" :field-list="[
-				{
-					label: '用户ID',
-					value: 'user_id'
-				},
-			]" />
 		</cl-row>
 		<cl-row>
 			<!-- 数据表格 -->

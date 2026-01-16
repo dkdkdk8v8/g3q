@@ -1922,12 +1922,12 @@ const shouldMoveStatusToHighPosition = computed(() => {
 }
 
 .seat-right-top {
-    top: 15%;
+    top: 16%;
     right: 6vw;
 }
 
 .seat-left-top {
-    top: 15%;
+    top: 16%;
     left: 6vw;
 }
 

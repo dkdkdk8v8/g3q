@@ -7,6 +7,7 @@ import goldImg from '@/assets/common/gold.png';
 import zhuangImg from '@/assets/common/zhuang.png';
 import avatarFrameImg from '@/assets/common/avatar_circle.png';
 import userInfoBgImg from '@/assets/common/user_info_rect.png';
+import defaultAvatar from '@/assets/common/default_avatar.png';
 
 // Niu hand type images
 import niu1Img from '@/assets/niu/niu_1.png';
@@ -271,7 +272,7 @@ const shouldMoveStatusFloat = computed(() => {
                     'win-neon-flash': isWin,
                     'is-opponent': true
                 }">
-                    <van-image :src="player.avatar" class="avatar" fit="cover"
+                    <van-image :src="player.avatar || defaultAvatar" class="avatar" fit="cover"
                         :class="{ 'avatar-gray': player.isObserver, 'opponent-avatar': true }" />
                 </div>
 

@@ -247,7 +247,7 @@ export const useGameStore = defineStore('game', () => {
             newPlayersData.push({
                 id: p.ID,
                 name: p.NickName && p.NickName.trim() !== '' ? p.NickName : p.ID,
-                avatar: DEFAULT_AVATAR,
+                avatar: p.Avatar ? (p.Avatar.startsWith('http://') || p.Avatar.startsWith('https://') ? p.Avatar : `/${p.Avatar}`) : DEFAULT_AVATAR,
                 coins: p.Balance,
                 isBanker: bankerID === p.ID,
                 hand: hand,

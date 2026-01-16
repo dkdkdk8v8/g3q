@@ -38,6 +38,7 @@ import gameTopDifenBg from '@/assets/common/game_top_difen_bg.png';
 
 import avatarFrameImg from '@/assets/common/avatar_circle.png';
 import userInfoBgImg from '@/assets/common/user_info_rect.png';
+import defaultAvatar from '@/assets/common/default_avatar.png';
 
 // Niu hand type images
 import niu1Img from '@/assets/niu/niu_1.png';
@@ -1055,7 +1056,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                         <div class="avatar-clip">
 
-                            <van-image :src="p.avatar" class="avatar-img-content" fit="cover" />
+                            <van-image :src="p.avatar || defaultAvatar" class="avatar-img-content" fit="cover" />
 
                         </div>
 

@@ -7,6 +7,10 @@ import path from 'path' // Need to import path
 
 export default defineConfig(({ mode }) => {
   return {
+    server: {
+      host: '172.20.10.4',
+      port: 5173,
+    },
     plugins: [
       vue(),
       AutoImport({

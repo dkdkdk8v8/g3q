@@ -21,32 +21,34 @@ var (
 	stressUsersMu sync.Mutex
 )
 
+const STRESS_COUNT = 10 //压力测试用户数量
+
 func StartStress() {
 	logrus.Info("Stress test: Start monitoring and automatically adding simulated real users")
-	go func() {
-		ticker := time.NewTicker(5 * time.Second)
-		defer ticker.Stop()
+	users, err := modelClient.GetStressUsers()
+	if err != nil {
+		logrus.Errorf("Stress test: Failed to get user list: %v", err)
+		return
+	}
 
-		for range ticker.C {
-			users, err := modelClient.GetUserRobots()
-			if err != nil {
-				logrus.Errorf("Stress test: Failed to get user list: %v", err)
-				continue
-			}
+	count := STRESS_COUNT
+	if len(users) < count {
+		count = len(users)
+	}
 
-			for _, u := range users {
+	for i := 0; i < count; i++ {
+		u := users[i]
+		go func(user *modelClient.ModelUser) {
+			for {
 				stressUsersMu.Lock()
-				if _, ok := stressUsers[u.UserId]; ok {
-					stressUsersMu.Unlock()
-					continue
-				}
-				stressUsers[u.UserId] = true
+				stressUsers[user.UserId] = true
 				stressUsersMu.Unlock()
 
-				go runStressUser(u)
+				runStressUser(user)
+				time.Sleep(5 * time.Second)
 			}
-		}
-	}()
+		}(u)
+	}
 }
 
 func runStressUser(user *modelClient.ModelUser) {

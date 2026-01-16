@@ -68,20 +68,22 @@ func GetUserByUserId(userId string) (*ModelUser, error) {
 // GetAllRobots 获取所有机器人
 func GetAllRobots() ([]*ModelUser, error) {
 	var robots []*ModelUser
-	_, err := GetDb().Raw("SELECT * FROM g3q_user WHERE is_robot = 1 AND enable = 1 AND (balance + balance_lock) >= 6").QueryRows(&robots)
+	_, err := GetDb().Raw("SELECT * FROM g3q_user WHERE is_robot = 1 AND enable = 1").QueryRows(&robots)
 	return robots, err
 }
 
+// GetRobots 获取最近没玩游戏的指定数量的机器人
 func GetRobots(limit, offset int) ([]*ModelUser, error) {
 	var robots []*ModelUser
-	_, err := GetDb().Raw("SELECT * FROM g3q_user WHERE is_robot = 1 AND enable = 1 AND app_id !=? ORDER BY last_played ASC LIMIT ? OFFSET ?", "USER", limit, offset).QueryRows(&robots)
+	_, err := GetDb().Raw("SELECT * FROM g3q_user WHERE is_robot = 1 AND enable = 1 ORDER BY last_played ASC LIMIT ? OFFSET ?", limit, offset).QueryRows(&robots)
 	return robots, err
 }
 
-func GetUserRobots() ([]*ModelUser, error) {
-	var robots []*ModelUser
-	_, err := GetDb().Raw("SELECT * FROM g3q_user WHERE is_robot = 1 AND enable = 1 AND app_id=?", "USER").QueryRows(&robots)
-	return robots, err
+// GetStressUsers 获取压测用户
+func GetStressUsers() ([]*ModelUser, error) {
+	var users []*ModelUser
+	_, err := GetDb().Raw("SELECT * FROM g3q_user WHERE app_id=?", "STRS").QueryRows(&users)
+	return users, err
 }
 
 // UpdateUser 更新用户信息

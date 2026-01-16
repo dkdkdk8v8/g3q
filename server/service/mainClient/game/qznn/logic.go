@@ -38,20 +38,23 @@ type UserStrategyData struct {
 
 // RoomStrategy 房间策略上下文
 type RoomStrategy struct {
-	Config      strategy.StrategyConfig
-	Manager     *strategy.StrategyManager    // 引入通用策略管理器
-	SystemStock int64                        // 系统当前库存 (需从全局获取或Redis同步)
-	UserData    map[string]*UserStrategyData // 玩家策略数据缓存 [UserID]Data
+	Config         strategy.StrategyConfig
+	Manager        *strategy.StrategyManager    // 引入通用策略管理器
+	SystemProfit   int64                        // 系统24h盈利 //从redis同步
+	SystemTurnover int64                        // 系统24h流水 //从redis同步
+	UserData       map[string]*UserStrategyData // 玩家策略数据缓存 [UserID]Data
 }
 
 func NewRoomStrategy() *RoomStrategy {
 	cfg := strategy.StrategyConfig{
 		TargetProfitRate:  0.05,
-		StockLine:         100000, // 示例值
+		ProtectK:          -50.0, // k = -50
+		ProtectB:          1.1,   // b = 1.1
 		BaseLucky:         50.0,
-		HighRiskMult:      20,     // 示例: 4倍抢庄 * 5倍下注 = 20
-		OverflowThreshold: 200000, // 示例: 库存超过20万开始放水
-		EnableNewbieBonus: true,   // 开启新手光环
+		HighRiskMult:      20,      // 示例: 4倍抢庄 * 5倍下注 = 20
+		OverflowThreshold: 200000,  // 示例: 库存超过20万开始放水
+		EnableNewbieBonus: true,    // 开启新手光环
+		MinTurnover:       2000000, // 最小流水阈值 (例如200万分/2万元)，低于此值不介入强风控
 	}
 	return &RoomStrategy{
 		Config:   cfg,
@@ -1333,7 +1336,6 @@ func (r *QZNNRoom) startGame() {
 		logrus.WithField("gameId", r.GameID).WithField("settlement_data", settle).Info("PreUpdateUserSetting")
 	}
 
-	//
 	modelUsers, err := modelClient.UpdateUserSetting(&settle)
 	if err != nil {
 		var allUserIds []string
@@ -1497,13 +1499,16 @@ func (r *QZNNRoom) calculateRealtimeLucky(p *Player) float64 {
 		TotalProfit:       strategyData.TotalProfit,
 		RecentProfit:      strategyData.RecentProfit,
 		PendingCompensate: strategyData.PendingCompensate,
-		RoomStock:         r.Strategy.SystemStock,
-		BaseBet:           int64(r.Config.BaseBet),
-		TotalMult:         totalMult,
-		IsRobot:           p.IsRobot,
-		IsNewbie:          p.GameCount < 50, // 假设 50 局以内算新手，需确保 p.GameCount 已正确赋值
-		WinningStreak:     strategyData.WinningStreak,
-		LosingStreak:      strategyData.LosingStreak,
+
+		BaseBet:       int64(r.Config.BaseBet),
+		TotalMult:     totalMult,
+		IsRobot:       p.IsRobot,
+		IsNewbie:      p.GameCount < 50, // 假设 50 局以内算新手，需确保 p.GameCount 已正确赋值
+		WinningStreak: strategyData.WinningStreak,
+		LosingStreak:  strategyData.LosingStreak,
+
+		SystemTurnoverToday: r.Strategy.SystemTurnover,
+		KillRateToday:       float64(r.Strategy.SystemProfit) / float64(r.Strategy.SystemTurnover), // Assuming this is today's kill rate,
 	}
 
 	// 调用通用策略管理器进行计算
@@ -1581,21 +1586,31 @@ func (r *QZNNRoom) adjustCardsBasedOnLucky() {
 
 		// 3.3 库存保护 (System Inventory Protection)
 		// 当系统库存低于警戒线时，启动收割模式
-		if r.Strategy.SystemStock < r.Strategy.Config.StockLine {
-			// 引入 80% 的执行概率，避免每次都触发导致过于生硬
-			if rand.Float64() < 0.8 {
-				if !p.IsRobot {
-					// 情况 A: 闲家是真人
-					// 无论庄家是谁，真人闲家都应该输 (输给机器人庄家=系统回血; 输给真人庄家=系统抽水/防止出分)
-					shouldWin = false
-					shouldLose = true
-				} else {
-					// 情况 B: 闲家是机器人
-					// 只有当庄家是真人时，机器人闲家才需要刻意去赢 (系统回血)
-					if !banker.IsRobot {
-						shouldWin = true
-						shouldLose = false
-					}
+		shouldProtect := false
+		if r.Strategy.SystemTurnover > 0 {
+			rate := float64(r.Strategy.SystemProfit) / float64(r.Strategy.SystemTurnover)
+			// 线性公式: y = kx + b
+			protectProb := r.Strategy.Config.ProtectK*rate + r.Strategy.Config.ProtectB
+			if protectProb > 1.0 {
+				protectProb = 1.0
+			}
+			if protectProb > 0 && rand.Float64() < protectProb {
+				shouldProtect = true
+			}
+		}
+
+		if shouldProtect {
+			if !p.IsRobot {
+				// 情况 A: 闲家是真人
+				// 无论庄家是谁，真人闲家都应该输 (输给机器人庄家=系统回血; 输给真人庄家=系统抽水/防止出分)
+				shouldWin = false
+				shouldLose = true
+			} else {
+				// 情况 B: 闲家是机器人
+				// 只有当庄家是真人时，机器人闲家才需要刻意去赢 (系统回血)
+				if !banker.IsRobot {
+					shouldWin = true
+					shouldLose = false
 				}
 			}
 		}
@@ -1606,7 +1621,7 @@ func (r *QZNNRoom) adjustCardsBasedOnLucky() {
 
 		if shouldWin && !isCurrentlyWin {
 			// 目标：换一副比庄家大的牌
-			r.swapCardsForTarget(p, fixedCount, func(newRes interface{}) bool {
+			r.swapCardsForTarget(p, fixedCount, func(newRes any) bool {
 				// 修复编译错误：类型断言
 				// 假设 CalcNiu 返回的是 *CardResult 指针
 				if res, ok := newRes.(*CardResult); ok {
@@ -1616,7 +1631,7 @@ func (r *QZNNRoom) adjustCardsBasedOnLucky() {
 			})
 		} else if shouldLose && isCurrentlyWin {
 			// 目标：换一副比庄家小的牌
-			r.swapCardsForTarget(p, fixedCount, func(newRes interface{}) bool {
+			r.swapCardsForTarget(p, fixedCount, func(newRes any) bool {
 				if res, ok := newRes.(*CardResult); ok {
 					// 注意参数顺序：CompareCards(A, B) 返回 true 代表 A > B
 					// 这里我们要让庄家赢，所以检查 庄家 > 新牌
@@ -1759,28 +1774,3 @@ func (r *QZNNRoom) swapCardsForTarget(p *Player, fixedCount int, checkFunc func(
 
 	return false
 }
-
-// 辅助方法：尝试换牌以获得更好的结果
-// 仅在“不看牌”或“看3张”模式的最后几张牌中使用
-func (r *QZNNRoom) trySwapForBetter(currentCards []int, minPoint int) []int {
-	// 实现从 r.Deck 中寻找替换牌的逻辑
-	return currentCards
-}
-
-// 辅助方法：尝试换牌以获得更差的结果
-func (r *QZNNRoom) trySwapForWorse(currentCards []int) []int {
-	// 实现逻辑
-	return currentCards
-}
-
-// 扩展 QZNNRoom 结构体以包含策略数据
-// 注意：在实际 Go 项目中，这应该在结构体定义处修改。
-// 这里为了演示，我们假设 QZNNRoom 已经有了 Strategy 字段。
-// 如果没有，你需要修改 NewRoom 函数上方的结构体定义：
-/*
-type QZNNRoom struct {
-    QZNNRoomData
-    // ... existing fields
-    Strategy *RoomStrategy // 新增字段
-}
-*/

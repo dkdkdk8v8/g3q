@@ -11,51 +11,61 @@ const settingsStore = useSettingsStore();
 const gameStore = useGameStore();
 
 onMounted(() => {
-  document.addEventListener('click', (e) => {
-    // Check if the clicked element or its parent is interactive
-    const target = e.target.closest('button, .btn, .game-btn, .menu-btn, .van-button, .menu-item, .tab-item, .room-card, .add-btn, .chat-toggle-btn, .close-icon, .close-btn, .phrase-item, .emoji-item, .retry-btn');
-    if (target) {
-      if (settingsStore.soundEnabled) {
-          clickAudio.currentTime = 0;
-          clickAudio.play().catch(() => {});
-      }
-    }
-  }, true); // Use capture phase to handle events before stopPropagation
+    document.addEventListener('click', (e) => {
+        // Check if the clicked element or its parent is interactive
+        const target = e.target.closest('button, .btn, .game-btn, .menu-btn, .van-button, .menu-item, .tab-item, .room-card, .add-btn, .chat-toggle-btn, .close-icon, .close-btn, .phrase-item, .emoji-item, .retry-btn');
+        if (target) {
+            if (settingsStore.soundEnabled) {
+                clickAudio.currentTime = 0;
+                clickAudio.play().catch(() => { });
+            }
+        }
+    }, true); // Use capture phase to handle events before stopPropagation
 });
 </script>
 
 <template>
-  <router-view />
-  <GlobalLoading />
-  <ReconnectDialog />
+    <router-view />
+    <GlobalLoading />
+    <ReconnectDialog />
 
-  <!-- Global Message Alert -->
-  <div v-if="gameStore.globalMessage" class="global-modal-overlay">
-      <div class="global-modal-content">
-          <div class="global-modal-header">
-              <h3>系统提示</h3>
-          </div>
-          <div class="global-modal-body">
-              {{ gameStore.globalMessage }}
-          </div>
-          <div class="global-modal-footer">
-              <button class="global-confirm-btn" @click="gameStore.globalMessage = ''">
-                  我知道了
-              </button>
-          </div>
-      </div>
-  </div>
+    <!-- Global Message Alert -->
+    <div v-if="gameStore.globalMessage" class="global-modal-overlay">
+        <div class="global-modal-content">
+            <div class="global-modal-header">
+                <h3>系统提示</h3>
+            </div>
+            <div class="global-modal-body">
+                {{ gameStore.globalMessage }}
+            </div>
+            <div class="global-modal-footer">
+                <button class="global-confirm-btn" @click="gameStore.globalMessage = ''">
+                    我知道了
+                </button>
+            </div>
+        </div>
+    </div>
 </template>
 
 <style>
 /* 全局样式覆盖，确保全屏 */
 #app {
-  width: 100vw;
-  height: 100vh;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  background-color: #1a1a1a;
+    width: 100vw;
+    height: 100dvh;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #1a1a1a;
+}
+
+* {
+    -webkit-overflow-scrolling: touch;
+    /* 优化滑动体验 */
+}
+
+::-webkit-scrollbar {
+    display: none;
+    /* 彻底隐藏所有滚动条 */
 }
 
 /* Global Modal Styles */

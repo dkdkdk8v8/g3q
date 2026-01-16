@@ -21,8 +21,8 @@ const close = () => {
 </script>
 
 <template>
-    <div v-if="visible" class="modal-overlay">
-        <div class="modal-content">
+    <div v-if="visible" class="modal-overlay" @click="close">
+        <div class="modal-content" @click.stop>
             <div class="modal-header">
                 <div class="modal-header-left-spacer"></div>
 

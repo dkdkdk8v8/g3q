@@ -889,14 +889,23 @@ const startGameDebounced = debounce(() => {
 }, 500);
 
 const openHistoryDebounced = debounce(() => {
+    if (settingsStore.soundEnabled) {
+        new Audio(btnClickSound).play().catch(() => { });
+    }
     showHistory.value = true;
 }, 500);
 
 const openSettingsDebounced = debounce(() => {
+    if (settingsStore.soundEnabled) {
+        new Audio(btnClickSound).play().catch(() => { });
+    }
     showSettings.value = true;
 }, 500);
 
 const quitGameDebounced = debounce(() => {
+    if (settingsStore.soundEnabled) {
+        new Audio(btnClickSound).play().catch(() => { });
+    }
     gameClient.send("QZNN.PlayerLeave", { RoomId: store.roomId });
 }, 500);
 
@@ -911,6 +920,12 @@ const closeSettingsDebounced = debounce(() => {
 }, 500);
 
 const openHelpDebounced = debounce(() => {
+
+    if (settingsStore.soundEnabled) {
+
+        new Audio(btnClickSound).play().catch(() => { });
+
+    }
 
     showHelp.value = true;
 }, 500);

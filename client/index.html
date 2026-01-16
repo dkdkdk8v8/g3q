@@ -31,9 +31,32 @@
   // 3. 核心：阻止 Safari 默认的滑动行为
   // passive: false 是必须的，否则 preventDefault 不起作用
   document.addEventListener('touchmove', function (e) {
-    // 只有在没有特殊滚动需求的情况下才全局禁止
-    // 如果你有局部滚动需求，看下文的第 3 点
-    e.preventDefault();
+    //查找特定可以滚动的组件进行
+    const scrollArea = e.target.closest('.history-list-new') || e.target.closest('.rooms-scroll-area');
+
+    if (scrollArea) {
+      // 如果在滚动区域内
+      // 判断当前是否在顶部或底部边缘，防止触发 Safari 的橡皮筋回弹
+      const top = scrollArea.scrollTop;
+      const totalScroll = scrollArea.scrollHeight;
+      const currentScroll = top + scrollArea.offsetHeight;
+
+      if (top === 0 && e.movementY > 0) {
+        // 已经在顶部还要往下拉，拦截
+        e.preventDefault();
+      } else if (currentScroll === totalScroll && e.movementY < 0) {
+        // 已经在底部还要往上拉，拦截
+        e.preventDefault();
+      }
+
+      // 正常滚动范围内，不做 e.preventDefault()，允许它滚
+      return;
+    }
+
+    // 非滚动区域（比如 top-bar, logo-row），一律禁止滑动
+    if (e.cancelable) {
+      e.preventDefault();
+    }
   }, { passive: false });
 </script>
 

@@ -7,6 +7,7 @@ import goldImg from '@/assets/common/gold.png';
 import zhuangImg from '@/assets/common/zhuang.png';
 import avatarFrameImg from '@/assets/common/avatar_circle.png';
 import userInfoBgImg from '@/assets/common/user_info_rect.png';
+import defaultAvatar from '@/assets/common/default_avatar.png';
 
 // Niu hand type images
 import niu1Img from '@/assets/niu/niu_1.png';
@@ -67,7 +68,6 @@ const props = defineProps({
     },
     isReady: Boolean, // Add isReady prop
     isAnimatingHighlight: Boolean, // New prop for sequential highlight animation
-    speech: Object, // New prop: { type: 'text' | 'emoji', content: string }
     selectedCardIndices: {
         type: Array,
         default: () => []
@@ -78,17 +78,6 @@ const props = defineProps({
 
 const store = useGameStore();
 const emit = defineEmits(['card-click']);
-
-// Computed property to control speech bubble visibility
-const showSpeechBubble = computed(() => {
-    return props.speech && props.speech.content;
-});
-
-// Computed property to calculate dynamic width for speech bubble
-const speechBubbleStyle = computed(() => {
-    // Return empty to let CSS handle width (responsive)
-    return {};
-});
 
 // 始终返回完整手牌以保持布局稳定
 const displayedHand = computed(() => {
@@ -261,6 +250,15 @@ const displayName = computed(() => {
         return `${first}******${last}`;
     }
 });
+
+const shouldMoveStatusFloat = computed(() => {
+    // If cards are showing, move it
+    if (showCards.value) return true;
+    // If dealing is in progress, move it (anticipate cards)
+    if (store.currentPhase === 'DEALING' || isDealingProcessing.value) return true;
+    // Also during SHOWDOWN/SETTLEMENT if cards are there
+    return false;
+});
 </script>
 <template>
     <div class="player-seat" :class="`seat-${position}`">
@@ -274,22 +272,17 @@ const displayName = computed(() => {
                     'win-neon-flash': isWin,
                     'is-opponent': true
                 }">
-                    <van-image :src="player.avatar" class="avatar" fit="cover"
+                    <van-image :src="player.avatar || defaultAvatar" class="avatar" fit="cover"
                         :class="{ 'avatar-gray': player.isObserver, 'opponent-avatar': true }" />
                 </div>
 
                 <!-- Avatar Frame Overlay -->
                 <img :src="avatarFrameImg" class="avatar-border-overlay" />
 
-                <!-- Speech Bubble -->
-                <div v-show="showSpeechBubble" class="speech-bubble" :style="speechBubbleStyle"
-                    :class="{ 'speech-visible': showSpeechBubble }">
-                    <span v-if="speech && speech.type === 'text'">{{ speech.content }}</span>
-                    <img v-else-if="speech && speech.type === 'emoji'" :src="speech.content" class="speech-emoji" />
-                </div>
+
 
                 <!-- 状态浮层，移到 avatar-area 以便相对于头像定位 -->
-                <div class="status-float" :class="{ 'is-me': isMe }"
+                <div class="status-float" :class="{ 'is-me': isMe, 'move-up': shouldMoveStatusFloat }"
                     v-if="!['IDLE', 'READY_COUNTDOWN'].includes(store.currentPhase)">
                     <Transition :name="slideTransitionName">
                         <div v-if="shouldShowRobMult" class="status-content">
@@ -302,7 +295,7 @@ const displayName = computed(() => {
 
                     <Transition :name="slideTransitionName">
                         <div v-if="shouldShowBetMult" class="status-content">
-                            <span class="status-text bet-text" :class="{ 'text-large': isMe }">押{{ player.betMultiplier
+                            <span class="status-text bet-text" :class="{ 'text-large': isMe }">压{{ player.betMultiplier
                                 }}倍</span>
                         </div>
                     </Transition>
@@ -315,7 +308,7 @@ const displayName = computed(() => {
                 <div v-if="player.isObserver" class="observer-badge">等待下一局</div>
             </div>
 
-            <div class="info-box" :style="{ backgroundImage: `url(${userInfoBgImg})` }"
+            <div class="info-box" :style="{ '--bg-img': `url(${userInfoBgImg})` }"
                 :class="{ 'is-observer': player.isObserver }">
                 <!-- 庄家徽章，现在移动到 info-box 内部 -->
                 <div v-if="player.isBanker && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)"
@@ -545,8 +538,8 @@ const displayName = computed(() => {
 }
 
 .avatar-frame.banker-candidate-highlight {
-    box-shadow: 0 0 15px 5px #facc15, 0 0 8px 2px #d97706;
-    border-color: #facc15;
+    box-shadow: 0 0 10px 3px #fbbf24, 0 0 5px 1px #d97706;
+    border-color: #fbbf24;
     animation: pulse-border-glow 1s infinite alternate;
 }
 
@@ -564,35 +557,31 @@ const displayName = computed(() => {
 
 @keyframes bankerConfirmPop {
     0% {
-        border-color: transparent;
-        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2);
-    }
-
-    40% {
         border-color: #fbbf24;
         box-shadow: 0 0 25px 8px rgba(251, 191, 36, 0.9);
+        transform: scale(1);
     }
 
-    60% {
+    50% {
         border-color: #fbbf24;
-        box-shadow: 0 0 25px 8px rgba(251, 191, 36, 0.9);
+        box-shadow: 0 0 35px 10px rgba(251, 191, 36, 1);
+        transform: scale(1.2);
     }
 
     100% {
         border-color: #fbbf24;
         box-shadow: 0 0 6px #fbbf24;
+        transform: scale(1);
     }
-
-    /* Smoothly land on steady state */
 }
 
 @keyframes pulse-border-glow {
     from {
-        box-shadow: 0 0 15px 5px #facc15, 0 0 8px 2px #d97706;
+        box-shadow: 0 0 10px 3px #fbbf24, 0 0 5px 1px #d97706;
     }
 
     to {
-        box-shadow: 0 0 20px 8px #fcd34d, 0 0 10px 3px #fbbf24;
+        box-shadow: 0 0 15px 5px #fbbf24, 0 0 8px 2px #d97706;
     }
 }
 
@@ -632,155 +621,7 @@ const displayName = computed(() => {
     opacity: 0.7;
 }
 
-.speech-bubble {
-    position: absolute;
-    bottom: 100%;
-    /* Position above avatar */
-    left: 50%;
-    /* Center horizontally */
-    transform: translateX(-50%) translateY(-10px);
-    /* Base position for centering and gap */
-    opacity: 0;
-    /* Initially hidden */
-    background: linear-gradient(to bottom, #f9fafb, #e5e7eb);
-    /* Light background */
-    border: 1px solid #d1d5db;
-    border-radius: 12px;
-    padding: 6px 10px;
-    font-size: 14px;
-    color: #333;
-    white-space: normal;
-    /* Allow normal text wrapping */
-    word-break: break-all;
-    /* Break long words */
-    z-index: 190;
-    /* High z-index to be above cards but below modals */
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    display: inline-flex;
-    /* Use inline-flex for adaptive width */
-    align-items: center;
-    /* Vertically center content */
-    justify-content: center;
-    /* Horizontally center content */
-    text-align: center;
-    /* Center text when wrapped */
-    max-width: 170px;
-    /* Max width for longer phrases (e.g., 2 lines of ~10 chars + padding) */
-    /* animation is now controlled by .speech-visible class */
-    transition: opacity 0.3s ease-out;
-    /* Smooth fade in/out */
-}
 
-.speech-bubble.speech-visible {
-    opacity: 1;
-    animation: speechBubbleBounceIn 0.3s ease-out forwards;
-}
-
-.speech-bubble::before {
-    content: '';
-    position: absolute;
-    top: 100%;
-    /* Position at bottom of bubble */
-    left: 50%;
-    transform: translateX(-50%) translateY(-2px);
-    /* Center and overlap slightly */
-    width: 0;
-    height: 0;
-    border-left: 10px solid transparent;
-    border-right: 10px solid transparent;
-    border-top: 12px solid #e5e7eb;
-    /* Tail color matches bubble */
-    z-index: 51;
-}
-
-.speech-bubble::after {
-    content: '';
-    position: absolute;
-    top: 100%;
-    /* Position at bottom of bubble (inner) */
-    left: 50%;
-    transform: translateX(-50%) translateY(-3px);
-    /* Center and overlap slightly */
-    width: 0;
-    height: 0;
-    border-left: 8px solid transparent;
-    /* Inner tail slightly smaller */
-    border-right: 8px solid transparent;
-    border-top: 10px solid #f9fafb;
-    /* Tail color matches bubble inner */
-    z-index: 52;
-}
-
-/* For right-positioned players, speech bubble should still be above and centered */
-.seat-right .speech-bubble {
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%) translateY(-10px);
-    /* Same positioning as others */
-}
-
-.seat-right .speech-bubble::before {
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%) translateY(-2px);
-    /* Same positioning as others */
-    border-left: 10px solid transparent;
-    border-right: 10px solid transparent;
-    border-top: 12px solid #e5e7eb;
-}
-
-.seat-right .speech-bubble::after {
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%) translateY(-3px);
-    /* Same positioning as others */
-    border-left: 8px solid transparent;
-    border-right: 8px solid transparent;
-    border-top: 10px solid #f9fafb;
-}
-
-.speech-emoji {
-    width: 30px;
-    height: 30px;
-    object-fit: contain;
-}
-
-@keyframes speechBubbleBounceIn {
-
-    from,
-    20%,
-    40%,
-    60%,
-    80%,
-    to {
-        animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
-    }
-
-    from {
-        /* Maintain base transform, animate scale only */
-        transform: translateX(-50%) translateY(-10px) scale3d(0.3, 0.3, 0.3);
-    }
-
-    20% {
-        transform: translateX(-50%) translateY(-10px) scale3d(1.1, 1.1, 1.1);
-    }
-
-    40% {
-        transform: translateX(-50%) translateY(-10px) scale3d(0.9, 0.9, 0.9);
-    }
-
-    60% {
-        transform: translateX(-50%) translateY(-10px) scale3d(1.03, 1.03, 1.03);
-    }
-
-    80% {
-        transform: translateX(-50%) translateY(-10px) scale3d(0.97, 0.97, 0.97);
-    }
-
-    to {
-        transform: translateX(-50%) translateY(-10px) scale3d(1, 1, 1);
-    }
-}
 
 .fade-enter-active,
 .fade-leave-active {
@@ -796,9 +637,9 @@ const displayName = computed(() => {
 
     position: absolute;
 
-    bottom: -5px;
+    bottom: 25%;
 
-    right: -5px;
+    right: -10px;
 
     width: 21px;
     /* 3/4 of original size (24px) */
@@ -849,8 +690,6 @@ const displayName = computed(() => {
 
 
 .info-box {
-    background-size: 100% 100%;
-    background-repeat: no-repeat;
     width: 120px;
     height: 44px;
     z-index: 101;
@@ -867,6 +706,26 @@ const displayName = computed(() => {
     /* Adjust for better vertical alignment */
     position: relative;
     /* Added for absolute positioning of children */
+}
+
+.info-box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: var(--bg-img);
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    opacity: 0.65;
+    z-index: 0;
+}
+
+/* Ensure content sits above the background */
+.info-box> :not(.banker-badge) {
+    position: relative;
+    z-index: 1;
 }
 
 /* Reset alignments for all seats to center because of column layout */
@@ -962,6 +821,7 @@ const displayName = computed(() => {
     align-items: center;
     pointer-events: none;
     /* Let clicks pass through */
+    transition: bottom 0.3s ease;
 }
 
 .status-float.is-me {
@@ -969,6 +829,14 @@ const displayName = computed(() => {
     /* Higher for self */
     margin-bottom: 10px;
     /* Extra spacing for self */
+}
+
+.status-float.move-up {
+    bottom: calc(100% + 20px);
+}
+
+.status-float.is-me.move-up {
+    bottom: calc(100% + 24vw + 10px);
 }
 
 /* 右侧玩家的状态浮层显示在左侧 - Removed as overridden by generic opponent rule */
@@ -1183,62 +1051,12 @@ const displayName = computed(() => {
     font-weight: bold;
     font-size: 24px;
     text-shadow: 2px 2px 0 #000;
-    animation: floatUp 1.5s forwards;
+    animation: floatUp 3s forwards;
     z-index: 20;
     font-family: 'Arial Black', sans-serif;
 }
 
-.score-float.win {
-    color: #facc15;
-}
-
-.score-float.lose {
-    color: #ef4444;
-}
-
-.slide-from-left-enter-active,
-.slide-from-right-enter-active {
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.slide-from-left-enter-from {
-    opacity: 0;
-    transform: translateX(-30px);
-}
-
-.slide-from-right-enter-from {
-    opacity: 0;
-    transform: translateX(30px);
-}
-
-/* Pop Up Animation for Opponents (Above Avatar) */
-.pop-up-enter-active,
-.pop-up-leave-active {
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    transform-origin: bottom center;
-    /* Grow from bottom */
-}
-
-.pop-up-enter-from {
-    opacity: 0;
-    /* Start from below (inside avatar) and small */
-    /* REMOVED translateX(-50%) to fix centering issue */
-    transform: translateY(20px) scale(0.2);
-}
-
-.pop-up-leave-to {
-    opacity: 0;
-    /* REMOVED translateX(-50%) to fix centering issue */
-    transform: scale(0.5);
-}
-
-.hand-card.bull-card-overlay {
-    filter: brightness(60%) grayscale(50%);
-    /* Apply a grey filter */
-    opacity: 0.8;
-    /* Slightly reduce opacity */
-    transition: filter 0.3s ease, opacity 0.3s ease;
-}
+/* ... */
 
 @keyframes floatUp {
     0% {
@@ -1246,8 +1064,13 @@ const displayName = computed(() => {
         opacity: 0;
     }
 
-    20% {
+    10% {
         transform: translateY(0) scale(1.2);
+        opacity: 1;
+    }
+
+    80% {
+        transform: translateY(-50px) scale(1);
         opacity: 1;
     }
 

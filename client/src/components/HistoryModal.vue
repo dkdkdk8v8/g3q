@@ -258,8 +258,8 @@ watch(() => props.visible, (val) => {
 </script>
 
 <template>
-    <div v-if="visible" class="modal-overlay" style="z-index: 8000;">
-        <div class="modal-content history-modal">
+    <div v-if="visible" class="modal-overlay" style="z-index: 8000;" @click="close">
+        <div class="modal-content history-modal" @click.stop>
             <div class="modal-header">
                 <div class="modal-header-top">
                     <div class="modal-header-left-spacer"></div>

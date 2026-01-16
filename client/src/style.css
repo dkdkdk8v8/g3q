@@ -2,7 +2,7 @@
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  
+
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
   background-color: #242424;
@@ -17,6 +17,10 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  /* 关键：禁止所有溢出 */
+  overflow: hidden;
+  /* 关键：防止 iOS 的橡皮筋回弹效果 */
+  position: fixed;
 }
 
 @media (prefers-color-scheme: light) {
@@ -28,7 +32,8 @@ body {
 
 /* Custom Game Theme Dialog Styles */
 .game-theme-dialog {
-  background-color: #1e293b !important; /* Dark slate background */
+  background-color: #1e293b !important;
+  /* Dark slate background */
   border-radius: 16px !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5) !important;
@@ -39,7 +44,8 @@ body {
 }
 
 .game-theme-dialog .van-dialog__header {
-  color: #ffffff !important; /* Ensure title is white */
+  color: #ffffff !important;
+  /* Ensure title is white */
   opacity: 1 !important;
   padding-top: 20px !important;
   font-weight: bold !important;
@@ -47,7 +53,8 @@ body {
 }
 
 .game-theme-dialog .van-dialog__content {
-  color: #ffffff !important; /* Pure white text for content */
+  color: #ffffff !important;
+  /* Pure white text for content */
   padding: 15px 24px 20px !important;
   font-size: 15px !important;
   line-height: 1.5 !important;
@@ -60,7 +67,8 @@ body {
 
 .game-theme-dialog .van-dialog__footer {
   border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
-  overflow: hidden !important; /* Ensure buttons stay within rounded corners */
+  overflow: hidden !important;
+  /* Ensure buttons stay within rounded corners */
 }
 
 /* Buttons */
@@ -73,7 +81,8 @@ body {
 
 /* Cancel Button (Left) */
 .game-theme-dialog .van-dialog__cancel {
-  color: #94a3b8 !important; /* Grayish text */
+  color: #94a3b8 !important;
+  /* Grayish text */
 }
 
 .game-theme-dialog .van-dialog__cancel:active {
@@ -82,7 +91,8 @@ body {
 
 /* Confirm Button (Right) */
 .game-theme-dialog .van-dialog__confirm {
-  color: #facc15 !important; /* Gold/Yellow text to match game accents */
+  color: #facc15 !important;
+  /* Gold/Yellow text to match game accents */
   font-weight: bold !important;
 }
 

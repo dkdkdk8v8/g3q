@@ -4,7 +4,7 @@ import { useSettingsStore } from '../stores/settings.js';
 import menuSetImg from '@/assets/common/menu_set.png';
 import gameSetMusicImg from '@/assets/common/game_set_music.png';
 import gameSetEffectImg from '@/assets/common/game_set_effect.png';
-import gameSetTalkImg from '@/assets/common/game_set_talk.png';
+
 
 const props = defineProps({
     visible: Boolean
@@ -21,8 +21,8 @@ const close = () => {
 </script>
 
 <template>
-    <div v-if="visible" class="modal-overlay">
-        <div class="modal-content">
+    <div v-if="visible" class="modal-overlay" @click="close">
+        <div class="modal-content" @click.stop>
             <div class="modal-header">
                 <div class="modal-header-left-spacer"></div>
 
@@ -49,14 +49,7 @@ const close = () => {
                     <van-switch v-model="settingsStore.soundEnabled" size="24px" active-color="#13ce66"
                         inactive-color="grey" />
                 </div>
-                <div class="setting-item">
-                    <div class="setting-label">
-                        <img :src="gameSetTalkImg" class="setting-icon" />
-                        <span>屏蔽他人发言</span>
-                    </div>
-                    <van-switch v-model="settingsStore.muteUsers" size="24px" active-color="#13ce66"
-                        inactive-color="grey" />
-                </div>
+
             </div>
         </div>
     </div>

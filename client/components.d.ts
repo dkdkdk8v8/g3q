@@ -7,7 +7,6 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
-    ChatBubbleSelector: typeof import('./src/components/ChatBubbleSelector.vue')['default']
     CoinLayer: typeof import('./src/components/CoinLayer.vue')['default']
     DealingLayer: typeof import('./src/components/DealingLayer.vue')['default']
     GlobalLoading: typeof import('./src/components/GlobalLoading.vue')['default']

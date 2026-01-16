@@ -1,12 +1,63 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + Vue + Vant</title>
-  </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.js"></script>
-  </body>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Vite + Vue + Vant</title>
+</head>
+
+<body>
+  <div id="app"></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+
+<script>
+  // 1. 修正拼写并拦截手势缩放
+  document.addEventListener('gesturestart', function (event) {
+    event.preventDefault();
+  });
+
+  // 2. 拦截双击缩放
+  let lastTouchEnd = 0;
+  document.addEventListener('touchend', function (event) {
+    const now = (new Date()).getTime();
+    if (now - lastTouchEnd <= 300) {
+      event.preventDefault();
+    }
+    lastTouchEnd = now;
+  }, false);
+
+  // 3. 核心：阻止 Safari 默认的滑动行为
+  // passive: false 是必须的，否则 preventDefault 不起作用
+  document.addEventListener('touchmove', function (e) {
+    //查找特定可以滚动的组件进行
+    const scrollArea = e.target.closest('.history-list-new') || e.target.closest('.rooms-scroll-area') || e.target.closest('.help-content');
+
+    if (scrollArea) {
+      // 如果在滚动区域内
+      // 判断当前是否在顶部或底部边缘，防止触发 Safari 的橡皮筋回弹
+      const top = scrollArea.scrollTop;
+      const totalScroll = scrollArea.scrollHeight;
+      const currentScroll = top + scrollArea.offsetHeight;
+
+      if (top === 0 && e.movementY > 0) {
+        // 已经在顶部还要往下拉，拦截
+        e.preventDefault();
+      } else if (currentScroll === totalScroll && e.movementY < 0) {
+        // 已经在底部还要往上拉，拦截
+        e.preventDefault();
+      }
+
+      // 正常滚动范围内，不做 e.preventDefault()，允许它滚
+      return;
+    }
+
+    // 非滚动区域（比如 top-bar, logo-row），一律禁止滑动
+    if (e.cancelable) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+</script>
+
 </html>

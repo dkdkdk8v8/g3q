@@ -7,8 +7,6 @@ export const useSettingsStore = defineStore('settings', () => {
     const musicEnabled = ref(true);
     // 2. 音效 (Sound Effects) - Default on
     const soundEnabled = ref(true);
-    // 3. 屏蔽用户发言 (Mute User Speech) - Default off (meaning speech is shown/heard)
-    const muteUsers = ref(false);
 
     // Flag to prevent sending updates to server when initializing from server
     let isSyncingFromServer = false;
@@ -24,11 +22,6 @@ export const useSettingsStore = defineStore('settings', () => {
         if (storedSound !== null) {
             soundEnabled.value = storedSound === 'true';
         }
-
-        const storedMute = localStorage.getItem('g3q_mute_users');
-        if (storedMute !== null) {
-            muteUsers.value = storedMute === 'true';
-        }
     };
 
     // Update settings from server data
@@ -42,11 +35,6 @@ export const useSettingsStore = defineStore('settings', () => {
         if (data.Effect !== undefined) soundEnabled.value = data.Effect;
         else if (data.effect !== undefined) soundEnabled.value = data.effect;
 
-        // Server 'Talk' means 'Accept Talk' (True = Unmuted). Client 'muteUsers' means 'Mute Others' (True = Muted).
-        // So we invert the value.
-        if (data.Talk !== undefined) muteUsers.value = !data.Talk;
-        else if (data.talk !== undefined) muteUsers.value = !data.talk;
-
         // Use setTimeout to ensure watchers have fired and completed before enabling sync
         setTimeout(() => {
             isSyncingFromServer = false;
@@ -59,7 +47,6 @@ export const useSettingsStore = defineStore('settings', () => {
         const payload = {
             Music: musicEnabled.value,
             Effect: soundEnabled.value,
-            Talk: !muteUsers.value // Invert for server: muteUsers=true -> Talk=false (don't accept)
         };
         // Send SaveSetting to server
         gameClient.send("SaveSetting", payload);
@@ -76,18 +63,12 @@ export const useSettingsStore = defineStore('settings', () => {
         sendSettingsToServer();
     });
 
-    watch(muteUsers, (newVal) => {
-        localStorage.setItem('g3q_mute_users', String(newVal));
-        sendSettingsToServer();
-    });
-
     // Initialize
     loadSettings();
 
     return {
         musicEnabled,
         soundEnabled,
-        muteUsers,
         updateFromServer
     }
 });

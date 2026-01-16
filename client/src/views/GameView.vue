@@ -6,7 +6,7 @@ import { useSettingsStore } from '../stores/settings.js';
 
 import CoinLayer from '../components/CoinLayer.vue';
 import DealingLayer from '../components/DealingLayer.vue';
-import ChatBubbleSelector from '../components/ChatBubbleSelector.vue';
+
 import SettingsModal from '../components/SettingsModal.vue';
 import HelpModal from '../components/HelpModal.vue';
 import HistoryModal from '../components/HistoryModal.vue';
@@ -17,17 +17,7 @@ import gameClient from '../socket.js';
 import { showToast as vantToast } from 'vant';
 import PokerCard from '../components/PokerCard.vue';
 
-import talk0 from '@/assets/sounds/talk_0.mp3';
-import talk1 from '@/assets/sounds/talk_1.mp3';
-import talk2 from '@/assets/sounds/talk_2.mp3';
-import talk3 from '@/assets/sounds/talk_3.mp3';
-import talk4 from '@/assets/sounds/talk_4.mp3';
-import talk5 from '@/assets/sounds/talk_5.mp3';
-import talk6 from '@/assets/sounds/talk_6.mp3';
-import talk7 from '@/assets/sounds/talk_7.mp3';
-import talk8 from '@/assets/sounds/talk_8.mp3';
-import talk9 from '@/assets/sounds/talk_9.mp3';
-import talk10 from '@/assets/sounds/talk_10.mp3';
+
 import gameBgSound from '@/assets/sounds/game_bg.mp3';
 import iconGameStart from '../assets/common/game_start.png';
 import gameStartSound from '@/assets/sounds/game_start.mp3';
@@ -45,9 +35,16 @@ import goldImg from '@/assets/common/gold.png';
 import zhuangImg from '@/assets/common/zhuang.png';
 import tanpaiImg from '@/assets/common/tanpai.png';
 import gameTopDifenBg from '@/assets/common/game_top_difen_bg.png';
-import gameChatBtnImg from '@/assets/common/game_chat_btn.png';
+
+// Lobby style buttons
+import btnExit from '@/assets/lobby/exit_btn.png';
+import btnHelp from '@/assets/lobby/help_btn.png';
+import btnHistory from '@/assets/lobby/bet_history_btn.png';
+import btnSetting from '@/assets/lobby/sett_btn.png';
+
 import avatarFrameImg from '@/assets/common/avatar_circle.png';
 import userInfoBgImg from '@/assets/common/user_info_rect.png';
+import defaultAvatar from '@/assets/common/default_avatar.png';
 
 // Niu hand type images
 import niu1Img from '@/assets/niu/niu_1.png';
@@ -120,19 +117,7 @@ const getMultiplierImageUrl = (multiplier) => {
     return multiplierImageMap[multiplier] || null;
 };
 
-const phraseSounds = [
-    talk0, talk1, talk2, talk3, talk4, talk5, talk6, talk7, talk8, talk9, talk10
-];
 
-const playPhraseSound = (index) => {
-    // Check global sound setting
-    if (!settingsStore.soundEnabled) return;
-
-    if (index >= 0 && index < phraseSounds.length) {
-        const audio = new Audio(phraseSounds[index]);
-        audio.play().catch(() => { });
-    }
-};
 
 const store = useGameStore();
 
@@ -212,55 +197,7 @@ const resultAnimClass = ref('');
 const showResultAnim = ref(false);
 const resultTypeClass = ref('');
 
-// Chat/Emoji selector state
-const showChatSelector = ref(false);
 const showSettings = ref(false);
-const playerSpeech = ref(new Map());
-
-// Cooldown mechanism
-const lastSpeechTime = ref(0);
-const SPEECH_COOLDOWN_SECONDS = 3;
-const cooldownMessage = ref('');
-const showToast = ref(false);
-
-const checkCooldown = () => {
-    const currentTime = Date.now();
-    if (currentTime - lastSpeechTime.value < SPEECH_COOLDOWN_SECONDS * 1000) {
-        cooldownMessage.value = '您说话太快了，先休息一下吧！';
-        showToast.value = true;
-        setTimeout(() => {
-            showToast.value = false;
-        }, 2000);
-        return false;
-    }
-    lastSpeechTime.value = currentTime;
-    return true;
-};
-
-const onPhraseSelected = (phrase, index) => {
-    if (!checkCooldown()) {
-        return;
-    }
-    store.sendPlayerTalk(0, index); // Send PlayerTalk command
-    // Local display will be handled by PushTalk from server
-    // playPhraseSound(index); // Sound will be triggered by PushTalk
-    // playerSpeech.value.set(store.myPlayerId, { type: 'text', content: phrase });
-    // setTimeout(() => {
-    //     playerSpeech.value.delete(store.myPlayerId);
-    // }, 3000);
-};
-
-const onEmojiSelected = (emojiUrl, index) => { // Added index parameter
-    if (!checkCooldown()) {
-        return;
-    }
-    store.sendPlayerTalk(1, index); // Send PlayerTalk command
-    // Local display will be handled by PushTalk from server
-    // playerSpeech.value.set(store.myPlayerId, { type: 'emoji', content: emojiUrl });
-    // setTimeout(() => {
-    //     playerSpeech.value.delete(store.myPlayerId);
-    // }, 3000);
-};
 
 // Banker selection animation state
 const currentlyHighlightedPlayerId = ref(null);
@@ -274,43 +211,11 @@ const showAutoJoinMessage = ref(false);
 
 // Robot Speech/Emoji Logic Removed (now server-driven)
 
-const commonPhrases = [
-    "猜猜我是牛几呀",
-    "风水轮流转，底裤都要输光了",
-    "辛苦这么多年，一夜回到解放前",
-    "我又赢了，谢谢大家送钱",
-    "快点开牌，我是牛牛",
-    "唉，一手烂牌臭到底",
-    "快点吧，我等的花都谢了",
-    "吐了个槽的，整个一个杯具啊",
-    "你的牌也太好啦",
-    "不要吵啦，有什么好吵的，专心玩牌吧",
-    "作孽啊"
-];
 
-import emoji1 from '@/assets/emoji/emoji_0.png';
-import emoji2 from '@/assets/emoji/emoji_1.png';
-import emoji3 from '@/assets/emoji/emoji_2.png';
-import emoji4 from '@/assets/emoji/emoji_3.png';
-import emoji5 from '@/assets/emoji/emoji_4.png';
-import emoji6 from '@/assets/emoji/emoji_5.png';
-import emoji7 from '@/assets/emoji/emoji_6.png';
-import emoji8 from '@/assets/emoji/emoji_7.png';
-import emoji9 from '@/assets/emoji/emoji_8.png';
-import emoji10 from '@/assets/emoji/emoji_9.png';
-import emoji11 from '@/assets/emoji/emoji_10.png';
-import emoji12 from '@/assets/emoji/emoji_11.png';
-import emoji13 from '@/assets/emoji/emoji_12.png';
-import emoji14 from '@/assets/emoji/emoji_13.png';
-import emoji15 from '@/assets/emoji/emoji_14.png';
-import emoji16 from '@/assets/emoji/emoji_15.png';
 
-const allEmojis = [
-    emoji1, emoji2, emoji3, emoji4, emoji5, emoji6, emoji7, emoji8,
-    emoji9, emoji10, emoji11, emoji12, emoji13, emoji14, emoji15, emoji16
-];
 
-const showMenu = ref(false);
+
+
 const showHistory = ref(false);
 const showHelp = ref(false);
 
@@ -469,47 +374,7 @@ const isControlsContentVisible = computed(() => {
     return false;
 });
 
-watch(() => [...store.playerSpeechQueue], (newQueue) => { // Watch a copy to trigger on push
-    if (newQueue.length > 0) {
-        const speechEvent = newQueue[0]; // Process the first event in the queue
-        const { userId, type, index } = speechEvent;
 
-        // Check for mute users setting - ignore others if muted
-        if (settingsStore.muteUsers && userId !== store.myPlayerId) {
-            store.playerSpeechQueue.shift();
-            return;
-        }
-
-        // Play sound if not muted and it's a phrase
-        if (settingsStore.soundEnabled && type === 0) {
-            playPhraseSound(index);
-        }
-
-        // Determine content for display
-        let content = '';
-        if (type === 0 && commonPhrases[index]) {
-            content = commonPhrases[index];
-        } else if (type === 1 && allEmojis[index]) {
-            content = allEmojis[index];
-        } else {
-            console.warn(`[GameView] Unknown speech type/index: Type=${type}, Index=${index}`);
-            return;
-        }
-
-        // Update playerSpeech map for display
-        playerSpeech.value.set(userId, { type: type === 0 ? 'text' : 'emoji', content: content });
-        playerSpeech.value = new Map(playerSpeech.value); // Trigger reactivity for Map
-
-        // Remove speech bubble after 3 seconds
-        setTimeout(() => {
-            playerSpeech.value.delete(userId);
-            playerSpeech.value = new Map(playerSpeech.value); // Trigger reactivity for Map
-        }, 3000);
-
-        // Remove the processed event from the queue
-        store.playerSpeechQueue.shift();
-    }
-}, { deep: true });
 
 // Watch Music Setting
 watch(() => settingsStore.musicEnabled, (val) => {
@@ -519,6 +384,43 @@ watch(() => settingsStore.musicEnabled, (val) => {
         } else {
             bgAudio.value.pause();
         }
+    }
+});
+
+const candidatePlayers = computed(() => {
+    return (store.bankerCandidates || []).map(id => store.players.find(p => p.id === id)).filter(p => !!p);
+});
+
+const candidatePositions = ref({});
+
+const updateCandidatePositions = () => {
+    const newPositions = {};
+    if (!store.bankerCandidates) return;
+
+    store.bankerCandidates.forEach(pid => {
+        const seatEl = seatRefs.value[pid];
+        if (seatEl) {
+            // Try to find the avatar frame specifically
+            const avatarEl = seatEl.querySelector('.avatar-frame') || seatEl.querySelector('.avatar-wrapper');
+            if (avatarEl) {
+                const rect = avatarEl.getBoundingClientRect();
+                newPositions[pid] = {
+                    top: `${rect.top}px`,
+                    left: `${rect.left}px`,
+                    width: `${rect.width}px`,
+                    height: `${rect.height}px`,
+                };
+            }
+        }
+    });
+    candidatePositions.value = newPositions;
+};
+
+watch(() => store.currentPhase, (val) => {
+    if (val === 'BANKER_SELECTION_ANIMATION') {
+        setTimeout(() => {
+            updateCandidatePositions();
+        }, 50); // Slight delay to ensure DOM is stable
     }
 });
 
@@ -671,7 +573,7 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
                     const audio = new Audio(randomBankSound);
                     audio.play().catch(() => { });
                 }
-            }, 200);
+            }, 150);
         }
     }
 
@@ -791,11 +693,6 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
 }, { immediate: true });
 
 const startDealingAnimation = (isSupplemental = false) => {
-    if (settingsStore.soundEnabled) {
-        const audio = new Audio(sendCardSound);
-        audio.play().catch(() => { });
-    }
-
     if (!isSupplemental) {
         visibleCounts.value = {}; // Reset visible counts ONLY if not supplemental
         store.players.forEach(p => {
@@ -858,6 +755,11 @@ const startDealingAnimation = (isSupplemental = false) => {
     });
 
     if (targets.length === 0) return;
+
+    if (settingsStore.soundEnabled) {
+        const audio = new Audio(sendCardSound);
+        audio.play().catch(() => { });
+    }
 
     targets.forEach((t, pIndex) => {
         const cardTargets = [];
@@ -987,22 +889,27 @@ const startGameDebounced = debounce(() => {
 }, 500);
 
 const openHistoryDebounced = debounce(() => {
-    showMenu.value = false;
+    if (settingsStore.soundEnabled) {
+        new Audio(btnClickSound).play().catch(() => { });
+    }
     showHistory.value = true;
 }, 500);
 
 const openSettingsDebounced = debounce(() => {
-    showMenu.value = false;
+    if (settingsStore.soundEnabled) {
+        new Audio(btnClickSound).play().catch(() => { });
+    }
     showSettings.value = true;
 }, 500);
 
 const quitGameDebounced = debounce(() => {
+    if (settingsStore.soundEnabled) {
+        new Audio(btnClickSound).play().catch(() => { });
+    }
     gameClient.send("QZNN.PlayerLeave", { RoomId: store.roomId });
 }, 500);
 
-const toggleShowChatSelector = debounce(() => {
-    showChatSelector.value = !showChatSelector.value;
-}, 500);
+
 
 const closeHistoryDebounced = debounce(() => {
     showHistory.value = false;
@@ -1013,7 +920,13 @@ const closeSettingsDebounced = debounce(() => {
 }, 500);
 
 const openHelpDebounced = debounce(() => {
-    showMenu.value = false;
+
+    if (settingsStore.soundEnabled) {
+
+        new Audio(btnClickSound).play().catch(() => { });
+
+    }
+
     showHelp.value = true;
 }, 500);
 
@@ -1021,9 +934,7 @@ const closeHelpDebounced = debounce(() => {
     showHelp.value = false;
 }, 500);
 
-const toggleShowMenu = debounce(() => {
-    showMenu.value = !showMenu.value;
-}, 500);
+
 
 // Network Latency
 const networkLatency = ref(0);
@@ -1034,18 +945,7 @@ const networkStatusClass = computed(() => {
 });
 
 // Card Calculation Logic
-// Speech Bubble Helpers
-const getSpeech = (playerId) => playerSpeech.value.get(playerId);
 
-const showSpeechBubble = (playerId) => {
-    const s = getSpeech(playerId);
-    return s && s.content;
-};
-
-const getSpeechBubbleStyle = (playerId) => {
-    // Return empty to let CSS handle width (responsive)
-    return {};
-};
 
 const selectedCardIndices = ref([]);
 
@@ -1099,211 +999,420 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
         selectedCardIndices.value = [];
     }
 });
+
+const shouldMoveStatusFloat = computed(() => {
+
+    // If cards are showing, move it
+
+    if (showCards.value) return true;
+
+    // If dealing is in progress, move it (anticipate cards)
+
+    if (store.currentPhase === 'DEALING' || isDealingProcessing.value) return true;
+
+    return false;
+
+});
+
+
+
+const shouldMoveStatusToHighPosition = computed(() => {
+
+
+
+    // Strictly match the visibility of the calculation area (Make Bull)
+
+
+
+    if (store.currentPhase === 'SHOWDOWN' && myPlayer.value && !myPlayer.value.isShowHand && store.countdown > 0 && !myPlayer.value.isObserver) {
+
+
+
+        return true;
+
+
+
+    }
+
+
+
+    return false;
+
+
+
+});
+
 </script>
 
+
+
 <template>
+
     <div class="game-table">
+
         <img v-if="showStartAnim" :src="iconGameStart" class="game-start-icon" :class="startAnimationClass" />
+
         <img v-if="showResultAnim" :src="resultImage" class="result-icon" :class="resultAnimClass" />
+
         <DealingLayer ref="dealingLayer" />
+
         <CoinLayer ref="coinLayer" />
 
-        <!-- 顶部栏 -->
-        <div class="top-bar">
-            <div class="menu-container">
-                <div class="menu-btn" @click.stop="toggleShowMenu()">
-                    <van-icon name="wap-nav" size="20" color="white" />
-                    <span style="margin-left:4px;font-size:14px;">菜单</span>
-                </div>
 
-                <div class="network-badge" :class="networkStatusClass">
-                    <div class="wifi-dot"></div>
-                    <span>{{ networkLatency }}ms</span>
-                </div>
 
-                <!-- 下拉菜单 -->
-                <transition name="fade">
-                    <div v-if="showMenu" class="menu-dropdown" @click.stop>
-                        <div class="menu-item" @click="openHistoryDebounced()">
-                            <van-icon name="balance-list-o" /> 投注记录
+        <!-- Random Banker Selection Overlay -->
+
+        <transition name="fade">
+
+            <div v-if="store.currentPhase === 'BANKER_SELECTION_ANIMATION'" class="banker-selection-overlay">
+
+                <div v-for="p in candidatePlayers" :key="p.id" class="candidate-item-absolute"
+                    :style="candidatePositions[p.id]">
+
+                    <div class="avatar-wrapper-overlay" :class="{ 'highlight': p.id === currentlyHighlightedPlayerId }">
+
+                        <div class="avatar-clip">
+
+                            <van-image :src="p.avatar || defaultAvatar" class="avatar-img-content" fit="cover" />
+
                         </div>
-                        <div class="menu-divider"></div>
-                        <div class="menu-item" @click="openSettingsDebounced()">
-                            <van-icon name="setting-o" /> 游戏设置
-                        </div>
-                        <div class="menu-divider"></div>
-                        <div class="menu-item" @click="openHelpDebounced()">
-                            <van-icon name="question-o" /> 游戏帮助
-                        </div>
-                        <div class="menu-divider"></div>
-                        <div class="menu-item danger" @click="quitGameDebounced()">
-                            <van-icon name="close" /> 退出游戏
-                        </div>
+
+                        <div class="highlight-ring"></div>
+
+                        <img :src="avatarFrameImg" class="avatar-border-overlay" />
+
                     </div>
-                </transition>
+
+                </div>
+
             </div>
+
+        </transition>
+
+
+
+        <!-- 顶部栏 -->
+
+        <div class="top-bar">
+
+            <!-- Left: Functional Buttons -->
+
+            <div class="top-left-btns">
+
+                <img :src="btnExit" class="icon-btn" @click="quitGameDebounced" alt="Exit" />
+
+                <img :src="btnHistory" class="icon-btn" @click="openHistoryDebounced" alt="History" />
+
+                <img :src="btnHelp" class="icon-btn" @click="openHelpDebounced" alt="Help" />
+
+                <img :src="btnSetting" class="icon-btn" @click="openSettingsDebounced" alt="Settings" />
+
+            </div>
+
+
+
+            <!-- Network Latency -->
+
+            <div class="network-badge" :class="networkStatusClass">
+
+                <div class="wifi-dot"></div>
+
+                <span>{{ networkLatency }}ms</span>
+
+            </div>
+
         </div>
+
+
 
         <!-- Base Bet Display -->
+
         <div class="base-bet-display" :style="{ '--game-top-difen-bg': 'url(' + gameTopDifenBg + ')' }">
+
             <span class="bet-amount">底分</span>
+
             <img :src="goldImg" class="gold-icon-small" />
+
             <span class="bet-amount">{{ formatCoins(store.baseBet, 0) }}</span>
+
         </div>
+
         <div class="opponents-layer">
+
             <div v-for="(p, index) in opponentSeats" :key="index" class="opponent-seat-abs"
                 :class="getOpponentClass(index + 1)" :style="getSeatStyle(index + 1)">
+
                 <PlayerSeat v-if="p && p.id" :player="p" :ref="(el) => setSeatRef(el, p.id)"
                     :position="getLayoutType(index + 1)"
                     :visible-card-count="visibleCounts[p.id] !== undefined ? visibleCounts[p.id] : 0"
                     :is-ready="p.isReady" :is-animating-highlight="p.id === currentlyHighlightedPlayerId"
-                    :speech="playerSpeech.get(p.id)" :trigger-banker-animation="showBankerConfirmAnim && p.isBanker"
-                    :is-win="!!winEffects[p.id]" />
+                    :trigger-banker-animation="showBankerConfirmAnim && p.isBanker" :is-win="!!winEffects[p.id]" />
+
                 <div v-else class="empty-seat">
+
                     <div class="empty-seat-avatar">
+
                         <van-icon name="plus" color="rgba(255,255,255,0.3)" size="20" />
+
                     </div>
+
                     <div class="empty-seat-text">等待加入</div>
+
                 </div>
+
             </div>
+
         </div>
+
+
 
         <div class="table-center" ref="tableCenterRef">
+
             <!-- 阶段提示信息容器 -->
+
             <div v-if="['READY_COUNTDOWN', 'ROB_BANKER', 'BETTING', 'SHOWDOWN', 'BANKER_SELECTION_ANIMATION', 'BANKER_CONFIRMED'].includes(store.currentPhase)"
                 class="clock-and-info-wrapper">
+
                 <div class="phase-info">
+
                     <span v-if="store.currentPhase === 'WAITING_FOR_PLAYERS'">匹配玩家中...</span>
+
                     <span v-else-if="store.currentPhase === 'READY_COUNTDOWN'">游戏即将开始 {{ store.countdown }}</span>
+
                     <span v-else-if="store.currentPhase === 'ROB_BANKER'">等待其他玩家抢庄 {{ store.countdown }}</span>
+
                     <span v-else-if="store.currentPhase === 'BETTING'">等待其他玩家投注 {{ store.countdown }}</span>
+
                     <span v-else-if="store.currentPhase === 'SHOWDOWN'">等待玩家摊牌比拼 {{ store.countdown }}</span>
+
                     <span v-else-if="store.currentPhase === 'BANKER_SELECTION_ANIMATION'">正在选庄...</span>
+
                     <span v-else-if="store.currentPhase === 'BANKER_CONFIRMED'">庄家已定</span>
+
                     <span v-else-if="store.currentPhase === 'SETTLEMENT'">结算中...</span>
+
                 </div>
+
             </div>
+
+
 
             <!-- 重新开始按钮 -->
+
             <div v-if="store.currentPhase === 'GAME_OVER'" class="restart-btn" @click="startGameDebounced()">
+
                 继续游戏
+
             </div>
+
         </div>
 
+
+
         <!-- Watermark for Room Name and Mode -->
+
         <div class="room-mode-watermark">
+
             {{ store.roomName }}•{{ modeName }}
+
         </div>
+
+
 
         <!-- 自己区域 -->
 
+
+
         <div class="my-area" v-if="myPlayer" :ref="(el) => setSeatRef(el, myPlayer.id)" :style="getMyAreaStyle()">
+
             <!-- 1. Calculation Formula Area -->
+
             <div v-show="store.currentPhase === 'SHOWDOWN' && !myPlayer.isShowHand && store.countdown > 0 && !myPlayer.isObserver"
                 class="showdown-wrapper">
+
                 <!-- Calculation Formula -->
+
                 <div class="calc-container">
+
                     <div class="calc-box">{{ calculationData.labels[0] || '' }}</div>
+
                     <div class="calc-symbol">+</div>
+
                     <div class="calc-box">{{ calculationData.labels[1] || '' }}</div>
+
                     <div class="calc-symbol">+</div>
+
                     <div class="calc-box">{{ calculationData.labels[2] || '' }}</div>
+
                     <div class="calc-symbol">=</div>
+
                     <div class="calc-box result">{{ calculationData.isFull ? calculationData.sum : '' }}</div>
+
                 </div>
+
             </div>
 
+
+
             <!-- 2. My Hand Cards Area -->
+
             <div class="my-hand-cards-area">
+
                 <div class="hand-area">
+
                     <div class="cards">
+
                         <PokerCard v-for="(card, idx) in myPlayer.hand" :key="idx"
                             :card="(shouldShowCardFace && (visibleCounts[myPlayer.id] === undefined || idx < visibleCounts[myPlayer.id])) ? card : null"
                             :is-small="false"
                             :class="{ 'hand-card': true, 'bull-card-overlay': isBullPart(idx), 'selected': selectedCardIndices.includes(idx) }"
                             :style="{
+
                                 marginLeft: idx === 0 ? '0' : '1px', /* for myPlayer */
+
                                 opacity: (visibleCounts[myPlayer.id] === undefined || idx < visibleCounts[myPlayer.id]) ? 1 : 0
+
                             }" @click="handleCardClick({ card, index: idx })" />
+
                     </div>
+
                     <!-- Hand Result Badge - adapted from PlayerSeat -->
+
                     <div v-if="myPlayer.handResult && myPlayer.handResult.typeName && shouldShowBadge"
                         class="hand-result-badge">
+
                         <img v-if="getHandTypeImageUrl(myPlayer.handResult.typeName)"
                             :src="getHandTypeImageUrl(myPlayer.handResult.typeName)" alt="手牌类型" class="hand-type-img" />
+
                         <template v-else>TypeName: "{{ myPlayer.handResult.typeName }}" - URL Debug: {{
+
                             getHandTypeImageUrl(myPlayer.handResult.typeName) || 'null' }}</template>
+
                     </div>
+
                 </div>
+
             </div>
 
+
+
             <!-- 3. My Personal Info + Chat Button -->
+
             <div class="my-player-info-row">
+
                 <!-- Avatar and Info Box - adapted from PlayerSeat -->
+
                 <div class="avatar-area my-player-avatar-info">
+
                     <div class="avatar-wrapper">
+
                         <!-- Avatar Container -->
+
                         <div class="avatar-frame" :class="{
+
                             'banker-candidate-highlight': myPlayer.id === currentlyHighlightedPlayerId,
+
                             'banker-confirm-anim': showBankerConfirmAnim && myPlayer.isBanker,
+
                             'is-banker': myPlayer.isBanker && !['SETTLEMENT', 'GAME_OVER'].includes(store.currentPhase),
+
                             'win-neon-flash': !!winEffects[myPlayer.id]
+
                         }">
+
                             <van-image :src="myPlayer.avatar" class="avatar" fit="cover"
                                 :class="{ 'avatar-gray': myPlayer.isObserver }" />
+
                         </div>
+
+
 
                         <!-- Avatar Frame Overlay -->
+
                         <img :src="avatarFrameImg" class="avatar-border-overlay" />
 
-                        <!-- Speech Bubble -->
-                        <div v-show="showSpeechBubble(myPlayer.id)" class="speech-bubble"
-                            :style="getSpeechBubbleStyle(myPlayer.id)"
-                            :class="{ 'speech-visible': showSpeechBubble(myPlayer.id) }">
-                            <span v-if="getSpeech(myPlayer.id) && getSpeech(myPlayer.id).type === 'text'">{{
-                                getSpeech(myPlayer.id).content }}</span>
-                            <img v-else-if="getSpeech(myPlayer.id) && getSpeech(myPlayer.id).type === 'emoji'"
-                                :src="getSpeech(myPlayer.id).content" class="speech-emoji" />
-                        </div>
+
+
+
+
                     </div>
 
-                    <div class="info-box" :style="{ backgroundImage: `url(${userInfoBgImg})` }"
+
+
+                    <div class="info-box" :style="{ '--bg-img': `url(${userInfoBgImg})` }"
                         :class="{ 'is-observer': myPlayer.isObserver }">
+
                         <!-- Banker Badge -->
+
                         <div v-if="myPlayer.isBanker && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)"
                             class="banker-badge"><img :src="zhuangImg" alt="庄" class="banker-badge-img" /></div>
+
                         <div class="name van-ellipsis">{{ myPlayer.name }}</div>
+
+
 
                         <div class="coins-pill">
 
+
+
                             {{ formatCoins(myPlayer.coins) }}
+
+
 
                         </div>
 
+
+
                     </div>
+
+
 
                     <!-- Status float (rob/bet multiplier status) -->
-                    <div class="status-float">
-                        <Transition name="pop-up">
-                            <div v-if="shouldShowRobMult" class="status-content">
-                                <span v-if="myPlayer.robMultiplier > 0" class="status-text rob-text text-large">抢{{
-                                    myPlayer.robMultiplier
-                                    }}倍</span>
-                                <span v-else class="status-text no-rob-text text-large">不抢</span>
-                            </div>
-                        </Transition>
+
+                    <div class="status-float"
+                        :class="{ 'move-up-high': shouldMoveStatusFloat && shouldMoveStatusToHighPosition, 'move-up-low': shouldMoveStatusFloat && !shouldMoveStatusToHighPosition }">
 
                         <Transition name="pop-up">
-                            <div v-if="shouldShowBetMult" class="status-content">
-                                <span class="status-text bet-text text-large">押{{ myPlayer.betMultiplier }}倍</span>
+
+                            <div v-if="shouldShowRobMult" class="status-content">
+
+                                <span v-if="myPlayer.robMultiplier > 0" class="status-text rob-text text-large">抢{{
+
+                                    myPlayer.robMultiplier
+
+                                }}倍</span>
+
+                                <span v-else class="status-text no-rob-text text-large">不抢</span>
+
                             </div>
+
                         </Transition>
+
+
+
+                        <Transition name="pop-up">
+
+                            <div v-if="shouldShowBetMult" class="status-content">
+
+                                <span class="status-text bet-text text-large">压{{ myPlayer.betMultiplier }}倍</span>
+
+                            </div>
+
+                        </Transition>
+
                     </div>
+
                 </div>
 
-                <!-- Chat button -->
-                <div class="chat-toggle-btn" @click="toggleShowChatSelector()">
-                    <img :src="gameChatBtnImg" class="chat-btn-img" />
+
+
+
+
+                <!-- My Score Float -->
+                <div v-if="myPlayer.roundScore !== 0 && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)"
+                    class="score-float" :class="myPlayer.roundScore > 0 ? 'win' : 'lose'">
+                    {{ myPlayer.roundScore > 0 ? '+' : '' }}<img :src="goldImg" class="coin-icon-float" />{{
+                        formatCoins(myPlayer.roundScore) }}
                 </div>
             </div>
 
@@ -1373,8 +1482,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
             </div>
         </div>
 
-        <!-- 全局点击关闭菜单 -->
-        <div v-if="showMenu" class="mask-transparent" @click="toggleShowMenu()"></div>
+
 
         <!-- Modals -->
         <HistoryModal v-model:visible="showHistory" />
@@ -1383,25 +1491,14 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
         <HelpModal v-model:visible="showHelp" :mode="store.gameMode" />
 
-        <!-- Wrap ChatBubbleSelector to avoid nextSibling error -->
-        <div>
-            <ChatBubbleSelector v-model:visible="showChatSelector" @selectPhrase="onPhraseSelected"
-                @selectEmoji="onEmojiSelected" />
-        </div>
 
-        <!-- Cooldown Toast -->
-        <transition name="toast-fade">
-            <div v-if="showToast" class="cooldown-toast">
-                {{ cooldownMessage }}
-            </div>
-        </transition>
     </div>
 </template>
 
 <style scoped>
 .game-table {
     width: 100vw;
-    height: 100vh;
+    height: 100dvh;
     background: url('@/assets/common/game_bg.jpg') no-repeat center center;
     background-size: 100% 100%;
     position: relative;
@@ -1541,12 +1638,28 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 .menu-container {
     position: relative;
     z-index: 300;
+}
+
+/* New top-left buttons */
+.top-left-btns {
     display: flex;
-    /* Add flex layout */
+    gap: 8px;
+    /* Space between buttons */
     align-items: center;
-    /* Vertically center */
-    gap: 10px;
-    /* Space between menu button and network badge */
+    flex-shrink: 0;
+    /* Prevent shrinking */
+}
+
+.icon-btn {
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    transition: transform 0.1s;
+    object-fit: contain;
+}
+
+.icon-btn:active {
+    transform: scale(0.9);
 }
 
 .network-badge {
@@ -1585,52 +1698,9 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     color: #ef4444;
 }
 
-.menu-dropdown {
-    position: absolute;
-    top: 40px;
-    left: 0;
-    width: 140px;
-    background: rgba(30, 41, 59, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    backdrop-filter: blur(10px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-    overflow: hidden;
-    animation: fadeIn 0.2s ease;
-}
 
-.menu-item {
-    padding: 12px 16px;
-    font-size: 14px;
-    color: white;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
 
-.menu-item:active {
-    background: rgba(255, 255, 255, 0.1);
-}
 
-.menu-item.danger {
-    color: #f87171;
-}
-
-.menu-divider {
-    height: 1px;
-    background: rgba(255, 255, 255, 0.1);
-    margin: 0 8px;
-}
-
-.mask-transparent {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 150;
-}
 
 /* 弹窗样式 */
 .modal-overlay {
@@ -1785,127 +1855,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     }
 }
 
-.speech-bubble {
-    position: absolute;
-    bottom: 100%;
-    /* Position above avatar */
-    left: 50%;
-    /* Center horizontally */
-    transform: translateX(-50%) translateY(-10px);
-    /* Base position for centering and gap */
-    opacity: 0;
-    /* Initially hidden */
-    background: linear-gradient(to bottom, #f9fafb, #e5e7eb);
-    /* Light background */
-    border: 1px solid #d1d5db;
-    border-radius: 12px;
-    padding: 6px 10px;
-    font-size: 14px;
-    color: #333;
-    white-space: normal;
-    /* Allow normal text wrapping */
-    word-break: break-all;
-    /* Break long words */
-    z-index: 190;
-    /* High z-index to be above cards but below modals */
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    display: inline-flex;
-    /* Use inline-flex for adaptive width */
-    align-items: center;
-    /* Vertically center content */
-    justify-content: center;
-    /* Horizontally center content */
-    text-align: center;
-    /* Center text when wrapped */
-    max-width: 170px;
-    /* Max width for longer phrases (e.g., 2 lines of ~10 chars + padding) */
-    /* animation is now controlled by .speech-visible class */
-    transition: opacity 0.3s ease-out;
-    /* Smooth fade in/out */
-}
 
-.speech-bubble.speech-visible {
-    opacity: 1;
-    animation: speechBubbleBounceIn 0.3s ease-out forwards;
-}
-
-.speech-bubble::before {
-    content: '';
-    position: absolute;
-    top: 100%;
-    /* Position at bottom of bubble */
-    left: 50%;
-    transform: translateX(-50%) translateY(-2px);
-    /* Center and overlap slightly */
-    width: 0;
-    height: 0;
-    border-left: 10px solid transparent;
-    border-right: 10px solid transparent;
-    border-top: 12px solid #e5e7eb;
-    /* Tail color matches bubble */
-    z-index: 51;
-}
-
-.speech-bubble::after {
-    content: '';
-    position: absolute;
-    top: 100%;
-    /* Position at bottom of bubble (inner) */
-    left: 50%;
-    transform: translateX(-50%) translateY(-3px);
-    /* Center and overlap slightly */
-    width: 0;
-    height: 0;
-    border-left: 8px solid transparent;
-    /* Inner tail slightly smaller */
-    border-right: 8px solid transparent;
-    border-top: 10px solid #f9fafb;
-    /* Tail color matches bubble inner */
-    z-index: 52;
-}
-
-.speech-emoji {
-    width: 30px;
-    height: 30px;
-    object-fit: contain;
-}
-
-@keyframes speechBubbleBounceIn {
-
-    from,
-    20%,
-    40%,
-    60%,
-    80%,
-    to {
-        animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
-    }
-
-    from {
-        /* Maintain base transform, animate scale only */
-        transform: translateX(-50%) translateY(-10px) scale3d(0.3, 0.3, 0.3);
-    }
-
-    20% {
-        transform: translateX(-50%) translateY(-10px) scale3d(1.1, 1.1, 1.1);
-    }
-
-    40% {
-        transform: translateX(-50%) translateY(-10px) scale3d(0.9, 0.9, 0.9);
-    }
-
-    60% {
-        transform: translateX(-50%) translateY(-10px) scale3d(1.03, 1.03, 1.03);
-    }
-
-    80% {
-        transform: translateX(-50%) translateY(-10px) scale3d(0.97, 0.97, 0.97);
-    }
-
-    to {
-        transform: translateX(-50%) translateY(-10px) scale3d(1, 1, 1);
-    }
-}
 
 /* 顶部栏 */
 .top-bar {
@@ -1972,12 +1922,12 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .seat-right-top {
-    top: 15%;
+    top: 16%;
     right: 6vw;
 }
 
 .seat-left-top {
-    top: 15%;
+    top: 16%;
     left: 6vw;
 }
 
@@ -2060,7 +2010,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     border-radius: 6.4vw;
     font-size: 1.8vh;
     font-weight: bold;
-    margin-top: 8vw;
+    margin-top: calc(8vw - 36px);
     border: 0.2667vw solid rgba(255, 255, 253, 0.3);
     /* Distinct bottom frame/border */
     box-shadow: 0 1vw 2.2vw rgba(0, 0, 0, 0.6), 0 0 4vw rgba(251, 191, 36, 0.2);
@@ -2141,6 +2091,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     align-items: center;
     background: linear-gradient(to top, rgba(0, 0, 0, 0.6) 0%, transparent 100%);
     width: 100%;
+    padding-bottom: 30px;
 }
 
 /* GameView.vue specific styles for myPlayer components */
@@ -2151,7 +2102,9 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     align-items: center;
     width: 100%;
     margin-top: 10px;
-    /* Adjust spacing from element above */
+    margin-bottom: -50px;
+    position: relative;
+    z-index: 1;
 }
 
 /* Hand area styles (adapted from PlayerSeat.vue for myPlayer) */
@@ -2193,7 +2146,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .my-hand-cards-area .hand-type-img {
-    height: 50px;
+    height: 45px;
     /* Doubled size */
     object-fit: contain;
     vertical-align: middle;
@@ -2214,7 +2167,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     padding: 0 20px;
     /* Padding for spacing from screen edges */
 
-    margin-top: 10px;
+    margin-top: 0;
     /* Adjust spacing from element above */
 
     margin-bottom: 10px;
@@ -2265,9 +2218,19 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 }
 
 .my-player-info-row .avatar-frame.banker-candidate-highlight {
-    box-shadow: 0 0 15px 5px #facc15, 0 0 8px 2px #d97706;
-    border-color: #facc15;
+    box-shadow: 0 0 10px 3px #fbbf24, 0 0 5px 1px #d97706;
+    border-color: #fbbf24;
     animation: pulse-border-glow 1s infinite alternate;
+}
+
+@keyframes pulse-border-glow {
+    from {
+        box-shadow: 0 0 10px 3px #fbbf24, 0 0 5px 1px #d97706;
+    }
+
+    to {
+        box-shadow: 0 0 15px 5px #fbbf24, 0 0 8px 2px #d97706;
+    }
 }
 
 .my-player-info-row .avatar-frame.is-banker {
@@ -2278,7 +2241,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .my-player-info-row .avatar-frame.banker-confirm-anim {
     position: relative;
-    z-index: 50;
+    z-index: 5;
     animation: bankerConfirmPop 1.2s ease-out forwards;
 }
 
@@ -2303,10 +2266,10 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
 
 .my-player-info-row .banker-badge {
     position: absolute;
-    bottom: -5px;
-    /* Position at the top edge of info-box, with slight offset */
-    right: -5px;
-    /* Position at the right edge of info-box, with slight offset */
+    top: 25%;
+    /* Center vertically */
+    right: -6px;
+    /* Position on the right edge */
     width: 21px;
     /* 3/4 of original size (24px) */
     height: 21px;
@@ -2325,8 +2288,8 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     box-shadow: 0 0 12px #facc15;
     /* Slightly reduced shadow */
     animation: shine 2s infinite;
-    transform: translate(50%, -50%);
-    /* Adjusted transform for top-right positioning */
+    transform: translateY(-50%);
+    /* Adjust only Y to center vertically */
 }
 
 .banker-badge-img {
@@ -2352,16 +2315,32 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     gap: 3px;
     /* Space between name and coins */
 
-    /* Background Image */
-
-    background-size: 100% 100%;
-    background-repeat: no-repeat;
+    /* Background Image handled by ::before */
     background-color: transparent;
 
     /* Remove clip-path */
     clip-path: none;
 
     padding: 4px 6px;
+}
+
+.my-player-info-row .info-box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: var(--bg-img);
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    opacity: 0.65;
+    z-index: 0;
+}
+
+.my-player-info-row .info-box> :not(.banker-badge) {
+    position: relative;
+    z-index: 1;
 }
 
 .my-player-info-row .info-box.is-observer {
@@ -2416,16 +2395,20 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     display: flex;
     flex-direction: column;
     align-items: center;
+    transition: bottom 0.3s ease;
 }
 
-/* Position chat button absolutely to the right */
-.my-player-info-row .chat-toggle-btn {
-    position: absolute;
-    right: 20px;
-    /* Align with padding */
-    top: 50%;
-    transform: translateY(-50%);
+.my-player-info-row .status-float.move-up-high {
+    bottom: calc(100% + 23vw);
+    /* Approx 140px on mobile, clears cards + calc area */
 }
+
+.my-player-info-row .status-float.move-up-low {
+    bottom: calc(100% + 6vw);
+    /* Approx 75px on mobile, clears cards only */
+}
+
+
 
 .my-player-info-row .avatar-border-overlay {
     position: absolute;
@@ -2433,7 +2416,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 5;
+    z-index: 0;
     /* Above avatar (in frame), below banker badge (100) */
     pointer-events: none;
     object-fit: fill;
@@ -2550,31 +2533,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     animation: pulse 2s infinite;
 }
 
-.chat-toggle-btn {
-    bottom: 20px;
-    right: 20px;
-    /* Removed width and height to allow padding to control size */
 
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    box-shadow: none;
-    /* Remove box-shadow for consistency with menu-btn */
-    cursor: pointer;
-    z-index: 100;
-    transition: transform 0.1s;
-}
-
-.chat-btn-img {
-    width: 40px;
-    height: auto;
-    object-fit: contain;
-    margin-right: 10px;
-}
-
-.chat-toggle-btn:active {
-    transform: scale(0.95);
-}
 
 @keyframes pulse {
     0% {
@@ -2590,31 +2549,7 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     }
 }
 
-.cooldown-toast {
-    position: fixed;
-    bottom: 100px;
-    /* Position above the chat button */
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    padding: 10px 20px;
-    border-radius: 8px;
-    font-size: 16px;
-    z-index: 10001;
-    /* Ensure it's on top */
-    white-space: nowrap;
-}
 
-.toast-fade-enter-active,
-.toast-fade-leave-active {
-    transition: opacity 0.5s ease;
-}
-
-.toast-fade-enter-from,
-.toast-fade-leave-to {
-    opacity: 0;
-}
 
 /* Status Float Pop-up Animation */
 .pop-up-enter-active,
@@ -3153,6 +3088,147 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
         2px 2px 0 #166534,
         0 4px 8px rgba(0, 0, 0, 0.6);
 }
+
+/* Banker Selection Overlay */
+.banker-selection-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    /* Changed to 0.3 */
+    z-index: 2000;
+    /* Above table (200) and most UI, below result (6000) */
+    pointer-events: none;
+    /* Let clicks pass through if needed, but here mainly for visual */
+}
+
+.candidate-item-absolute {
+    position: absolute;
+    z-index: 2001;
+    transition: transform 0.2s;
+}
+
+.avatar-wrapper-overlay {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    border-radius: 50%;
+    /* Ensure base shape is circle */
+    transition: transform 0.1s;
+}
+
+.avatar-clip {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    overflow: hidden;
+    /* This clips the square avatar to a circle */
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    background: #000;
+    /* Fallback background */
+}
+
+.avatar-img-content {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.highlight-ring {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    box-sizing: border-box;
+    z-index: 2;
+    /* Above image, below frame overlay */
+    pointer-events: none;
+    transition: border-color 0.1s, box-shadow 0.1s;
+}
+
+.avatar-wrapper-overlay .avatar-border-overlay {
+    position: absolute;
+    top: -5%;
+    left: -5%;
+    width: 110%;
+    height: 110%;
+    pointer-events: none;
+    z-index: 3;
+    /* Topmost decoration */
+}
+
+.avatar-wrapper-overlay.highlight {
+    transform: scale(1.15);
+    z-index: 10;
+}
+
+.avatar-wrapper-overlay.highlight .highlight-ring {
+    border-color: #fbbf24;
+    box-shadow: 0 0 10px 3px #fbbf24, 0 0 5px 1px #d97706;
+}
+
+.score-float {
+    position: absolute;
+    top: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-weight: bold;
+    font-size: 24px;
+    text-shadow: 2px 2px 0 #000;
+    animation: floatUpCentered 3s forwards;
+    z-index: 200;
+    font-family: 'Arial Black', sans-serif;
+    pointer-events: none;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+}
+
+.score-float.win {
+    color: #facc15;
+}
+
+.score-float.lose {
+    color: #ef4444;
+}
+
+.coin-icon-float {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    vertical-align: middle;
+    margin: 0 2px;
+}
+
+@keyframes floatUpCentered {
+    0% {
+        transform: translate(-50%, 0) scale(0.5);
+        opacity: 0;
+    }
+
+    10% {
+        transform: translate(-50%, 0) scale(1.2);
+        opacity: 1;
+    }
+
+    80% {
+        transform: translate(-50%, -50px) scale(1);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translate(-50%, -60px) scale(1);
+        opacity: 0;
+    }
+}
 </style>
 
 <style>
@@ -3172,6 +3248,26 @@ watch(() => myPlayer.value && myPlayer.value.isShowHand, (val) => {
     100% {
         transform: scale(1);
         box-shadow: 0 0 5px #fbbf24;
+    }
+}
+
+@keyframes bankerConfirmPop {
+    0% {
+        border-color: #fbbf24;
+        box-shadow: 0 0 25px 8px rgba(251, 191, 36, 0.9);
+        transform: scale(1);
+    }
+
+    50% {
+        border-color: #fbbf24;
+        box-shadow: 0 0 35px 10px rgba(251, 191, 36, 1);
+        transform: scale(1.2);
+    }
+
+    100% {
+        border-color: #fbbf24;
+        box-shadow: 0 0 6px #fbbf24;
+        transform: scale(1);
     }
 }
 

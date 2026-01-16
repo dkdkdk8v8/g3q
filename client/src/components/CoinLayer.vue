@@ -52,31 +52,33 @@ const throwCoins = async (startRect, endRect, count = 10) => {
     // 等待 DOM 渲染下一帧，然后设置终点位置，触发 CSS transition
     await nextTick();
     
-    // 强制重绘 (虽然 nextTick 通常够了，但在某些浏览器可能需要 double RAF，这里简单处理)
+    // 强制重绘 (使用 double RAF 确保浏览器渲染了初始帧)
     requestAnimationFrame(() => {
-        newCoins.forEach(coin => {
-            const target = coins.value.find(c => c.id === coin.id);
-            if (target) {
-                target.style = {
-                    transform: `translate(${coin.endX}px, ${coin.endY}px) scale(1)`,
-                    opacity: 1,
-                    // 增加 delay 参数
-                    transition: `all ${coin.duration}s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${coin.delay}s` 
-                };
+        requestAnimationFrame(() => {
+            newCoins.forEach(coin => {
+                const target = coins.value.find(c => c.id === coin.id);
+                if (target) {
+                    target.style = {
+                        transform: `translate(${coin.endX}px, ${coin.endY}px) scale(1)`,
+                        opacity: 1,
+                        // 增加 delay 参数
+                        transition: `all ${coin.duration}s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${coin.delay}s` 
+                    };
 
-                // Add Absorption Effect after flight
-                const flightTimeMs = (coin.delay + coin.duration) * 1000;
-                setTimeout(() => {
-                    const absorbedTarget = coins.value.find(c => c.id === coin.id);
-                    if (absorbedTarget) {
-                        absorbedTarget.style = {
-                            transform: `translate(${coin.endX}px, ${coin.endY}px) scale(0)`, // Shrink to 0
-                            opacity: 0, // Fade out
-                            transition: 'all 0.3s ease-out' // Fast absorption
-                        };
-                    }
-                }, flightTimeMs);
-            }
+                    // Add Absorption Effect after flight
+                    const flightTimeMs = (coin.delay + coin.duration) * 1000;
+                    setTimeout(() => {
+                        const absorbedTarget = coins.value.find(c => c.id === coin.id);
+                        if (absorbedTarget) {
+                            absorbedTarget.style = {
+                                transform: `translate(${coin.endX}px, ${coin.endY}px) scale(0)`, // Shrink to 0
+                                opacity: 0, // Fade out
+                                transition: 'all 0.3s ease-out' // Fast absorption
+                            };
+                        }
+                    }, flightTimeMs);
+                }
+            });
         });
     });
 

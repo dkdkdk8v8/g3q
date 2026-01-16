@@ -18,7 +18,6 @@ const PROB_LEAVE_2_PLAYERS = 0.0     // 2人时退出概率
 const ROBOT_BALANCE_MULT_MIN = 30.0  // 机器人进入房间携带金额最小倍数
 const ROBOT_BALANCE_MULT_MAX = 100.0 // 机器人进入房间携带金额最大倍数
 const ROOM_LEAVE_COOLDOWN = 60       //  房间退出冷却时间(秒)
-const PROB_CHAT = 10                 // 机器人说话概率 万分比
 
 // 机器人允许进入的房间等级配置
 var ALLOWED_LEVELS = []int{1, 2, 3, 4, 5, 6}

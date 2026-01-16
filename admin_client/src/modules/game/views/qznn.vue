@@ -53,31 +53,33 @@
           <div class="group-header">{{ group.title }} <span class="count"></span></div>
           <el-row :gutter="10">
             <el-col v-for="item in group.rooms" :key="item.ID" :xs="24" :sm="12" :md="12" :lg="8" :xl="6">
-              <el-card shadow="hover" class="room-card">
+              <el-card shadow="hover" class="room-card" :class="getRoomClass(item.ID)">
                 <template #header>
-                  <div class="card-header">
-                    <div class="header-left">
-                      <div class="tags">
-                        <el-tooltip placement="top">
-                          <template #content>
-                            <span>{{ item.GameID }}</span>
-                            <el-icon style="margin-left: 5px; cursor: pointer; vertical-align: middle;"
-                              @click="copyGameID(item.GameID)">
-                              <CopyDocument />
-                            </el-icon>
-                          </template>
+                  <el-tooltip placement="top">
+                    <template #content>
+                      <span>{{ item.GameID }}</span>
+                      <el-icon style="margin-left: 5px; cursor: pointer; vertical-align: middle;"
+                        @click="copyGameID(item.GameID)">
+                        <CopyDocument />
+                      </el-icon>
+                    </template>
+                    <div class="card-header">
+                      <div class="header-left">
+                        <div class="tags">
+                          <el-tag size="small" :type="getRoomTagType(item.ID)" effect="plain">{{
+                            getRoomInfo(item.ID).type
+                          }}
+                          </el-tag>
                           <el-tag size="small" type="danger" effect="plain" style="cursor: pointer">{{
                             getRoomInfo(item.ID).level }}</el-tag>
-                        </el-tooltip>
-                        <el-tag size="small" type="warning" effect="plain">{{ getRoomInfo(item.ID).type }}
-                        </el-tag>
+                        </div>
                       </div>
+                      <el-tag size="small" effect="dark" :type="(stateTypeMap[item.State] || 'info') as any">
+                        {{ stateMap[item.State] || item.State }}
+                        <span v-if="item.StateLeftSec > 0" style="margin-left: 2px">{{ item.StateLeftSec }}秒</span>
+                      </el-tag>
                     </div>
-                    <el-tag size="small" effect="dark" :type="stateTypeMap[item.State] as any">
-                      {{ stateMap[item.State] || item.State }}
-                      <span v-if="item.StateLeftSec > 0" style="margin-left: 2px">{{ item.StateLeftSec }}秒</span>
-                    </el-tag>
-                  </div>
+                  </el-tooltip>
                 </template>
 
                 <div class="room-content">
@@ -92,7 +94,20 @@
                               style="color: var(--el-color-danger); font-weight: bold">庄</span>
                             <span v-else-if="player.IsOb"
                               style="color: var(--el-color-success); font-weight: bold">看</span>
-                            {{ player.ID }}
+                            <el-tooltip placement="top" :enterable="true">
+                              <template #content>
+                                <div style="display: flex; align-items: center; gap: 4px; cursor: pointer;"
+                                  @click="copyText(player.ID, '用户ID')">
+                                  <span>{{ player.ID }}</span>
+                                  <el-icon>
+                                    <CopyDocument />
+                                  </el-icon>
+                                </div>
+                              </template>
+                              <span style="cursor: help; border-bottom: 1px dashed #999;">{{ player.NickName ||
+                                player.ID
+                              }}</span>
+                            </el-tooltip>
                             <span v-if="player.CallMult >= 0 && player.BetMult === -1"
                               style="color: var(--el-color-danger); font-weight: bold; margin-left: 2px">
                               {{ player.CallMult === 0 ? '不抢' : '抢庄x' + player.CallMult }}
@@ -122,10 +137,10 @@
                           <div class="player-balance-change">
                             <span v-if="player.BalanceChange > 0" class="positive">+{{ (player.BalanceChange /
                               100).toFixed(2)
-                            }}</span>
+                              }}</span>
                             <span v-else-if="player.BalanceChange < 0" class="negative">{{ (player.BalanceChange /
                               100).toFixed(2)
-                            }}</span>
+                              }}</span>
                             <span v-else class="zero">0</span>
                           </div>
                         </div>
@@ -199,6 +214,31 @@ function getRoomInfo(id: string) {
     };
   }
   return { level: "未知", type: "未知" };
+}
+
+function getRoomClass(id: string) {
+  if (!id) return "";
+  const parts = id.split("_");
+  if (parts.length < 2) return "";
+  const typeStr = parts[1];
+  let typeCode = 0;
+  for (let i = 0; i < typeStr.length; i++) {
+    typeCode += typeStr.charCodeAt(i);
+  }
+  return `room-type-${typeCode % 6}`;
+}
+
+function getRoomTagType(id: string) {
+  if (!id) return "info";
+  const parts = id.split("_");
+  if (parts.length < 2) return "info";
+  const typeStr = parts[1];
+  let typeCode = 0;
+  for (let i = 0; i < typeStr.length; i++) {
+    typeCode += typeStr.charCodeAt(i);
+  }
+  const types = ['primary', 'success', 'warning', 'danger', 'info', 'primary'];
+  return types[typeCode % 6] as any;
 }
 
 const filteredList = computed<any[]>(() => {
@@ -361,6 +401,11 @@ const copyGameID = (id: any) => {
   ElMessage.success("GameID 已复制");
 };
 
+const copyText = (text: any, label: string = '内容') => {
+  navigator.clipboard.writeText(String(text));
+  ElMessage.success(`${label} 已复制`);
+};
+
 const loadMore = () => {
   if (noMore.value) return;
   // 每次滚动到底部增加显示 50 个房间
@@ -508,6 +553,60 @@ onUnmounted(() => {
       padding: 8px;
     }
 
+    :deep(.el-card__header) {
+      background-color: var(--room-header-bg);
+      transition: background-color 0.3s;
+    }
+
+    // Room Type Colors
+    &.room-type-0 {
+      --room-header-bg: #d9ecff;
+
+      :global(.dark) & {
+        --room-header-bg: #1d2530;
+      }
+    }
+
+    &.room-type-1 {
+      --room-header-bg: #e1f3d8;
+
+      :global(.dark) & {
+        --room-header-bg: #1d2b1d;
+      }
+    }
+
+    &.room-type-2 {
+      --room-header-bg: #faecd8;
+
+      :global(.dark) & {
+        --room-header-bg: #2b251d;
+      }
+    }
+
+    &.room-type-3 {
+      --room-header-bg: #fde2e2;
+
+      :global(.dark) & {
+        --room-header-bg: #2b1d1d;
+      }
+    }
+
+    &.room-type-4 {
+      --room-header-bg: #e9e9eb;
+
+      :global(.dark) & {
+        --room-header-bg: #262727;
+      }
+    }
+
+    &.room-type-5 {
+      --room-header-bg: #e7dcf5;
+
+      :global(.dark) & {
+        --room-header-bg: #251d2b;
+      }
+    }
+
     &:hover {
       transform: translateY(-2px);
       box-shadow: var(--el-box-shadow-light);
@@ -554,11 +653,11 @@ onUnmounted(() => {
           overflow: hidden;
 
           &.is-human {
-            background-color: var(--el-color-success-light-9);
+            background: linear-gradient(to right, var(--el-color-success-light-7), var(--el-color-success-light-9));
           }
 
           &.is-robot {
-            background-color: var(--el-color-primary-light-9);
+            // background-color: var(--el-color-primary-light-9);
           }
 
           .player-info {

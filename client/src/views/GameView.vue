@@ -1090,57 +1090,31 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
 
 
-                <div class="network-badge" :class="networkStatusClass">
-
-                    <div class="wifi-dot"></div>
-
-                    <span>{{ networkLatency }}ms</span>
-
-                </div>
+                                </div>
 
 
 
-                <!-- 下拉菜单 -->
+                
 
-                <transition name="fade">
 
-                    <div v-if="showMenu" class="menu-dropdown" @click.stop>
 
-                        <div class="menu-item" @click="openHistoryDebounced()">
+                                <!-- Network Latency -->
 
-                            <van-icon name="balance-list-o" /> 投注记录
 
-                        </div>
 
-                        <div class="menu-divider"></div>
+                                <div class="network-badge" :class="networkStatusClass">
 
-                        <div class="menu-item" @click="openSettingsDebounced()">
 
-                            <van-icon name="setting-o" /> 游戏设置
 
-                        </div>
+                                    <div class="wifi-dot"></div>
 
-                        <div class="menu-divider"></div>
 
-                        <div class="menu-item" @click="openHelpDebounced()">
 
-                            <van-icon name="question-o" /> 游戏帮助
+                                    <span>{{ networkLatency }}ms</span>
 
-                        </div>
 
-                        <div class="menu-divider"></div>
 
-                        <div class="menu-item danger" @click="quitGameDebounced()">
-
-                            <van-icon name="close" /> 退出游戏
-
-                        </div>
-
-                    </div>
-
-                </transition>
-
-            </div>
+                                </div>
 
         </div>
 
@@ -1661,12 +1635,6 @@ const shouldMoveStatusToHighPosition = computed(() => {
 .menu-container {
     position: relative;
     z-index: 300;
-    display: flex;
-    /* Add flex layout */
-    align-items: center;
-    /* Vertically center */
-    gap: 10px;
-    /* Space between menu button and network badge */
 }
 
 .network-badge {

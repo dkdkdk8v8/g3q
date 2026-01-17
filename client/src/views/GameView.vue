@@ -13,6 +13,7 @@ import HistoryModal from '../components/HistoryModal.vue';
 import { useRouter, useRoute } from 'vue-router';
 import { formatCoins } from '../utils/format.js';
 import { transformServerCard, calculateHandType } from '../utils/bullfight.js';
+import { AudioUtils } from '../utils/audio.js';
 import gameClient from '../socket.js';
 import { showToast as vantToast } from 'vant';
 import PokerCard from '../components/PokerCard.vue';
@@ -189,7 +190,6 @@ const coinLayer = ref(null);
 const dealingLayer = ref(null);
 const seatRefs = ref({}); // 存储所有座位的引用 key: playerId
 const tableCenterRef = ref(null); // 桌面中心元素引用
-const bgAudio = ref(null);
 const startAnimationClass = ref('');
 const showStartAnim = ref(false);
 const resultImage = ref('');
@@ -378,12 +378,10 @@ const isControlsContentVisible = computed(() => {
 
 // Watch Music Setting
 watch(() => settingsStore.musicEnabled, (val) => {
-    if (bgAudio.value) {
-        if (val) {
-            bgAudio.value.play().catch(() => { });
-        } else {
-            bgAudio.value.pause();
-        }
+    if (val) {
+        AudioUtils.playMusic(gameBgSound, 0.5);
+    } else {
+        AudioUtils.pauseMusic();
     }
 });
 
@@ -491,8 +489,7 @@ watch(() => store.countdown, (newVal, oldVal) => {
     if (settingsStore.soundEnabled && isCountdownPhase && newVal !== oldVal) {
         // Play countdownAlertSound at 2 seconds
         if (newVal === 1) {
-            const audio = new Audio(countdownAlertSound);
-            audio.play().catch(() => { });
+            AudioUtils.playEffect(countdownAlertSound);
         }
     }
 });
@@ -507,8 +504,7 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
         showStartAnim.value = true;
 
         if (settingsStore.soundEnabled) {
-            const audio = new Audio(gameStartSound);
-            audio.play().catch(() => { });
+            AudioUtils.playEffect(gameStartSound);
         }
 
         setTimeout(() => {
@@ -570,8 +566,7 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
                 candidateIndex = (candidateIndex + 1) % candidates.length;
                 currentlyHighlightedPlayerId.value = candidates[candidateIndex];
                 if (settingsStore.soundEnabled) {
-                    const audio = new Audio(randomBankSound);
-                    audio.play().catch(() => { });
+                    AudioUtils.playEffect(randomBankSound);
                 }
             }, 150);
         }
@@ -614,8 +609,7 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
             resultImage.value = isWin ? gameWinImg : gameLoseImg;
 
             if (settingsStore.soundEnabled) {
-                const audio = new Audio(isWin ? gameWinSound : gameLoseSound);
-                audio.play().catch(() => { });
+                AudioUtils.playEffect(isWin ? gameWinSound : gameLoseSound);
             }
 
             showResultAnim.value = true;
@@ -662,8 +656,7 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
                     if (count > 50) count = 50; // Max 50
                     coinLayer.value.throwCoins(seatRect, bankerRect, count);
                     if (settingsStore.soundEnabled) {
-                        const audio = new Audio(sendCoinSound);
-                        audio.play().catch(() => { });
+                        AudioUtils.playEffect(sendCoinSound);
                     }
                 }
             }
@@ -682,8 +675,7 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
                         if (count > 60) count = 60; // Max 60
                         coinLayer.value.throwCoins(bankerRect, seatRect, count);
                         if (settingsStore.soundEnabled) {
-                            const audio = new Audio(sendCoinSound);
-                            audio.play().catch(() => { });
+                            AudioUtils.playEffect(sendCoinSound);
                         }
                     }
                 }
@@ -757,8 +749,7 @@ const startDealingAnimation = (isSupplemental = false) => {
     if (targets.length === 0) return;
 
     if (settingsStore.soundEnabled) {
-        const audio = new Audio(sendCardSound);
-        audio.play().catch(() => { });
+        AudioUtils.playEffect(sendCardSound);
     }
 
     targets.forEach((t, pIndex) => {
@@ -827,12 +818,8 @@ onMounted(() => {
 
 
 
-    bgAudio.value = new Audio(gameBgSound);
-    bgAudio.value.loop = true;
-    bgAudio.value.volume = 0.5;
-
     if (settingsStore.musicEnabled) {
-        bgAudio.value.play().catch(() => { });
+        AudioUtils.playMusic(gameBgSound, 0.5);
     }
 
     // Register handler for PlayerLeave response
@@ -853,10 +840,7 @@ onMounted(() => {
 onUnmounted(() => {
     store.resetState();
 
-    if (bgAudio.value) {
-        bgAudio.value.pause();
-        bgAudio.value = null;
-    }
+    AudioUtils.stopMusic();
     gameClient.off('QZNN.PlayerLeave');
     gameClient.setLatencyCallback(null);
 });
@@ -867,14 +851,14 @@ onUnmounted(() => {
 
 const onRob = debounce((multiplier) => {
     if (settingsStore.soundEnabled) {
-        new Audio(btnClickSound).play().catch(() => { });
+        AudioUtils.playEffect(btnClickSound);
     }
     store.playerRob(multiplier);
 }, 500);
 
 const onBet = debounce((multiplier) => {
     if (settingsStore.soundEnabled) {
-        new Audio(btnClickSound).play().catch(() => { });
+        AudioUtils.playEffect(btnClickSound);
     }
     store.playerBet(multiplier);
 }, 500);
@@ -890,21 +874,21 @@ const startGameDebounced = debounce(() => {
 
 const openHistoryDebounced = debounce(() => {
     if (settingsStore.soundEnabled) {
-        new Audio(btnClickSound).play().catch(() => { });
+        AudioUtils.playEffect(btnClickSound);
     }
     showHistory.value = true;
 }, 500);
 
 const openSettingsDebounced = debounce(() => {
     if (settingsStore.soundEnabled) {
-        new Audio(btnClickSound).play().catch(() => { });
+        AudioUtils.playEffect(btnClickSound);
     }
     showSettings.value = true;
 }, 500);
 
 const quitGameDebounced = debounce(() => {
     if (settingsStore.soundEnabled) {
-        new Audio(btnClickSound).play().catch(() => { });
+        AudioUtils.playEffect(btnClickSound);
     }
     gameClient.send("QZNN.PlayerLeave", { RoomId: store.roomId });
 }, 500);
@@ -923,7 +907,7 @@ const openHelpDebounced = debounce(() => {
 
     if (settingsStore.soundEnabled) {
 
-        new Audio(btnClickSound).play().catch(() => { });
+        AudioUtils.playEffect(btnClickSound);
 
     }
 

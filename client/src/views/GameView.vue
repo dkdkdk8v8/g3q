@@ -584,7 +584,7 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
         showBankerConfirmAnim.value = true;
         setTimeout(() => {
             showBankerConfirmAnim.value = false;
-        }, 1500); // Animation lasts ~1.2s, keep state bit longer to be safe or shorter? CSS is 1.2s. 1.5s is fine.
+        }, 1200); // Animation lasts 1.2s. Match exactly to avoid delay in halo swap.
     }
 
 
@@ -1293,7 +1293,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
                         <!-- Avatar Container -->
                         <div class="avatar-frame" :class="{
                             'banker-candidate-highlight': myPlayer.id === currentlyHighlightedPlayerId,
-                            'is-banker': myPlayer.isBanker && !['SETTLEMENT', 'GAME_OVER'].includes(store.currentPhase),
+                            'is-banker': myPlayer.isBanker && !['SETTLEMENT', 'GAME_OVER'].includes(store.currentPhase) && !showBankerConfirmAnim,
                             'win-neon-flash': !!winEffects[myPlayer.id]
                         }">
                             <van-image :src="myPlayer.avatar" class="avatar" fit="cover"

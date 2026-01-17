@@ -269,7 +269,7 @@ const shouldMoveStatusFloat = computed(() => {
             }">
                 <div class="avatar-frame" :class="{
                     'banker-candidate-highlight': isAnimatingHighlight,
-                    'is-banker': player.isBanker && !['SETTLEMENT', 'GAME_OVER'].includes(store.currentPhase),
+                    'is-banker': player.isBanker && !['SETTLEMENT', 'GAME_OVER'].includes(store.currentPhase) && !triggerBankerAnimation,
                     'win-neon-flash': isWin,
                     'is-opponent': true
                 }">

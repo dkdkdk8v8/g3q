@@ -1287,36 +1287,21 @@ const shouldMoveStatusToHighPosition = computed(() => {
                 <!-- Avatar and Info Box - adapted from PlayerSeat -->
 
                 <div class="avatar-area my-player-avatar-info">
-
-                    <div class="avatar-wrapper">
-
+                    <div class="avatar-wrapper" :class="{
+                        'banker-confirm-anim': showBankerConfirmAnim && myPlayer.isBanker
+                    }">
                         <!-- Avatar Container -->
-
                         <div class="avatar-frame" :class="{
-
                             'banker-candidate-highlight': myPlayer.id === currentlyHighlightedPlayerId,
-
-                            'banker-confirm-anim': showBankerConfirmAnim && myPlayer.isBanker,
-
                             'is-banker': myPlayer.isBanker && !['SETTLEMENT', 'GAME_OVER'].includes(store.currentPhase),
-
                             'win-neon-flash': !!winEffects[myPlayer.id]
-
                         }">
-
                             <van-image :src="myPlayer.avatar" class="avatar" fit="cover"
                                 :class="{ 'avatar-gray': myPlayer.isObserver }" />
-
                         </div>
 
-
-
                         <!-- Avatar Frame Overlay -->
-
                         <img :src="avatarFrameImg" class="avatar-border-overlay" />
-
-
-
 
 
                     </div>
@@ -2176,6 +2161,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
     width: 62px;
     height: 62px;
     flex-shrink: 0;
+    border-radius: 50%;
     /* Removed z-index to allow child badge to pop over sibling info-box */
 }
 
@@ -2223,7 +2209,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
     /* Slightly weaker shadow */
 }
 
-.my-player-info-row .avatar-frame.banker-confirm-anim {
+.my-player-info-row .avatar-wrapper.banker-confirm-anim {
     position: relative;
     z-index: 5;
     animation: bankerConfirmPop 1.2s ease-out forwards;
@@ -3238,19 +3224,19 @@ const shouldMoveStatusToHighPosition = computed(() => {
 @keyframes bankerConfirmPop {
     0% {
         border-color: #fbbf24;
-        box-shadow: 0 0 25px 8px rgba(251, 191, 36, 0.9);
+        box-shadow: 0 0 10px 3px #fbbf24, 0 0 5px 1px #d97706;
         transform: scale(1);
     }
 
     50% {
         border-color: #fbbf24;
-        box-shadow: 0 0 35px 10px rgba(251, 191, 36, 1);
+        box-shadow: 0 0 20px 6px #fbbf24, 0 0 10px 2px #d97706;
         transform: scale(1.2);
     }
 
     100% {
         border-color: #fbbf24;
-        box-shadow: 0 0 6px #fbbf24;
+        box-shadow: 0 0 10px 3px #fbbf24, 0 0 5px 1px #d97706;
         transform: scale(1);
     }
 }

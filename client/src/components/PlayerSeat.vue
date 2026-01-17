@@ -264,10 +264,11 @@ const shouldMoveStatusFloat = computed(() => {
     <div class="player-seat" :class="`seat-${position}`">
         <!-- ... (keep avatar area) -->
         <div class="avatar-area">
-            <div class="avatar-wrapper">
+            <div class="avatar-wrapper" :class="{
+                'banker-confirm-anim': triggerBankerAnimation
+            }">
                 <div class="avatar-frame" :class="{
                     'banker-candidate-highlight': isAnimatingHighlight,
-                    'banker-confirm-anim': triggerBankerAnimation,
                     'is-banker': player.isBanker && !['SETTLEMENT', 'GAME_OVER'].includes(store.currentPhase),
                     'win-neon-flash': isWin,
                     'is-opponent': true
@@ -446,6 +447,7 @@ const shouldMoveStatusFloat = computed(() => {
     width: 52px;
     height: 52px;
     flex-shrink: 0;
+    border-radius: 50%;
     /* Prevent avatar shrinking */
     /* Removed z-index: 6 to allow banker badge (z-100) to be above info-box (z-10) */
 }
@@ -549,7 +551,7 @@ const shouldMoveStatusFloat = computed(() => {
     /* Slightly weaker shadow */
 }
 
-.avatar-frame.banker-confirm-anim {
+.avatar-wrapper.banker-confirm-anim {
     position: relative;
     z-index: 50;
     animation: bankerConfirmPop 1.2s ease-out forwards;
@@ -558,19 +560,19 @@ const shouldMoveStatusFloat = computed(() => {
 @keyframes bankerConfirmPop {
     0% {
         border-color: #fbbf24;
-        box-shadow: 0 0 25px 8px rgba(251, 191, 36, 0.9);
+        box-shadow: 0 0 10px 3px #fbbf24, 0 0 5px 1px #d97706;
         transform: scale(1);
     }
 
     50% {
         border-color: #fbbf24;
-        box-shadow: 0 0 35px 10px rgba(251, 191, 36, 1);
+        box-shadow: 0 0 20px 6px #fbbf24, 0 0 10px 2px #d97706;
         transform: scale(1.2);
     }
 
     100% {
         border-color: #fbbf24;
-        box-shadow: 0 0 6px #fbbf24;
+        box-shadow: 0 0 10px 3px #fbbf24, 0 0 5px 1px #d97706;
         transform: scale(1);
     }
 }

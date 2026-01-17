@@ -3385,11 +3385,11 @@ const shouldMoveStatusToHighPosition = computed(() => {
 }
 
 .hosting-btn.active {
-    background: linear-gradient(to bottom, #f59e0b, #d97706);
+    background: linear-gradient(to bottom, #22c55e, #16a34a);
     color: white;
-    border-color: #fcd34d;
+    border-color: #86efac;
     font-weight: bold;
-    box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+    box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
 }
 </style>
 

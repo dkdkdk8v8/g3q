@@ -1,1 +1,1 @@
-feat(client): absolute position switch room button to prevent layout shifts
+style(client): update HostingModal to match SettingsModal visual style (bg, header, close icon)

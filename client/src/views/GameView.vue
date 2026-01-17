@@ -98,6 +98,32 @@ const openHostingDebounced = debounce(() => {
 const handleHostingConfirm = (settings) => {
     hostingSettings.value = settings;
     isHosting.value = true;
+
+    // Immediate check for current phase actions upon enabling hosting
+    const me = store.players.find(p => p.id === store.myPlayerId);
+    if (!me) return;
+
+    if (store.currentPhase === 'ROB_BANKER') {
+        // If haven't robbed yet (robMultiplier is usually -1 or similar if not acted)
+        // Checking robMultiplier == -1 is common for "not acted"
+        if (me.robMultiplier === -1) {
+            const robVal = hostingSettings.value.rob;
+            const isValid = allRobOptions.value.includes(robVal);
+            onRob(isValid ? robVal : 0);
+        }
+    } else if (store.currentPhase === 'BETTING') {
+        // If not banker and haven't bet yet (betMultiplier == 0)
+        if (!me.isBanker && me.betMultiplier === 0) {
+            const betVal = hostingSettings.value.bet;
+            const isValid = betMultipliers.value.includes(betVal);
+            onBet(isValid ? betVal : (betMultipliers.value[0] || 1));
+        }
+    } else if (store.currentPhase === 'SHOWDOWN') {
+        // If haven't shown hand
+        if (!me.isShowHand) {
+            store.playerShowHand(store.myPlayerId);
+        }
+    }
 };
 
 const switchRoom = debounce(() => {

@@ -3,6 +3,8 @@ package strategy
 import (
 	"math"
 	"math/rand"
+
+	"github.com/sirupsen/logrus"
 )
 
 // StrategyConfig 策略配置参数
@@ -14,6 +16,18 @@ type StrategyConfig struct {
 	HighRiskMult      int64   // 高风险倍数阈值 (抢庄*下注 > 此值时触发风控)
 	EnableNewbieBonus bool    // 是否开启新手光环
 	MinTurnover       int64   // 最小流水阈值 (低于此值时认为样本不足，不使用实时杀率)
+}
+
+func (c *StrategyConfig) Log() {
+	logrus.WithFields(logrus.Fields{
+		"TargetProfitRate":  c.TargetProfitRate,
+		"ProtectK":          c.ProtectK,
+		"ProtectB":          c.ProtectB,
+		"BaseLucky":         c.BaseLucky,
+		"HighRiskMult":      c.HighRiskMult,
+		"EnableNewbieBonus": c.EnableNewbieBonus,
+		"MinTurnover":       c.MinTurnover,
+	}).Info("StrategyConfig")
 }
 
 // StrategyContext 策略上下文 (通用参数)
@@ -37,6 +51,24 @@ type StrategyContext struct {
 	WinningStreak int   // 连胜局数
 	LosingStreak  int   // 连败局数
 
+}
+
+func (c *StrategyContext) Log() {
+	logrus.WithFields(logrus.Fields{
+		"UserID":                 c.UserID,
+		"TotalProfit":            c.TotalProfit,
+		"PendingCompensate":      c.PendingCompensate,
+		"BaseBet":                c.BaseBet,
+		"KillRateYesterdayDelta": c.KillRateYesterdayDelta,
+		"KillRateToday":          c.KillRateToday,
+		"SystemTurnoverToday":    c.SystemTurnoverToday,
+		"TotalMult":              c.TotalMult,
+		"RiskExposure":           c.RiskExposure,
+		"IsRobot":                c.IsRobot,
+		"IsNewbie":               c.IsNewbie,
+		"WinningStreak":          c.WinningStreak,
+		"LosingStreak":           c.LosingStreak,
+	}).Info("StrategyContext")
 }
 
 // IStrategyCore 策略核心接口

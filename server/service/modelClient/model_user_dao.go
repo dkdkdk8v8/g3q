@@ -6,6 +6,7 @@ import (
 	"context"
 	"math/rand"
 	"service/comm"
+	"service/modelAdmin"
 	"strconv"
 	"time"
 
@@ -40,6 +41,7 @@ func GetOrCreateUser(appId string, appUserId string) (*ModelUser, error) {
 		Talk:      true,
 		Effect:    true,
 		Music:     true,
+		BaseLucky: int16(modelAdmin.SysParamCache.GetInt("strategy.BaseLucky", 50)),
 		Avatar: ConstAvatorUrlPathPrefix + "/" +
 			strconv.Itoa(rand.Intn(ConstAvator)) + ".jpg",
 	}

@@ -36,14 +36,52 @@ type UserStrategyData struct {
 	LosingStreak      int     // 连败局数
 }
 
+/*
+原因分析： 如果只参考“百分比（杀率）”的差值进行修正，会因为昨日和今日的流水（Turnover）不一致而导致严重的风控偏差。
+
+举个极端的例子说明“百分比修正”的危害：
+
+昨日（量小杀高）： 流水 1万，盈利 5千。杀率 50%（目标 5%）。
+偏差：+45%。
+系统认为：昨天杀太狠了，今天要把这 +45% 的杀率吐回去。
+今日（量大）： 突然来了大户，流水打到了 100万。
+如果按百分比修正：今日目标杀率 = 5% - 45% = -40%。
+结果：系统会尝试输掉 100万 * 40% = 40万。
+最终账目： 昨天赢 0.5万，今天输 40万。系统血亏 39.5万。
+本来只想把昨天多赢的 0.45万 吐出来，结果因为今天流水大，按比例吐出了天量资金。
+解决方案： 最稳健的做法是将“昨日”和“今日”的数据合并看待，形成一个 48小时滚动窗口（或者更长周期的库存池）。
+
+即：实时杀率 = (昨日盈利 + 今日盈利) / (昨日流水 + 今日流水)
+
+这样就自动引入了“绝对值”的权重。
+
+如果昨日流水小，它对总杀率的影响就小，不会导致今日大流水时过度放水。
+如果昨日流水大，它积累的“库存”就多，今日即使流水小，也会持续放水直到库存消化完。
+
+对应修改：
+YesterdayProfit   int64                        // 昨日系统盈利 (新增：用于合并计算)
+YesterdayTurnover int64                        // 昨日系统流水 (新增：用于合并计算)
+*/
+
 // RoomStrategy 房间策略上下文
 type RoomStrategy struct {
-	Config                 strategy.StrategyConfig
-	Manager                *strategy.StrategyManager    // 引入通用策略管理器
-	SystemProfit           int64                        // 系统24h盈利 //从admin同步
-	SystemTurnover         int64                        // 系统24h流水 //从admin同步
-	KillRateYesterdayDelta float64                      // 昨天已经产生的杀率补偿
-	UserData               map[string]*UserStrategyData // 玩家策略数据缓存 [UserID]Data
+	Config            strategy.StrategyConfig
+	Manager           *strategy.StrategyManager    // 引入通用策略管理器
+	SystemProfit      int64                        // 系统24h盈利 //从admin同步
+	SystemTurnover    int64                        // 系统24h流水 //从admin同步
+	YesterdayProfit   int64                        // 昨日系统盈利 (新增：用于合并计算)
+	YesterdayTurnover int64                        // 昨日系统流水 (新增：用于合并计算)
+	UserData          map[string]*UserStrategyData // 玩家策略数据缓存 [UserID]Data
+}
+
+func (s *RoomStrategy) Log() {
+	logrus.WithFields(logrus.Fields{
+		"SystemProfit":      s.SystemProfit,
+		"SystemTurnover":    s.SystemTurnover,
+		"YesterdayProfit":   s.YesterdayProfit,
+		"YesterdayTurnover": s.YesterdayTurnover,
+		"UserDataCount":     len(s.UserData),
+	}).Info("RoomStrategy")
 }
 
 func NewRoomStrategy() *RoomStrategy {
@@ -71,11 +109,13 @@ func NewRoomStrategy() *RoomStrategy {
 		EnableNewbieBonus: modelAdmin.SysParamCache.GetBool("strategy.EnableNewbieBonus", true),    // 是否开启新手光环    // 开启新手光环
 		MinTurnover:       int64(modelAdmin.SysParamCache.GetInt("strategy.MinTurnover", 5000000)), // 最小流水阈值 (例如200万分/2万元)，低于此值不介入强风控
 	}
-	return &RoomStrategy{
+	rs := &RoomStrategy{
 		Config:   cfg,
 		Manager:  strategy.NewStrategyManager(cfg),
 		UserData: make(map[string]*UserStrategyData),
 	}
+	rs.Config.Log()
+	return rs
 }
 
 // --- 策略系统核心结构定义 End ---
@@ -1450,14 +1490,11 @@ func (r *QZNNRoom) UpdateStrategyParams() {
 	r.Strategy.SystemTurnover = int64(turnover)
 
 	// 获取昨日系统水位，计算杀率补偿
+	// 修改逻辑：不再计算差值比率，而是直接存储昨日的绝对值数据，用于后续加权平均
 	winYesterday, turnoverYesterday := modelAdmin.GetStaPeriodByDay(1)
-	if turnoverYesterday > 0 {
-		actualRate := float64(winYesterday) / float64(turnoverYesterday)
-		// 昨天的实际杀率 - 目标杀率 = 偏差值
-		r.Strategy.KillRateYesterdayDelta = actualRate - r.Strategy.Config.TargetProfitRate
-	} else {
-		r.Strategy.KillRateYesterdayDelta = 0
-	}
+	r.Strategy.YesterdayProfit = int64(winYesterday)
+	r.Strategy.YesterdayTurnover = int64(turnoverYesterday)
+	r.Strategy.Log()
 }
 
 // --- 策略系统核心逻辑实现 ---
@@ -1547,14 +1584,20 @@ func (r *QZNNRoom) calculateRealtimeLucky(p *Player) float64 {
 		WinningStreak:     strategyData.WinningStreak,
 		LosingStreak:      strategyData.LosingStreak,
 		RiskExposure:      20000,
-
-		SystemTurnoverToday:    r.Strategy.SystemTurnover,
-		KillRateYesterdayDelta: r.Strategy.KillRateYesterdayDelta,
-		KillRateToday:          0,
+		// 修正：将昨日和今日的数据合并，形成“滚动杀率”，这比单纯的百分比修正更科学（自动包含权重的概念）
+		SystemTurnoverToday:    r.Strategy.YesterdayTurnover + r.Strategy.SystemTurnover,
+		KillRateYesterdayDelta: 0, // 不再使用单纯的差值修正
+		KillRateToday:          0, // 下面计算
 	}
 
-	if r.Strategy.SystemTurnover > 0 {
-		ctx.KillRateToday = float64(r.Strategy.SystemProfit) / float64(r.Strategy.SystemTurnover)
+	// 计算合并后的实时杀率
+	totalProfit := r.Strategy.YesterdayProfit + r.Strategy.SystemProfit
+	if ctx.SystemTurnoverToday > 0 {
+		ctx.KillRateToday = float64(totalProfit) / float64(ctx.SystemTurnoverToday)
+	}
+
+	if r.CanLog() {
+		ctx.Log()
 	}
 
 	// 调用通用策略管理器进行计算

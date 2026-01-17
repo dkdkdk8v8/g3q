@@ -1455,7 +1455,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                                     myPlayer.robMultiplier
 
-                                }}倍</span>
+                                    }}倍</span>
 
                                 <span v-else class="status-text no-rob-text text-large">不抢</span>
 
@@ -2531,6 +2531,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
     justify-content: center;
     align-items: flex-start;
     width: 100%;
+    position: relative;
 }
 
 .controls-placeholder {
@@ -2617,6 +2618,14 @@ const shouldMoveStatusToHighPosition = computed(() => {
     align-self: center;
     /* Prevent stretching in flex container */
 }
+
+.observer-waiting-banner {
+    /* ... existing styles ... */
+    /* Ensure it doesn't conflict with absolute button if needed */
+}
+
+/* ... existing styles ... */
+
 
 .restart-btn {
     pointer-events: auto;
@@ -3340,7 +3349,12 @@ const shouldMoveStatusToHighPosition = computed(() => {
     width: auto !important;
     min-width: 80px;
     height: 36px;
-    margin-top: 10px;
+    /* margin-top: 10px; Removed to use absolute positioning */
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
 }
 
 .hosting-btn {

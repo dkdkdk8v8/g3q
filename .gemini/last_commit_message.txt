@@ -1,0 +1,1 @@
+feat(client): absolute position switch room button to prevent layout shifts

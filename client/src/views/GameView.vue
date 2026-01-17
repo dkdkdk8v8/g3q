@@ -3307,9 +3307,10 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
     background: rgba(0, 0, 0, 0.6);
     color: #cbd5e1;
-    font-size: 12px;
-    padding: 6px 12px;
-    border-radius: 16px;
+    font-size: 15px;
+    padding: 6px 13px;
+    border-top-left-radius: 16px;
+    border-bottom-left-radius: 16px;
     border: 1px solid rgba(255, 255, 255, 0.2);
     cursor: pointer;
     z-index: 1000;

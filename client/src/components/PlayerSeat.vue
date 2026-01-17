@@ -1056,7 +1056,7 @@ const shouldMoveStatusFloat = computed(() => {
 
 .score-float {
     position: absolute;
-    top: 0;
+    top: -20px;
     font-weight: bold;
     font-size: 24px;
     text-shadow: 2px 2px 0 #000;

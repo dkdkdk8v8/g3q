@@ -1927,7 +1927,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    width: 100px;
+    width: 160px; /* Match PlayerSeat width */
     height: 120px;
     /* Approximate height of a player seat */
     opacity: 0.6;

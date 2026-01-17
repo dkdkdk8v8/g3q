@@ -1455,7 +1455,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                                     myPlayer.robMultiplier
 
-                                    }}倍</span>
+                                }}倍</span>
 
                                 <span v-else class="status-text no-rob-text text-large">不抢</span>
 
@@ -1483,7 +1483,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
                 <div class="hosting-btn" v-if="!myPlayer.isObserver" @click="openHostingDebounced"
                     :class="{ active: isHosting }">
                     <template v-if="isHosting">
-                        正在托管<span class="loading-dots"></span>
+                        托管中<span class="loading-dots"></span>
                     </template>
                     <template v-else>
                         托管

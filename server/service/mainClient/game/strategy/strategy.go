@@ -23,7 +23,7 @@ type StrategyContext struct {
 	UserID            string
 	TotalProfit       int64 // 历史总盈亏 (水位)
 	RecentProfit      int64 // 近期盈亏
-	PendingCompensate int64 // 待补偿金额
+	PendingCompensate int64 // 待补偿金额 为了跨度惩罚 (Span Penalty) / 稀释
 	RoomStock         int64 // 房间/系统库存 (SystemStock)
 	BaseBet           int64 // 房间底分
 

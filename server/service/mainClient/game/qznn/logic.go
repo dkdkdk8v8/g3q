@@ -1324,12 +1324,27 @@ func (r *QZNNRoom) startGame() {
 			//非测试模式下，机器人不记录对局记录
 			insertUserRecord = true
 		}
+
+		// 计算待补偿金额变化量 (输赢取反)
+		pendingCompensateChange := -p.BalanceChange
+
+		// 同步更新内存中的策略数据 (确保下一局立即生效，无需查库)
+		if sData, ok := r.Strategy.UserData[p.ID]; ok {
+			sData.PendingCompensate += pendingCompensateChange
+			if sData.PendingCompensate < 0 {
+				sData.PendingCompensate = 0
+			}
+			sData.TotalProfit += p.BalanceChange
+			sData.RecentProfit += p.BalanceChange
+		}
+
 		settle.Players = append(settle.Players, modelClient.UserSettingStruct{
-			UserId:               p.ID,
-			ChangeBalance:        p.BalanceChange,
-			PlayerBalance:        p.Balance,
-			ValidBet:             p.ValidBet,
-			UserGameRecordInsert: insertUserRecord,
+			UserId:                  p.ID,
+			ChangeBalance:           p.BalanceChange,
+			PlayerBalance:           p.Balance,
+			ValidBet:                p.ValidBet,
+			PendingCompensateChange: pendingCompensateChange,
+			UserGameRecordInsert:    insertUserRecord,
 		})
 	}
 	if r.CanLog() {
@@ -1457,11 +1472,17 @@ func (r *QZNNRoom) calculateRealtimeLucky(p *Player) float64 {
 
 	strategyData, ok := r.Strategy.UserData[p.ID]
 	if !ok {
-		// TODO: 实际项目中应在玩家进入房间时从数据库加载 TotalProfit 等数据
+		// 从数据库加载用户策略数据
+		var totalProfit, pendingCompensate int64
+		if user, err := modelClient.GetUserByUserId(p.ID); err == nil && user != nil {
+			totalProfit = user.TotalNetBalance
+			pendingCompensate = user.PendingCompensate
+		}
+
 		strategyData = &UserStrategyData{
-			TotalProfit:       0, // 默认为0，需对接 User Model
+			TotalProfit:       totalProfit,
 			RecentProfit:      0,
-			PendingCompensate: 0,
+			PendingCompensate: pendingCompensate,
 			BaseLucky:         r.Strategy.Config.BaseLucky,
 		}
 		r.Strategy.UserData[p.ID] = strategyData
@@ -1506,6 +1527,7 @@ func (r *QZNNRoom) calculateRealtimeLucky(p *Player) float64 {
 		IsNewbie:      p.GameCount < 50, // 假设 50 局以内算新手，需确保 p.GameCount 已正确赋值
 		WinningStreak: strategyData.WinningStreak,
 		LosingStreak:  strategyData.LosingStreak,
+		RiskExposure:  20000,
 
 		SystemTurnoverToday: r.Strategy.SystemTurnover,
 		KillRateToday:       float64(r.Strategy.SystemProfit) / float64(r.Strategy.SystemTurnover), // Assuming this is today's kill rate,

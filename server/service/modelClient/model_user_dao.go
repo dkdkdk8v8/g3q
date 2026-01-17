@@ -200,11 +200,14 @@ type GameSettletruct struct {
 	Players      []UserSettingStruct
 }
 type UserSettingStruct struct {
-	UserId               string
-	PlayerBalance        int64
-	ChangeBalance        int64
-	ValidBet             int64
-	UserGameRecordInsert bool
+	UserId                  string
+	PlayerBalance           int64
+	ChangeBalance           int64
+	ValidBet                int64
+	PendingCompensateChange int64 // 新增：待补偿金额变化量
+	UserGameRecordInsert    bool
+	LosingStreak            int
+	WinningStreak           int
 }
 
 func UpdateUserSetting(setting *GameSettletruct) ([]*ModelUser, error) {
@@ -229,12 +232,24 @@ func UpdateUserSetting(setting *GameSettletruct) ([]*ModelUser, error) {
 			}
 			oldBalanceLock := user.BalanceLock
 			user.BalanceLock += player.ChangeBalance
+			if player.ChangeBalance < 0 {
+				user.LosingStreak++
+				user.WinningStreak = 0
+			} else {
+				user.WinningStreak++
+				user.LosingStreak = 0
+			}
 			user.LastPlayed = time.Now()
 			user.TotalGameCount++
 			user.TotalBet += uint64(player.ValidBet)
 			user.TotalNetBalance += player.ChangeBalance
-			res, err := txOrm.Raw("UPDATE g3q_user SET balance_lock=?, last_played=?, total_game_count=?, total_bet=?, total_net_balance=?, update_at=? WHERE user_id=?",
-				user.BalanceLock, user.LastPlayed, user.TotalGameCount, user.TotalBet, user.TotalNetBalance, time.Now(), user.UserId).Exec()
+			user.PendingCompensate += player.PendingCompensateChange
+			if user.PendingCompensate < 0 {
+				//最小只能是0
+				user.PendingCompensate = 0
+			}
+			res, err := txOrm.Raw("UPDATE g3q_user SET balance_lock=?, last_played=?, total_game_count=?, total_bet=?, total_net_balance=?, pending_compensate=?, update_at=? WHERE user_id=?",
+				user.BalanceLock, user.LastPlayed, user.TotalGameCount, user.TotalBet, user.TotalNetBalance, user.PendingCompensate, time.Now(), user.UserId).Exec()
 			if err != nil {
 				return err
 			}

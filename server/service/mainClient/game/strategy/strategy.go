@@ -12,7 +12,6 @@ type StrategyConfig struct {
 	ProtectB          float64 // 线性保护公式截距 b
 	BaseLucky         float64 // 默认幸运值 (50)
 	HighRiskMult      int64   // 高风险倍数阈值 (抢庄*下注 > 此值时触发风控)
-	OverflowThreshold int64   // 溢出返还阈值 (库存超过此值时触发全员Lucky提升)
 	EnableNewbieBonus bool    // 是否开启新手光环
 	MinTurnover       int64   // 最小流水阈值 (低于此值时认为样本不足，不使用实时杀率)
 }
@@ -22,9 +21,7 @@ type StrategyConfig struct {
 type StrategyContext struct {
 	UserID            string
 	TotalProfit       int64 // 历史总盈亏 (水位)
-	RecentProfit      int64 // 近期盈亏
 	PendingCompensate int64 // 待补偿金额 为了跨度惩罚 (Span Penalty) / 稀释
-	RoomStock         int64 // 房间/系统库存 (SystemStock)
 	BaseBet           int64 // 房间底分
 
 	// 新增系统维度数据
@@ -101,13 +98,13 @@ func (s *StrategyManager) CalcBaseLucky(ctx *StrategyContext) float64 {
 
 	// 3. 系统溢出返还 (System Overflow Bonus)
 	// 逻辑：当系统库存远超警戒线时，全员加 Lucky
-	overflowBonus := 0.0
-	const OverflowUnit = 50000.0
-	if ctx.RoomStock > s.Config.OverflowThreshold {
-		overflowAmt := float64(ctx.RoomStock - s.Config.OverflowThreshold)
-		overflowBonus = overflowAmt / OverflowUnit
-		overflowBonus = math.Min(15.0, overflowBonus)
-	}
+	// overflowBonus := 0.0
+	// const OverflowUnit = 50000.0
+	// if ctx.RoomStock > s.Config.OverflowThreshold {
+	// 	overflowAmt := float64(ctx.RoomStock - s.Config.OverflowThreshold)
+	// 	overflowBonus = overflowAmt / OverflowUnit
+	// 	overflowBonus = math.Min(15.0, overflowBonus)
+	// }
 
 	// 4. 新手光环 (Newbie Bonus)
 	// 逻辑：如果是新手且开关开启，给予额外 Lucky 加成
@@ -134,7 +131,7 @@ func (s *StrategyManager) CalcBaseLucky(ctx *StrategyContext) float64 {
 	}
 	// ----------------------------------------------------------------
 
-	return baseLucky + waterCorrection + compensateLucky + overflowBonus + newbieBonus + streakCorrection
+	return baseLucky + waterCorrection + compensateLucky + newbieBonus + streakCorrection
 }
 
 // ApplyRiskControl 默认实现：应用风控修正
@@ -156,9 +153,10 @@ func (s *StrategyManager) ApplyRiskControl(baseLucky float64, ctx *StrategyConte
 		tempLucky = 50.0 + (offset * decayFactor)
 	}
 
-	// 2. 库存保护 (System Inventory Protection)
-	// 改为基于利润率的梯度概率触发
+	// 2. 库存保护与系统返还 (System Inventory Protection & Overflow)
+	// 基于线性公式: y = kx + b + delta
 	shouldProtect := false
+	shouldRelease := false
 
 	// 计算杀率贡献值：如果流水不足，使用目标杀率代替实时杀率，防止波动过大
 	var rateContribution float64
@@ -169,12 +167,33 @@ func (s *StrategyManager) ApplyRiskControl(baseLucky float64, ctx *StrategyConte
 	}
 
 	// 线性公式: y = kx + b + delta
-	protectProb := rateContribution + s.Config.ProtectB + ctx.KillRateYesterdayDelta
-	if protectProb > 1.0 {
-		protectProb = 1.0
-	}
-	if protectProb > 0 && rand.Float64() < protectProb {
-		shouldProtect = true
+	// y > 0: 保护倾向 (System needs to win) -> 降低玩家 Lucky
+	// y < 0: 放水倾向 (System has won too much) -> 增加玩家 Lucky
+	controlVal := rateContribution + s.Config.ProtectB + ctx.KillRateYesterdayDelta
+
+	if controlVal > 0 {
+		// 保护逻辑
+		protectProb := controlVal
+		if protectProb > 1.0 {
+			protectProb = 1.0
+		}
+		if rand.Float64() < protectProb {
+			shouldProtect = true
+		}
+	} else {
+		// 返还逻辑 (Overflow)
+		// 当 controlVal 为负数时，表示杀率偏高，系统盈利过多
+		// 设定一个阈值 (例如 -2.0) 来触发返还，避免在目标附近(y=-1.4)频繁波动
+		// 这里使用 -2.0 作为基准 (对应 Rate > ~0.062)
+		releaseProb := -controlVal - 2.0
+		if releaseProb > 0 {
+			if releaseProb > 1.0 {
+				releaseProb = 1.0
+			}
+			if rand.Float64() < releaseProb {
+				shouldRelease = true
+			}
+		}
 	}
 
 	if shouldProtect {
@@ -183,6 +202,10 @@ func (s *StrategyManager) ApplyRiskControl(baseLucky float64, ctx *StrategyConte
 		} else {
 			tempLucky -= 5.0 // 普通情况触发保护，轻罚
 		}
+	}
+
+	if shouldRelease {
+		tempLucky += 5.0 // 触发返还，奖励 Lucky
 	}
 
 	// 3. 最终边界锁定

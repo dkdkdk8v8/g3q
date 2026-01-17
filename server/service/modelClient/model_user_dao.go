@@ -248,8 +248,8 @@ func UpdateUserSetting(setting *GameSettletruct) ([]*ModelUser, error) {
 				//最小只能是0
 				user.PendingCompensate = 0
 			}
-			res, err := txOrm.Raw("UPDATE g3q_user SET balance_lock=?, last_played=?, total_game_count=?, total_bet=?, total_net_balance=?, pending_compensate=?, update_at=? WHERE user_id=?",
-				user.BalanceLock, user.LastPlayed, user.TotalGameCount, user.TotalBet, user.TotalNetBalance, user.PendingCompensate, time.Now(), user.UserId).Exec()
+			res, err := txOrm.Raw("UPDATE g3q_user SET balance_lock=?, last_played=?, total_game_count=?, total_bet=?, total_net_balance=?, pending_compensate=?, losing_streak=?, winning_streak=?, update_at=? WHERE user_id=?",
+				user.BalanceLock, user.LastPlayed, user.TotalGameCount, user.TotalBet, user.TotalNetBalance, user.PendingCompensate, user.LosingStreak, user.WinningStreak, time.Now(), user.UserId).Exec()
 			if err != nil {
 				return err
 			}

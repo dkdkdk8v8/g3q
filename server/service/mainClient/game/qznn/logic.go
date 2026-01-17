@@ -11,6 +11,7 @@ import (
 	"service/initMain"
 	"service/mainClient/game/strategy"
 	"service/mainClient/game/znet"
+	"service/modelAdmin"
 	"service/modelClient"
 	"slices"
 	"strings"
@@ -27,7 +28,6 @@ var errorStateNotMatch = errors.New("stateNotMatch")
 // UserStrategyData 用户策略运行时数据
 type UserStrategyData struct {
 	TotalProfit       int64   // 历史总盈亏
-	RecentProfit      int64   // 近期盈亏
 	PendingCompensate int64   // 待补偿金额 (低分场输的钱)
 	BaseLucky         float64 // 基础 Lucky 值 (进场时计算)
 	FinalLucky        float64 // 最终 Lucky 值 (发牌前修正)
@@ -38,23 +38,38 @@ type UserStrategyData struct {
 
 // RoomStrategy 房间策略上下文
 type RoomStrategy struct {
-	Config         strategy.StrategyConfig
-	Manager        *strategy.StrategyManager    // 引入通用策略管理器
-	SystemProfit   int64                        // 系统24h盈利 //从redis同步
-	SystemTurnover int64                        // 系统24h流水 //从redis同步
-	UserData       map[string]*UserStrategyData // 玩家策略数据缓存 [UserID]Data
+	Config                 strategy.StrategyConfig
+	Manager                *strategy.StrategyManager    // 引入通用策略管理器
+	SystemProfit           int64                        // 系统24h盈利 //从admin同步
+	SystemTurnover         int64                        // 系统24h流水 //从admin同步
+	KillRateYesterdayDelta float64                      // 昨天已经产生的杀率补偿
+	UserData               map[string]*UserStrategyData // 玩家策略数据缓存 [UserID]Data
 }
 
 func NewRoomStrategy() *RoomStrategy {
 	cfg := strategy.StrategyConfig{
-		TargetProfitRate:  0.05,
-		ProtectK:          -50.0, // k = -50
-		ProtectB:          1.1,   // b = 1.1
-		BaseLucky:         50.0,
-		HighRiskMult:      20,      // 示例: 4倍抢庄 * 5倍下注 = 20
-		OverflowThreshold: 200000,  // 示例: 库存超过20万开始放水
-		EnableNewbieBonus: true,    // 开启新手光环
-		MinTurnover:       2000000, // 最小流水阈值 (例如200万分/2万元)，低于此值不介入强风控
+		TargetProfitRate: modelAdmin.SysParamCache.GetFloat64("strategy.TargetProfitRate", 0.05),
+		// ----------------------------------------------------------------
+		// [风控参数直观分布表] y = -40*x + 1.0
+		//
+		// 1. 库存保护 (杀率过低 -> 降低玩家Lucky)
+		//    杀率 0.0%  -> y=1.0 -> 100% 概率触发保护 (强力回收)
+		//    杀率 1.0%  -> y=0.6 -> 60%  概率触发保护
+		//    杀率 2.0%  -> y=0.2 -> 20%  概率触发保护
+		//    杀率 2.5%  -> y=0.0 -> 0%   停止保护 (平衡点)
+		//
+		// 2. 系统放水 (杀率过高 -> 提升玩家Lucky, 阈值设定为 -2.0)
+		//    杀率 2.5% ~ 7.5% -> 系统不干预 (自由博弈区间)
+		//    杀率 7.5%  -> y=-2.0 -> 0%   开始放水
+		//    杀率 8.0%  -> y=-2.2 -> 20%  概率放水
+		//    杀率 10.0% -> y=-3.0 -> 100% 概率放水 (强力送分)
+		// ----------------------------------------------------------------
+		ProtectK:          modelAdmin.SysParamCache.GetFloat64("strategy.ProtectK", -50.0),
+		ProtectB:          modelAdmin.SysParamCache.GetFloat64("strategy.ProtectB", 1),
+		BaseLucky:         modelAdmin.SysParamCache.GetFloat64("strategy.BaseLucky", 50),
+		HighRiskMult:      int64(modelAdmin.SysParamCache.GetInt("strategy.BaseLucky", 20)),        // 示例: 4倍抢庄 * 5倍下注 = 20
+		EnableNewbieBonus: modelAdmin.SysParamCache.GetBool("strategy.EnableNewbieBonus", true),    // 是否开启新手光环    // 开启新手光环
+		MinTurnover:       int64(modelAdmin.SysParamCache.GetInt("strategy.MinTurnover", 5000000)), // 最小流水阈值 (例如200万分/2万元)，低于此值不介入强风控
 	}
 	return &RoomStrategy{
 		Config:   cfg,
@@ -872,6 +887,9 @@ func (r *QZNNRoom) startGame() {
 		logrus.WithField("gameId", r.GameID).WithField("roomId", r.ID).Info("GameStart")
 	}
 
+	// 每次游戏开始前更新策略参数
+	r.UpdateStrategyParams()
+
 	//保底的检查，用户能不能玩，至少2个有效用户，不够要再踢回waiting
 	activePlayer := r.GetActivePlayers(nil)
 	var activePlayerIds []string
@@ -1062,7 +1080,7 @@ func (r *QZNNRoom) startGame() {
 
 	// 【核心修改】在此处介入策略系统
 	// 在进入 StateDealing (发牌/补牌) 之前，根据倍数和库存调整手牌
-	// r.applyStrategyRiskControl()
+	r.applyStrategyRiskControl()
 
 	//补牌到5张，不看牌发5张，看3补2，看4
 	if !r.SetStatus([]RoomState{StateBetting}, StateDealing, 0) {
@@ -1246,17 +1264,6 @@ func (r *QZNNRoom) startGame() {
 			p.ValidBet = p.BalanceChange
 		}
 
-		// 更新连胜/连败数据 (用于下一局策略计算)
-		if sData, ok := r.Strategy.UserData[p.ID]; ok {
-			if p.BalanceChange > 0 {
-				sData.WinningStreak++
-				sData.LosingStreak = 0
-			} else if p.BalanceChange < 0 {
-				sData.LosingStreak++
-				sData.WinningStreak = 0
-			}
-			// BalanceChange == 0 (平局或没下注) 保持不变
-		}
 	}
 
 	// 5. 扣税 (只扣赢家的)
@@ -1328,16 +1335,6 @@ func (r *QZNNRoom) startGame() {
 		// 计算待补偿金额变化量 (输赢取反)
 		pendingCompensateChange := -p.BalanceChange
 
-		// 同步更新内存中的策略数据 (确保下一局立即生效，无需查库)
-		if sData, ok := r.Strategy.UserData[p.ID]; ok {
-			sData.PendingCompensate += pendingCompensateChange
-			if sData.PendingCompensate < 0 {
-				sData.PendingCompensate = 0
-			}
-			sData.TotalProfit += p.BalanceChange
-			sData.RecentProfit += p.BalanceChange
-		}
-
 		settle.Players = append(settle.Players, modelClient.UserSettingStruct{
 			UserId:                  p.ID,
 			ChangeBalance:           p.BalanceChange,
@@ -1387,6 +1384,14 @@ func (r *QZNNRoom) startGame() {
 				//最终以数据库的数据为准
 				player.Balance = modelU.BalanceLock
 				player.Mu.Unlock()
+				//同步更新内存中的策略数据 (确保下一局立即生效)
+				if sData, ok := r.Strategy.UserData[player.ID]; ok {
+					sData.PendingCompensate = modelU.PendingCompensate
+					sData.TotalProfit = modelU.TotalNetBalance
+					// 更新连胜/连败数据 (用于下一局策略计算)
+					sData.WinningStreak = modelU.WinningStreak
+					sData.LosingStreak = modelU.LosingStreak
+				}
 				break
 			}
 		}
@@ -1438,6 +1443,23 @@ func (r *QZNNRoom) startGame() {
 	r.SetStatus([]RoomState{StateSettling, RoomState("")}, nextState, prepareSec)
 }
 
+func (r *QZNNRoom) UpdateStrategyParams() {
+	// 获取今日系统水位
+	win, turnover := modelAdmin.GetStaPeriodByDay(0)
+	r.Strategy.SystemProfit = int64(win)
+	r.Strategy.SystemTurnover = int64(turnover)
+
+	// 获取昨日系统水位，计算杀率补偿
+	winYesterday, turnoverYesterday := modelAdmin.GetStaPeriodByDay(1)
+	if turnoverYesterday > 0 {
+		actualRate := float64(winYesterday) / float64(turnoverYesterday)
+		// 昨天的实际杀率 - 目标杀率 = 偏差值
+		r.Strategy.KillRateYesterdayDelta = actualRate - r.Strategy.Config.TargetProfitRate
+	} else {
+		r.Strategy.KillRateYesterdayDelta = 0
+	}
+}
+
 // --- 策略系统核心逻辑实现 ---
 
 // applyStrategyRiskControl 是策略系统的总入口
@@ -1481,7 +1503,6 @@ func (r *QZNNRoom) calculateRealtimeLucky(p *Player) float64 {
 
 		strategyData = &UserStrategyData{
 			TotalProfit:       totalProfit,
-			RecentProfit:      0,
 			PendingCompensate: pendingCompensate,
 			BaseLucky:         r.Strategy.Config.BaseLucky,
 		}
@@ -1518,19 +1539,22 @@ func (r *QZNNRoom) calculateRealtimeLucky(p *Player) float64 {
 	ctx := &strategy.StrategyContext{
 		UserID:            p.ID,
 		TotalProfit:       strategyData.TotalProfit,
-		RecentProfit:      strategyData.RecentProfit,
 		PendingCompensate: strategyData.PendingCompensate,
+		BaseBet:           int64(r.Config.BaseBet),
+		TotalMult:         totalMult,
+		IsRobot:           p.IsRobot,
+		IsNewbie:          p.GameCount < 50, // 假设 50 局以内算新手，需确保 p.GameCount 已正确赋值
+		WinningStreak:     strategyData.WinningStreak,
+		LosingStreak:      strategyData.LosingStreak,
+		RiskExposure:      20000,
 
-		BaseBet:       int64(r.Config.BaseBet),
-		TotalMult:     totalMult,
-		IsRobot:       p.IsRobot,
-		IsNewbie:      p.GameCount < 50, // 假设 50 局以内算新手，需确保 p.GameCount 已正确赋值
-		WinningStreak: strategyData.WinningStreak,
-		LosingStreak:  strategyData.LosingStreak,
-		RiskExposure:  20000,
+		SystemTurnoverToday:    r.Strategy.SystemTurnover,
+		KillRateYesterdayDelta: r.Strategy.KillRateYesterdayDelta,
+		KillRateToday:          0,
+	}
 
-		SystemTurnoverToday: r.Strategy.SystemTurnover,
-		KillRateToday:       float64(r.Strategy.SystemProfit) / float64(r.Strategy.SystemTurnover), // Assuming this is today's kill rate,
+	if r.Strategy.SystemTurnover > 0 {
+		ctx.KillRateToday = float64(r.Strategy.SystemProfit) / float64(r.Strategy.SystemTurnover)
 	}
 
 	// 调用通用策略管理器进行计算

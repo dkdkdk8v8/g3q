@@ -197,6 +197,19 @@ function generateCharts(data: any) {
                         color: getRgba(primary, 0.3)
                     },
                     data: data.current.map((e: any) => getValue(e[m.key], m.isMoney, m.isRate)),
+                    markLine: m.key === 'platformKillRate' ? {
+                        silent: true,
+                        symbol: 'none',
+                        label: {
+                            position: 'start',
+                            formatter: ''
+                        },
+                        lineStyle: {
+                            color: '#f56c6c',
+                            type: 'dashed'
+                        },
+                        data: [{ yAxis: 2.5 }]
+                    } : undefined
                 },
                 {
                     name: '前一天',

@@ -27,41 +27,7 @@
         </cl-row>
 
         <cl-row>
-            <cl-table ref="Table" :default-sort="{ prop: 'betAmount', order: 'descending' }">
-                <template #column-depositAmount="{ scope }">
-                    <format-money :value="scope.row.depositAmount" />
-                </template>
-                <template #column-withdrawAmount="{ scope }">
-                    <format-money :value="scope.row.withdrawAmount" />
-                </template>
-                <template #column-betAmount="{ scope }">
-                    <format-money :value="scope.row.betAmount" />
-                </template>
-                <template #column-betWin="{ scope }">
-                    <format-money :value="scope.row.betWin" />
-                </template>
-                <template #column-totalDeposit="{ scope }">
-                    <format-money :value="scope.row.totalDeposit" />
-                </template>
-                <template #column-totalWithdraw="{ scope }">
-                    <format-money :value="scope.row.totalWithdraw" />
-                </template>
-                <template #column-totalBet="{ scope }">
-                    <format-money :value="scope.row.totalBet" />
-                </template>
-                <template #column-totalNetBalance="{ scope }">
-                    <format-money :value="scope.row.totalNetBalance" />
-                </template>
-                <template #column-avgBetAmount="{ scope }">
-                    <format-money :value="scope.row.avgBetAmount" />
-                </template>
-                <template #column-winRate="{ scope }">
-                    {{ (scope.row.winRate * 100).toFixed(2) }}%
-                </template>
-                <template #column-returnRate="{ scope }">
-                    {{ (scope.row.returnRate * 100).toFixed(2) }}%
-                </template>
-            </cl-table>
+            <cl-table ref="Table" />
         </cl-row>
 
         <cl-row>
@@ -71,14 +37,14 @@
     </cl-crud>
 </template>
 
-<script lang="ts" name="sta-user" setup>
+<script lang="tsx" name="sta-user" setup>
 import { useCrud, useTable } from "@cool-vue/crud";
 import { useCool } from "/@/cool";
 import { useDict } from '/$/dict';
 import { reactive, ref } from "vue";
 import dayjs from "dayjs";
-import FormatMoney from "../components/format-money.vue";
 import { dateShortcuts } from "../utils/date-shortcuts";
+import FormatMoney from "../components/format-money.vue"
 
 const { dict } = useDict();
 const { service } = useCool();
@@ -133,28 +99,40 @@ const crudService = {
     },
 };
 
+// 格式化金额
+function fmtMoney(row: any, column: any, value = 0) {
+    return Number(value / 100).toFixed(2);
+}
+
+// 格式化百分比
+function fmtPercent(row: any, column: any, value = 0) {
+    return (Number(value || 0) * 100).toFixed(2) + "%";
+}
+
+function fmtMoneyWin(row: any, column: any, value = 0) {
+    return <FormatMoney value={value} />
+}
+
 // cl-table
 const Table = useTable({
     columns: [
         { label: "排名", prop: "ranking", width: 60, fixed: "left", align: "center" },
         { label: "APP", prop: "appId", minWidth: 100, sortable: "custom", fixed: "left", dict: options.app_id, dictColor: true },
         { label: "用户ID", prop: "userId", minWidth: 110, fixed: "left", showOverflowTooltip: true },
-        // { label: "昵称", prop: "nickName", minWidth: 100 },
-        { label: "用户盈利", prop: "betWin", minWidth: 90, sortable: "desc" },
-        { label: "充值金额", prop: "depositAmount", minWidth: 90, sortable: "custom" },
-        { label: "提现金额", prop: "withdrawAmount", minWidth: 90, sortable: "custom" },
-        { label: "投注金额", prop: "betAmount", minWidth: 90, sortable: "custom" },
+        { label: "用户盈利", prop: "betWin", minWidth: 90, fixed: "left", sortable: "desc", formatter: fmtMoneyWin },
+        { label: "充值金额", prop: "depositAmount", minWidth: 90, sortable: "custom", formatter: fmtMoney },
+        { label: "提现金额", prop: "withdrawAmount", minWidth: 90, sortable: "custom", formatter: fmtMoney },
+        { label: "投注流水", prop: "betAmount", minWidth: 90, sortable: "custom", formatter: fmtMoney },
         { label: "投注次数", prop: "betCount", minWidth: 90, sortable: "custom" },
-        { label: "次均投注", prop: "avgBetAmount", minWidth: 90, sortable: "custom" },
-        { label: "胜率", prop: "winRate", minWidth: 90, sortable: "custom" },
-        { label: "返奖率", prop: "returnRate", minWidth: 90, sortable: "custom" },
+        { label: "次均投注", prop: "avgBetAmount", minWidth: 90, sortable: "custom", formatter: fmtMoney },
+        { label: "胜率", prop: "winRate", minWidth: 90, sortable: "custom", formatter: fmtPercent },
+        { label: "返奖率", prop: "returnRate", minWidth: 90, sortable: "custom", formatter: fmtPercent },
         { label: "胜利次数", prop: "winCount", minWidth: 90, sortable: "custom" },
-        // { label: "当庄次数", prop: "bankerCount", minWidth: 90, sortable: "custom" },
-        { label: "总充值", prop: "totalDeposit", minWidth: 90, sortable: "custom" },
-        { label: "总提现", prop: "totalWithdraw", minWidth: 90, sortable: "custom" },
+        { label: "总充值", prop: "totalDeposit", minWidth: 90, sortable: "custom", formatter: fmtMoney },
+        { label: "总提现", prop: "totalWithdraw", minWidth: 90, sortable: "custom", formatter: fmtMoney },
         { label: "总游戏数", prop: "totalGameCount", minWidth: 90, sortable: "custom" },
-        { label: "总投注", prop: "totalBet", minWidth: 90, sortable: "custom" },
-        { label: "总净输赢", prop: "totalNetBalance", minWidth: 90, fixed: "right", sortable: "desc" },
+        { label: "总流水", prop: "totalBet", minWidth: 90, sortable: "custom", formatter: fmtMoney },
+        { label: "总输赢", prop: "totalNetBalance", minWidth: 90, fixed: "right", sortable: "desc", formatter: fmtMoneyWin },
     ]
 });
 

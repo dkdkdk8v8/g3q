@@ -151,23 +151,23 @@ const Table = useTable({
         {
             label: "游戏活跃",
             prop: "gameUserCount",
-            minWidth: 100,
+            minWidth: 90,
             sortable: "custom",
         },
         {
             label: "首次游戏",
             prop: "firstGameUserCount",
-            minWidth: 100,
+            minWidth: 90,
             sortable: "custom",
         },
         {
             label: "游戏局数",
             prop: "gameCount",
-            minWidth: 100,
+            minWidth: 90,
             sortable: "custom",
         },
         {
-            label: "投注金额",
+            label: "投注流水",
             prop: "betAmount",
             minWidth: 100,
             sortable: "custom",
@@ -182,7 +182,7 @@ const Table = useTable({
             sortable: "custom",
         },
         {
-            label: "人均投注",
+            label: "人均流水",
             prop: "avgBetPerUser",
             minWidth: 100,
             sortable: "custom",
@@ -191,7 +191,7 @@ const Table = useTable({
             },
         },
         {
-            label: "次均投注",
+            label: "次均流水",
             prop: "avgBetPerGame",
             minWidth: 100,
             sortable: "custom",
@@ -200,9 +200,9 @@ const Table = useTable({
             },
         },
         {
-            label: "人均次数",
+            label: "人均投注次数",
             prop: "avgCountPerUser",
-            minWidth: 100,
+            minWidth: 110,
             sortable: "custom",
             formatter(row) {
                 return Number(row.avgCountPerUser).toFixed(2);

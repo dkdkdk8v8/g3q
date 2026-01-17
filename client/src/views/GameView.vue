@@ -1380,7 +1380,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
                 <!-- My Score Float -->
                 <div v-if="myPlayer.roundScore !== 0 && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)"
                     class="score-float" :class="myPlayer.roundScore > 0 ? 'win' : 'lose'">
-                    {{ myPlayer.roundScore > 0 ? '+' : '' }}<img :src="goldImg" class="coin-icon-float" />{{
+                    {{ myPlayer.roundScore > 0 ? '+' : '' }}{{
                         formatCoins(myPlayer.roundScore) }}
                 </div>
             </div>
@@ -3170,7 +3170,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 }
 
 .score-float.win {
-    color: #facc15;
+    color: #4ade80;
 }
 
 .score-float.lose {

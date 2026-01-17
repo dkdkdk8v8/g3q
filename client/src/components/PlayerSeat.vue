@@ -324,7 +324,7 @@ const shouldMoveStatusFloat = computed(() => {
         <!-- ... (keep score float) -->
         <div v-if="player.roundScore !== 0 && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)"
             class="score-float" :class="player.roundScore > 0 ? 'win' : 'lose'">
-            {{ player.roundScore > 0 ? '+' : '' }}<img :src="goldImg" class="coin-icon-float" />{{
+            {{ player.roundScore > 0 ? '+' : '' }}{{
                 formatCoins(player.roundScore) }}
         </div>
 
@@ -1063,6 +1063,14 @@ const shouldMoveStatusFloat = computed(() => {
     animation: floatUp 3s forwards;
     z-index: 20;
     font-family: 'Arial Black', sans-serif;
+}
+
+.score-float.win {
+    color: #4ade80;
+}
+
+.score-float.lose {
+    color: #ef4444;
 }
 
 /* ... */

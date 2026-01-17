@@ -198,7 +198,7 @@ const historyGrouped = computed(() => {
 
             if (roomData.Config) {
                 const bt = roomData.Config.BankerType;
-                if (bt === 0) roomModeText = '不开牌';
+                if (bt === 0) roomModeText = '不看牌';
                 else if (bt === 1) roomModeText = '看三张';
                 else if (bt === 2) roomModeText = '看四张';
 
@@ -326,7 +326,7 @@ watch(() => props.visible, (val) => {
                             <div class="hc-bet-amt">
                                 投注: <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{
                                     formatCoins(item.bet)
-                                }}</span>
+                                    }}</span>
                             </div>
                         </div>
                     </div>

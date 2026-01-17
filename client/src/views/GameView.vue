@@ -326,8 +326,8 @@ watch(badgeTriggerCondition, (val) => {
 
 const shouldShowRobMult = computed(() => {
     if (!myPlayer.value) return false;
-    // Hide in IDLE or READY phases (new game)
-    if (['IDLE', 'READY_COUNTDOWN'].includes(store.currentPhase)) return false;
+    // Hide in IDLE, READY, SETTLEMENT, or GAME_OVER phases
+    if (['IDLE', 'READY_COUNTDOWN', 'SETTLEMENT', 'GAME_OVER'].includes(store.currentPhase)) return false;
 
     // Phase: Robbing Banker or Selection (Show for everyone who has acted)
     if (['ROB_BANKER', 'BANKER_SELECTION_ANIMATION', 'BANKER_CONFIRMED'].includes(store.currentPhase)) {
@@ -345,7 +345,7 @@ const shouldShowRobMult = computed(() => {
 const shouldShowBetMult = computed(() => {
     if (!myPlayer.value) return false;
     // Hide in IDLE or READY phases
-    if (['IDLE', 'READY_COUNTDOWN', 'ROB_BANKER', 'BANKER_SELECTION_ANIMATION', 'BANKER_CONFIRMED'].includes(store.currentPhase)) return false;
+    if (['IDLE', 'READY_COUNTDOWN', 'ROB_BANKER', 'BANKER_SELECTION_ANIMATION', 'BANKER_CONFIRMED', 'SETTLEMENT', 'GAME_OVER'].includes(store.currentPhase)) return false;
 
     // Only show for Non-Banker
     if (myPlayer.value.isBanker) return false;

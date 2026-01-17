@@ -14,22 +14,28 @@
             </div>
         </el-card>
 
-        <el-card shadow="never" class="chart-card">
+        <el-card shadow="never" class="chart-card mb-10">
+            <div class="chart-box" ref="chartBoxRef">
+                <v-chart ref="chartRef" :option="chartOption" autoresize />
+            </div>
+        </el-card>
+
+        <el-card shadow="never" class="chart-card mb-10">
             <el-row :gutter="20">
-                <el-col :xs="24" :sm="24" :md="24" :lg="16" :xl="16" class="mb-10">
-                    <div class="chart-box" ref="chartBoxRef">
-                        <v-chart ref="chartRef" :option="chartOption" autoresize />
-                    </div>
-                </el-col>
-                <el-col :xs="24" :sm="24" :md="24" :lg="8" :xl="8" class="mb-10">
+                <el-col :xs="24" :sm="24" :md="12" :lg="12">
                     <div class="chart-box">
                         <v-chart :option="barRankOption" autoresize />
+                    </div>
+                </el-col>
+                <el-col :xs="24" :sm="24" :md="12" :lg="12">
+                    <div class="chart-box">
+                        <v-chart :option="multiplierOption" autoresize />
                     </div>
                 </el-col>
             </el-row>
         </el-card>
 
-        <el-card shadow="never" class="chart-card mt-10">
+        <el-card shadow="never" class="chart-card">
             <div class="chart-box">
                 <v-chart :option="cardCountOption" autoresize />
             </div>
@@ -57,6 +63,7 @@ const chartRef = ref();
 const chartBoxRef = ref();
 const chartOption = ref({});
 const barRankOption = ref({});
+const multiplierOption = ref({});
 const cardCountOption = ref({});
 const isDark = ref(false);
 
@@ -94,22 +101,40 @@ const cardTypeKeys = [
     'NiuFiveSmall'
 ];
 
+// 牌型倍数
+const cardMultipliers: Record<string, number> = {
+    NiuNone: 1,
+    NiuOne: 1,
+    NiuTwo: 1,
+    NiuThree: 1,
+    NiuFour: 1,
+    NiuFive: 1,
+    NiuSix: 1,
+    NiuSeven: 2,
+    NiuEight: 2,
+    NiuNine: 3,
+    NiuNiu: 4,
+    NiuFace: 6,
+    NiuBomb: 8,
+    NiuFiveSmall: 10,
+};
+
 // 颜色配置
 const colors = [
-    '#909399', // 无牛
-    '#3aa1ff', // 牛一
-    '#36cbcb', // 牛二
-    '#4ecb73', // 牛三
-    '#fbd437', // 牛四
-    '#f2637b', // 牛五
-    '#975fe5', // 牛六
-    '#5254cf', // 牛七
-    '#435188', // 牛八
-    '#faad14', // 牛九
-    '#f5222d', // 牛牛
-    '#fa541c', // 五花牛
-    '#722ed1', // 炸弹牛
-    '#13c2c2'  // 五小牛
+    '#c6e2ff', // 无牛 (1倍)
+    '#a0cfff', // 牛一 (1倍)
+    '#79bbff', // 牛二 (1倍)
+    '#53a8ff', // 牛三 (1倍)
+    '#409eff', // 牛四 (1倍)
+    '#337ecc', // 牛五 (1倍)
+    '#215da6', // 牛六 (1倍)
+    '#95d475', // 牛七 (2倍)
+    '#67c23a', // 牛八 (2倍)
+    '#e6a23c', // 牛九 (3倍)
+    '#fa8c16', // 牛牛 (4倍)
+    '#f56c6c', // 五花牛 (6倍)
+    '#9c27b0', // 炸弹牛 (8倍)
+    '#eb2f96'  // 五小牛 (10倍)
 ];
 
 let rawDataCache: number[][] = [];
@@ -251,7 +276,7 @@ function updateChart() {
                 type: 'shadow',
             },
             formatter: (params: any[]) => {
-                let res = `${params[0].axisValue}点<br/>`;
+                let res = `${params[0].axisValue}<br/>`;
                 res += `总局数: ${totalDataCache[params[0].dataIndex]}<br/>`;
                 params.forEach(item => {
                     const val = (item.value * 100).toFixed(1) + '%';
@@ -278,7 +303,7 @@ function updateChart() {
         },
         xAxis: {
             type: 'category',
-            data: Array.from({ length: 24 }, (_, i) => i + ''),
+            data: Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0')),
             axisLabel: {
                 interval: 0,
                 color: textColor
@@ -302,7 +327,7 @@ function updateRankChart() {
     const pieData = cardTypeKeys.map((key, i) => {
         const total = rawDataCache[i].reduce((sum, val) => sum + val, 0);
         return {
-            name: cardTypeMap[key],
+            name: `${cardTypeMap[key]} (${cardMultipliers[key]}倍)`,
             value: total,
             itemStyle: {
                 color: colors[i]
@@ -312,6 +337,88 @@ function updateRankChart() {
 
     const grandTotal = pieData.reduce((sum, item) => sum + item.value, 0);
     const sortedData = [...pieData].sort((a, b) => b.value - a.value);
+
+    // 计算倍数分布
+    const multiplierTotals: Record<number, number> = {};
+    const multiplierColors: Record<number, string> = {
+        1: colors[4],  // 1倍 (蓝色系)
+        2: colors[8],  // 2倍 (绿色系)
+        3: colors[9],  // 3倍 (黄色)
+        4: colors[10], // 4倍 (橙色)
+        6: colors[11], // 6倍 (红色)
+        8: colors[12], // 8倍 (紫色)
+        10: colors[13] // 10倍 (粉色)
+    };
+
+    cardTypeKeys.forEach((key, i) => {
+        const mult = cardMultipliers[key];
+        const total = rawDataCache[i].reduce((sum, val) => sum + val, 0);
+        multiplierTotals[mult] = (multiplierTotals[mult] || 0) + total;
+    });
+
+    const multiplierRankData = Object.entries(multiplierTotals)
+        .map(([mult, value]) => ({
+            name: `${mult}倍`,
+            value,
+            itemStyle: { color: multiplierColors[Number(mult)] }
+        }))
+        .sort((a, b) => b.value - a.value);
+
+    multiplierOption.value = {
+        title: [
+            {
+                text: '倍数占比',
+                left: 'center',
+                textStyle: { color: textColor }
+            },
+            {
+                text: grandTotal.toLocaleString(),
+                subtext: '总局数',
+                left: 'center',
+                top: '43%',
+                textStyle: { fontSize: 22, fontWeight: 'bold', color: textColor },
+                subtextStyle: { fontSize: 14, color: textColor }
+            }
+        ],
+        tooltip: {
+            trigger: 'item',
+            formatter: '{b}: {c} ({d}%)',
+            backgroundColor: isDark.value ? 'rgba(0,0,0,0.7)' : '#fff',
+            borderColor: borderColor,
+            textStyle: { color: isDark.value ? '#fff' : '#333' },
+        },
+        legend: {
+            type: 'scroll',
+            bottom: 0,
+            textStyle: { color: textColor }
+        },
+        series: [
+            {
+                type: 'pie',
+                radius: ['45%', '70%'],
+                avoidLabelOverlap: true,
+                itemStyle: {
+                    borderRadius: 8,
+                    borderColor: isDark.value ? '#1d1e1f' : '#fff',
+                    borderWidth: 2
+                },
+                label: {
+                    show: true,
+                    position: 'outside',
+                    formatter: '{b}: {d}%',
+                    color: textColor
+                },
+                emphasis: {
+                    label: {
+                        show: true,
+                        fontSize: '14',
+                        fontWeight: 'bold'
+                    }
+                },
+                data: multiplierRankData
+            }
+        ]
+    };
 
     barRankOption.value = {
         title: {
@@ -328,8 +435,8 @@ function updateRankChart() {
             textStyle: { color: isDark.value ? '#fff' : '#333' },
         },
         grid: {
-            left: '15%',
-            right: '15%',
+            left: 110,
+            right: 90,
             top: 40,
             bottom: 20
         },
@@ -381,12 +488,12 @@ function updateCardCountChart(data: number[]) {
     const rankMap = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
     const suitMap = ["♠️", "♥️", "♣️", "♦️"];
 
-    // 4色配色：黑、红、绿、蓝
+    // 现代化色系：黑(黑桃)、红(红桃)、绿(草花)、蓝(方块)
     const suitColors = [
-        '#435188', // ♠
-        '#f2637b', // ♥
-        '#36cbcb', // ♣
-        '#4ecb73'  // ♦
+        '#303133', // ♠ 黑桃 (深碳灰)
+        '#f56c6c', // ♥ 红桃 (柔和红)
+        '#67c23a', // ♣ 草花 (清新绿)
+        '#409eff'  // ♦ 方块 (专业蓝)
     ];
 
     const seriesList: any[] = [];
@@ -403,7 +510,8 @@ function updateCardCountChart(data: number[]) {
             type: 'bar',
             data: seriesData,
             itemStyle: {
-                color: suitColors[s]
+                color: suitColors[s],
+                borderRadius: [4, 4, 0, 0]
             },
             barGap: 0
         });
@@ -454,7 +562,7 @@ function updateCardCountChart(data: number[]) {
         yAxis: {
             type: 'value',
             axisLabel: {
-                formatter: (value: number) => (value * 100).toFixed(1) + '%',
+                formatter: (value: number) => (value * 100).toFixed(2) + '%',
                 color: textColor
             }
         },

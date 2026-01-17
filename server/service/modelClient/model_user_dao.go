@@ -84,7 +84,7 @@ func GetRobots(limit, offset int) ([]*ModelUser, error) {
 // GetStressUsers 获取压测用户
 func GetStressUsers() ([]*ModelUser, error) {
 	var users []*ModelUser
-	_, err := GetDb().Raw("SELECT * FROM g3q_user WHERE app_id=?", "STRS").QueryRows(&users)
+	_, err := GetDb().Raw("SELECT * FROM g3q_user WHERE app_id=? ORDER BY last_played ASC ", "STRS").QueryRows(&users)
 	return users, err
 }
 

@@ -7,6 +7,7 @@ import { useUserStore } from '../stores/user.js';
 import { useGameStore } from '../stores/game.js';
 import { useSettingsStore } from '../stores/settings.js';
 import { calculateHandType, transformServerCard } from '../utils/bullfight.js';
+import { AudioUtils } from '../utils/audio.js';
 import gameClient from '../socket.js';
 import HistoryModal from '../components/HistoryModal.vue';
 import SettingsModal from '../components/SettingsModal.vue';
@@ -47,11 +48,10 @@ const router = useRouter();
 const userStore = useUserStore();
 const gameStore = useGameStore();
 const settingsStore = useSettingsStore();
-const bgAudio = ref(null);
 
 const playBtnSound = () => {
     if (settingsStore.soundEnabled) {
-        new Audio(btnClickSound).play().catch(() => { });
+        AudioUtils.playEffect(btnClickSound);
     }
 };
 
@@ -143,16 +143,11 @@ const fetchData = () => {
 
 const playMusic = () => {
     if (!settingsStore.musicEnabled) return;
-    if (!bgAudio.value) {
-        bgAudio.value = new Audio(lobbyBgSound);
-        bgAudio.value.loop = true;
-        bgAudio.value.volume = 0.5;
-    }
-    bgAudio.value.play().catch(() => { });
+    AudioUtils.playMusic(lobbyBgSound, 0.5);
 };
 
 const stopMusic = () => {
-    if (bgAudio.value) bgAudio.value.pause();
+    AudioUtils.pauseMusic();
 };
 
 watch(() => settingsStore.musicEnabled, (val) => {
@@ -197,7 +192,6 @@ onActivated(() => {
 onDeactivated(stopMusic);
 onUnmounted(() => {
     stopMusic();
-    bgAudio.value = null;
 });
 
 const goBack = () => {

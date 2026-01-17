@@ -5,8 +5,8 @@ import ReconnectDialog from './components/ReconnectDialog.vue';
 import btnClickSound from '@/assets/sounds/btn_click.mp3';
 import { useSettingsStore } from './stores/settings.js';
 import { useGameStore } from './stores/game.js';
+import { AudioUtils } from './utils/audio.js';
 
-const clickAudio = new Audio(btnClickSound);
 const settingsStore = useSettingsStore();
 const gameStore = useGameStore();
 
@@ -16,8 +16,7 @@ onMounted(() => {
         const target = e.target.closest('button, .btn, .game-btn, .menu-btn, .van-button, .menu-item, .tab-item, .room-card, .add-btn, .chat-toggle-btn, .close-icon, .close-btn, .phrase-item, .emoji-item, .retry-btn');
         if (target) {
             if (settingsStore.soundEnabled) {
-                clickAudio.currentTime = 0;
-                clickAudio.play().catch(() => { });
+                AudioUtils.playEffect(btnClickSound);
             }
         }
     }, true); // Use capture phase to handle events before stopPropagation

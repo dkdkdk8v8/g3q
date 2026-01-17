@@ -194,8 +194,8 @@ watch(badgeTriggerCondition, (val) => {
 }, { immediate: true });
 
 const shouldShowRobMult = computed(() => {
-    // Hide in IDLE or READY phases (new game)
-    if (['IDLE', 'READY_COUNTDOWN'].includes(store.currentPhase)) return false;
+    // Hide in IDLE, READY, SETTLEMENT, or GAME_OVER phases
+    if (['IDLE', 'READY_COUNTDOWN', 'SETTLEMENT', 'GAME_OVER'].includes(store.currentPhase)) return false;
 
     // Phase: Robbing Banker or Selection (Show for everyone who has acted)
     if (['ROB_BANKER', 'BANKER_SELECTION_ANIMATION', 'BANKER_CONFIRMED'].includes(store.currentPhase)) {
@@ -212,8 +212,8 @@ const shouldShowRobMult = computed(() => {
 });
 
 const shouldShowBetMult = computed(() => {
-    // Hide in IDLE or READY phases
-    if (['IDLE', 'READY_COUNTDOWN', 'ROB_BANKER', 'BANKER_SELECTION_ANIMATION', 'BANKER_CONFIRMED'].includes(store.currentPhase)) return false;
+    // Hide in IDLE, READY, SETTLEMENT or GAME_OVER phases
+    if (['IDLE', 'READY_COUNTDOWN', 'ROB_BANKER', 'BANKER_SELECTION_ANIMATION', 'BANKER_CONFIRMED', 'SETTLEMENT', 'GAME_OVER'].includes(store.currentPhase)) return false;
 
     // Only show for Non-Banker
     if (props.player.isBanker) return false;
@@ -264,10 +264,11 @@ const shouldMoveStatusFloat = computed(() => {
     <div class="player-seat" :class="`seat-${position}`">
         <!-- ... (keep avatar area) -->
         <div class="avatar-area">
-            <div class="avatar-wrapper">
+            <div class="avatar-wrapper" :class="{
+                'banker-confirm-anim': triggerBankerAnimation
+            }">
                 <div class="avatar-frame" :class="{
                     'banker-candidate-highlight': isAnimatingHighlight,
-                    'banker-confirm-anim': triggerBankerAnimation,
                     'is-banker': player.isBanker && !['SETTLEMENT', 'GAME_OVER'].includes(store.currentPhase),
                     'win-neon-flash': isWin,
                     'is-opponent': true
@@ -323,7 +324,7 @@ const shouldMoveStatusFloat = computed(() => {
         <!-- ... (keep score float) -->
         <div v-if="player.roundScore !== 0 && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)"
             class="score-float" :class="player.roundScore > 0 ? 'win' : 'lose'">
-            {{ player.roundScore > 0 ? '+' : '' }}<img :src="goldImg" class="coin-icon-float" />{{
+            {{ player.roundScore > 0 ? '+' : '' }}{{
                 formatCoins(player.roundScore) }}
         </div>
 
@@ -446,6 +447,7 @@ const shouldMoveStatusFloat = computed(() => {
     width: 52px;
     height: 52px;
     flex-shrink: 0;
+    border-radius: 50%;
     /* Prevent avatar shrinking */
     /* Removed z-index: 6 to allow banker badge (z-100) to be above info-box (z-10) */
 }
@@ -547,9 +549,16 @@ const shouldMoveStatusFloat = computed(() => {
     border-color: #fbbf24;
     box-shadow: 0 0 10px 3px #fbbf24, 0 0 5px 1px #d97706;
     /* Slightly weaker shadow */
+    transition: none;
 }
 
-.avatar-frame.banker-confirm-anim {
+/* Hide static banker styles while animation is playing on the wrapper */
+.avatar-wrapper.banker-confirm-anim .avatar-frame.is-banker {
+    box-shadow: none !important;
+    border-color: transparent !important;
+}
+
+.avatar-wrapper.banker-confirm-anim {
     position: relative;
     z-index: 50;
     animation: bankerConfirmPop 1.2s ease-out forwards;
@@ -558,19 +567,19 @@ const shouldMoveStatusFloat = computed(() => {
 @keyframes bankerConfirmPop {
     0% {
         border-color: #fbbf24;
-        box-shadow: 0 0 25px 8px rgba(251, 191, 36, 0.9);
+        box-shadow: 0 0 10px 3px #fbbf24, 0 0 5px 1px #d97706;
         transform: scale(1);
     }
 
     50% {
         border-color: #fbbf24;
-        box-shadow: 0 0 35px 10px rgba(251, 191, 36, 1);
+        box-shadow: 0 0 20px 6px #fbbf24, 0 0 10px 2px #d97706;
         transform: scale(1.2);
     }
 
     100% {
         border-color: #fbbf24;
-        box-shadow: 0 0 6px #fbbf24;
+        box-shadow: 0 0 10px 3px #fbbf24, 0 0 5px 1px #d97706;
         transform: scale(1);
     }
 }
@@ -1047,13 +1056,21 @@ const shouldMoveStatusFloat = computed(() => {
 
 .score-float {
     position: absolute;
-    top: 0;
+    top: -20px;
     font-weight: bold;
     font-size: 24px;
     text-shadow: 2px 2px 0 #000;
     animation: floatUp 3s forwards;
     z-index: 20;
     font-family: 'Arial Black', sans-serif;
+}
+
+.score-float.win {
+    color: #2ccc67;
+}
+
+.score-float.lose {
+    color: #fe5d5d;
 }
 
 /* ... */

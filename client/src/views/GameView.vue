@@ -10,12 +10,129 @@ import DealingLayer from '../components/DealingLayer.vue';
 import SettingsModal from '../components/SettingsModal.vue';
 import HelpModal from '../components/HelpModal.vue';
 import HistoryModal from '../components/HistoryModal.vue';
+import HostingModal from '../components/HostingModal.vue';
 import { useRouter, useRoute } from 'vue-router';
 import { formatCoins } from '../utils/format.js';
 import { transformServerCard, calculateHandType } from '../utils/bullfight.js';
+import { AudioUtils } from '../utils/audio.js';
 import gameClient from '../socket.js';
 import { showToast as vantToast } from 'vant';
 import PokerCard from '../components/PokerCard.vue';
+
+const store = useGameStore();
+const settingsStore = useSettingsStore();
+
+const betMultipliers = computed(() => {
+    return (store.betMult || []).sort((a, b) => a - b);
+});
+
+const allRobOptions = computed(() => {
+    const options = [0, ...(store.bankerMult || [])].filter((value, index, self) => self.indexOf(value) === index).sort((a, b) => a - b);
+    return options;
+});
+
+const showHosting = ref(false); // Hosting Modal State
+const isHosting = ref(false); // Is Hosting Active?
+const hostingSettings = ref({ rob: 0, bet: 1 }); // Stored Settings
+
+// ... (existing logic)
+
+// Hosting Watcher
+watch(() => store.currentPhase, (newPhase) => {
+    if (!isHosting.value) return;
+
+    if (newPhase === 'ROB_BANKER') {
+        // Auto Rob
+        setTimeout(() => {
+            if (store.currentPhase === 'ROB_BANKER' && isHosting.value) {
+                // Check if rob option is valid (available in allRobOptions)
+                // Actually, just sending what user selected is fine, server validates or we check allRobOptions
+                // Let's perform check if we want to be safe, but usually fixed 0-4
+                const robVal = hostingSettings.value.rob;
+                // Check if this robVal is in allRobOptions? If not, fallback to 0 (No Rob)
+                const isValid = allRobOptions.value.includes(robVal);
+                onRob(isValid ? robVal : 0);
+            }
+        }, 800);
+    } else if (newPhase === 'BETTING') {
+        // Auto Bet
+        setTimeout(() => {
+            if (store.currentPhase === 'BETTING' && isHosting.value) {
+                // Check if banker
+                const me = store.players.find(p => p.id === store.myPlayerId);
+                if (me && !me.isBanker) {
+                    const betVal = hostingSettings.value.bet;
+                    // Validate against betMultipliers?
+                    const isValid = betMultipliers.value.includes(betVal);
+                    // If invalid (e.g. not enough coins for high bet), maybe fallback to lowest?
+                    // For now, try selected. If invalid, maybe it fails silently or server handles.
+                    // Ideally check betMultipliers.
+                    onBet(isValid ? betVal : (betMultipliers.value[0] || 1));
+                }
+            }
+        }, 800);
+    } else if (newPhase === 'SHOWDOWN') {
+        // Auto Show Hand
+        setTimeout(() => {
+            if (store.currentPhase === 'SHOWDOWN' && isHosting.value) {
+                store.playerShowHand(store.myPlayerId);
+            }
+        }, 800);
+    }
+});
+
+// ...
+
+const openHostingDebounced = debounce(() => {
+    if (settingsStore.soundEnabled) {
+        AudioUtils.playEffect(btnClickSound);
+    }
+    if (isHosting.value) {
+        isHosting.value = false;
+        vantToast("托管已取消");
+        return;
+    }
+    showHosting.value = true;
+}, 500);
+
+const handleHostingConfirm = (settings) => {
+    hostingSettings.value = settings;
+    isHosting.value = true;
+
+    // Immediate check for current phase actions upon enabling hosting
+    const me = store.players.find(p => p.id === store.myPlayerId);
+    if (!me) return;
+
+    if (store.currentPhase === 'ROB_BANKER') {
+        // If haven't robbed yet (robMultiplier is usually -1 or similar if not acted)
+        // Checking robMultiplier == -1 is common for "not acted"
+        if (me.robMultiplier === -1) {
+            const robVal = hostingSettings.value.rob;
+            const isValid = allRobOptions.value.includes(robVal);
+            onRob(isValid ? robVal : 0);
+        }
+    } else if (store.currentPhase === 'BETTING') {
+        // If not banker and haven't bet yet (betMultiplier == 0)
+        if (!me.isBanker && me.betMultiplier === 0) {
+            const betVal = hostingSettings.value.bet;
+            const isValid = betMultipliers.value.includes(betVal);
+            onBet(isValid ? betVal : (betMultipliers.value[0] || 1));
+        }
+    } else if (store.currentPhase === 'SHOWDOWN') {
+        // If haven't shown hand
+        if (!me.isShowHand) {
+            store.playerShowHand(store.myPlayerId);
+        }
+    }
+};
+
+const switchRoom = debounce(() => {
+    if (settingsStore.soundEnabled) {
+        AudioUtils.playEffect(btnClickSound);
+    }
+    vantToast("等待与服务器接入功能");
+}, 500);
+
 
 
 import gameBgSound from '@/assets/sounds/game_bg.mp3';
@@ -119,17 +236,7 @@ const getMultiplierImageUrl = (multiplier) => {
 
 
 
-const store = useGameStore();
 
-const betMultipliers = computed(() => {
-    return (store.betMult || []).sort((a, b) => a - b);
-});
-
-const allRobOptions = computed(() => {
-    const options = [0, ...(store.bankerMult || [])].filter((value, index, self) => self.indexOf(value) === index).sort((a, b) => a - b);
-    return options;
-});
-const settingsStore = useSettingsStore();
 
 // Responsive scaling logic
 const gameScale = ref(1);
@@ -189,7 +296,6 @@ const coinLayer = ref(null);
 const dealingLayer = ref(null);
 const seatRefs = ref({}); // 存储所有座位的引用 key: playerId
 const tableCenterRef = ref(null); // 桌面中心元素引用
-const bgAudio = ref(null);
 const startAnimationClass = ref('');
 const showStartAnim = ref(false);
 const resultImage = ref('');
@@ -326,8 +432,8 @@ watch(badgeTriggerCondition, (val) => {
 
 const shouldShowRobMult = computed(() => {
     if (!myPlayer.value) return false;
-    // Hide in IDLE or READY phases (new game)
-    if (['IDLE', 'READY_COUNTDOWN'].includes(store.currentPhase)) return false;
+    // Hide in IDLE, READY, SETTLEMENT, or GAME_OVER phases
+    if (['IDLE', 'READY_COUNTDOWN', 'SETTLEMENT', 'GAME_OVER'].includes(store.currentPhase)) return false;
 
     // Phase: Robbing Banker or Selection (Show for everyone who has acted)
     if (['ROB_BANKER', 'BANKER_SELECTION_ANIMATION', 'BANKER_CONFIRMED'].includes(store.currentPhase)) {
@@ -345,7 +451,7 @@ const shouldShowRobMult = computed(() => {
 const shouldShowBetMult = computed(() => {
     if (!myPlayer.value) return false;
     // Hide in IDLE or READY phases
-    if (['IDLE', 'READY_COUNTDOWN', 'ROB_BANKER', 'BANKER_SELECTION_ANIMATION', 'BANKER_CONFIRMED'].includes(store.currentPhase)) return false;
+    if (['IDLE', 'READY_COUNTDOWN', 'ROB_BANKER', 'BANKER_SELECTION_ANIMATION', 'BANKER_CONFIRMED', 'SETTLEMENT', 'GAME_OVER'].includes(store.currentPhase)) return false;
 
     // Only show for Non-Banker
     if (myPlayer.value.isBanker) return false;
@@ -378,12 +484,10 @@ const isControlsContentVisible = computed(() => {
 
 // Watch Music Setting
 watch(() => settingsStore.musicEnabled, (val) => {
-    if (bgAudio.value) {
-        if (val) {
-            bgAudio.value.play().catch(() => { });
-        } else {
-            bgAudio.value.pause();
-        }
+    if (val) {
+        AudioUtils.playMusic(gameBgSound, 0.5);
+    } else {
+        AudioUtils.pauseMusic();
     }
 });
 
@@ -491,8 +595,7 @@ watch(() => store.countdown, (newVal, oldVal) => {
     if (settingsStore.soundEnabled && isCountdownPhase && newVal !== oldVal) {
         // Play countdownAlertSound at 2 seconds
         if (newVal === 1) {
-            const audio = new Audio(countdownAlertSound);
-            audio.play().catch(() => { });
+            AudioUtils.playEffect(countdownAlertSound);
         }
     }
 });
@@ -507,8 +610,7 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
         showStartAnim.value = true;
 
         if (settingsStore.soundEnabled) {
-            const audio = new Audio(gameStartSound);
-            audio.play().catch(() => { });
+            AudioUtils.playEffect(gameStartSound);
         }
 
         setTimeout(() => {
@@ -570,8 +672,7 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
                 candidateIndex = (candidateIndex + 1) % candidates.length;
                 currentlyHighlightedPlayerId.value = candidates[candidateIndex];
                 if (settingsStore.soundEnabled) {
-                    const audio = new Audio(randomBankSound);
-                    audio.play().catch(() => { });
+                    AudioUtils.playEffect(randomBankSound);
                 }
             }, 150);
         }
@@ -589,7 +690,7 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
         showBankerConfirmAnim.value = true;
         setTimeout(() => {
             showBankerConfirmAnim.value = false;
-        }, 1500); // Animation lasts ~1.2s, keep state bit longer to be safe or shorter? CSS is 1.2s. 1.5s is fine.
+        }, 1200); // Animation lasts 1.2s. Match exactly to avoid delay in halo swap.
     }
 
 
@@ -614,8 +715,7 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
             resultImage.value = isWin ? gameWinImg : gameLoseImg;
 
             if (settingsStore.soundEnabled) {
-                const audio = new Audio(isWin ? gameWinSound : gameLoseSound);
-                audio.play().catch(() => { });
+                AudioUtils.playEffect(isWin ? gameWinSound : gameLoseSound);
             }
 
             showResultAnim.value = true;
@@ -662,8 +762,7 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
                     if (count > 50) count = 50; // Max 50
                     coinLayer.value.throwCoins(seatRect, bankerRect, count);
                     if (settingsStore.soundEnabled) {
-                        const audio = new Audio(sendCoinSound);
-                        audio.play().catch(() => { });
+                        AudioUtils.playEffect(sendCoinSound);
                     }
                 }
             }
@@ -682,8 +781,7 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
                         if (count > 60) count = 60; // Max 60
                         coinLayer.value.throwCoins(bankerRect, seatRect, count);
                         if (settingsStore.soundEnabled) {
-                            const audio = new Audio(sendCoinSound);
-                            audio.play().catch(() => { });
+                            AudioUtils.playEffect(sendCoinSound);
                         }
                     }
                 }
@@ -757,8 +855,7 @@ const startDealingAnimation = (isSupplemental = false) => {
     if (targets.length === 0) return;
 
     if (settingsStore.soundEnabled) {
-        const audio = new Audio(sendCardSound);
-        audio.play().catch(() => { });
+        AudioUtils.playEffect(sendCardSound);
     }
 
     targets.forEach((t, pIndex) => {
@@ -827,12 +924,8 @@ onMounted(() => {
 
 
 
-    bgAudio.value = new Audio(gameBgSound);
-    bgAudio.value.loop = true;
-    bgAudio.value.volume = 0.5;
-
     if (settingsStore.musicEnabled) {
-        bgAudio.value.play().catch(() => { });
+        AudioUtils.playMusic(gameBgSound, 0.5);
     }
 
     // Register handler for PlayerLeave response
@@ -853,10 +946,7 @@ onMounted(() => {
 onUnmounted(() => {
     store.resetState();
 
-    if (bgAudio.value) {
-        bgAudio.value.pause();
-        bgAudio.value = null;
-    }
+    AudioUtils.stopMusic();
     gameClient.off('QZNN.PlayerLeave');
     gameClient.setLatencyCallback(null);
 });
@@ -867,14 +957,14 @@ onUnmounted(() => {
 
 const onRob = debounce((multiplier) => {
     if (settingsStore.soundEnabled) {
-        new Audio(btnClickSound).play().catch(() => { });
+        AudioUtils.playEffect(btnClickSound);
     }
     store.playerRob(multiplier);
 }, 500);
 
 const onBet = debounce((multiplier) => {
     if (settingsStore.soundEnabled) {
-        new Audio(btnClickSound).play().catch(() => { });
+        AudioUtils.playEffect(btnClickSound);
     }
     store.playerBet(multiplier);
 }, 500);
@@ -890,21 +980,21 @@ const startGameDebounced = debounce(() => {
 
 const openHistoryDebounced = debounce(() => {
     if (settingsStore.soundEnabled) {
-        new Audio(btnClickSound).play().catch(() => { });
+        AudioUtils.playEffect(btnClickSound);
     }
     showHistory.value = true;
 }, 500);
 
 const openSettingsDebounced = debounce(() => {
     if (settingsStore.soundEnabled) {
-        new Audio(btnClickSound).play().catch(() => { });
+        AudioUtils.playEffect(btnClickSound);
     }
     showSettings.value = true;
 }, 500);
 
 const quitGameDebounced = debounce(() => {
     if (settingsStore.soundEnabled) {
-        new Audio(btnClickSound).play().catch(() => { });
+        AudioUtils.playEffect(btnClickSound);
     }
     gameClient.send("QZNN.PlayerLeave", { RoomId: store.roomId });
 }, 500);
@@ -923,7 +1013,7 @@ const openHelpDebounced = debounce(() => {
 
     if (settingsStore.soundEnabled) {
 
-        new Audio(btnClickSound).play().catch(() => { });
+        AudioUtils.playEffect(btnClickSound);
 
     }
 
@@ -1303,36 +1393,21 @@ const shouldMoveStatusToHighPosition = computed(() => {
                 <!-- Avatar and Info Box - adapted from PlayerSeat -->
 
                 <div class="avatar-area my-player-avatar-info">
-
-                    <div class="avatar-wrapper">
-
+                    <div class="avatar-wrapper" :class="{
+                        'banker-confirm-anim': showBankerConfirmAnim && myPlayer.isBanker
+                    }">
                         <!-- Avatar Container -->
-
                         <div class="avatar-frame" :class="{
-
                             'banker-candidate-highlight': myPlayer.id === currentlyHighlightedPlayerId,
-
-                            'banker-confirm-anim': showBankerConfirmAnim && myPlayer.isBanker,
-
                             'is-banker': myPlayer.isBanker && !['SETTLEMENT', 'GAME_OVER'].includes(store.currentPhase),
-
                             'win-neon-flash': !!winEffects[myPlayer.id]
-
                         }">
-
                             <van-image :src="myPlayer.avatar" class="avatar" fit="cover"
                                 :class="{ 'avatar-gray': myPlayer.isObserver }" />
-
                         </div>
 
-
-
                         <!-- Avatar Frame Overlay -->
-
                         <img :src="avatarFrameImg" class="avatar-border-overlay" />
-
-
-
 
 
                     </div>
@@ -1380,7 +1455,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                                     myPlayer.robMultiplier
 
-                                }}倍</span>
+                                    }}倍</span>
 
                                 <span v-else class="status-text no-rob-text text-large">不抢</span>
 
@@ -1404,14 +1479,21 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                 </div>
 
-
-
-
+                <!-- Hosting Button -->
+                <div class="hosting-btn" v-if="!myPlayer.isObserver" @click="openHostingDebounced"
+                    :class="{ active: isHosting }">
+                    <template v-if="isHosting">
+                        托管中<span class="loading-dots"></span>
+                    </template>
+                    <template v-else>
+                        托管
+                    </template>
+                </div>
 
                 <!-- My Score Float -->
                 <div v-if="myPlayer.roundScore !== 0 && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)"
                     class="score-float" :class="myPlayer.roundScore > 0 ? 'win' : 'lose'">
-                    {{ myPlayer.roundScore > 0 ? '+' : '' }}<img :src="goldImg" class="coin-icon-float" />{{
+                    {{ myPlayer.roundScore > 0 ? '+' : '' }}{{
                         formatCoins(myPlayer.roundScore) }}
                 </div>
             </div>
@@ -1465,6 +1547,12 @@ const shouldMoveStatusToHighPosition = computed(() => {
                     等待闲家下注...
                 </div>
 
+                <!-- Switch Room Button -->
+                <div v-if="myPlayer.isObserver || ['IDLE', 'READY_COUNTDOWN', 'SETTLEMENT'].includes(store.currentPhase)"
+                    class="game-btn switch-room-btn" @click="switchRoom">
+                    切换房间
+                </div>
+
                 <!-- Observer Waiting Text -->
                 <div v-show="myPlayer.isObserver" class="observer-waiting-banner">
                     请耐心等待下一局<span class="loading-dots"></span>
@@ -1491,6 +1579,8 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
         <HelpModal v-model:visible="showHelp" :mode="store.gameMode" />
 
+        <HostingModal v-model:visible="showHosting" :rob-options="allRobOptions" :bet-options="betMultipliers"
+            @confirm="handleHostingConfirm" />
 
     </div>
 </template>
@@ -1917,7 +2007,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 .seat-right {
     top: 38%;
     /* Adjusted for fixed top alignment */
-    right: 0;
+    right: -2px;
     /* transform: scale(0.85); Removed redundant scale */
 }
 
@@ -1943,7 +2033,8 @@ const shouldMoveStatusToHighPosition = computed(() => {
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    width: 100px;
+    width: 160px;
+    /* Match PlayerSeat width */
     height: 120px;
     /* Approximate height of a player seat */
     opacity: 0.6;
@@ -2192,6 +2283,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
     width: 62px;
     height: 62px;
     flex-shrink: 0;
+    border-radius: 50%;
     /* Removed z-index to allow child badge to pop over sibling info-box */
 }
 
@@ -2237,9 +2329,16 @@ const shouldMoveStatusToHighPosition = computed(() => {
     border-color: #fbbf24;
     box-shadow: 0 0 10px 3px #fbbf24, 0 0 5px 1px #d97706;
     /* Slightly weaker shadow */
+    transition: none;
 }
 
-.my-player-info-row .avatar-frame.banker-confirm-anim {
+/* Hide static banker styles while animation is playing on the wrapper to prevent double shadows */
+.my-player-info-row .avatar-wrapper.banker-confirm-anim .avatar-frame.is-banker {
+    box-shadow: none !important;
+    border-color: transparent !important;
+}
+
+.my-player-info-row .avatar-wrapper.banker-confirm-anim {
     position: relative;
     z-index: 5;
     animation: bankerConfirmPop 1.2s ease-out forwards;
@@ -2432,6 +2531,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
     justify-content: center;
     align-items: flex-start;
     width: 100%;
+    position: relative;
 }
 
 .controls-placeholder {
@@ -2518,6 +2618,14 @@ const shouldMoveStatusToHighPosition = computed(() => {
     align-self: center;
     /* Prevent stretching in flex container */
 }
+
+.observer-waiting-banner {
+    /* ... existing styles ... */
+    /* Ensure it doesn't conflict with absolute button if needed */
+}
+
+/* ... existing styles ... */
+
 
 .restart-btn {
     pointer-events: auto;
@@ -3193,7 +3301,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 }
 
 .score-float.win {
-    color: #facc15;
+    color: #4ade80;
 }
 
 .score-float.lose {
@@ -3229,6 +3337,60 @@ const shouldMoveStatusToHighPosition = computed(() => {
         opacity: 0;
     }
 }
+
+.switch-room-btn {
+    background: linear-gradient(to bottom, #3b82f6, #2563eb);
+    color: white;
+    font-size: 14px;
+    padding: 0 16px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    width: auto !important;
+    min-width: 80px;
+    height: 36px;
+    /* margin-top: 10px; Removed to use absolute positioning */
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+}
+
+.hosting-btn {
+    position: absolute;
+    right: 0;
+    top: 78%;
+    transform: translateY(-50%);
+
+    background: rgba(0, 0, 0, 0.6);
+    color: #cbd5e1;
+    font-size: 15px;
+    padding: 6px 13px;
+    border-top-left-radius: 16px;
+    border-bottom-left-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    z-index: 1000;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
+}
+
+.hosting-btn:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+.hosting-btn.active {
+    background: linear-gradient(to bottom, #22c55e, #16a34a);
+    color: white;
+    border-color: #86efac;
+    font-weight: bold;
+    box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+}
 </style>
 
 <style>
@@ -3254,19 +3416,19 @@ const shouldMoveStatusToHighPosition = computed(() => {
 @keyframes bankerConfirmPop {
     0% {
         border-color: #fbbf24;
-        box-shadow: 0 0 25px 8px rgba(251, 191, 36, 0.9);
+        box-shadow: 0 0 10px 3px #fbbf24, 0 0 5px 1px #d97706;
         transform: scale(1);
     }
 
     50% {
         border-color: #fbbf24;
-        box-shadow: 0 0 35px 10px rgba(251, 191, 36, 1);
+        box-shadow: 0 0 20px 6px #fbbf24, 0 0 10px 2px #d97706;
         transform: scale(1.2);
     }
 
     100% {
         border-color: #fbbf24;
-        box-shadow: 0 0 6px #fbbf24;
+        box-shadow: 0 0 10px 3px #fbbf24, 0 0 5px 1px #d97706;
         transform: scale(1);
     }
 }

@@ -1,0 +1,1 @@
+Task completed. Modified client/src/views/GameView.vue to animate the ellipsis.

@@ -71,6 +71,13 @@ watch(() => store.currentPhase, (newPhase) => {
                 }
             }
         }, 800);
+    } else if (newPhase === 'SHOWDOWN') {
+        // Auto Show Hand
+        setTimeout(() => {
+             if (store.currentPhase === 'SHOWDOWN' && isHosting.value) {
+                 store.playerShowHand(store.myPlayerId);
+             }
+        }, 800);
     }
 });
 
@@ -79,6 +86,11 @@ watch(() => store.currentPhase, (newPhase) => {
 const openHostingDebounced = debounce(() => {
     if (settingsStore.soundEnabled) {
         AudioUtils.playEffect(btnClickSound);
+    }
+    if (isHosting.value) {
+        isHosting.value = false;
+        vantToast("托管已取消");
+        return;
     }
     showHosting.value = true;
 }, 500);
@@ -1442,7 +1454,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
                 </div>
 
                 <!-- Hosting Button -->
-                <div class="hosting-btn" @click="openHostingDebounced" :class="{ active: isHosting }">
+                <div class="hosting-btn" v-if="!myPlayer.isObserver" @click="openHostingDebounced" :class="{ active: isHosting }">
                     {{ isHosting ? '正在托管' : '托管' }}
                 </div>
 
@@ -1503,6 +1515,12 @@ const shouldMoveStatusToHighPosition = computed(() => {
                     等待闲家下注...
                 </div>
 
+                <!-- Switch Room Button -->
+                <div v-if="myPlayer.isObserver || ['IDLE', 'READY_COUNTDOWN', 'SETTLEMENT'].includes(store.currentPhase)"
+                    class="game-btn switch-room-btn" @click="switchRoom">
+                    切换房间
+                </div>
+
                 <!-- Observer Waiting Text -->
                 <div v-show="myPlayer.isObserver" class="observer-waiting-banner">
                     请耐心等待下一局<span class="loading-dots"></span>
@@ -1512,12 +1530,6 @@ const shouldMoveStatusToHighPosition = computed(() => {
                 <div v-show="store.currentPhase === 'SHOWDOWN' && !myPlayer.isShowHand && store.countdown > 0 && !myPlayer.isObserver"
                     class="game-btn showdown-btn" @click="playerShowHandDebounced(myPlayer.id)">
                     <img :src="tanpaiImg" class="showdown-btn-img" alt="摊牌" />
-                </div>
-
-                <!-- Switch Room Button -->
-                <div v-if="['IDLE', 'READY_COUNTDOWN', 'SETTLEMENT'].includes(store.currentPhase)"
-                    class="game-btn switch-room-btn" @click="switchRoom">
-                    切换房间
                 </div>
 
                 <!-- Placeholder -->

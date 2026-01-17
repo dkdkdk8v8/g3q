@@ -150,9 +150,9 @@ export function calculateHandType(cards) {
           let multiplier = 1;
 
           if (bullValue === 10) { type = 'BULL_BULL'; typeName = '牛牛'; multiplier = 4; }
-          else if (bullValue === 9) { type = 'BULL_9'; typeName = '牛九'; multiplier = 3; }
-          else if (bullValue === 8) { type = 'BULL_8'; typeName = '牛八'; multiplier = 2; }
-          else if (bullValue === 7) { type = 'BULL_7'; typeName = '牛七'; multiplier = 2; }
+          else if (bullValue === 9) { type = 'BULL_9'; typeName = '牛9'; multiplier = 3; }
+          else if (bullValue === 8) { type = 'BULL_8'; typeName = '牛8'; multiplier = 2; }
+          else if (bullValue === 7) { type = 'BULL_7'; typeName = '牛7'; multiplier = 2; }
           else { type = `BULL_${bullValue}`; typeName = `牛${bullValue}`; multiplier = 1; }
 
           return { type, typeName, multiplier, sortedCards: sorted, bullIndices: [i, j, k] };

@@ -1,1 +1,1 @@
-style(client): update HostingModal to match SettingsModal visual style (bg, header, close icon)
+style(client): center title in HostingModal header using flex spacers

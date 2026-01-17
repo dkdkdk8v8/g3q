@@ -1455,7 +1455,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                                     myPlayer.robMultiplier
 
-                                }}倍</span>
+                                    }}倍</span>
 
                                 <span v-else class="status-text no-rob-text text-large">不抢</span>
 
@@ -2007,7 +2007,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 .seat-right {
     top: 38%;
     /* Adjusted for fixed top alignment */
-    right: 0;
+    right: -2px;
     /* transform: scale(0.85); Removed redundant scale */
 }
 

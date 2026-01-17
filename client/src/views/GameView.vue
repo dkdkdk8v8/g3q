@@ -74,9 +74,9 @@ watch(() => store.currentPhase, (newPhase) => {
     } else if (newPhase === 'SHOWDOWN') {
         // Auto Show Hand
         setTimeout(() => {
-             if (store.currentPhase === 'SHOWDOWN' && isHosting.value) {
-                 store.playerShowHand(store.myPlayerId);
-             }
+            if (store.currentPhase === 'SHOWDOWN' && isHosting.value) {
+                store.playerShowHand(store.myPlayerId);
+            }
         }, 800);
     }
 });
@@ -1455,7 +1455,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                                     myPlayer.robMultiplier
 
-                                    }}倍</span>
+                                }}倍</span>
 
                                 <span v-else class="status-text no-rob-text text-large">不抢</span>
 
@@ -1480,8 +1480,14 @@ const shouldMoveStatusToHighPosition = computed(() => {
                 </div>
 
                 <!-- Hosting Button -->
-                <div class="hosting-btn" v-if="!myPlayer.isObserver" @click="openHostingDebounced" :class="{ active: isHosting }">
-                    {{ isHosting ? '正在托管' : '托管' }}
+                <div class="hosting-btn" v-if="!myPlayer.isObserver" @click="openHostingDebounced"
+                    :class="{ active: isHosting }">
+                    <template v-if="isHosting">
+                        正在托管<span class="loading-dots"></span>
+                    </template>
+                    <template v-else>
+                        托管
+                    </template>
                 </div>
 
                 <!-- My Score Float -->

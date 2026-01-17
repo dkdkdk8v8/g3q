@@ -269,7 +269,7 @@ const shouldMoveStatusFloat = computed(() => {
             }">
                 <div class="avatar-frame" :class="{
                     'banker-candidate-highlight': isAnimatingHighlight,
-                    'is-banker': player.isBanker && !['SETTLEMENT', 'GAME_OVER'].includes(store.currentPhase) && !triggerBankerAnimation,
+                    'is-banker': player.isBanker && !['SETTLEMENT', 'GAME_OVER'].includes(store.currentPhase),
                     'win-neon-flash': isWin,
                     'is-opponent': true
                 }">
@@ -549,6 +549,13 @@ const shouldMoveStatusFloat = computed(() => {
     border-color: #fbbf24;
     box-shadow: 0 0 10px 3px #fbbf24, 0 0 5px 1px #d97706;
     /* Slightly weaker shadow */
+    transition: none;
+}
+
+/* Hide static banker styles while animation is playing on the wrapper */
+.avatar-wrapper.banker-confirm-anim .avatar-frame.is-banker {
+    box-shadow: none !important;
+    border-color: transparent !important;
 }
 
 .avatar-wrapper.banker-confirm-anim {

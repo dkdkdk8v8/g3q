@@ -1293,7 +1293,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
                         <!-- Avatar Container -->
                         <div class="avatar-frame" :class="{
                             'banker-candidate-highlight': myPlayer.id === currentlyHighlightedPlayerId,
-                            'is-banker': myPlayer.isBanker && !['SETTLEMENT', 'GAME_OVER'].includes(store.currentPhase) && !showBankerConfirmAnim,
+                            'is-banker': myPlayer.isBanker && !['SETTLEMENT', 'GAME_OVER'].includes(store.currentPhase),
                             'win-neon-flash': !!winEffects[myPlayer.id]
                         }">
                             <van-image :src="myPlayer.avatar" class="avatar" fit="cover"
@@ -2207,6 +2207,13 @@ const shouldMoveStatusToHighPosition = computed(() => {
     border-color: #fbbf24;
     box-shadow: 0 0 10px 3px #fbbf24, 0 0 5px 1px #d97706;
     /* Slightly weaker shadow */
+    transition: none;
+}
+
+/* Hide static banker styles while animation is playing on the wrapper to prevent double shadows */
+.my-player-info-row .avatar-wrapper.banker-confirm-anim .avatar-frame.is-banker {
+    box-shadow: none !important;
+    border-color: transparent !important;
 }
 
 .my-player-info-row .avatar-wrapper.banker-confirm-anim {

@@ -10,6 +10,7 @@ import DealingLayer from '../components/DealingLayer.vue';
 import SettingsModal from '../components/SettingsModal.vue';
 import HelpModal from '../components/HelpModal.vue';
 import HistoryModal from '../components/HistoryModal.vue';
+import HostingModal from '../components/HostingModal.vue';
 import { useRouter, useRoute } from 'vue-router';
 import { formatCoins } from '../utils/format.js';
 import { transformServerCard, calculateHandType } from '../utils/bullfight.js';
@@ -17,6 +18,83 @@ import { AudioUtils } from '../utils/audio.js';
 import gameClient from '../socket.js';
 import { showToast as vantToast } from 'vant';
 import PokerCard from '../components/PokerCard.vue';
+
+const store = useGameStore();
+const settingsStore = useSettingsStore();
+
+const betMultipliers = computed(() => {
+    return (store.betMult || []).sort((a, b) => a - b);
+});
+
+const allRobOptions = computed(() => {
+    const options = [0, ...(store.bankerMult || [])].filter((value, index, self) => self.indexOf(value) === index).sort((a, b) => a - b);
+    return options;
+});
+
+const showHosting = ref(false); // Hosting Modal State
+const isHosting = ref(false); // Is Hosting Active?
+const hostingSettings = ref({ rob: 0, bet: 1 }); // Stored Settings
+
+// ... (existing logic)
+
+// Hosting Watcher
+watch(() => store.currentPhase, (newPhase) => {
+    if (!isHosting.value) return;
+
+    if (newPhase === 'ROB_BANKER') {
+        // Auto Rob
+        setTimeout(() => {
+            if (store.currentPhase === 'ROB_BANKER' && isHosting.value) {
+                // Check if rob option is valid (available in allRobOptions)
+                // Actually, just sending what user selected is fine, server validates or we check allRobOptions
+                // Let's perform check if we want to be safe, but usually fixed 0-4
+                const robVal = hostingSettings.value.rob;
+                // Check if this robVal is in allRobOptions? If not, fallback to 0 (No Rob)
+                const isValid = allRobOptions.value.includes(robVal);
+                onRob(isValid ? robVal : 0);
+            }
+        }, 800);
+    } else if (newPhase === 'BETTING') {
+        // Auto Bet
+        setTimeout(() => {
+            if (store.currentPhase === 'BETTING' && isHosting.value) {
+                // Check if banker
+                const me = store.players.find(p => p.id === store.myPlayerId);
+                if (me && !me.isBanker) {
+                    const betVal = hostingSettings.value.bet;
+                    // Validate against betMultipliers?
+                    const isValid = betMultipliers.value.includes(betVal);
+                    // If invalid (e.g. not enough coins for high bet), maybe fallback to lowest?
+                    // For now, try selected. If invalid, maybe it fails silently or server handles.
+                    // Ideally check betMultipliers.
+                    onBet(isValid ? betVal : (betMultipliers.value[0] || 1));
+                }
+            }
+        }, 800);
+    }
+});
+
+// ...
+
+const openHostingDebounced = debounce(() => {
+    if (settingsStore.soundEnabled) {
+        AudioUtils.playEffect(btnClickSound);
+    }
+    showHosting.value = true;
+}, 500);
+
+const handleHostingConfirm = (settings) => {
+    hostingSettings.value = settings;
+    isHosting.value = true;
+};
+
+const switchRoom = debounce(() => {
+    if (settingsStore.soundEnabled) {
+        AudioUtils.playEffect(btnClickSound);
+    }
+    vantToast("等待与服务器接入功能");
+}, 500);
+
 
 
 import gameBgSound from '@/assets/sounds/game_bg.mp3';
@@ -120,17 +198,7 @@ const getMultiplierImageUrl = (multiplier) => {
 
 
 
-const store = useGameStore();
 
-const betMultipliers = computed(() => {
-    return (store.betMult || []).sort((a, b) => a - b);
-});
-
-const allRobOptions = computed(() => {
-    const options = [0, ...(store.bankerMult || [])].filter((value, index, self) => self.indexOf(value) === index).sort((a, b) => a - b);
-    return options;
-});
-const settingsStore = useSettingsStore();
 
 // Responsive scaling logic
 const gameScale = ref(1);
@@ -1349,7 +1417,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                                     myPlayer.robMultiplier
 
-                                }}倍</span>
+                                    }}倍</span>
 
                                 <span v-else class="status-text no-rob-text text-large">不抢</span>
 
@@ -1373,9 +1441,10 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                 </div>
 
-
-
-
+                <!-- Hosting Button -->
+                <div class="hosting-btn" @click="openHostingDebounced" :class="{ active: isHosting }">
+                    {{ isHosting ? '正在托管' : '托管' }}
+                </div>
 
                 <!-- My Score Float -->
                 <div v-if="myPlayer.roundScore !== 0 && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)"
@@ -1445,6 +1514,12 @@ const shouldMoveStatusToHighPosition = computed(() => {
                     <img :src="tanpaiImg" class="showdown-btn-img" alt="摊牌" />
                 </div>
 
+                <!-- Switch Room Button -->
+                <div v-if="['IDLE', 'READY_COUNTDOWN', 'SETTLEMENT'].includes(store.currentPhase)"
+                    class="game-btn switch-room-btn" @click="switchRoom">
+                    切换房间
+                </div>
+
                 <!-- Placeholder -->
                 <div v-show="!isControlsContentVisible" class="controls-placeholder">
                 </div>
@@ -1460,6 +1535,8 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
         <HelpModal v-model:visible="showHelp" :mode="store.gameMode" />
 
+        <HostingModal v-model:visible="showHosting" :rob-options="allRobOptions" :bet-options="betMultipliers"
+            @confirm="handleHostingConfirm" />
 
     </div>
 </template>
@@ -1912,7 +1989,8 @@ const shouldMoveStatusToHighPosition = computed(() => {
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    width: 160px; /* Match PlayerSeat width */
+    width: 160px;
+    /* Match PlayerSeat width */
     height: 120px;
     /* Approximate height of a player seat */
     opacity: 0.6;
@@ -3205,6 +3283,54 @@ const shouldMoveStatusToHighPosition = computed(() => {
         transform: translate(-50%, -60px) scale(1);
         opacity: 0;
     }
+}
+
+.switch-room-btn {
+    background: linear-gradient(to bottom, #3b82f6, #2563eb);
+    color: white;
+    font-size: 14px;
+    padding: 0 16px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    width: auto !important;
+    min-width: 80px;
+    height: 36px;
+    margin-top: 10px;
+}
+
+.hosting-btn {
+    position: absolute;
+    right: 0;
+    top: 78%;
+    transform: translateY(-50%);
+
+    background: rgba(0, 0, 0, 0.6);
+    color: #cbd5e1;
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    z-index: 1000;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
+}
+
+.hosting-btn:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+.hosting-btn.active {
+    background: linear-gradient(to bottom, #f59e0b, #d97706);
+    color: white;
+    border-color: #fcd34d;
+    font-weight: bold;
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
 }
 </style>
 

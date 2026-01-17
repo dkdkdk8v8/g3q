@@ -14,6 +14,7 @@ const ServerDB = "g3q_admin"
 func RegModels() {
 	orm.RegisterModel(
 		&ModelStaUser{},
+		&ModelSysParam{},
 	)
 }
 

@@ -39,9 +39,8 @@ type StrategyContext struct {
 	BaseBet           int64 // 房间底分
 
 	// 新增系统维度数据
-	KillRateYesterdayDelta float64 // 昨天已经产生的杀率补偿 系统昨日(UTC时间)盈利/ 系统昨日(UTC时间)流水 - 当时的系统 KillRateCfg
-	KillRateToday          float64 // 今日实时杀率 系统今日(UTC时间)盈利/ 系统今日(UTC时间)流水
-	SystemTurnoverToday    int64   // 今日系统流水
+	KillRateToday           float64 // 今日实时杀率 系统今日(UTC时间)盈利/ 系统今日(UTC时间)流水
+	TurnoverTodayAndYestory int64   // 今日系统流水
 
 	// 动态参数
 	TotalMult     int64 // 本局总倍数 (QZNN: 抢庄*下注, DDZ: 叫分*炸弹)
@@ -55,19 +54,18 @@ type StrategyContext struct {
 
 func (c *StrategyContext) Log() {
 	logrus.WithFields(logrus.Fields{
-		"UserID":                 c.UserID,
-		"TotalProfit":            c.TotalProfit,
-		"PendingCompensate":      c.PendingCompensate,
-		"BaseBet":                c.BaseBet,
-		"KillRateYesterdayDelta": c.KillRateYesterdayDelta,
-		"KillRateToday":          c.KillRateToday,
-		"SystemTurnoverToday":    c.SystemTurnoverToday,
-		"TotalMult":              c.TotalMult,
-		"RiskExposure":           c.RiskExposure,
-		"IsRobot":                c.IsRobot,
-		"IsNewbie":               c.IsNewbie,
-		"WinningStreak":          c.WinningStreak,
-		"LosingStreak":           c.LosingStreak,
+		"UserID":                  c.UserID,
+		"TotalProfit":             c.TotalProfit,
+		"PendingCompensate":       c.PendingCompensate,
+		"BaseBet":                 c.BaseBet,
+		"KillRateToday":           c.KillRateToday,
+		"TurnoverTodayAndYestory": c.TurnoverTodayAndYestory,
+		"TotalMult":               c.TotalMult,
+		"RiskExposure":            c.RiskExposure,
+		"IsRobot":                 c.IsRobot,
+		"IsNewbie":                c.IsNewbie,
+		"WinningStreak":           c.WinningStreak,
+		"LosingStreak":            c.LosingStreak,
 	}).Info("StrategyContext")
 }
 
@@ -192,7 +190,7 @@ func (s *StrategyManager) ApplyRiskControl(baseLucky float64, ctx *StrategyConte
 
 	// 计算杀率贡献值：如果流水不足，使用目标杀率代替实时杀率，防止波动过大
 	var rateContribution float64
-	if ctx.SystemTurnoverToday > 0 && ctx.SystemTurnoverToday < s.Config.MinTurnover {
+	if ctx.TurnoverTodayAndYestory > 0 && ctx.TurnoverTodayAndYestory < s.Config.MinTurnover {
 		rateContribution = s.Config.ProtectK * s.Config.TargetProfitRate
 	} else {
 		rateContribution = s.Config.ProtectK * ctx.KillRateToday
@@ -201,7 +199,7 @@ func (s *StrategyManager) ApplyRiskControl(baseLucky float64, ctx *StrategyConte
 	// 线性公式: y = kx + b + delta
 	// y > 0: 保护倾向 (System needs to win) -> 降低玩家 Lucky
 	// y < 0: 放水倾向 (System has won too much) -> 增加玩家 Lucky
-	controlVal := rateContribution + s.Config.ProtectB + ctx.KillRateYesterdayDelta
+	controlVal := rateContribution + s.Config.ProtectB
 
 	if controlVal > 0 {
 		// 保护逻辑

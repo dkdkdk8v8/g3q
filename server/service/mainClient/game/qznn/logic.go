@@ -67,8 +67,8 @@ YesterdayTurnover int64                        // 昨日系统流水 (新增：�
 type RoomStrategy struct {
 	Config            strategy.StrategyConfig
 	Manager           *strategy.StrategyManager    // 引入通用策略管理器
-	SystemProfit      int64                        // 系统24h盈利 //从admin同步
-	SystemTurnover    int64                        // 系统24h流水 //从admin同步
+	TodayProfit       int64                        // 系统24h盈利 //从admin同步
+	TodayTurnover     int64                        // 系统24h流水 //从admin同步
 	YesterdayProfit   int64                        // 昨日系统盈利 (新增：用于合并计算)
 	YesterdayTurnover int64                        // 昨日系统流水 (新增：用于合并计算)
 	UserData          map[string]*UserStrategyData // 玩家策略数据缓存 [UserID]Data
@@ -76,8 +76,8 @@ type RoomStrategy struct {
 
 func (s *RoomStrategy) Log() {
 	logrus.WithFields(logrus.Fields{
-		"SystemProfit":      s.SystemProfit,
-		"SystemTurnover":    s.SystemTurnover,
+		"TodayProfit":       s.TodayProfit,
+		"TodayTurnover":     s.TodayTurnover,
 		"YesterdayProfit":   s.YesterdayProfit,
 		"YesterdayTurnover": s.YesterdayTurnover,
 		"UserDataCount":     len(s.UserData),
@@ -1486,8 +1486,8 @@ func (r *QZNNRoom) startGame() {
 func (r *QZNNRoom) UpdateStrategyParams() {
 	// 获取今日系统水位
 	win, turnover := modelAdmin.GetStaPeriodByDay(0)
-	r.Strategy.SystemProfit = int64(win)
-	r.Strategy.SystemTurnover = int64(turnover)
+	r.Strategy.TodayProfit = int64(win)
+	r.Strategy.TodayTurnover = int64(turnover)
 
 	// 获取昨日系统水位，计算杀率补偿
 	// 修改逻辑：不再计算差值比率，而是直接存储昨日的绝对值数据，用于后续加权平均
@@ -1580,20 +1580,25 @@ func (r *QZNNRoom) calculateRealtimeLucky(p *Player) float64 {
 		BaseBet:           int64(r.Config.BaseBet),
 		TotalMult:         totalMult,
 		IsRobot:           p.IsRobot,
-		IsNewbie:          p.GameCount < 50, // 假设 50 局以内算新手，需确保 p.GameCount 已正确赋值
+		IsNewbie:          p.GameCount < modelAdmin.SysParamCache.GetInt("strategy.NewPlayerGameCount", 50), // 假设 50 局以内算新手，需确保 p.GameCount 已正确赋值
 		WinningStreak:     strategyData.WinningStreak,
 		LosingStreak:      strategyData.LosingStreak,
-		RiskExposure:      20000,
+		RiskExposure:      int64(modelAdmin.SysParamCache.GetInt("strategy.RiskExposure", 2000000)),
 		// 修正：将昨日和今日的数据合并，形成“滚动杀率”，这比单纯的百分比修正更科学（自动包含权重的概念）
-		SystemTurnoverToday:    r.Strategy.YesterdayTurnover + r.Strategy.SystemTurnover,
-		KillRateYesterdayDelta: 0, // 不再使用单纯的差值修正
-		KillRateToday:          0, // 下面计算
+		TurnoverTodayAndYestory: r.Strategy.TodayTurnover,
+		KillRateToday:           0, // 下面计算
 	}
 
 	// 计算合并后的实时杀率
-	totalProfit := r.Strategy.YesterdayProfit + r.Strategy.SystemProfit
-	if ctx.SystemTurnoverToday > 0 {
-		ctx.KillRateToday = float64(totalProfit) / float64(ctx.SystemTurnoverToday)
+	// 超过系统预期的收益纯利，算到today，如果没有达到预期，今天刚刚开始是负的
+	// 预期:modelAdmin.SysParamCache.GetFloat64("strategy.TargetProfitRate", 0.05)/2
+	targetRate := r.Strategy.Config.TargetProfitRate
+	yesterdayExpected := float64(r.Strategy.YesterdayTurnover) * targetRate
+	yesterdayExcess := float64(r.Strategy.YesterdayProfit) - yesterdayExpected
+	effectiveProfit := float64(r.Strategy.TodayProfit) + yesterdayExcess
+
+	if ctx.TurnoverTodayAndYestory > 0 {
+		ctx.KillRateToday = effectiveProfit / float64(ctx.TurnoverTodayAndYestory)
 	}
 
 	if r.CanLog() {
@@ -1658,26 +1663,30 @@ func (r *QZNNRoom) adjustCardsBasedOnLucky() {
 		// --- 决策逻辑 ---
 		shouldWin := false
 		shouldLose := false
+		triggerType := ""
 
 		// 3.1 风控/投机检测 (最高优先级)
 		if isHighRisk {
 			shouldLose = true
+			triggerType = "HighRisk"
 		} else {
 			// 3.2 基于 Lucky 值的概率干预
 			// Lucky > 65: 尝试赢; Lucky < 35: 尝试输
 			randVal := rand.Float64() * 100
 			if targetLucky > 65 && randVal < targetLucky {
 				shouldWin = true
+				triggerType = "LuckyWin"
 			} else if targetLucky < 35 && randVal > targetLucky {
 				shouldLose = true
+				triggerType = "LuckyLose"
 			}
 		}
 
 		// 3.3 库存保护 (System Inventory Protection)
 		// 当系统库存低于警戒线时，启动收割模式
 		shouldProtect := false
-		if r.Strategy.SystemTurnover > 0 {
-			rate := float64(r.Strategy.SystemProfit) / float64(r.Strategy.SystemTurnover)
+		if r.Strategy.TodayTurnover > 0 {
+			rate := float64(r.Strategy.TodayProfit) / float64(r.Strategy.TodayTurnover)
 			// 线性公式: y = kx + b
 			protectProb := r.Strategy.Config.ProtectK*rate + r.Strategy.Config.ProtectB
 			if protectProb > 1.0 {
@@ -1689,6 +1698,7 @@ func (r *QZNNRoom) adjustCardsBasedOnLucky() {
 		}
 
 		if shouldProtect {
+			triggerType = "InventoryProtect"
 			if !p.IsRobot {
 				// 情况 A: 闲家是真人
 				// 无论庄家是谁，真人闲家都应该输 (输给机器人庄家=系统回血; 输给真人庄家=系统抽水/防止出分)
@@ -1709,22 +1719,40 @@ func (r *QZNNRoom) adjustCardsBasedOnLucky() {
 		isCurrentlyWin := CompareCards(p.CardResult, banker.CardResult)
 
 		if shouldWin && !isCurrentlyWin {
+			if r.CanLog() {
+				logrus.WithFields(logrus.Fields{
+					"userId":      p.ID,
+					"trigger":     triggerType,
+					"target":      "WIN",
+					"currentNiu":  p.CardResult.Niu,
+					"bankerNiu":   banker.CardResult.Niu,
+					"targetLucky": targetLucky,
+				}).Info("Strategy: TrySwap")
+			}
 			// 目标：换一副比庄家大的牌
 			r.swapCardsForTarget(p, fixedCount, func(newRes any) bool {
-				// 修复编译错误：类型断言
-				// 假设 CalcNiu 返回的是 *CardResult 指针
-				if res, ok := newRes.(*CardResult); ok {
-					return CompareCards(*res, banker.CardResult)
+				if res, ok := newRes.(CardResult); ok {
+					return CompareCards(res, banker.CardResult)
 				}
 				return false
 			})
 		} else if shouldLose && isCurrentlyWin {
+			if r.CanLog() {
+				logrus.WithFields(logrus.Fields{
+					"userId":      p.ID,
+					"trigger":     triggerType,
+					"target":      "LOSE",
+					"currentNiu":  p.CardResult.Niu,
+					"bankerNiu":   banker.CardResult.Niu,
+					"targetLucky": targetLucky,
+				}).Info("Strategy: TrySwap")
+			}
 			// 目标：换一副比庄家小的牌
 			r.swapCardsForTarget(p, fixedCount, func(newRes any) bool {
-				if res, ok := newRes.(*CardResult); ok {
+				if res, ok := newRes.(CardResult); ok {
 					// 注意参数顺序：CompareCards(A, B) 返回 true 代表 A > B
 					// 这里我们要让庄家赢，所以检查 庄家 > 新牌
-					return CompareCards(banker.CardResult, *res)
+					return CompareCards(banker.CardResult, res)
 				}
 				return false
 			})
@@ -1787,7 +1815,10 @@ func (r *QZNNRoom) swapCardsForTarget(p *Player, fixedCount int, checkFunc func(
 						"userId":   p.ID,
 						"strategy": "Swap1",
 						"pos":      i,
+						"oldCard":  originalCards[i],
+						"newCard":  cardInDeck,
 						"newCards": p.Cards,
+						"newNiu":   newRes.Niu,
 					}).Info("Strategy: Swap Success")
 				}
 				return true
@@ -1825,6 +1856,7 @@ func (r *QZNNRoom) swapCardsForTarget(p *Player, fixedCount int, checkFunc func(
 									"handIdx":  []int{i, j},
 									"deckIdx":  []int{d1, d2},
 									"newCards": p.Cards,
+									"newNiu":   newRes.Niu,
 								}).Info("Strategy: Swap2 Success")
 							}
 							return true
@@ -1847,6 +1879,7 @@ func (r *QZNNRoom) swapCardsForTarget(p *Player, fixedCount int, checkFunc func(
 									"handIdx":  []int{i, j},
 									"deckIdx":  []int{d1, d2},
 									"newCards": p.Cards,
+									"newNiu":   newRes.Niu,
 								}).Info("Strategy: Swap2 Success")
 							}
 							return true

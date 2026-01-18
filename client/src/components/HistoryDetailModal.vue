@@ -273,7 +273,14 @@ const positionedPlayers = computed(() => {
 
                     </template>
                     <template v-else>
-                        <div class="empty-seat-msg">暂无用户加入</div>
+                        <!-- Placeholder to align text with cards area -->
+                        <div class="multipliers-row" style="opacity: 0; pointer-events: none;">
+                            <span class="rob-tag">占位</span>
+                        </div>
+
+                        <div class="cards-row" style="align-items: center; justify-content: center;">
+                            <div class="empty-seat-msg">暂无用户加入</div>
+                        </div>
                     </template>
 
                 </div>
@@ -409,30 +416,30 @@ const positionedPlayers = computed(() => {
 */
 
 .pos-0 {
-    bottom: 20px;
+    bottom: 30px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 10;
 }
 
 .pos-1 {
-    top: 55%;
+    top: 50%;
     right: 0;
     transform: translateY(-50%);
 }
 
 .pos-2 {
-    top: 40px;
+    top: 16px;
     right: 20px;
 }
 
 .pos-3 {
-    top: 40px;
+    top: 16px;
     left: 20px;
 }
 
 .pos-4 {
-    top: 55%;
+    top: 50%;
     left: 0;
     transform: translateY(-50%);
 }

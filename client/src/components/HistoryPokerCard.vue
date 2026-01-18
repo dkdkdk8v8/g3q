@@ -246,7 +246,7 @@ const suitSymbol = computed(() => {
 }
 
 .is-mini .corner-suit {
-  font-size: 12px;
+  font-size: 26px;
 }
 
 .is-mini .card-face {

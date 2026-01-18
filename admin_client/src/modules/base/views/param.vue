@@ -42,16 +42,17 @@ const options = reactive({
 		{
 			label: t('字符串'),
 			value: 0,
-			type: 'info'
+			type: 'success'
 		},
 		{
 			label: t('富文本'),
 			value: 1,
-			type: 'success'
+			type: 'danger'
 		},
 		{
 			label: t('文件'),
-			value: 2
+			value: 2,
+			type: 'info'
 		}
 	]
 });
@@ -69,14 +70,16 @@ const Table = useTable({
 			width: 50
 		},
 		{
-			label: t('名称'),
-			prop: 'name',
-			minWidth: 100
+			label: 'KeyName',
+			prop: 'keyName',
+			align: 'left',
+			sortable: 'asc',
+			minWidth: 200
 		},
 		{
-			label: 'keyName',
-			prop: 'keyName',
-			minWidth: 100
+			label: t('名称'),
+			prop: 'name',
+			minWidth: 200
 		},
 		{
 			label: '数据',
@@ -98,7 +101,7 @@ const Table = useTable({
 		{
 			label: t('备注'),
 			prop: 'remark',
-			minWidth: 200,
+			minWidth: 250,
 			showOverflowTooltip: true
 		},
 		{

@@ -17,9 +17,9 @@ export class GameRpcService extends BaseService {
         const env = process.env.NODE_ENV;
         let host: string;
         if (env === 'production') {
-            host = await this.baseSysParamService.dataByKey('rpc_url');
+            host = await this.baseSysParamService.dataByKey('admin.RpcUrl');
         } else {
-            host = await this.baseSysParamService.dataByKey('rpc_url_debug');
+            host = await this.baseSysParamService.dataByKey('admin.RpcUrlDebug');
         }
         return `${host}/${path}`;
     }

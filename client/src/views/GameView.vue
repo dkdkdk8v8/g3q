@@ -3322,14 +3322,9 @@ const shouldMoveStatusToHighPosition = computed(() => {
         opacity: 1;
     }
 
-    80% {
-        transform: translate(-50%, -50px) scale(1);
-        opacity: 1;
-    }
-
     100% {
         transform: translate(-50%, -60px) scale(1);
-        opacity: 0;
+        opacity: 1;
     }
 }
 

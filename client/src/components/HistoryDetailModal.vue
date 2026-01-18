@@ -203,7 +203,7 @@ const positionedPlayers = computed(() => {
 
                 <div class="summary-row">
 
-                    <div class="sum-item">本局总输赢: <span :class="summaryData.total >= 0 ? 'win' : 'lose'">{{
+                    <div class="sum-item">总输赢: <span :class="summaryData.total >= 0 ? 'win' : 'lose'">{{
                         formatCoins(summaryData.total) }}</span></div>
 
                     <div class="sum-item">税: <span :class="summaryData.total >= 0 ? 'lose' : 'lno-tax'">{{
@@ -281,7 +281,10 @@ const positionedPlayers = computed(() => {
                         </div>
 
                         <div class="cards-row" style="align-items: center; justify-content: center;">
-                            <div class="empty-seat-msg">此座位暂无用户</div>
+                            <div class="empty-seat-msg">
+                                <div>此座位</div>
+                                <div>暂无用户</div>
+                            </div>
                         </div>
                     </template>
 
@@ -550,12 +553,18 @@ const positionedPlayers = computed(() => {
 }
 
 .empty-seat-msg {
-    color: #64748b;
-    font-size: 12px;
+    color: #aaaaaa;
+    font-size: 10px;
     text-align: center;
-    background: rgba(0, 0, 0, 0.2);
-    padding: 4px 8px;
-    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    line-height: 1.3;
 }
 
 /* Specific adjustment for Pos 0 (Me) - make it slightly larger? */

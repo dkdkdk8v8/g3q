@@ -281,7 +281,7 @@ const positionedPlayers = computed(() => {
                         </div>
 
                         <div class="cards-row" style="align-items: center; justify-content: center;">
-                            <div class="empty-seat-msg">暂无用户加入</div>
+                            <div class="empty-seat-msg">此座位暂无用户</div>
                         </div>
                     </template>
 

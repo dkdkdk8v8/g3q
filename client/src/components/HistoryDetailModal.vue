@@ -223,7 +223,7 @@ const positionedPlayers = computed(() => {
                 <div class="summary-row">
 
                     <div class="sum-item">本局总输赢: <span :class="summaryData.total >= 0 ? 'win' : 'lose'">{{
-                            formatCoins(summaryData.total) }}</span></div>
+                        formatCoins(summaryData.total) }}</span></div>
 
                     <div class="sum-item">税: {{ formatCoins(summaryData.tax) }}</div>
 
@@ -254,23 +254,25 @@ const positionedPlayers = computed(() => {
 
 
 
-                                                <div class="cards-row">
+                        <div class="cards-row">
 
 
 
-                                                                                    <div class="cards-container">
+                            <div class="cards-container">
 
 
 
-                                                                                        <HistoryPokerCard v-for="(card, cIdx) in p.uiCards" :key="cIdx" :card="card" :isSmall="true" :simplified="true" :mini="true" :largeIcons="p.viewPos === 0" class="mini-card" />
+                                <HistoryPokerCard v-for="(card, cIdx) in p.uiCards" :key="cIdx" :card="card"
+                                    :isSmall="true" :simplified="true" :mini="true" :largeIcons="p.viewPos === 0"
+                                    class="mini-card" />
 
 
 
-                                                                                    </div>
+                            </div>
 
 
 
-                                                    <img v-if="getHandTypeImage(p.handTypeKey)" :src="getHandTypeImage(p.handTypeKey)"
+                            <img v-if="getHandTypeImage(p.handTypeKey)" :src="getHandTypeImage(p.handTypeKey)"
                                 class="niu-type-img" />
 
                         </div>
@@ -304,7 +306,7 @@ const positionedPlayers = computed(() => {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(32, 35, 45, 1);
     z-index: 9000;
     display: flex;
     flex-direction: column;

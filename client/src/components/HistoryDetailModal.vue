@@ -528,7 +528,7 @@ const positionedPlayers = computed(() => {
 }
 
 .info-row.me {
-    background: #ffffff;
+    background: linear-gradient(180deg, #dcfce7 0%, #22c55e 100%);
 }
 
 .nickname {

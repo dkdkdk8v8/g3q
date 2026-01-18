@@ -122,7 +122,7 @@ const Table = useTable({
         { label: "用户盈利", prop: "betWin", minWidth: 90, fixed: "left", sortable: "desc", formatter: fmtMoneyWin },
         { label: "充值金额", prop: "depositAmount", minWidth: 90, sortable: "custom", formatter: fmtMoney },
         { label: "提现金额", prop: "withdrawAmount", minWidth: 90, sortable: "custom", formatter: fmtMoney },
-        { label: "投注流水", prop: "betAmount", minWidth: 90, sortable: "custom", formatter: fmtMoney },
+        { label: "投注流水", prop: "betAmount", minWidth: 100, sortable: "custom", formatter: fmtMoney },
         { label: "投注次数", prop: "betCount", minWidth: 90, sortable: "custom" },
         { label: "次均投注", prop: "avgBetAmount", minWidth: 90, sortable: "custom", formatter: fmtMoney },
         { label: "胜率", prop: "winRate", minWidth: 90, sortable: "custom", formatter: fmtPercent },

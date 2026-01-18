@@ -30,6 +30,7 @@ type BaseCtx struct {
 	VipDefaultCfgDir string
 	IsDebug          bool
 	IsTest           bool
+	IsTunnel         bool
 }
 
 var DefCtx *BaseCtx

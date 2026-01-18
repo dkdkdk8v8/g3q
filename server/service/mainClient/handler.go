@@ -84,6 +84,7 @@ func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []b
 	p.ID = userId
 	p.IsRobot = user.IsRobot
 	p.ConnWrap = connWrap
+	p.GameCount = user.GameCount
 	p.NickName = func() string {
 		if user.NickName == "" {
 			return user.UserId

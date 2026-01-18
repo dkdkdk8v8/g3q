@@ -61,8 +61,11 @@ const getBetLabel = (val) => {
     <div v-if="visible" class="modal-overlay" @click="close">
         <div class="modal-content hosting-modal" @click.stop>
             <div class="modal-header">
+                <div class="header-left"></div>
                 <h3>托管设置</h3>
-                <span class="close-icon" @click="close">×</span>
+                <div class="header-right">
+                    <div class="close-icon" @click="close">×</div>
+                </div>
             </div>
 
             <div class="modal-body">
@@ -112,7 +115,7 @@ const getBetLabel = (val) => {
 .hosting-modal {
     width: 85%;
     max-width: 360px;
-    background: #1e293b;
+    background: rgba(32, 35, 45, 1);
     border-radius: 16px;
     display: flex;
     flex-direction: column;
@@ -128,7 +131,18 @@ const getBetLabel = (val) => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #0f172a;
+    /* background: #0f172a; Removed to match SettingsModal */
+}
+
+.header-left,
+.header-right {
+    flex: 1;
+    display: flex;
+    align-items: center;
+}
+
+.header-right {
+    justify-content: flex-end;
 }
 
 .modal-header h3 {

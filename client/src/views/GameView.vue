@@ -74,9 +74,9 @@ watch(() => store.currentPhase, (newPhase) => {
     } else if (newPhase === 'SHOWDOWN') {
         // Auto Show Hand
         setTimeout(() => {
-             if (store.currentPhase === 'SHOWDOWN' && isHosting.value) {
-                 store.playerShowHand(store.myPlayerId);
-             }
+            if (store.currentPhase === 'SHOWDOWN' && isHosting.value) {
+                store.playerShowHand(store.myPlayerId);
+            }
         }, 800);
     }
 });
@@ -1480,8 +1480,14 @@ const shouldMoveStatusToHighPosition = computed(() => {
                 </div>
 
                 <!-- Hosting Button -->
-                <div class="hosting-btn" v-if="!myPlayer.isObserver" @click="openHostingDebounced" :class="{ active: isHosting }">
-                    {{ isHosting ? '正在托管' : '托管' }}
+                <div class="hosting-btn" v-if="!myPlayer.isObserver" @click="openHostingDebounced"
+                    :class="{ active: isHosting }">
+                    <template v-if="isHosting">
+                        托管中<span class="loading-dots"></span>
+                    </template>
+                    <template v-else>
+                        托管
+                    </template>
                 </div>
 
                 <!-- My Score Float -->
@@ -2001,7 +2007,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 .seat-right {
     top: 38%;
     /* Adjusted for fixed top alignment */
-    right: 0;
+    right: -2px;
     /* transform: scale(0.85); Removed redundant scale */
 }
 
@@ -2525,6 +2531,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
     justify-content: center;
     align-items: flex-start;
     width: 100%;
+    position: relative;
 }
 
 .controls-placeholder {
@@ -2611,6 +2618,14 @@ const shouldMoveStatusToHighPosition = computed(() => {
     align-self: center;
     /* Prevent stretching in flex container */
 }
+
+.observer-waiting-banner {
+    /* ... existing styles ... */
+    /* Ensure it doesn't conflict with absolute button if needed */
+}
+
+/* ... existing styles ... */
+
 
 .restart-btn {
     pointer-events: auto;
@@ -3334,7 +3349,12 @@ const shouldMoveStatusToHighPosition = computed(() => {
     width: auto !important;
     min-width: 80px;
     height: 36px;
-    margin-top: 10px;
+    /* margin-top: 10px; Removed to use absolute positioning */
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
 }
 
 .hosting-btn {
@@ -3365,11 +3385,11 @@ const shouldMoveStatusToHighPosition = computed(() => {
 }
 
 .hosting-btn.active {
-    background: linear-gradient(to bottom, #f59e0b, #d97706);
+    background: linear-gradient(to bottom, #22c55e, #16a34a);
     color: white;
-    border-color: #fcd34d;
+    border-color: #86efac;
     font-weight: bold;
-    box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+    box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
 }
 </style>
 

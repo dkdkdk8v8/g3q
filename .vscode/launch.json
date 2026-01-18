@@ -38,7 +38,7 @@
             "output": "${workspaceFolder}/server/server/main_client/local_main_client",
             "args": [
                 "--ter",
-                "--debug"
+                "--debug",
             ], // 传递给程序的命令行参数
             "env": {
                 "test": "test" // 设置临时环境变量
@@ -55,9 +55,7 @@
                 "--ter",
                 "--debug"
             ], // 传递给程序的命令行参数
-            "env": {
-               
-            }
+            "env": {}
         },
         {
             "name": "go:file",

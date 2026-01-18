@@ -173,6 +173,9 @@ func (w *mainClientWork) Start(baseCtx *initMain.BaseCtx) error {
 		return err
 	}
 
+	logrus.Info("initModelAdmin")
+	modelAdmin.Init()
+
 	logrus.Info("ipDb")
 	if err := comm.InitIpDataBase(); err != nil {
 		logrus.WithError(err).Error("InitIpDb-Fail")

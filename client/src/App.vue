@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted } from 'vue';
+import { onMounted, onUnmounted } from 'vue';
 import GlobalLoading from './components/GlobalLoading.vue';
 import ReconnectDialog from './components/ReconnectDialog.vue';
 import btnClickSound from '@/assets/sounds/btn_click.mp3';
@@ -20,7 +20,22 @@ onMounted(() => {
             }
         }
     }, true); // Use capture phase to handle events before stopPropagation
+
+    // Handle visibility change to mute/unmute audio
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 });
+
+onUnmounted(() => {
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+});
+
+const handleVisibilityChange = () => {
+    if (document.hidden) {
+        AudioUtils.suspend();
+    } else {
+        AudioUtils.resume();
+    }
+};
 </script>
 
 <template>

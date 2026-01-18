@@ -263,8 +263,7 @@ const positionedPlayers = computed(() => {
 
 
                                 <HistoryPokerCard v-for="(card, cIdx) in p.uiCards" :key="cIdx" :card="card"
-                                    :isSmall="true" :simplified="true" :mini="true" :largeIcons="p.viewPos === 0"
-                                    class="mini-card" />
+                                    :isSmall="true" :simplified="true" :mini="true" class="mini-card" />
 
 
 
@@ -306,7 +305,7 @@ const positionedPlayers = computed(() => {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(32, 35, 45, 1);
+    background: rgba(0, 0, 0, 0.8);
     z-index: 9000;
     display: flex;
     flex-direction: column;
@@ -339,7 +338,6 @@ const positionedPlayers = computed(() => {
 }
 
 .detail-header {
-    background: #2c333d;
     padding: 15px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     flex-shrink: 0;

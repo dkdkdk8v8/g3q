@@ -88,73 +88,39 @@ const summaryData = computed(() => {
 
 // Positioning Logic
 const positionedPlayers = computed(() => {
-    if (!props.data || !props.data.rawPlayers) return [];
+    // Default to empty array if no data
+    const players = (props.data && props.data.rawPlayers) ? props.data.rawPlayers : [];
 
-    const players = props.data.rawPlayers;
+    // Find my index/seat
     const myIndex = players.findIndex(p => p.ID === myId.value);
-    const playerCount = 5; // Fixed 5 positions for UI
 
     // If myIndex is not found (shouldn't happen), assume 0
     const baseIndex = myIndex >= 0 ? myIndex : 0;
 
-    // We want to map players to View Positions:
-    // 0: Me (Bottom)
-    // 1: Right (Mid Right)
-    // 2: Top Right
-    // 3: Top Left
-    // 4: Left (Mid Left)
+    let mySeat = baseIndex;
+    if (myIndex >= 0 && players[myIndex].Seat !== undefined) {
+        mySeat = players[myIndex].Seat;
+    }
 
-    // Formula: viewPos = (seatIndex - mySeatIndex + playerCount) % playerCount
-    // This assumes seatIndices are 0..4. If server uses random IDs or non-sequential, we might need seat IDs.
-    // Usually game logic provides 'Seat' index. Let's check rawPlayers data structure later.
-    // If 'Seat' property exists, use it. If not, use array index?
-    // Let's assume array index IS seat index for now or 'Seat' property is available.
-    // If we just use array relative index:
-
-    return players.map((p, idx) => {
-        // Determine Seat Index. If p.Seat is available use it, else idx.
-        // History data might not have Seat. If not, we can't position accurately relative to table.
-        // But usually History data preserves player order or Seat.
+    // Helper to process a player
+    const processPlayer = (p, idx) => {
         const seatIdx = (p.Seat !== undefined) ? p.Seat : idx;
-
-        // Calculate relative view position
-        // If we don't know MaxPlayers, assume 5.
-        // Correct relative calculation:
-        // (seatIdx - mySeatIdx + 5) % 5
-
-        let mySeat = baseIndex;
-        if (myIndex >= 0 && players[myIndex].Seat !== undefined) {
-            mySeat = players[myIndex].Seat;
-        }
-
         const diff = (seatIdx - mySeat + 5) % 5;
-
-        // Map diff to visual position
-        // Diff 0 -> Bottom (Me)
-        // Diff 1 -> Right
-        // Diff 2 -> Top Right
-        // Diff 3 -> Top Left
-        // Diff 4 -> Left
 
         // Prepare UI Cards
         let uiCards = [];
         let handTypeKey = 'NO_BULL';
 
         if (p.Cards && Array.isArray(p.Cards)) {
-            // Transform cards
             const cardObjs = p.Cards.map(cId => transformServerCard(cId));
-
-            // Calculate Type (to get sorted cards)
             const typeResult = calculateHandType(cardObjs);
             uiCards = typeResult.sortedCards;
             handTypeKey = typeResult.type;
         } else {
-            // Placeholder back cards if hidden? Or usually history shows all.
             uiCards = [];
         }
 
         // Determine Banker
-        // Try rawRoom.BankerID first, then rawRoom.Banker, then p.IsBanker
         let isBanker = false;
         if (props.data.rawRoom) {
             const r = props.data.rawRoom;
@@ -165,7 +131,6 @@ const positionedPlayers = computed(() => {
         }
         if (!isBanker && p.IsBanker) isBanker = true;
 
-        // Helper to safely get number
         const getNum = (v, v2) => {
             if (v !== undefined && v !== null) return Number(v);
             if (v2 !== undefined && v2 !== null) return Number(v2);
@@ -173,29 +138,43 @@ const positionedPlayers = computed(() => {
         };
 
         return {
-
             ...p,
-
             viewPos: diff,
-
             uiCards,
-
             handTypeKey,
-
             isBanker: isBanker,
-
             BankerMulti: getNum(p.CallMult, p.robMultiplier),
-
             BetMulti: getNum(p.BetMult, p.betMultiplier),
-
             NickName: p.NickName || 'Unknown',
-
-            isObserver: p.IsOb || false
-
+            isObserver: p.IsOb || false,
+            isEmpty: false
         };
+    };
 
+    // Map existing players to their view positions
+    const posMap = {};
+    players.forEach((p, idx) => {
+        const processed = processPlayer(p, idx);
+        posMap[processed.viewPos] = processed;
     });
 
+    // Fill all 5 positions
+    const result = [];
+    for (let i = 0; i < 5; i++) {
+        if (posMap[i]) {
+            result.push(posMap[i]);
+        } else {
+            // Empty Seat
+            result.push({
+                ID: `empty_${i}`,
+                viewPos: i,
+                isEmpty: true,
+                isObserver: false
+            });
+        }
+    }
+
+    return result;
 });
 
 
@@ -242,7 +221,7 @@ const positionedPlayers = computed(() => {
 
                 <div v-for="p in positionedPlayers" :key="p.ID" class="player-seat" :class="'pos-' + p.viewPos">
 
-                    <template v-if="!p.isObserver">
+                    <template v-if="!p.isEmpty && !p.isObserver">
 
                         <div class="multipliers-row">
 
@@ -292,6 +271,9 @@ const positionedPlayers = computed(() => {
 
                         </div>
 
+                    </template>
+                    <template v-else>
+                        <div class="empty-seat-msg">暂无用户加入</div>
                     </template>
 
                 </div>
@@ -544,6 +526,15 @@ const positionedPlayers = computed(() => {
 .banker-icon {
     width: 14px;
     height: 14px;
+}
+
+.empty-seat-msg {
+    color: #64748b;
+    font-size: 12px;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 4px 8px;
+    border-radius: 6px;
 }
 
 /* Specific adjustment for Pos 0 (Me) - make it slightly larger? */

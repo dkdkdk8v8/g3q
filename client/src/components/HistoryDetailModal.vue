@@ -178,7 +178,7 @@ const positionedPlayers = computed(() => {
             uiCards,
             handTypeKey,
             isBanker: isBanker,
-            BankerMulti: getNum(p.CallMult, p.robMultiplier), 
+            BankerMulti: getNum(p.CallMult, p.robMultiplier),
             BetMulti: getNum(p.BetMult, p.betMultiplier),
             NickName: p.NickName || 'Unknown'
         };
@@ -396,6 +396,7 @@ const positionedPlayers = computed(() => {
 
 .rob-tag {
     color: #ffab00;
+    margin-right: 5px;
 }
 
 .bet-tag {

@@ -248,7 +248,11 @@ const positionedPlayers = computed(() => {
 
                             <span v-else-if="p.BankerMulti === 0" class="rob-tag" style="color: #cbd5e1;">不抢</span>
 
-                            <span v-if="p.BetMulti > 0" class="bet-tag">压{{ p.BetMulti }}倍</span>
+                            <span v-if="p.BetMulti > 0" class="bet-tag">押{{ p.BetMulti }}倍</span>
+
+                            <span class="score-text" :class="(p.BalanceChange || 0) >= 0 ? 'win' : 'lose'">
+                                ({{ (p.BalanceChange || 0) > 0 ? '+' : '' }}{{ formatCoins(p.BalanceChange || 0) }})
+                            </span>
 
                         </div>
 
@@ -263,7 +267,7 @@ const positionedPlayers = computed(() => {
 
 
                                 <HistoryPokerCard v-for="(card, cIdx) in p.uiCards" :key="cIdx" :card="card"
-                                    :isSmall="true" :simplified="true" :mini="true" class="mini-card" />
+                                    :isSmall="true" :simplified="true" :mini="true" :largeIcons="p.viewPos === 0" class="mini-card" />
 
 
 
@@ -466,6 +470,10 @@ const positionedPlayers = computed(() => {
 
 .bet-tag {
     color: #4ade80;
+    margin-left: 5px;
+}
+
+.score-text {
     margin-left: 5px;
 }
 

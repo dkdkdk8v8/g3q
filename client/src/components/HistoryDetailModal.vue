@@ -262,7 +262,7 @@ const positionedPlayers = computed(() => {
 
 
 
-                                                                                        <HistoryPokerCard v-for="(card, cIdx) in p.uiCards" :key="cIdx" :card="card" :isSmall="true" :simplified="true" :mini="true" class="mini-card" />
+                                                                                        <HistoryPokerCard v-for="(card, cIdx) in p.uiCards" :key="cIdx" :card="card" :isSmall="true" :simplified="true" :mini="true" :largeIcons="p.viewPos === 0" class="mini-card" />
 
 
 

@@ -6,7 +6,8 @@ const props = defineProps({
   card: Object, // 如果没有card，显示背面
   isSmall: Boolean,
   simplified: Boolean, // 简易模式，左上角只显示点数
-  mini: Boolean // 迷你模式，使用px单位适配小尺寸
+  mini: Boolean, // 迷你模式，使用px单位适配小尺寸
+  largeIcons: Boolean // 是否放大图标（针对自己手牌）
 });
 
 // 控制卡片是否翻转显示正面
@@ -53,7 +54,7 @@ const suitSymbol = computed(() => {
 </script>
 
 <template>
-  <div class="poker-card" :class="{ 'is-small': isSmall, 'is-mini': mini }">
+  <div class="poker-card" :class="{ 'is-small': isSmall, 'is-mini': mini, 'is-large-icons': largeIcons }">
     <div class="card-inner" :class="{ 'is-flipped': isFlipped }">
       <div class="card-face" :class="{ 'is-red': isRed }">
         <template v-if="card">
@@ -251,5 +252,16 @@ const suitSymbol = computed(() => {
 
 .is-mini .card-face {
   border-width: 1px;
+}
+
+/* Large Icons in Mini Mode (for My Hand in History Detail) */
+.is-mini.is-large-icons .rank {
+  font-size: 21px;
+  /* Increased from 14px */
+}
+
+.is-mini.is-large-icons .corner-suit {
+  font-size: 30px;
+  /* Increased from 26px */
 }
 </style>

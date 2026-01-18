@@ -30,6 +30,7 @@ import roomTiyan from '@/assets/bethistory/room_tiyan.png';
 import roomDashi from '@/assets/bethistory/room_dashi.png';
 import roomZhongji from '@/assets/bethistory/room_zhongji.png';
 import roomDianfeng from '@/assets/bethistory/room_dianfeng.png';
+import HistoryDetailModal from './HistoryDetailModal.vue';
 
 const handTypeImages = {
     'BULL_1': niu1,
@@ -73,6 +74,14 @@ const emit = defineEmits(['update:visible', 'close']);
 
 const store = useGameStore();
 const userStore = useUserStore();
+
+const showDetail = ref(false);
+const currentDetailItem = ref(null);
+
+const openDetail = (item) => {
+    currentDetailItem.value = item;
+    showDetail.value = true;
+};
 
 const close = () => {
     emit('update:visible', false);
@@ -218,7 +227,9 @@ const historyGrouped = computed(() => {
                 handType: handTypeName,
                 handTypeKey: handTypeKey,
                 score: score, // This is Win/Loss
-                bet: bet
+                bet: bet,
+                rawPlayers: roomData.Players,
+                rawRoom: roomData
             });
         }
     }
@@ -298,7 +309,7 @@ watch(() => props.visible, (val) => {
                         </div>
                     </div>
 
-                    <div v-for="(item, idx) in group.items" :key="idx" class="history-card">
+                    <div v-for="(item, idx) in group.items" :key="idx" class="history-card" @click="openDetail(item)">
                         <div class="hc-content">
                             <div class="hc-top-row">
                                 <span class="hc-title">
@@ -348,6 +359,8 @@ watch(() => props.visible, (val) => {
                     @confirm="onConfirmDate" @cancel="onCancelDate" />
             </van-popup>
         </div>
+
+        <HistoryDetailModal v-model:visible="showDetail" :data="currentDetailItem" />
     </div>
 </template>
 

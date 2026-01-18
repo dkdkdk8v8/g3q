@@ -7,11 +7,11 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
-    BetDetailModal: typeof import('./src/components/BetDetailModal.vue')['default']
     CoinLayer: typeof import('./src/components/CoinLayer.vue')['default']
     DealingLayer: typeof import('./src/components/DealingLayer.vue')['default']
     GlobalLoading: typeof import('./src/components/GlobalLoading.vue')['default']
     HelpModal: typeof import('./src/components/HelpModal.vue')['default']
+    HistoryDetailModal: typeof import('./src/components/HistoryDetailModal.vue')['default']
     HistoryModal: typeof import('./src/components/HistoryModal.vue')['default']
     HostingModal: typeof import('./src/components/HostingModal.vue')['default']
     PlayerSeat: typeof import('./src/components/PlayerSeat.vue')['default']

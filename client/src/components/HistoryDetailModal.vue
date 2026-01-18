@@ -173,62 +173,121 @@ const positionedPlayers = computed(() => {
         };
 
         return {
+
             ...p,
+
             viewPos: diff,
+
             uiCards,
+
             handTypeKey,
+
             isBanker: isBanker,
+
             BankerMulti: getNum(p.CallMult, p.robMultiplier),
+
             BetMulti: getNum(p.BetMult, p.betMultiplier),
-            NickName: p.NickName || 'Unknown'
+
+            NickName: p.NickName || 'Unknown',
+
+            isObserver: p.IsOb || false
+
         };
+
     });
+
 });
+
+
 
 </script>
 
+
+
 <template>
+
     <div v-if="visible" class="detail-overlay" @click.stop="close">
+
         <div class="detail-content" @click.stop>
+
             <div class="detail-header">
+
                 <div class="title-row">
+
                     <div class="detail-title">注单详情</div>
+
                     <div class="close-btn" @click="close">×</div>
+
                 </div>
+
                 <div class="summary-row">
+
                     <div class="sum-item">本局总输赢: <span :class="summaryData.total >= 0 ? 'win' : 'lose'">{{
-                        formatCoins(summaryData.total) }}</span></div>
+                            formatCoins(summaryData.total) }}</span></div>
+
                     <div class="sum-item">税: {{ formatCoins(summaryData.tax) }}</div>
+
                     <div class="sum-item">汇总: <span :class="summaryData.summary >= 0 ? 'win' : 'lose'">{{
                         formatCoins(summaryData.summary) }}</span></div>
+
                 </div>
+
             </div>
+
+
 
             <div class="visual-area">
+
                 <div v-for="p in positionedPlayers" :key="p.ID" class="player-seat" :class="'pos-' + p.viewPos">
-                    <div class="multipliers-row">
-                        <span v-if="p.BankerMulti > 0" class="rob-tag">抢{{ p.BankerMulti }}倍</span>
-                        <span v-else-if="p.BankerMulti === 0" class="rob-tag" style="color: #cbd5e1;">不抢</span>
-                        <span v-if="p.BetMulti > 0" class="bet-tag">押{{ p.BetMulti }}倍</span>
-                    </div>
 
-                    <div class="cards-row">
-                        <div class="cards-container">
-                            <PokerCard v-for="(card, cIdx) in p.uiCards" :key="cIdx" :card="card" :isSmall="true"
-                                :simplified="true" class="mini-card" />
+                    <template v-if="!p.isObserver">
+
+                        <div class="multipliers-row">
+
+                            <span v-if="p.BankerMulti > 0" class="rob-tag">抢{{ p.BankerMulti }}倍</span>
+
+                            <span v-else-if="p.BankerMulti === 0" class="rob-tag" style="color: #cbd5e1;">不抢</span>
+
+                            <span v-if="p.BetMulti > 0" class="bet-tag">押{{ p.BetMulti }}倍</span>
+
                         </div>
-                        <img v-if="getHandTypeImage(p.handTypeKey)" :src="getHandTypeImage(p.handTypeKey)"
-                            class="niu-type-img" />
-                    </div>
 
-                    <div class="info-row">
-                        <span class="nickname">{{ p.NickName }}</span>
-                        <img v-if="p.isBanker" :src="bankerIcon" class="banker-icon" />
-                    </div>
+
+
+                        <div class="cards-row">
+
+                            <div class="cards-container">
+
+                                <PokerCard v-for="(card, cIdx) in p.uiCards" :key="cIdx" :card="card" :isSmall="true"
+                                    :simplified="true" class="mini-card" />
+
+                            </div>
+
+                            <img v-if="getHandTypeImage(p.handTypeKey)" :src="getHandTypeImage(p.handTypeKey)"
+                                class="niu-type-img" />
+
+                        </div>
+
+
+
+                        <div class="info-row">
+
+                            <span class="nickname">{{ p.NickName }}</span>
+
+                            <img v-if="p.isBanker" :src="bankerIcon" class="banker-icon" />
+
+                        </div>
+
+                    </template>
+
                 </div>
+
             </div>
+
         </div>
+
     </div>
+
 </template>
 
 <style scoped>
@@ -396,11 +455,11 @@ const positionedPlayers = computed(() => {
 
 .rob-tag {
     color: #ffab00;
-    margin-right: 5px;
 }
 
 .bet-tag {
     color: #4ade80;
+    margin-left: 5px;
 }
 
 .cards-row {

@@ -105,3 +105,8 @@ body {
 .game-theme-dialog .van-hairline--left::after {
   border-color: rgba(255, 255, 255, 0.1) !important;
 }
+
+/* Ensure Vant Toasts are always on top of our custom high-z-index modals (up to 9000) */
+.van-toast {
+  z-index: 12000 !important;
+}

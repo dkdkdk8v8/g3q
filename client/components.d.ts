@@ -13,6 +13,7 @@ declare module 'vue' {
     HelpModal: typeof import('./src/components/HelpModal.vue')['default']
     HistoryDetailModal: typeof import('./src/components/HistoryDetailModal.vue')['default']
     HistoryModal: typeof import('./src/components/HistoryModal.vue')['default']
+    HistoryPokerCard: typeof import('./src/components/HistoryPokerCard.vue')['default']
     HostingModal: typeof import('./src/components/HostingModal.vue')['default']
     PlayerSeat: typeof import('./src/components/PlayerSeat.vue')['default']
     PokerCard: typeof import('./src/components/PokerCard.vue')['default']

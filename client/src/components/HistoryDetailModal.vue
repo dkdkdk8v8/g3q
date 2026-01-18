@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import { useUserStore } from '../stores/user.js';
 import { formatCoins } from '../utils/format.js';
 import { transformServerCard, calculateHandType } from '../utils/bullfight.js';
-import PokerCard from './PokerCard.vue';
+import HistoryPokerCard from './HistoryPokerCard.vue';
 import bankerIcon from '@/assets/common/zhuang.png';
 
 // Import Bet History Images
@@ -254,15 +254,23 @@ const positionedPlayers = computed(() => {
 
 
 
-                        <div class="cards-row">
+                                                <div class="cards-row">
 
-                                                            <div class="cards-container">
 
-                                                                <PokerCard v-for="(card, cIdx) in p.uiCards" :key="cIdx" :card="card" :isSmall="true" :simplified="true" :mini="true" class="mini-card" />
 
-                                                            </div>
+                                                                                    <div class="cards-container">
 
-                            <img v-if="getHandTypeImage(p.handTypeKey)" :src="getHandTypeImage(p.handTypeKey)"
+
+
+                                                                                        <HistoryPokerCard v-for="(card, cIdx) in p.uiCards" :key="cIdx" :card="card" :isSmall="true" :simplified="true" :mini="true" class="mini-card" />
+
+
+
+                                                                                    </div>
+
+
+
+                                                    <img v-if="getHandTypeImage(p.handTypeKey)" :src="getHandTypeImage(p.handTypeKey)"
                                 class="niu-type-img" />
 
                         </div>

@@ -225,8 +225,9 @@ const positionedPlayers = computed(() => {
                     <div class="sum-item">本局总输赢: <span :class="summaryData.total >= 0 ? 'win' : 'lose'">{{
                         formatCoins(summaryData.total) }}</span></div>
 
-                    <div class="sum-item">税: <span :class="summaryData.total >= 0 ? 'lose' : 'lno-tax'">-{{
-                        formatCoins(summaryData.tax) }}</span></div>
+                    <div class="sum-item">税: <span :class="summaryData.total >= 0 ? 'lose' : 'lno-tax'">{{
+                        summaryData.tax > 0 ? '-' + formatCoins(summaryData.tax) : "0"
+                            }}</span></div>
 
                     <div class="sum-item">汇总: <span :class="summaryData.summary >= 0 ? 'win' : 'lose'">{{
                         formatCoins(summaryData.summary) }}</span></div>

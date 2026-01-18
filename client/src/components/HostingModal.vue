@@ -91,7 +91,9 @@ const getBetLabel = (val) => {
             </div>
 
             <div class="modal-footer">
-                <div class="confirm-btn" @click="confirm">确认</div>
+                <div class="cancel-btn" @click="close">暂不托管</div>
+                <div style="width:50px" />
+                <div class="confirm-btn" @click="confirm">确认托管</div>
             </div>
         </div>
     </div>
@@ -202,6 +204,19 @@ const getBetLabel = (val) => {
     padding: 16px 20px 24px 20px;
     display: flex;
     justify-content: center;
+}
+
+.cancel-btn {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(to bottom, #a1aaa4, #bfc6c2);
+    color: white;
+    text-align: center;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
 }
 
 .confirm-btn {

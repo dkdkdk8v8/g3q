@@ -1,5 +1,8 @@
 <template>
     <cl-dialog v-model="visible" title="资金记录" width="900px">
+        <div v-if="list.length > 0" class="chart-container">
+            <v-chart :option="chartOption" autoresize />
+        </div>
         <div class="list" v-infinite-scroll="loadMore" :infinite-scroll-disabled="loading || finished">
             <el-timeline>
                 <el-timeline-item v-for="(item, index) in list" :key="index" hide-timestamp>
@@ -86,7 +89,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, reactive, computed } from "vue";
+import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
 import { useCool } from "/@/cool";
 import { useDict } from '/$/dict';
 import { getCardResult, getCardStyle } from "../utils/card";
@@ -124,10 +127,101 @@ const finished = ref(false);
 const list = ref<any[]>([]);
 const pagination = reactive({
     page: 1,
-    size: 50,
+    size: 100,
     total: 0,
 });
 const userId = ref<any>(null);
+const isDark = ref(false);
+
+const chartOption = computed(() => {
+    const data = [...list.value].reverse();
+    const el = document.documentElement;
+    const getVar = (name: string) => getComputedStyle(el).getPropertyValue(name).trim();
+
+    const textColor = getVar('--el-text-color-primary') || (isDark.value ? '#cfd3dc' : '#303133');
+    const borderColor = getVar('--el-border-color-lighter') || (isDark.value ? '#414243' : '#ebeef5');
+
+    return {
+        grid: {
+            left: '60',
+            right: '20',
+            top: '20',
+            bottom: '40'
+        },
+        tooltip: {
+            trigger: 'axis',
+            backgroundColor: isDark.value ? '#1d1e1f' : '#fff',
+            borderColor: borderColor,
+            textStyle: { color: textColor },
+            formatter: (params: any) => {
+                const item = data[params[0].dataIndex];
+                return `${item.create_at}<br/>余额: ${(item.balance_after / 100).toFixed(2)}`;
+            }
+        },
+        xAxis: {
+            type: 'category',
+            data: data.map((_, index) => index),
+            axisLabel: { show: false },
+            axisTick: { show: false }
+        },
+        yAxis: {
+            type: 'value',
+            axisLabel: {
+                color: textColor,
+                formatter: (val: number) => (val / 100).toFixed(2)
+            },
+            splitLine: {
+                lineStyle: {
+                    color: borderColor,
+                    type: 'dashed'
+                }
+            }
+        },
+        dataZoom: [
+            {
+                type: 'inside',
+                start: Math.max(0, 100 - (100 / data.length) * 100),
+                end: 100
+            },
+            {
+                type: 'slider',
+                height: 18,
+                bottom: 5,
+                start: Math.max(0, 100 - (100 / data.length) * 100),
+                end: 100,
+                borderColor: 'transparent',
+                backgroundColor: isDark.value ? '#333' : '#f4f4f4',
+                fillerColor: 'rgba(64, 158, 255, 0.2)',
+                handleStyle: {
+                    color: '#409eff'
+                },
+                textStyle: { color: textColor },
+                realtime: true
+            }
+        ],
+        series: [{
+            data: data.map(i => i.balance_after),
+            type: 'line',
+            smooth: true,
+            symbol: 'none',
+            itemStyle: { color: '#409eff' }
+        }]
+    };
+});
+
+let observer: MutationObserver | null = null;
+
+onMounted(() => {
+    isDark.value = document.documentElement.classList.contains('dark');
+    observer = new MutationObserver(() => {
+        isDark.value = document.documentElement.classList.contains('dark');
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+});
+
+onUnmounted(() => {
+    if (observer) observer.disconnect();
+});
 
 function open(row: any) {
     visible.value = true;
@@ -186,6 +280,15 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
+.chart-container {
+    height: 200px;
+    margin: 0 10px 10px 10px;
+    padding: 10px;
+    background: var(--el-fill-color-blank);
+    border-radius: 4px;
+    border: 1px solid var(--el-border-color-lighter);
+}
+
 .list {
     height: 60vh;
     overflow-y: auto;

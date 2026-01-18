@@ -70,11 +70,43 @@ const gameId = computed(() => {
 
 const copyGameId = async () => {
     if (!gameId.value) return;
+    const text = String(gameId.value);
+
+    // Try Clipboard API first
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+            await navigator.clipboard.writeText(text);
+            showToast('复制成功');
+            return;
+        } catch (err) {
+            console.warn('Clipboard API failed, trying fallback...', err);
+        }
+    }
+
+    // Fallback: execCommand
     try {
-        await navigator.clipboard.writeText(String(gameId.value));
-        showToast('复制成功');
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+
+        // Ensure it's not visible but part of the DOM
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        textArea.style.top = "0";
+        document.body.appendChild(textArea);
+
+        textArea.focus();
+        textArea.select();
+
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+
+        if (successful) {
+            showToast('复制成功');
+        } else {
+            showToast('复制失败');
+        }
     } catch (err) {
-        console.error('Copy failed', err);
+        console.error('Fallback copy failed', err);
         showToast('复制失败');
     }
 };
@@ -221,7 +253,17 @@ const positionedPlayers = computed(() => {
 
                 </div>
 
-                <div class="header-divider"></div>
+                <div class="game-id-row" v-if="gameId" @click="copyGameId">
+                    <span>本局游戏ID：{{ gameId }}</span>
+                    <span class="copy-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                    </span>
+                </div>
+
 
                 <div class="summary-row">
 
@@ -237,16 +279,7 @@ const positionedPlayers = computed(() => {
 
                 </div>
 
-                <div class="game-id-row" v-if="gameId" @click="copyGameId">
-                    <span>本局游戏ID：{{ gameId }}</span>
-                    <span class="copy-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                        </svg>
-                    </span>
-                </div>
+
 
             </div>
 
@@ -404,6 +437,7 @@ const positionedPlayers = computed(() => {
 }
 
 .summary-row {
+    margin-top: 10px;
     display: flex;
     width: 100%;
     color: #cbd5e1;
@@ -620,7 +654,6 @@ const positionedPlayers = computed(() => {
     gap: 8px;
     font-size: 12px;
     color: #64748b;
-    margin-top: 10px;
     cursor: pointer;
     padding: 4px 0;
     transition: opacity 0.2s;

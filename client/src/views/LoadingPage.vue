@@ -185,6 +185,12 @@ export default {
       const checkReady = () => {
         if (hasUserInfo && hasLobbyConfig && targetRoute) {
           isLoading.value = false; // Stop loading
+          
+          // Explicitly remove listeners to prevent ghost callbacks
+          gameClient.offServerPush('PushRouter');
+          gameClient.off('UserInfo');
+          gameClient.off('QZNN.LobbyConfig');
+          
           router.push(targetRoute);
         }
       };

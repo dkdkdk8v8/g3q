@@ -4,7 +4,9 @@ import { computed, onMounted, ref, nextTick } from 'vue';
 
 const props = defineProps({
   card: Object, // 如果没有card，显示背面
-  isSmall: Boolean
+  isSmall: Boolean,
+  simplified: Boolean, // 简易模式，左上角只显示点数
+  mini: Boolean // 迷你模式，使用px单位适配小尺寸
 });
 
 // 控制卡片是否翻转显示正面
@@ -51,14 +53,14 @@ const suitSymbol = computed(() => {
 </script>
 
 <template>
-  <div class="poker-card" :class="{ 'is-small': isSmall }">
+  <div class="poker-card" :class="{ 'is-small': isSmall, 'is-mini': mini }">
     <div class="card-inner" :class="{ 'is-flipped': isFlipped }">
       <div class="card-face" :class="{ 'is-red': isRed }">
         <template v-if="card">
           <!-- 左上角标 -->
           <div class="corner-top-left">
             <span class="rank">{{ card.label }}</span>
-            <span class="suit">{{ suitSymbol }}</span>
+            <span v-if="!simplified" class="suit">{{ suitSymbol }}</span>
           </div>
 
           <!-- 右下角标 (旋转180度) -->
@@ -163,7 +165,7 @@ const suitSymbol = computed(() => {
   flex-direction: column;
   align-items: center;
   line-height: 1;
-  width: 6.4vw;
+  width: 2.4vw;
   /* 限制宽度防止溢出 */
 }
 
@@ -184,8 +186,8 @@ const suitSymbol = computed(() => {
 }
 
 .is-small .corner-bottom-right {
-  bottom: 0.2667vw;
-  right: 0.2667vw;
+  bottom: -5px;
+  right: 5px;
 }
 
 .rank {
@@ -209,9 +211,6 @@ const suitSymbol = computed(() => {
   margin-top: -0.2667vw;
 }
 
-.corner-bottom-right {
-  width: auto;
-}
 
 .corner-suit {
   font-size: 13.3333vw;
@@ -221,5 +220,36 @@ const suitSymbol = computed(() => {
 
 .is-small .corner-suit {
   font-size: 8.5333vw;
+}
+
+/* Mini Mode Styles */
+.poker-card.is-mini {
+  border-radius: 4px;
+  /* Smaller radius */
+}
+
+.is-mini .corner-top-left {
+  top: 2px;
+  left: 2px;
+  width: auto;
+}
+
+.is-mini .corner-bottom-right {
+  bottom: 2px;
+  right: 2px;
+  width: auto;
+}
+
+.is-mini .rank {
+  font-size: 14px;
+  letter-spacing: -1px;
+}
+
+.is-mini .corner-suit {
+  font-size: 26px;
+}
+
+.is-mini .card-face {
+  border-width: 1px;
 }
 </style>

@@ -209,7 +209,7 @@ const getBetLabel = (val) => {
 .cancel-btn {
     width: 100%;
     padding: 12px;
-    background: linear-gradient(to bottom, #a1aaa4, #bfc6c2);
+    background: linear-gradient(to bottom, #a9adab, #868987);
     color: white;
     text-align: center;
     border-radius: 8px;

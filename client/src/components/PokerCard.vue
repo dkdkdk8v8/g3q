@@ -4,7 +4,8 @@ import { computed, onMounted, ref, nextTick } from 'vue';
 
 const props = defineProps({
   card: Object, // 如果没有card，显示背面
-  isSmall: Boolean
+  isSmall: Boolean,
+  simplified: Boolean // 简易模式，左上角只显示点数
 });
 
 // 控制卡片是否翻转显示正面
@@ -61,7 +62,7 @@ const suitSymbol = computed(() => {
                 <!-- 左上角标 -->
                 <div class="corner-top-left">
                     <span class="rank">{{ card.label }}</span>
-                    <span class="suit">{{ suitSymbol }}</span>
+                    <span v-if="!simplified" class="suit">{{ suitSymbol }}</span>
                 </div>
                 
                 <!-- 右下角标 (旋转180度) -->

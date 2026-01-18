@@ -360,7 +360,7 @@ const positionedPlayers = computed(() => {
 
 .summary-row {
     display: flex;
-    justify-content: space-around;
+    width: 100%;
     color: #cbd5e1;
     font-size: 13px;
     /* margin-bottom: 10px; removed */
@@ -368,8 +368,10 @@ const positionedPlayers = computed(() => {
 
 .sum-item {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
+    justify-content: center;
+    flex: 1;
     gap: 4px;
     font-weight: 500;
     font-size: 13px;

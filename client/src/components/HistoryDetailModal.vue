@@ -256,12 +256,11 @@ const positionedPlayers = computed(() => {
 
                         <div class="cards-row">
 
-                            <div class="cards-container">
+                                                            <div class="cards-container">
 
-                                <PokerCard v-for="(card, cIdx) in p.uiCards" :key="cIdx" :card="card" :isSmall="true"
-                                    :simplified="true" class="mini-card" />
+                                                                <PokerCard v-for="(card, cIdx) in p.uiCards" :key="cIdx" :card="card" :isSmall="true" :simplified="true" :mini="true" class="mini-card" />
 
-                            </div>
+                                                            </div>
 
                             <img v-if="getHandTypeImage(p.handTypeKey)" :src="getHandTypeImage(p.handTypeKey)"
                                 class="niu-type-img" />

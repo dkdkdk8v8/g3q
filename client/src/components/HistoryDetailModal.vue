@@ -371,6 +371,8 @@ const positionedPlayers = computed(() => {
     flex-direction: column;
     align-items: center;
     gap: 4px;
+    font-weight: 500;
+    font-size: 13px;
 }
 
 .win {

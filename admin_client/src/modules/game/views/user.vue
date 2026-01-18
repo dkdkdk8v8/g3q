@@ -145,7 +145,7 @@ const Table = useTable({
     {
       label: "总投注",
       prop: "total_bet",
-      minWidth: 80,
+      minWidth: 90,
       formatter(row) {
         return (row.total_bet / 100).toFixed(2);
       },

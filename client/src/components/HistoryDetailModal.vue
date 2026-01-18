@@ -248,7 +248,7 @@ const positionedPlayers = computed(() => {
 
                             <span v-else-if="p.BankerMulti === 0" class="rob-tag" style="color: #cbd5e1;">不抢</span>
 
-                            <span v-if="p.BetMulti > 0" class="bet-tag">押{{ p.BetMulti }}倍</span>
+                            <span v-if="p.BetMulti > 0" class="bet-tag">压{{ p.BetMulti }}倍</span>
 
                         </div>
 

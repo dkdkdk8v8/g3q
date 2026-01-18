@@ -5,6 +5,7 @@ import { formatCoins } from '../utils/format.js';
 import { transformServerCard, calculateHandType } from '../utils/bullfight.js';
 import HistoryPokerCard from './HistoryPokerCard.vue';
 import bankerIcon from '@/assets/common/zhuang.png';
+import { showToast } from 'vant';
 
 // Import Bet History Images
 import niu1 from '@/assets/bethistory/niu_1.png';
@@ -58,6 +59,25 @@ const close = () => {
 };
 
 const myId = computed(() => userStore.userInfo.user_id);
+
+const gameId = computed(() => {
+    if (props.data && props.data.rawRoom) {
+        // Try different casing or properties if needed, usually GameID or id
+        return props.data.rawRoom.GameID || props.data.rawRoom.id;
+    }
+    return '';
+});
+
+const copyGameId = async () => {
+    if (!gameId.value) return;
+    try {
+        await navigator.clipboard.writeText(String(gameId.value));
+        showToast('复制成功');
+    } catch (err) {
+        console.error('Copy failed', err);
+        showToast('复制失败');
+    }
+};
 
 const summaryData = computed(() => {
     if (!props.data) return { total: 0, tax: 0, summary: 0 };
@@ -201,9 +221,11 @@ const positionedPlayers = computed(() => {
 
                 </div>
 
+                <div class="header-divider"></div>
+
                 <div class="summary-row">
 
-                    <div class="sum-item">总输赢: <span :class="summaryData.total >= 0 ? 'win' : 'lose'">{{
+                    <div class="sum-item">本局总输赢: <span :class="summaryData.total >= 0 ? 'win' : 'lose'">{{
                         formatCoins(summaryData.total) }}</span></div>
 
                     <div class="sum-item">税: <span :class="summaryData.total >= 0 ? 'lose' : 'lno-tax'">{{
@@ -213,6 +235,17 @@ const positionedPlayers = computed(() => {
                     <div class="sum-item">汇总: <span :class="summaryData.summary >= 0 ? 'win' : 'lose'">{{
                         formatCoins(summaryData.summary) }}</span></div>
 
+                </div>
+
+                <div class="game-id-row" v-if="gameId" @click="copyGameId">
+                    <span>本局游戏ID：{{ gameId }}</span>
+                    <span class="copy-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                    </span>
                 </div>
 
             </div>
@@ -348,7 +381,14 @@ const positionedPlayers = computed(() => {
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-bottom: 15px;
+    margin-bottom: 10px;
+}
+
+.header-divider {
+    height: 1px;
+    background-color: rgba(255, 255, 255, 0.1);
+    margin-bottom: 10px;
+    width: 100%;
 }
 
 .close-btn {
@@ -571,5 +611,33 @@ const positionedPlayers = computed(() => {
 .pos-0 .mini-card {
     width: 36px !important;
     height: 50px !important;
+}
+
+.game-id-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 10px;
+    cursor: pointer;
+    padding: 4px 0;
+    transition: opacity 0.2s;
+}
+
+.game-id-row:active {
+    opacity: 0.6;
+}
+
+.copy-icon {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    color: #94a3b8;
+}
+
+.copy-icon:active {
+    color: #ffffff;
 }
 </style>

@@ -1092,8 +1092,8 @@ const shouldMoveStatusFloat = computed(() => {
     }
 
     100% {
-        transform: translateY(-60px) scale(1);
-        opacity: 0;
+        transform: translateY(-50px) scale(1); /* Stay at 80% position */
+        opacity: 1; /* Remain visible */
     }
 }
 </style>

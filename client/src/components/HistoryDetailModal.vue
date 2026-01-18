@@ -145,9 +145,10 @@ const positionedPlayers = computed(() => {
             isBanker: isBanker,
             BankerMulti: getNum(p.CallMult, p.robMultiplier),
             BetMulti: getNum(p.BetMult, p.betMultiplier),
-            NickName: p.NickName || 'Unknown',
+            NickName: p.ID === myId.value ? '您的手牌' : (p.NickName || 'Unknown'),
             isObserver: p.IsOb || false,
-            isEmpty: false
+            isEmpty: false,
+            isMe: p.ID === myId.value
         };
     };
 
@@ -169,7 +170,8 @@ const positionedPlayers = computed(() => {
                 ID: `empty_${i}`,
                 viewPos: i,
                 isEmpty: true,
-                isObserver: false
+                isObserver: false,
+                isMe: false
             });
         }
     }
@@ -263,9 +265,9 @@ const positionedPlayers = computed(() => {
 
 
 
-                        <div class="info-row">
+                        <div class="info-row" :class="{ 'me': p.isMe }">
 
-                            <span class="nickname">{{ p.NickName }}</span>
+                            <span class="nickname" :class="{ 'me': p.isMe }">{{ p.NickName }}</span>
 
                             <img v-if="p.isBanker" :src="bankerIcon" class="banker-icon" />
 
@@ -525,6 +527,10 @@ const positionedPlayers = computed(() => {
     /* Reduced margin */
 }
 
+.info-row.me {
+    background: #ffffff;
+}
+
 .nickname {
     font-size: 12px;
     color: white;
@@ -532,6 +538,10 @@ const positionedPlayers = computed(() => {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.nickname.me {
+    color: #000000;
 }
 
 .banker-icon {

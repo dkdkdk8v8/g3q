@@ -35,7 +35,7 @@ export class GameUserService extends BaseService {
     }
 
     async page(query, option, connectionName) {
-        const host = await this.baseSysParamService.dataByKey('avatar_host');
+        const host = await this.baseSysParamService.dataByKey('admin.AvatarHost');
         const result = await super.page(query, option, connectionName);
         result?.list?.map((item: GameUserEntity) => {
             if (item.avatar) item.avatar = `${host}/${item.avatar}`;

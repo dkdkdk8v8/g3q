@@ -165,14 +165,21 @@ const positionedPlayers = computed(() => {
         }
         if (!isBanker && p.IsBanker) isBanker = true;
 
+        // Helper to safely get number
+        const getNum = (v, v2) => {
+            if (v !== undefined && v !== null) return Number(v);
+            if (v2 !== undefined && v2 !== null) return Number(v2);
+            return 0;
+        };
+
         return {
             ...p,
             viewPos: diff,
             uiCards,
             handTypeKey,
             isBanker: isBanker,
-            BankerMulti: p.CallMult !== undefined ? p.CallMult : (p.BankerMulti || 1), // Rob Multi
-            BetMulti: p.BetMult !== undefined ? p.BetMult : (p.BetMulti || 1),
+            BankerMulti: getNum(p.CallMult, p.robMultiplier), 
+            BetMulti: getNum(p.BetMult, p.betMultiplier),
             NickName: p.NickName || 'Unknown'
         };
     });
@@ -201,6 +208,7 @@ const positionedPlayers = computed(() => {
                 <div v-for="p in positionedPlayers" :key="p.ID" class="player-seat" :class="'pos-' + p.viewPos">
                     <div class="multipliers-row">
                         <span v-if="p.BankerMulti > 0" class="rob-tag">抢{{ p.BankerMulti }}倍</span>
+                        <span v-else-if="p.BankerMulti === 0" class="rob-tag" style="color: #cbd5e1;">不抢</span>
                         <span v-if="p.BetMulti > 0" class="bet-tag">押{{ p.BetMulti }}倍</span>
                     </div>
 

@@ -348,7 +348,7 @@ const positionedPlayers = computed(() => {
 }
 
 .detail-content {
-    background: rgba(32, 35, 45, 1);
+    background: #1a1d26;
     width: 100%;
     height: 60vh;
     /* "Half the screen high" */

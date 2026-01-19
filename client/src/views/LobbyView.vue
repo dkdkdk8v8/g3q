@@ -119,35 +119,92 @@ const enterGame = debounce(async (level) => {
 }, 500);
 
 const touchStartX = ref(0);
-const touchEndX = ref(0);
+const touchStartY = ref(0);
+const isHorizontalSwipe = ref(false);
+const isVerticalScroll = ref(false);
 
 const handleTouchStart = (e) => {
-    touchStartX.value = e.changedTouches[0].screenX;
+    if (e.touches.length > 0) {
+        touchStartX.value = e.touches[0].clientX;
+        touchStartY.value = e.touches[0].clientY;
+        isHorizontalSwipe.value = false;
+        isVerticalScroll.value = false;
+    }
 };
 
-const handleTouchEnd = (e) => {
-    touchEndX.value = e.changedTouches[0].screenX;
-    handleSwipe();
-};
+const handleTouchMove = (e) => {
+    if (isVerticalScroll.value) return;
 
-const handleSwipe = () => {
-    const diff = touchStartX.value - touchEndX.value;
-    const threshold = 50;
+    if (e.touches.length > 0) {
+        const currentX = e.touches[0].clientX;
+        const currentY = e.touches[0].clientY;
+        const diffX = currentX - touchStartX.value;
+        const diffY = currentY - touchStartY.value;
 
-    if (Math.abs(diff) > threshold) {
-        if (diff > 0) {
-            // Swipe Left -> Next Tab
-            if (currentMode.value < 2) {
-                setMode(currentMode.value + 1);
+        if (isHorizontalSwipe.value) {
+            if (e.cancelable) {
+                e.preventDefault();
             }
-        } else {
-            // Swipe Right -> Previous Tab
-            if (currentMode.value > 0) {
-                setMode(currentMode.value - 1);
+            return;
+        }
+
+        // Determine direction if not yet locked
+        if (Math.abs(diffX) > 5 || Math.abs(diffY) > 5) {
+            if (Math.abs(diffX) > Math.abs(diffY)) {
+                isHorizontalSwipe.value = true;
+                if (e.cancelable) {
+                    e.preventDefault();
+                }
+            } else {
+                isVerticalScroll.value = true;
             }
         }
     }
 };
+
+const handleTouchEnd = (e) => {
+    if (isHorizontalSwipe.value) {
+        const endX = e.changedTouches[0].clientX;
+        const diff = touchStartX.value - endX; // Start - End: >0 is Left Swipe (Next)
+        const threshold = 50;
+
+        if (Math.abs(diff) > threshold) {
+            if (diff > 0) {
+                // Swipe Left -> Next Tab
+                if (currentMode.value < 2) {
+                    setMode(currentMode.value + 1);
+                }
+            } else {
+                // Swipe Right -> Previous Tab
+                if (currentMode.value > 0) {
+                    setMode(currentMode.value - 1);
+                }
+            }
+        }
+    }
+    // Reset flags
+    isHorizontalSwipe.value = false;
+    isVerticalScroll.value = false;
+};
+
+// Register Touch Listeners Manually to use { passive: false }
+onMounted(() => {
+    const el = roomsScrollArea.value;
+    if (el) {
+        el.addEventListener('touchstart', handleTouchStart, { passive: true });
+        el.addEventListener('touchmove', handleTouchMove, { passive: false });
+        el.addEventListener('touchend', handleTouchEnd);
+    }
+});
+
+onUnmounted(() => {
+    const el = roomsScrollArea.value;
+    if (el) {
+        el.removeEventListener('touchstart', handleTouchStart);
+        el.removeEventListener('touchmove', handleTouchMove);
+        el.removeEventListener('touchend', handleTouchEnd);
+    }
+});
 
 const rooms = computed(() => {
     const configs = userStore.roomConfigs || [];
@@ -296,8 +353,7 @@ const goBack = () => {
         </div>
 
         <!-- 4. Room Grid -->
-        <div class="rooms-scroll-area" ref="roomsScrollArea" :style="{ backgroundImage: `url(${roomAreaBg})` }"
-            @touchstart="handleTouchStart" @touchend="handleTouchEnd">
+        <div class="rooms-scroll-area" ref="roomsScrollArea" :style="{ backgroundImage: `url(${roomAreaBg})` }">
             <Transition :name="transitionName">
                 <div class="rooms-grid-wrapper" :key="currentMode">
                     <TransitionGroup tag="div" class="rooms-grid" name="room-init" :appear="transitionName === ''">

@@ -297,7 +297,7 @@ const shouldMoveStatusFloat = computed(() => {
                     <Transition :name="slideTransitionName">
                         <div v-if="shouldShowBetMult" class="status-content">
                             <span class="status-text bet-text" :class="{ 'text-large': isMe }">压{{ player.betMultiplier
-                            }}倍</span>
+                                }}倍</span>
                         </div>
                     </Transition>
                 </div>
@@ -1056,7 +1056,7 @@ const shouldMoveStatusFloat = computed(() => {
 
 .score-float {
     position: absolute;
-    top: -10px;
+    top: -6px;
     font-weight: bold;
     font-size: 22px;
     text-shadow: 2px 2px 0 #000;

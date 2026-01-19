@@ -1155,13 +1155,15 @@ onMounted(() => {
             const minDuration = 1500;
             const delay = Math.max(0, minDuration - elapsed);
 
-            // Trigger visual feedback: Wait calculated delay, then scale out logo and hide overlay
+            // Trigger visual feedback: Wait calculated delay, then scale out logo and hide overlay simultaneously
             setTimeout(() => {
                 logoAnimationState.value = 'leaving'; // Start logo leaving animation
+                showSwitchRoomOverlay.value = false; // Hide overlay (starts fade out)
+
+                // Reset animation state after transition completes
                 setTimeout(() => {
-                    showSwitchRoomOverlay.value = false; // Hide overlay
-                    logoAnimationState.value = ''; // Reset animation state
-                }, 500); // Wait for logo to scale out
+                    logoAnimationState.value = ''; 
+                }, 500); 
             }, delay);
         }
     });

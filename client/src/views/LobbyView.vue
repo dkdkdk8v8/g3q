@@ -118,6 +118,37 @@ const enterGame = debounce(async (level) => {
     }
 }, 500);
 
+const touchStartX = ref(0);
+const touchEndX = ref(0);
+
+const handleTouchStart = (e) => {
+    touchStartX.value = e.changedTouches[0].screenX;
+};
+
+const handleTouchEnd = (e) => {
+    touchEndX.value = e.changedTouches[0].screenX;
+    handleSwipe();
+};
+
+const handleSwipe = () => {
+    const diff = touchStartX.value - touchEndX.value;
+    const threshold = 50;
+
+    if (Math.abs(diff) > threshold) {
+        if (diff > 0) {
+            // Swipe Left -> Next Tab
+            if (currentMode.value < 2) {
+                setMode(currentMode.value + 1);
+            }
+        } else {
+            // Swipe Right -> Previous Tab
+            if (currentMode.value > 0) {
+                setMode(currentMode.value - 1);
+            }
+        }
+    }
+};
+
 const rooms = computed(() => {
     const configs = userStore.roomConfigs || [];
     return configs.map((cfg, index) => {
@@ -265,7 +296,8 @@ const goBack = () => {
         </div>
 
         <!-- 4. Room Grid -->
-        <div class="rooms-scroll-area" ref="roomsScrollArea" :style="{ backgroundImage: `url(${roomAreaBg})` }">
+        <div class="rooms-scroll-area" ref="roomsScrollArea" :style="{ backgroundImage: `url(${roomAreaBg})` }"
+            @touchstart="handleTouchStart" @touchend="handleTouchEnd">
             <Transition :name="transitionName">
                 <div class="rooms-grid-wrapper" :key="currentMode">
                     <TransitionGroup tag="div" class="rooms-grid" name="room-init" :appear="transitionName === ''">

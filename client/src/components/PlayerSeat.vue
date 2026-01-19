@@ -1005,18 +1005,18 @@ const shouldMoveStatusFloat = computed(() => {
     top: -6px;
     font-weight: bold;
     font-size: 22px;
-    text-shadow: 2px 2px 0 #000;
-    animation: floatUp 3s forwards;
+    text-shadow: 2px 2px 1px #000;
+    animation: floatUp 2s forwards;
     z-index: 20;
     font-family: 'Arial Black', sans-serif;
 }
 
 .score-float.win {
-    color: #09cf52;
+    color: #00cf31;
 }
 
 .score-float.lose {
-    color: #d25e5e;
+    color: #fd1414;
 }
 
 /* ... */

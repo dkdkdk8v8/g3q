@@ -261,7 +261,7 @@ func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, userId st
 		rsp.Data, errRsp = handerGameRecordCache(userId, msg.Data)
 	case qznn.CmdTalk:
 		errRsp = handlerPlayerTalk(userId, msg.Data)
-	case qznn.CmdChangeRoom:
+	case qznn.CmdPlayerChangeRoom:
 		rsp.Data, errRsp = handlePlayerChangeRoom(connWrap, userId, msg.Data)
 	case znet.CmdSaveSetting: // 保存用户设置
 		errRsp = handleSaveSetting(userId, msg.Data)

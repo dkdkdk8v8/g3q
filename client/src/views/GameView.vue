@@ -472,6 +472,32 @@ const isBullPart = (index) => {
     return false;
 };
 
+// New helper function to control when card data is passed to PokerCard to trigger flip animation
+const getEffectiveCardProp = (originalCard, cardIndex) => {
+    // This logic specifically applies to my player's cards during supplemental dealing.
+    if (myPlayer.value && myPlayer.value.id) {
+        const dCount = dealingCounts.value[myPlayer.value.id] || 0;
+        const vCount = visibleCounts.value[myPlayer.value.id] || 0;
+
+        // Determine if this specific card (by index) is one of the newly dealt cards
+        // that is still in "flying" state (i.e., its opacity is 0 due to dealingCounts).
+        // These cards are at the end of the `visibleCounts` range.
+        // Their indices are from `vCount - dCount` to `vCount - 1`.
+        const isCurrentlyFlyingIn = (dCount > 0 && cardIndex >= (vCount - dCount));
+
+        if (isCurrentlyFlyingIn) {
+            // If it's a card currently flying in, pass null to make PokerCard render its back face.
+            // When `dCount` becomes 0 (dealing finished), this condition becomes false,
+            // and the actual card data will be passed, triggering PokerCard's flip animation.
+            return null;
+        }
+    }
+    // For other cases (e.g., not my player, or not a flying-in card), pass the original card data.
+    // PokerCard's own `card` prop watcher will handle its state.
+    return originalCard;
+};
+
+
 const shouldShowBadge = ref(false);
 let badgeTimer = null;
 
@@ -1457,7 +1483,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
                         <template v-for="(card, idx) in myPlayer.hand" :key="idx">
                             <PokerCard
                                 v-if="visibleCounts[myPlayer.id] === undefined || idx < visibleCounts[myPlayer.id]"
-                                :card="shouldShowCardFace ? card : null" :is-small="false"
+                                :card="shouldShowCardFace ? getEffectiveCardProp(card, idx) : null" :is-small="false"
                                 :class="{ 'hand-card': true, 'bull-card-overlay': isBullPart(idx), 'selected': selectedCardIndices.includes(idx) }"
                                 :style="{
                                     marginLeft: idx === 0 ? '0' : '1px', /* for myPlayer */

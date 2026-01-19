@@ -67,7 +67,7 @@ const hostingSettings = ref({ rob: 0, bet: 1 }); // Stored Settings
 
 const switchRoomButtonText = computed(() => {
     if (isSwitchingRoom.value) return "正在切换房间";
-    if (switchRoomCooldown.value > 0) return `切换房间 ${switchRoomCooldown.value}`;
+    if (switchRoomCooldown.value > 0) return `${switchRoomCooldown.value}秒后可切换房间`;
     return "切换房间";
 });
 
@@ -3405,34 +3405,30 @@ const shouldMoveStatusToHighPosition = computed(() => {
 }
 
 .switch-room-btn {
-    background: linear-gradient(to bottom, #eab44f, #a06500);
-    color: white;
-    font-size: 14px;
-    padding: 0 16px;
-    border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    background: url('../assets/common/replace_table_bg.png') no-repeat center center;
+    background-size: 100% 100%;
+    /* Cover the entire button area */
+    color: #2b4ca2;
+    text-shadow: 2px 0 1px #fff8;
+    font-size: 18px;
+    padding: 0 20px 8px 20px;
+    border: none;
+    /* Remove border if image has it */
+    box-shadow: none;
+    /* Remove shadow if image has it */
     width: auto !important;
     min-width: 80px;
     height: 36px;
     /* margin-top: 10px; Removed to use absolute positioning */
     position: absolute;
-    bottom: 0;
+    bottom: -10px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 10;
 }
 
 .switch-room-btn.disabled {
-    background: #64748b;
-    /* Slate-500 for gray */
-    color: #cbd5e1;
-    /* Slate-300 */
-    border-color: #475569;
-    cursor: not-allowed;
-    pointer-events: none;
-    /* Ensure no clicks */
-    box-shadow: none;
+    padding: 0 25px 8px 25px;
 }
 
 .hosting-btn {

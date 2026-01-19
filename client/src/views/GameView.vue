@@ -48,7 +48,7 @@ const calcContainerBackgroundStyle = computed(() => {
     else if (store.gameMode === 2) {
         bgUrl = couniuSiImg;
     }
-    
+
     if (bgUrl) {
         return {
             backgroundImage: `url(${bgUrl})`,
@@ -1162,8 +1162,8 @@ onMounted(() => {
 
                 // Reset animation state after transition completes
                 setTimeout(() => {
-                    logoAnimationState.value = ''; 
-                }, 500); 
+                    logoAnimationState.value = '';
+                }, 500);
             }, delay);
         }
     });
@@ -1376,25 +1376,24 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
         <img v-if="showResultAnim" :src="resultImage" class="result-icon" :class="resultAnimClass" />
 
-                <DealingLayer ref="dealingLayer" />
+        <DealingLayer ref="dealingLayer" />
 
-                <CoinLayer ref="coinLayer" />
+        <CoinLayer ref="coinLayer" />
 
-        
 
-                <!-- Full-screen Switch Room Overlay with Frosted Glass Effect -->
 
-                <transition name="switch-room-fade">
+        <!-- Full-screen Switch Room Overlay with Frosted Glass Effect -->
 
-                    <div v-if="showSwitchRoomOverlay" class="switch-room-overlay">
+        <transition name="switch-room-fade">
 
-                        <img :src="lobbyLogoImg" alt="Lobby Logo" class="switch-room-logo"
+            <div v-if="showSwitchRoomOverlay" class="switch-room-overlay">
 
-                            :class="logoAnimationState === 'entering' ? 'logo-enter' : (logoAnimationState === 'leaving' ? 'logo-leave' : '')" />
+                <img :src="lobbyLogoImg" alt="Lobby Logo" class="switch-room-logo"
+                    :class="logoAnimationState === 'entering' ? 'logo-enter' : (logoAnimationState === 'leaving' ? 'logo-leave' : '')" />
 
-                    </div>
+            </div>
 
-                </transition>
+        </transition>
 
 
 
@@ -1773,10 +1772,12 @@ const shouldMoveStatusToHighPosition = computed(() => {
                 </div>
 
                 <!-- Switch Room Button -->
+
                 <div v-if="myPlayer.isObserver || ['IDLE', 'READY_COUNTDOWN', 'SETTLEMENT', 'WAITING_FOR_PLAYERS'].includes(store.currentPhase)"
-                    class="game-btn switch-room-btn" :class="{ 'disabled': isSwitchingRoom }"
-                    @click="switchRoom">
-                    切换房间
+                    class="game-btn switch-room-btn" :class="{ 'disabled': isSwitchingRoom }" @click="switchRoom">
+
+                    <img src="../assets/common/replace_table_btn.png" alt="切换房间" class="switch-room-img" />
+
                 </div>
 
                 <!-- Observer Waiting Text -->
@@ -3453,30 +3454,28 @@ const shouldMoveStatusToHighPosition = computed(() => {
 }
 
 .switch-room-btn {
-    background: url('../assets/common/replace_table_bg.png') no-repeat center center;
-    background-size: 100% 100%;
-    /* Cover the entire button area */
-    color: #2b4ca2;
-    text-shadow: 2px 0 1px #fff8;
-    font-size: 18px;
-    padding: 0 20px 8px 20px;
-    border: none;
-    /* Remove border if image has it */
-    box-shadow: none;
-    /* Remove shadow if image has it */
-    width: auto !important;
-    min-width: 80px;
-    height: 36px;
     /* margin-top: 10px; Removed to use absolute positioning */
     position: absolute;
     bottom: -10px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 10;
+    display: flex;
+    /* Added to center the image if needed */
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+    /* Ensure no padding affects image size */
+    width: auto;
+    /* Set a default size for the container */
+    height: 40px;
+    /* Set a default size for the container */
 }
 
-.switch-room-btn.disabled {
-    padding: 0 25px 8px 25px;
+.switch-room-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
 }
 
 .hosting-btn {
@@ -3523,19 +3522,23 @@ const shouldMoveStatusToHighPosition = computed(() => {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black */
-    backdrop-filter: blur(8px); /* Frosted glass effect */
+    background-color: rgba(0, 0, 0, 0.5);
+    /* Semi-transparent black */
+    backdrop-filter: blur(8px);
+    /* Frosted glass effect */
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 9998; /* Below global loading, above everything else in game */
+    z-index: 9998;
+    /* Below global loading, above everything else in game */
 }
 
 .switch-room-logo {
     width: 80vw;
     height: auto;
     object-fit: contain;
-    transform: scale(0); /* Start hidden */
+    transform: scale(0);
+    /* Start hidden */
     opacity: 0;
 }
 
@@ -3554,10 +3557,12 @@ const shouldMoveStatusToHighPosition = computed(() => {
         transform: scale(0);
         opacity: 0;
     }
+
     70% {
         transform: scale(1.1);
         opacity: 1;
     }
+
     100% {
         transform: scale(1);
         opacity: 1;

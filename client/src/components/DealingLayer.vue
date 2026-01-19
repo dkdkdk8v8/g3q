@@ -22,7 +22,7 @@ const dealToPlayer = async (targets, callback, forceBulkAnimation = false) => {
     // Viewport Scaling
     const viewportRatio = window.innerWidth / 375;
     const offsetMeX = 30 * viewportRatio;
-    const offsetOtherX = 24 * viewportRatio;
+    const offsetOtherX = 20.625 * viewportRatio;
     const offsetMeY = 44 * viewportRatio;
     const offsetOtherY = 30 * viewportRatio;
 
@@ -31,7 +31,7 @@ const dealToPlayer = async (targets, callback, forceBulkAnimation = false) => {
 
     // 创建这组卡片
     const newCards = targets.map((t, index) => {
-            const targetWidth = (t.isMe ? 60 : 48) * viewportRatio;
+            const targetWidth = (t.isMe ? 60 : 41.25) * viewportRatio;
             const targetHeight = (t.isMe ? 88 : 60) * viewportRatio;        const finalScale = t.scale || 1; // 获取目标缩放比例
         
         return {

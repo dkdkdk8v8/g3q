@@ -1024,7 +1024,7 @@ const shouldMoveStatusFloat = computed(() => {
 }
 
 .cards .hand-card+.hand-card {
-    margin-left: -7.4667vw;
+    margin-left: -5.6667vw;
 }
 
 .cards.is-me-cards .hand-card+.hand-card {

@@ -2575,7 +2575,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 }
 
 .status-img {
-    height: 40px;
+    height: 27px;
     width: auto;
     object-fit: contain;
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));

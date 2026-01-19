@@ -33,8 +33,15 @@ const allRobOptions = computed(() => {
 
 const showHosting = ref(false); // Hosting Modal State
 const isSwitchingRoom = ref(false); // Switching Room State
+const switchRoomCooldown = ref(0); // 5s Cooldown
 const isHosting = ref(false); // Is Hosting Active?
 const hostingSettings = ref({ rob: 0, bet: 1 }); // Stored Settings
+
+const switchRoomButtonText = computed(() => {
+    if (isSwitchingRoom.value) return "正在切换房间";
+    if (switchRoomCooldown.value > 0) return `切换房间 ${switchRoomCooldown.value}`;
+    return "切换房间";
+});
 
 // ... (existing logic)
 
@@ -128,7 +135,7 @@ const handleHostingConfirm = (settings) => {
 };
 
 const switchRoom = debounce(() => {
-    if (isSwitchingRoom.value) return;
+    if (isSwitchingRoom.value || switchRoomCooldown.value > 0) return;
     if (settingsStore.soundEnabled) {
         AudioUtils.playEffect(btnClickSound);
     }
@@ -945,6 +952,15 @@ onMounted(() => {
         isSwitchingRoom.value = false;
         if (msg.code !== 0) {
             vantToast(msg.msg || "切换房间失败");
+        } else {
+            // Success: Start cooldown
+            switchRoomCooldown.value = 5;
+            const timer = setInterval(() => {
+                switchRoomCooldown.value--;
+                if (switchRoomCooldown.value <= 0) {
+                    clearInterval(timer);
+                }
+            }, 1000);
         }
     });
 
@@ -1561,12 +1577,13 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                 <!-- Switch Room Button -->
                 <div v-if="myPlayer.isObserver || ['IDLE', 'READY_COUNTDOWN', 'SETTLEMENT'].includes(store.currentPhase)"
-                    class="game-btn switch-room-btn" :class="{ 'disabled': isSwitchingRoom }" @click="switchRoom">
+                    class="game-btn switch-room-btn"
+                    :class="{ 'disabled': isSwitchingRoom || switchRoomCooldown > 0 }" @click="switchRoom">
                     <template v-if="isSwitchingRoom">
                         正在切换房间<span class="loading-dots"></span>
                     </template>
                     <template v-else>
-                        切换房间
+                        {{ switchRoomButtonText }}
                     </template>
                 </div>
 

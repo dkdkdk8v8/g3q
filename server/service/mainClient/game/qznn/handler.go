@@ -24,7 +24,7 @@ func HandlerPlayerLeave(r *QZNNRoom, userID string) error {
 			return comm.NewMyError("离开房间失败")
 		}
 	} else {
-		err := r.CheckInMultiStatusDoLock([]RoomState{StateWaiting, StatePrepare}, func() error {
+		err := r.CheckInMultiStatusDoLock([]RoomState{StateWaiting, StatePrepare, StateSettling}, func() error {
 			if !r.leave(userID) {
 				//todo log
 				return comm.NewMyError("离开房间失败")

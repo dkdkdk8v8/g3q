@@ -11,6 +11,7 @@ const (
 	CmdPlayerPlaceBet   comm.CmdType = QZNN_Prefix + "PlayerPlaceBet"
 	CmdPlayerShowCard   comm.CmdType = QZNN_Prefix + "PlayerShowCard"
 	CmdTalk             comm.CmdType = QZNN_Prefix + "PlayerTalk"
+	CmdPlayerChangeRoom comm.CmdType = QZNN_Prefix + "PlayerChangeRoom"
 )
 
 const (

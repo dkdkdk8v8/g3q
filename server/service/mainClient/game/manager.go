@@ -93,13 +93,13 @@ func (rm *RoomManager) CheckPlayerInRoom(userId string) (*qznn.QZNNRoom, *qznn.P
 	return res.r, res.p
 }
 
-func (rm *RoomManager) CreateRoom(level int, bankerType int, roomCfg *qznn.LobbyConfig) *qznn.QZNNRoom {
-	roomID := fmt.Sprintf("%s_%d_%d_"+qznn.GameName, util.EncodeToBase36(uid.Generate()), bankerType, level)
-	newRoom := qznn.NewRoom(roomID, bankerType, level)
+func (rm *RoomManager) CreateRoom(roomCfg *qznn.LobbyConfig) *qznn.QZNNRoom {
+	roomID := fmt.Sprintf("%s_%d_%d_"+qznn.GameName, util.EncodeToBase36(uid.Generate()), roomCfg.BankerType, roomCfg.Level)
+	newRoom := qznn.NewRoom(roomID, roomCfg.BankerType, roomCfg.Level)
 	return newRoom
 }
 func (rm *RoomManager) SelectRoom(user *modelClient.ModelUser,
-	player *qznn.Player, level int, bankerType int, roomCfg *qznn.LobbyConfig) (*qznn.QZNNRoom, error) {
+	player *qznn.Player, roomCfg *qznn.LobbyConfig, excludeRoomId string) (*qznn.QZNNRoom, error) {
 
 	targetRoom, err := syncOpErr(rm, func(s *managerState) (*qznn.QZNNRoom, error) {
 		type roomHolder struct {
@@ -109,12 +109,15 @@ func (rm *RoomManager) SelectRoom(user *modelClient.ModelUser,
 		var sortPlayerRoom []roomHolder
 
 		for _, room := range s.rooms {
-			if room.Config.BankerType == bankerType && room.Config.Level == level {
+			if room.Config.BankerType == roomCfg.BankerType && room.Config.Level == roomCfg.Level {
 				num, realNum := room.GetPlayerAndRealPlayerCount()
 				if num == 0 && time.Since(room.CreateAt) > time.Minute {
 					continue
 				}
 				if realNum > 0 {
+					continue
+				}
+				if room.ID == excludeRoomId {
 					continue
 				}
 				if num < room.GetPlayerCap() {

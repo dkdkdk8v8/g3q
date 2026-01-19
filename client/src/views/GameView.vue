@@ -32,6 +32,7 @@ const allRobOptions = computed(() => {
 });
 
 const showHosting = ref(false); // Hosting Modal State
+const isSwitchingRoom = ref(false); // Switching Room State
 const isHosting = ref(false); // Is Hosting Active?
 const hostingSettings = ref({ rob: 0, bet: 1 }); // Stored Settings
 
@@ -127,10 +128,12 @@ const handleHostingConfirm = (settings) => {
 };
 
 const switchRoom = debounce(() => {
+    if (isSwitchingRoom.value) return;
     if (settingsStore.soundEnabled) {
         AudioUtils.playEffect(btnClickSound);
     }
-    vantToast("等待与服务器接入功能");
+    isSwitchingRoom.value = true;
+    gameClient.send("QZNN.PlayerChangeRoom", { RoomId: store.roomId });
 }, 500);
 
 
@@ -937,6 +940,14 @@ onMounted(() => {
         }
     });
 
+    // Register handler for PlayerChangeRoom response
+    gameClient.on('QZNN.PlayerChangeRoom', (msg) => {
+        isSwitchingRoom.value = false;
+        if (msg.code !== 0) {
+            vantToast(msg.msg || "切换房间失败");
+        }
+    });
+
     // Register latency callback
     gameClient.setLatencyCallback((ms) => {
         networkLatency.value = ms;
@@ -948,6 +959,7 @@ onUnmounted(() => {
 
     AudioUtils.stopMusic();
     gameClient.off('QZNN.PlayerLeave');
+    gameClient.off('QZNN.PlayerChangeRoom');
     gameClient.setLatencyCallback(null);
 });
 
@@ -1549,8 +1561,13 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                 <!-- Switch Room Button -->
                 <div v-if="myPlayer.isObserver || ['IDLE', 'READY_COUNTDOWN', 'SETTLEMENT'].includes(store.currentPhase)"
-                    class="game-btn switch-room-btn" @click="switchRoom">
-                    切换房间
+                    class="game-btn switch-room-btn" :class="{ 'disabled': isSwitchingRoom }" @click="switchRoom">
+                    <template v-if="isSwitchingRoom">
+                        正在切换房间<span class="loading-dots"></span>
+                    </template>
+                    <template v-else>
+                        切换房间
+                    </template>
                 </div>
 
                 <!-- Observer Waiting Text -->
@@ -3344,6 +3361,18 @@ const shouldMoveStatusToHighPosition = computed(() => {
     left: 50%;
     transform: translateX(-50%);
     z-index: 10;
+}
+
+.switch-room-btn.disabled {
+    background: #64748b;
+    /* Slate-500 for gray */
+    color: #cbd5e1;
+    /* Slate-300 */
+    border-color: #475569;
+    cursor: not-allowed;
+    pointer-events: none;
+    /* Ensure no clicks */
+    box-shadow: none;
 }
 
 .hosting-btn {

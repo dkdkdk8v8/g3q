@@ -183,3 +183,47 @@ func HandleShowCards(r *QZNNRoom, userID string) error {
 	r.logicTick()
 	return nil
 }
+
+func HanderPlayerChangeRoom(r *QZNNRoom, userID string) error {
+	if r == nil {
+		return comm.NewMyError("房间不存在")
+	}
+	//先看用户是不是ob
+	p, ok := r.GetPlayerByID(userID)
+	if !ok {
+		return nil
+	}
+
+	if p.IsOb {
+		if !r.Leave(userID) {
+			//todo log
+			return comm.NewMyError("切换房间失败")
+		}
+	} else {
+		err := r.CheckInMultiStatusDoLock([]RoomState{StateWaiting, StatePrepare, StateSettling}, func() error {
+			if !r.leave(userID) {
+				//todo log
+				return comm.NewMyError("切换房间失败")
+			}
+			return nil
+		})
+
+		if err != nil {
+			if errors.As(err, &errorStateNotMatch) {
+				return comm.NewMyError("游戏已开始,无法切换房间")
+			}
+			return err
+		}
+	}
+
+	r.BroadcastWithPlayer(func(p *Player) any {
+		return comm.PushData{
+			Cmd:      comm.ServerPush,
+			PushType: PushPlayLeave,
+			Data: PushPlayerLeaveStruct{
+				Room:    r.GetClientRoom(p.ID),
+				UserIds: []string{userID}}}
+	})
+	r.logicTick()
+	return nil
+}

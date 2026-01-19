@@ -131,6 +131,7 @@ func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []b
 		req.BankerType != qznn.BankerTypeLook4 {
 		return comm.NewMyError("无效的抢庄类型")
 	}
+	cfg.BankerType = req.BankerType
 
 	// 检查余额
 	user, err := modelClient.GetOrCreateUser(appId, appUserId)
@@ -276,16 +277,9 @@ func handlePlayerChangeRoom(connWrap *ws.WsConnWrap, userId string, data []byte)
 
 	room := game.GetMgr().GetRoomByRoomId(req.RoomId)
 	if room != nil {
-		if room.Leave(userId) {
-			//旧房间广播
-			room.BroadcastWithPlayer(
-				func(p *qznn.Player) any {
-					return comm.PushData{
-						Cmd:      comm.ServerPush,
-						PushType: qznn.PushPlayLeave,
-						Data:     qznn.PushPlayerLeaveStruct{UserIds: []string{}, Room: room.GetClientRoom(p.ID)}}
-				})
-
+		if err := qznn.HanderPlayerChangeRoom(room, userId); err != nil {
+			return rsp, err
+		} else {
 			//新房间
 			_, err = joinRoom("", req.RoomId, userId, connWrap, user, &room.Config)
 			if err != nil {

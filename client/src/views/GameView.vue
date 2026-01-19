@@ -193,9 +193,7 @@ import niuWuhuaImg from '@/assets/niu/niu_wuhua.png';
 import niuWuxiaoImg from '@/assets/niu/niu_wuxiao.png';
 import niuMeiImg from '@/assets/niu/niu_mei.png'; // Add this import
 
-// Multiplier images
-
-const NO_BULL_TYPE_NAME = '没牛'; // New constant
+// Multiplier images (Buttons)
 import beishuBuqiangImg from '@/assets/beishu/beishu_buqiang.png';
 import beishu1Img from '@/assets/beishu/beishu_1.png';
 import beishu2Img from '@/assets/beishu/beishu_2.png';
@@ -205,6 +203,29 @@ import beishu5Img from '@/assets/beishu/beishu_5.png';
 import beishu10Img from '@/assets/beishu/beishu_10.png';
 import beishu15Img from '@/assets/beishu/beishu_15.png';
 import beishu20Img from '@/assets/beishu/beishu_20.png';
+
+// Status images (Rob Banker qz_)
+import qzBetNo from '@/assets/beishu/qz_bet_no.png';
+import qzBet1 from '@/assets/beishu/qz_bet_1.png';
+import qzBet2 from '@/assets/beishu/qz_bet_2.png';
+import qzBet3 from '@/assets/beishu/qz_bet_3.png';
+import qzBet4 from '@/assets/beishu/qz_bet_4.png';
+import qzBet5 from '@/assets/beishu/qz_bet_5.png';
+import qzBet10 from '@/assets/beishu/qz_bet_10.png';
+import qzBet15 from '@/assets/beishu/qz_bet_15.png';
+import qzBet20 from '@/assets/beishu/qz_bet_20.png';
+
+// Status images (Betting ya_)
+import yaBet1 from '@/assets/beishu/ya_bet_1.png';
+import yaBet2 from '@/assets/beishu/ya_bet_2.png';
+import yaBet3 from '@/assets/beishu/ya_bet_3.png';
+import yaBet4 from '@/assets/beishu/ya_bet_4.png';
+import yaBet5 from '@/assets/beishu/ya_bet_5.png';
+import yaBet10 from '@/assets/beishu/ya_bet_10.png';
+import yaBet15 from '@/assets/beishu/ya_bet_15.png';
+import yaBet20 from '@/assets/beishu/ya_bet_20.png';
+
+const NO_BULL_TYPE_NAME = '没牛';
 
 const handTypeImageMap = {
     '牛1': niu1Img,
@@ -231,8 +252,9 @@ const getHandTypeImageUrl = (handTypeName) => {
     return handTypeImageMap[normalizedHandTypeName] || null; // Return null if no image found
 };
 
+// Button Map (beishu_)
 const multiplierImageMap = {
-    0: beishuBuqiangImg, // For '不抢'
+    0: beishuBuqiangImg,
     1: beishu1Img,
     2: beishu2Img,
     3: beishu3Img,
@@ -245,6 +267,38 @@ const multiplierImageMap = {
 
 const getMultiplierImageUrl = (multiplier) => {
     return multiplierImageMap[multiplier] || null;
+};
+
+// Status Maps (qz_ / ya_)
+const robStatusImageMap = {
+    0: qzBetNo,
+    1: qzBet1,
+    2: qzBet2,
+    3: qzBet3,
+    4: qzBet4,
+    5: qzBet5,
+    10: qzBet10,
+    15: qzBet15,
+    20: qzBet20,
+};
+
+const betStatusImageMap = {
+    1: yaBet1,
+    2: yaBet2,
+    3: yaBet3,
+    4: yaBet4,
+    5: yaBet5,
+    10: yaBet10,
+    15: yaBet15,
+    20: yaBet20,
+};
+
+const getRobStatusImageUrl = (multiplier) => {
+    return robStatusImageMap[multiplier] || null;
+};
+
+const getBetStatusImageUrl = (multiplier) => {
+    return betStatusImageMap[multiplier] || null;
 };
 
 
@@ -1482,31 +1536,15 @@ const shouldMoveStatusToHighPosition = computed(() => {
                         :class="{ 'move-up-high': shouldMoveStatusFloat && shouldMoveStatusToHighPosition, 'move-up-low': shouldMoveStatusFloat && !shouldMoveStatusToHighPosition }">
 
                         <Transition name="pop-up">
-
                             <div v-if="shouldShowRobMult" class="status-content">
-
-                                <span v-if="myPlayer.robMultiplier > 0" class="status-text rob-text text-large">抢{{
-
-                                    myPlayer.robMultiplier
-
-                                }}倍</span>
-
-                                <span v-else class="status-text no-rob-text text-large">不抢</span>
-
+                                <img :src="getRobStatusImageUrl(myPlayer.robMultiplier)" class="status-img" alt="抢庄状态" />
                             </div>
-
                         </Transition>
 
-
-
                         <Transition name="pop-up">
-
                             <div v-if="shouldShowBetMult" class="status-content">
-
-                                <span class="status-text bet-text text-large">压{{ myPlayer.betMultiplier }}倍</span>
-
+                                <img :src="getBetStatusImageUrl(myPlayer.betMultiplier)" class="status-img" alt="下注状态" />
                             </div>
-
                         </Transition>
 
                     </div>
@@ -2534,6 +2572,13 @@ const shouldMoveStatusToHighPosition = computed(() => {
     flex-direction: column;
     align-items: center;
     transition: bottom 0.3s ease;
+}
+
+.status-img {
+    height: 40px;
+    width: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
 }
 
 .my-player-info-row .status-float.move-up-high {

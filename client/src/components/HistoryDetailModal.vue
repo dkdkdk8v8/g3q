@@ -26,6 +26,59 @@ import niuWuhua from '@/assets/bethistory/niu_wuhua.png';
 import niuWuxiao from '@/assets/bethistory/niu_wuxiao.png';
 import niuSihua from '@/assets/bethistory/niu_sihua.png';
 
+// Status images (Rob Banker qz_)
+import qzBetNo from '@/assets/beishu/qz_bet_no.png';
+import qzBet1 from '@/assets/beishu/qz_bet_1.png';
+import qzBet2 from '@/assets/beishu/qz_bet_2.png';
+import qzBet3 from '@/assets/beishu/qz_bet_3.png';
+import qzBet4 from '@/assets/beishu/qz_bet_4.png';
+import qzBet5 from '@/assets/beishu/qz_bet_5.png';
+import qzBet10 from '@/assets/beishu/qz_bet_10.png';
+import qzBet15 from '@/assets/beishu/qz_bet_15.png';
+import qzBet20 from '@/assets/beishu/qz_bet_20.png';
+
+// Status images (Betting ya_)
+import yaBet1 from '@/assets/beishu/ya_bet_1.png';
+import yaBet2 from '@/assets/beishu/ya_bet_2.png';
+import yaBet3 from '@/assets/beishu/ya_bet_3.png';
+import yaBet4 from '@/assets/beishu/ya_bet_4.png';
+import yaBet5 from '@/assets/beishu/ya_bet_5.png';
+import yaBet10 from '@/assets/beishu/ya_bet_10.png';
+import yaBet15 from '@/assets/beishu/ya_bet_15.png';
+import yaBet20 from '@/assets/beishu/ya_bet_20.png';
+
+// Status Maps (qz_ / ya_)
+const robStatusImageMap = {
+    0: qzBetNo,
+    1: qzBet1,
+    2: qzBet2,
+    3: qzBet3,
+    4: qzBet4,
+    5: qzBet5,
+    10: qzBet10,
+    15: qzBet15,
+    20: qzBet20,
+};
+
+const betStatusImageMap = {
+    1: yaBet1,
+    2: yaBet2,
+    3: yaBet3,
+    4: yaBet4,
+    5: yaBet5,
+    10: yaBet10,
+    15: yaBet15,
+    20: yaBet20,
+};
+
+const getRobStatusImageUrl = (multiplier) => {
+    return robStatusImageMap[multiplier] || null;
+};
+
+const getBetStatusImageUrl = (multiplier) => {
+    return betStatusImageMap[multiplier] || null;
+};
+
 const handTypeImages = {
     'BULL_1': niu1,
     'BULL_2': niu2,
@@ -347,11 +400,9 @@ const positionedPlayers = computed(() => {
 
                         <div class="multipliers-row">
 
-                            <span v-if="p.BankerMulti > 0" class="rob-tag">抢{{ p.BankerMulti }}倍</span>
+                            <img v-if="getRobStatusImageUrl(p.BankerMulti)" :src="getRobStatusImageUrl(p.BankerMulti)" class="status-img-small" />
 
-                            <span v-else-if="p.BankerMulti === 0" class="rob-tag" style="color: #cbd5e1;">不抢</span>
-
-                            <span v-if="p.BetMulti > 0" class="bet-tag">押{{ p.BetMulti }}倍</span>
+                            <img v-if="getBetStatusImageUrl(p.BetMulti)" :src="getBetStatusImageUrl(p.BetMulti)" class="status-img-small" />
 
                             <span class="score-text" :class="(p.BalanceChange || 0) >= 0 ? 'win' : 'lose'">
                                 ({{ (p.BalanceChange || 0) > 0 ? '+' : '' }}{{ formatCoins(p.BalanceChange || 0) }})
@@ -398,7 +449,7 @@ const positionedPlayers = computed(() => {
                     <template v-else>
                         <!-- Placeholder to align text with cards area -->
                         <div class="multipliers-row" style="opacity: 0; pointer-events: none;">
-                            <span class="rob-tag">占位</span>
+                            <div style="height: 20px;"></div>
                         </div>
 
                         <div class="cards-row" style="align-items: center; justify-content: center;">
@@ -598,15 +649,14 @@ const positionedPlayers = computed(() => {
     display: flex;
     gap: 4px;
     justify-content: center;
+    align-items: center; /* Ensure vertical alignment */
 }
 
-.rob-tag {
-    color: #ffab00;
-}
-
-.bet-tag {
-    color: white;
-    margin-left: 5px;
+.status-img-small {
+    height: 20px;
+    width: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
 }
 
 .score-text {

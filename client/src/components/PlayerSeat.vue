@@ -26,6 +26,27 @@ import niuWuhuaImg from '@/assets/niu/niu_wuhua.png';
 import niuWuxiaoImg from '@/assets/niu/niu_wuxiao.png';
 import niuMeiImg from '@/assets/niu/niu_mei.png';
 
+// Status images (Rob Banker qz_)
+import qzBetNo from '@/assets/beishu/qz_bet_no.png';
+import qzBet1 from '@/assets/beishu/qz_bet_1.png';
+import qzBet2 from '@/assets/beishu/qz_bet_2.png';
+import qzBet3 from '@/assets/beishu/qz_bet_3.png';
+import qzBet4 from '@/assets/beishu/qz_bet_4.png';
+import qzBet5 from '@/assets/beishu/qz_bet_5.png';
+import qzBet10 from '@/assets/beishu/qz_bet_10.png';
+import qzBet15 from '@/assets/beishu/qz_bet_15.png';
+import qzBet20 from '@/assets/beishu/qz_bet_20.png';
+
+// Status images (Betting ya_)
+import yaBet1 from '@/assets/beishu/ya_bet_1.png';
+import yaBet2 from '@/assets/beishu/ya_bet_2.png';
+import yaBet3 from '@/assets/beishu/ya_bet_3.png';
+import yaBet4 from '@/assets/beishu/ya_bet_4.png';
+import yaBet5 from '@/assets/beishu/ya_bet_5.png';
+import yaBet10 from '@/assets/beishu/ya_bet_10.png';
+import yaBet15 from '@/assets/beishu/ya_bet_15.png';
+import yaBet20 from '@/assets/beishu/ya_bet_20.png';
+
 const NO_BULL_TYPE_NAME = '没牛'; // New constant
 
 const handTypeImageMap = {
@@ -50,6 +71,38 @@ const getHandTypeImageUrl = (handTypeName) => {
     // Normalize handTypeName for lookup
     const normalizedHandTypeName = handTypeName ? handTypeName.trim() : ''; // Add trim for robustness
     return handTypeImageMap[normalizedHandTypeName] || null; // Return null if no image found
+};
+
+// Status Maps (qz_ / ya_)
+const robStatusImageMap = {
+    0: qzBetNo,
+    1: qzBet1,
+    2: qzBet2,
+    3: qzBet3,
+    4: qzBet4,
+    5: qzBet5,
+    10: qzBet10,
+    15: qzBet15,
+    20: qzBet20,
+};
+
+const betStatusImageMap = {
+    1: yaBet1,
+    2: yaBet2,
+    3: yaBet3,
+    4: yaBet4,
+    5: yaBet5,
+    10: yaBet10,
+    15: yaBet15,
+    20: yaBet20,
+};
+
+const getRobStatusImageUrl = (multiplier) => {
+    return robStatusImageMap[multiplier] || null;
+};
+
+const getBetStatusImageUrl = (multiplier) => {
+    return betStatusImageMap[multiplier] || null;
 };
 
 
@@ -287,17 +340,13 @@ const shouldMoveStatusFloat = computed(() => {
                     v-if="!['IDLE', 'READY_COUNTDOWN'].includes(store.currentPhase)">
                     <Transition :name="slideTransitionName">
                         <div v-if="shouldShowRobMult" class="status-content">
-                            <span v-if="player.robMultiplier > 0" class="status-text rob-text"
-                                :class="{ 'text-large': isMe }">抢{{ player.robMultiplier
-                                }}倍</span>
-                            <span v-else class="status-text no-rob-text" :class="{ 'text-large': isMe }">不抢</span>
+                            <img :src="getRobStatusImageUrl(player.robMultiplier)" class="status-img" alt="抢庄状态" />
                         </div>
                     </Transition>
 
                     <Transition :name="slideTransitionName">
                         <div v-if="shouldShowBetMult" class="status-content">
-                            <span class="status-text bet-text" :class="{ 'text-large': isMe }">压{{ player.betMultiplier
-                                }}倍</span>
+                            <img :src="getBetStatusImageUrl(player.betMultiplier)" class="status-img" alt="下注状态" />
                         </div>
                     </Transition>
                 </div>
@@ -852,123 +901,11 @@ const shouldMoveStatusFloat = computed(() => {
 /* .seat-right .status-float was here */
 
 
-.art-text {
-    font-size: 16px;
-    font-weight: 900;
-    font-style: italic;
-    text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);
-    white-space: nowrap;
-}
-
-.art-text.orange {
-    color: #fbbf24;
-    -webkit-text-stroke: 1px #b45309;
-}
-
-.art-text.green {
-    color: #4ade80;
-    -webkit-text-stroke: 1px #15803d;
-}
-
-.art-text.gray {
-    color: #cbd5e1;
-    -webkit-text-stroke: 1px #475569;
-}
-
-.status-text {
-    font-family: "Microsoft YaHei", "Heiti SC", sans-serif;
-    font-weight: 900;
-    font-style: italic;
-    padding: 2px 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    white-space: nowrap;
+.status-img {
     height: 40px;
-    /* Reduced fixed height */
-
-    /* Default shadow for visibility */
-    text-shadow:
-        -1px -1px 0 #000,
-        1px -1px 0 #000,
-        -1px 1px 0 #000,
-        1px 1px 0 #000,
-        0 3px 5px rgba(0, 0, 0, 0.5);
-}
-
-/* Rob (Positive) */
-.rob-text {
-    color: #fcd34d;
-    /* Amber-300 */
-    text-shadow:
-        -2px -2px 0 #b45309,
-        2px -2px 0 #b45309,
-        -2px 2px 0 #b45309,
-        2px 2px 0 #b45309,
-        0 3px 5px rgba(0, 0, 0, 0.5);
-    font-size: 18px;
-}
-
-/* No Rob - Updated to match Rob style */
-.no-rob-text {
-    color: #fcd34d;
-    /* Match rob-text */
-    text-shadow:
-        -2px -2px 0 #b45309,
-        2px -2px 0 #b45309,
-        -2px 2px 0 #b45309,
-        2px 2px 0 #b45309,
-        0 3px 5px rgba(0, 0, 0, 0.5);
-    font-size: 18px;
-    /* Match rob-text */
-}
-
-/* Bet */
-.bet-text {
-    color: #ffffff;
-    /* White */
-    text-shadow:
-        -2px -2px 0 #166534,
-        /* Green-800 */
-        2px -2px 0 #166534,
-        -2px 2px 0 #166534,
-        2px 2px 0 #166534,
-        0 3px 5px rgba(0, 0, 0, 0.5);
-    font-size: 18px;
-}
-
-/* Large Size for Self */
-.status-text.text-large {
-    font-size: 22px;
-    /* Reduced from 26px */
-    height: 40px;
-    text-shadow:
-        -2px -2px 0 #000,
-        2px -2px 0 #000,
-        -2px 2px 0 #000,
-        2px 2px 0 #000,
-        0 4px 8px rgba(0, 0, 0, 0.6);
-}
-
-/* Specific stroke colors for Large size */
-.rob-text.text-large,
-.no-rob-text.text-large {
-    text-shadow:
-        -2px -2px 0 #b45309,
-        2px -2px 0 #b45309,
-        -2px 2px 0 #b45309,
-        2px 2px 0 #b45309,
-        0 4px 8px rgba(0, 0, 0, 0.6);
-}
-
-.bet-text.text-large {
-    text-shadow:
-        -2px -2px 0 #166534,
-        /* Green-800 */
-        2px -2px 0 #166534,
-        -2px 2px 0 #166534,
-        2px 2px 0 #166534,
-        0 4px 8px rgba(0, 0, 0, 0.6);
+    width: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
 }
 
 .hand-area {

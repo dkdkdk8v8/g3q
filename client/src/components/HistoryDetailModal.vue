@@ -753,8 +753,8 @@ const positionedPlayers = computed(() => {
 }
 
 .banker-icon {
-    width: 14px;
-    height: 14px;
+    width: 20px;
+    height: 20px;
     animation: banker-scale-pulse 1.5s infinite ease-in-out;
     /* Apply the animation */
 }

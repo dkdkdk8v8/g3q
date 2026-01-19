@@ -316,7 +316,8 @@ const positionedPlayers = computed(() => {
 
 
                                 <HistoryPokerCard v-for="(card, cIdx) in p.uiCards" :key="cIdx" :card="card"
-                                    :isSmall="true" :simplified="true" :mini="true" :largeIcons="p.isMe" class="mini-card" />
+                                    :isSmall="true" :simplified="true" :mini="true" :largeIcons="p.isMe"
+                                    class="mini-card" />
 
 
 
@@ -465,9 +466,9 @@ const positionedPlayers = computed(() => {
 
 .detail-title {
     text-align: center;
-    font-size: 16px;
+    font-size: 18px;
     font-weight: bold;
-    color: white;
+    color: rgb(244, 168, 4);
 }
 
 .visual-area {

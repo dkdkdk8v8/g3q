@@ -139,6 +139,9 @@ const switchRoom = debounce(() => {
     if (settingsStore.soundEnabled) {
         AudioUtils.playEffect(btnClickSound);
     }
+    // Disable hosting when switching room
+    isHosting.value = false;
+    
     isSwitchingRoom.value = true;
     gameClient.send("QZNN.PlayerChangeRoom", { RoomId: store.roomId });
 }, 500);
@@ -655,15 +658,24 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
             }, 100);
         }
     } else if (newPhase === 'DEALING') {
-        // Initial Deal: Reset visibleCounts to 0 to prevent flash and start fresh
-        store.players.forEach(p => {
-            if (p.hand && p.hand.length > 0) {
-                visibleCounts.value[p.id] = 0;
-            }
-        });
-        setTimeout(() => {
-            startDealingAnimation(false); // isSupplemental = false
-        }, 100);
+        if (store.gameMode === 0) {
+            // Mode 0: Initial Deal (5 cards)
+            // Reset visibleCounts to 0 to start fresh
+            store.players.forEach(p => {
+                if (p.hand && p.hand.length > 0) {
+                    visibleCounts.value[p.id] = 0;
+                }
+            });
+            setTimeout(() => {
+                startDealingAnimation(false); // isSupplemental = false
+            }, 100);
+        } else {
+            // Mode 1 & 2: Supplemental Deal (fill remaining cards)
+            // Do NOT reset visibleCounts
+            setTimeout(() => {
+                startDealingAnimation(true); // isSupplemental = true
+            }, 100);
+        }
     } else if (['SHOWDOWN', 'SETTLEMENT'].includes(newPhase)) {
         // Supplemental Deal: Do NOT reset visibleCounts, just trigger animation for new cards
         setTimeout(() => {

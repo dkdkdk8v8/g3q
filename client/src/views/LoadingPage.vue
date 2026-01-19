@@ -9,8 +9,8 @@
       <div style="margin-right:0px">APP:【 {{ appId }} 】</div>
       <div>UID: 【{{ userId }}】</div>
     </div> -->
-    <button v-if="lastUid" @click="enterGameWithLast">继续上次UID进入 ({{ lastUid }})</button>
-    <button @click="enterGameRandom" class="random-btn">随机UID进入</button>
+    <button v-if="lastUid" @click="enterGameWithLast">继续上次用户测试 ({{ lastUid }})</button>
+    <button @click="enterGameRandom" class="random-btn">新用户进入测试</button>
     <!-- <button @click="enterGameByUrl" class="url-btn">使用URL参数进入</button> -->
     <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
 

@@ -1,1 +1,12 @@
-Task completed. Modified client/src/views/GameView.vue to animate the ellipsis.
+Task Completed:
+1. Updated `client/src/components/PlayerSeat.vue`:
+   - Replaced text-based Rob/Bet status with images (`qz_bet_*.png`, `ya_bet_*.png`).
+   - Sized images to 20px for opponents (1/2 size).
+   - Sized images to 27px for "Me" (2/3 size) if PlayerSeat is used for self.
+
+2. Updated `client/src/views/GameView.vue`:
+   - Updated `.status-img` size to 27px (2/3 size) for the main player area.
+
+3. Updated `client/src/components/HistoryDetailModal.vue`:
+   - Replaced text-based Rob/Bet status with images.
+   - Sized images to 20px.

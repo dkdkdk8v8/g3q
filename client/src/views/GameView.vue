@@ -34,6 +34,22 @@ const backgroundImageStyle = computed(() => {
     };
 });
 
+const baseBetStyle = computed(() => {
+    let borderColor = '#22c55e'; // Default Green (Mode 0)
+    if (store.gameMode === 1) {
+        borderColor = '#3b82f6'; // Blue (Mode 1)
+    } else if (store.gameMode === 2) {
+        borderColor = '#a855f7'; // Purple (Mode 2)
+    }
+    return {
+        borderColor: borderColor,
+        borderWidth: '2px',
+        borderStyle: 'solid',
+        borderRadius: '20px', // Make it pill-shaped
+        backgroundColor: 'rgba(0, 0, 0, 0.4)' // Semi-transparent background
+    };
+});
+
 const betMultipliers = computed(() => {
     return (store.betMult || []).sort((a, b) => a - b);
 });
@@ -179,7 +195,6 @@ import btnClickSound from '@/assets/sounds/btn_click.mp3';
 import goldImg from '@/assets/common/gold.png';
 import zhuangImg from '@/assets/common/zhuang.png';
 import tanpaiImg from '@/assets/common/tanpai.png';
-import gameTopDifenBg from '@/assets/common/game_top_difen_bg.png';
 
 // Lobby style buttons
 import btnExit from '@/assets/lobby/exit_btn.png';
@@ -1395,7 +1410,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
         <!-- Base Bet Display -->
 
-        <div class="base-bet-display" :style="{ '--game-top-difen-bg': 'url(' + gameTopDifenBg + ')' }">
+        <div class="base-bet-display" :style="baseBetStyle">
 
             <span class="bet-amount">底分</span>
 
@@ -2298,27 +2313,20 @@ const shouldMoveStatusToHighPosition = computed(() => {
 .base-bet-display {
     position: absolute;
     top: 11vh;
-    /* Adjust this value as needed based on visual inspection */
     left: 50%;
     transform: translateX(-50%);
-    background: var(--game-top-difen-bg) no-repeat center center;
-    /* Use CSS variable */
-    background-size: contain;
-    /* Example width, adjust as needed */
-    height: 40px;
-    /* Example height, adjust as needed */
+    /* Background and Border handled by inline style */
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #55a773;
+    color: #fff;
     font-size: 14px;
     font-weight: bold;
     z-index: 5;
-    /* Adjusted to be just above background */
-    font-weight: bold;
-    /* Adjust padding to center text within the background image, if image has borders */
-    padding: 0 20px;
+    padding: 0 16px;
     box-sizing: border-box;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .base-bet-display .gold-icon-small {

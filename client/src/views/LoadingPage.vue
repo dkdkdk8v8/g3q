@@ -1,17 +1,17 @@
 <template>
   <div class="loading-page">
     <img src="../assets/lobby/logo.png" alt="抢庄牛牛" class="lobby-logo" />
-    <div class="input-group">
+    <!-- <div class="input-group">
       <label for="ip-address">服务器IP</label>
       <input type="text" id="ip-address" v-model="ipAddress" placeholder="请输入服务器 IP 地址" />
     </div>
     <div v-if="appId" style="color:grey;display:flex;flex-direction:row;align-items:center;margin-bottom:10px;">
-      <div style="margin-right:50px">APP:【 {{ appId }} 】</div>
+      <div style="margin-right:0px">APP:【 {{ appId }} 】</div>
       <div>UID: 【{{ userId }}】</div>
-    </div>
+    </div> -->
     <button v-if="lastUid" @click="enterGameWithLast">继续上次UID进入 ({{ lastUid }})</button>
     <button @click="enterGameRandom" class="random-btn">随机UID进入</button>
-    <button @click="enterGameByUrl" class="url-btn">使用URL参数进入</button>
+    <!-- <button @click="enterGameByUrl" class="url-btn">使用URL参数进入</button> -->
     <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
 
     <!-- Loading Overlay -->

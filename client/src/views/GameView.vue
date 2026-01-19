@@ -22,6 +22,18 @@ import PokerCard from '../components/PokerCard.vue';
 const store = useGameStore();
 const settingsStore = useSettingsStore();
 
+const backgroundImageStyle = computed(() => {
+    let bgUrl = gameBgImg; // Default
+    if (store.gameMode === 1) {
+        bgUrl = gameBgSanImg;
+    } else if (store.gameMode === 2) {
+        bgUrl = gameBgSiImg;
+    }
+    return {
+        backgroundImage: `url(${bgUrl})`
+    };
+});
+
 const betMultipliers = computed(() => {
     return (store.betMult || []).sort((a, b) => a - b);
 });
@@ -149,6 +161,9 @@ const switchRoom = debounce(() => {
 
 
 import gameBgSound from '@/assets/sounds/game_bg.mp3';
+import gameBgImg from '@/assets/common/game_bg.jpg'; // Import default BG explicitly
+import gameBgSanImg from '@/assets/common/game_bg_san.jpg';
+import gameBgSiImg from '@/assets/common/game_bg_si.jpg';
 import iconGameStart from '../assets/common/game_start.png';
 import gameStartSound from '@/assets/sounds/game_start.mp3';
 import gameWinImg from '../assets/common/game_win.png';
@@ -1301,7 +1316,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
 <template>
 
-    <div class="game-table">
+    <div class="game-table" :style="backgroundImageStyle">
 
         <img v-if="showStartAnim" :src="iconGameStart" class="game-start-icon" :class="startAnimationClass" />
 
@@ -1735,7 +1750,8 @@ const shouldMoveStatusToHighPosition = computed(() => {
 .game-table {
     width: 100vw;
     height: 100dvh;
-    background: url('@/assets/common/game_bg.jpg') no-repeat center center;
+    background-repeat: no-repeat;
+    background-position: center center;
     background-size: 100% 100%;
     position: relative;
     display: flex;

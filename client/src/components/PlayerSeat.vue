@@ -534,11 +534,11 @@ const shouldMoveStatusFloat = computed(() => {
     transform: translateX(-50%);
     margin-bottom: 8px;
     /* Gap between badge and avatar */
-    background: rgba(0, 0, 0, 0.6);
-    color: #e5e7eb;
+    background: rgba(0, 0, 0, 0.5);
+    color: #8e8e8f;
     font-size: 10px;
     padding: 2px 6px;
-    border-radius: 4px;
+    border-radius: 10px;
     white-space: nowrap;
     z-index: 20;
     border: 1px solid rgba(255, 255, 255, 0.2);

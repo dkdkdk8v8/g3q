@@ -393,6 +393,7 @@ const showHistory = ref(false);
 const showHelp = ref(false);
 
 const visibleCounts = ref({});
+const hiddenCardsMap = ref({});
 const dealingCounts = ref({});
 
 const modeName = computed(() => {
@@ -720,6 +721,7 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
         }, 2550);
     } else if (newPhase === 'PRE_DEAL') {
         visibleCounts.value = {};
+        hiddenCardsMap.value = {}; // Reset hidden cards map
         // Initialize to 0 to prevent premature display
         store.players.forEach(p => {
             if (p.hand && p.hand.length > 0) {
@@ -733,6 +735,12 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
     } else if (newPhase === 'ROB_BANKER') {
         if (oldPhase !== 'PRE_DEAL') {
             visibleCounts.value = {};
+            hiddenCardsMap.value = {};
+            store.players.forEach(p => {
+                if (p.hand && p.hand.length > 0) {
+                    visibleCounts.value[p.id] = 0;
+                }
+            });
             dealingCounts.value = {}; // Reset dealing counts
         }
         lastBetStates.value = {};
@@ -901,6 +909,7 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
 const startDealingAnimation = (isSupplemental = false) => {
     if (!isSupplemental) {
         visibleCounts.value = {}; // Reset visible counts ONLY if not supplemental
+        hiddenCardsMap.value = {};
         store.players.forEach(p => {
             if (p.hand && p.hand.length > 0) {
                 visibleCounts.value[p.id] = 0;
@@ -1005,12 +1014,31 @@ const startDealingAnimation = (isSupplemental = false) => {
             });
         }
 
+        // --- NEW LOGIC START ---
+        // Immediately update visibleCounts to trigger layout update (start moving)
+        if (!(isSupplemental && t.id === store.myPlayerId)) {
+             if (!visibleCounts.value[t.id]) visibleCounts.value[t.id] = 0;
+             visibleCounts.value[t.id] += t.count;
+
+             // Mark new cards as hidden for opponents (MyPlayer uses dealingCounts logic in template)
+             if (!t.isMe) {
+                 const currentHidden = hiddenCardsMap.value[t.id] || [];
+                 // Add indices of new cards
+                 const newIndices = cardTargets.map(c => c.index);
+                 hiddenCardsMap.value[t.id] = [...currentHidden, ...newIndices];
+             }
+        }
+        // --- NEW LOGIC END ---
+
         setTimeout(() => {
             dealingLayer.value.dealToPlayer(cardTargets, () => {
-                // Modified: Only update visibleCounts if NOT already updated (i.e. not myPlayer in supplemental)
+                // Callback: Unhide cards
                 if (!(isSupplemental && t.id === store.myPlayerId)) {
-                    if (!visibleCounts.value[t.id]) visibleCounts.value[t.id] = 0;
-                    visibleCounts.value[t.id] += t.count;
+                    // For opponents, remove from hiddenCardsMap
+                    if (!t.isMe && hiddenCardsMap.value[t.id]) {
+                        const newIndices = cardTargets.map(c => c.index);
+                        hiddenCardsMap.value[t.id] = hiddenCardsMap.value[t.id].filter(idx => !newIndices.includes(idx));
+                    }
                 }
 
                 // Animation finished: remove from flying count
@@ -1367,13 +1395,13 @@ const shouldMoveStatusToHighPosition = computed(() => {
             <div v-for="(p, index) in opponentSeats" :key="index" class="opponent-seat-abs"
                 :class="getOpponentClass(index + 1)" :style="getSeatStyle(index + 1)">
 
-                <PlayerSeat v-if="p && p.id" :player="p" :ref="(el) => setSeatRef(el, p.id)"
-                    :position="getLayoutType(index + 1)"
-                    :visible-card-count="visibleCounts[p.id] !== undefined ? visibleCounts[p.id] : 0"
-                    :is-ready="p.isReady" :is-animating-highlight="p.id === currentlyHighlightedPlayerId"
-                    :trigger-banker-animation="showBankerConfirmAnim && p.isBanker" :is-win="!!winEffects[p.id]" />
-
-                <div v-else class="empty-seat">
+                            <PlayerSeat v-if="p && p.id" :player="p" :ref="(el) => setSeatRef(el, p.id)"
+                                :position="getLayoutType(index + 1)"
+                                :visible-card-count="visibleCounts[p.id] !== undefined ? visibleCounts[p.id] : 0"
+                                :hidden-card-indices="hiddenCardsMap[p.id] || []"
+                                :is-ready="p.isReady" :is-animating-highlight="p.id === currentlyHighlightedPlayerId"
+                                :trigger-banker-animation="showBankerConfirmAnim && p.isBanker" :is-win="!!winEffects[p.id]" />
+                                <div v-else class="empty-seat">
 
                     <div class="empty-seat-avatar">
 

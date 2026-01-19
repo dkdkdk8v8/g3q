@@ -126,7 +126,11 @@ const props = defineProps({
         default: () => []
     },
     triggerBankerAnimation: Boolean, // New prop for one-time banker confirmation animation
-    isWin: Boolean // New prop for neon flash effect on winner
+    isWin: Boolean, // New prop for neon flash effect on winner
+    hiddenCardIndices: {
+        type: Array,
+        default: () => []
+    }
 });
 
 const store = useGameStore();
@@ -379,16 +383,17 @@ const shouldMoveStatusFloat = computed(() => {
 
         <!-- 手牌区域 (始终渲染以占位) -->
         <div class="hand-area" :class="{ 'opponent-hand': !isMe }">
-            <div class="cards" :class="{ 'is-me-cards': isMe }"
+            <TransitionGroup tag="div" name="cards" class="cards" :class="{ 'is-me-cards': isMe }"
                 :style="{ visibility: showCards ? 'visible' : 'hidden' }">
                 <template v-for="(card, idx) in displayedHand" :key="idx">
                     <PokerCard v-if="visibleCardCount === -1 || idx < visibleCardCount"
                         :card="(shouldShowCardFace) ? card : null" :is-small="!isMe"
                         :class="{ 'hand-card': true, 'bull-card-overlay': isBullPart(idx), 'selected': selectedCardIndices.includes(idx) }"
                         :style="{
+                            opacity: hiddenCardIndices.includes(idx) ? 0 : 1
                         }" @click="props.isMe ? emit('card-click', { card, index: idx }) : null" />
                 </template>
-            </div>
+            </TransitionGroup>
             <!-- ... (keep hand result) -->
             <div v-if="shouldShowBadge" class="hand-result-badge">
                 <img v-if="getHandTypeImageUrl(player.handResult.typeName)"
@@ -1056,5 +1061,10 @@ const shouldMoveStatusFloat = computed(() => {
 .pop-up-leave-to {
     opacity: 0;
     transform: scale(0.5);
+}
+
+/* Card Move Animation */
+.cards-move {
+    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 </style>

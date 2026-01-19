@@ -230,7 +230,7 @@ const close = () => {
 .help-content {
     flex: 1;
     overflow-y: auto;
-    padding: 20px;
+    padding: 0 20px 20px 20px;
     color: #cbd5e1;
     font-size: 14px;
     line-height: 1.6;

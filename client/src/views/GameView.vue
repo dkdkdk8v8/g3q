@@ -1339,13 +1339,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
 
 
-        <!-- Watermark for Room Name and Mode -->
 
-        <div class="room-mode-watermark">
-
-            {{ store.roomName }}•{{ modeName }}
-
-        </div>
 
 
 
@@ -3127,26 +3121,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
     padding: 10px;
 }
 
-/* Watermark Style */
-.room-mode-watermark {
-    position: absolute;
-    bottom: 35%;
-    /* 40% from the bottom */
-    left: 50%;
-    transform: translateX(-50%);
-    color: #55a773;
-    /* Very light white, translucent for watermark effect */
-    font-size: 16px;
-    /* Not too large */
-    font-weight: bold;
-    pointer-events: none;
-    /* Do not block interactions */
-    z-index: 0;
-    /* Ensure it's behind interactive elements */
-    white-space: nowrap;
-    text-shadow: 1px 2px 1px rgba(0, 0, 0, 0.3);
-    /* Subtle shadow for better readability on varied backgrounds */
-}
+
 
 /* --- Status Text Styles (Duplicated from PlayerSeat for myPlayer) --- */
 .status-text {

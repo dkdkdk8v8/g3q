@@ -1012,11 +1012,11 @@ const shouldMoveStatusFloat = computed(() => {
 }
 
 .score-float.win {
-    color: #2ccc67;
+    color: #09cf52;
 }
 
 .score-float.lose {
-    color: #fe5d5d;
+    color: #d25e5e;
 }
 
 /* ... */

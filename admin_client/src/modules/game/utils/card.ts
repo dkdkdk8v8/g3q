@@ -48,7 +48,7 @@ export function getCardResult(cards: number[]) {
                     const niu = left % 10 === 0 ? 10 : left % 10;
                     return (
                         (niu === 10 ? "牛牛" : "牛") +
-                        ["", "一", "二", "三", "四", "五", "六", "七", "八", "九"][niu]
+                        ["", "一", "二", "三", "四", "五", "六", "七", "八", "九", ""][niu]
                     );
                 }
             }

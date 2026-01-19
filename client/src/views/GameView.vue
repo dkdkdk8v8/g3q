@@ -1455,7 +1455,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                                     myPlayer.robMultiplier
 
-                                }}倍</span>
+                                    }}倍</span>
 
                                 <span v-else class="status-text no-rob-text text-large">不抢</span>
 
@@ -2502,7 +2502,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 }
 
 .my-player-info-row .status-float.move-up-low {
-    bottom: calc(100% + 5vw);
+    bottom: calc(100% + 7vw);
     /* Approx 75px on mobile, clears cards only */
 }
 

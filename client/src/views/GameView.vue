@@ -3526,18 +3526,19 @@ const shouldMoveStatusToHighPosition = computed(() => {
     /* Semi-transparent black */
     backdrop-filter: blur(8px);
     /* Frosted glass effect */
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    /* Removed flexbox centering properties */
     z-index: 9998;
     /* Below global loading, above everything else in game */
 }
 
 .switch-room-logo {
+    position: absolute;
+    top: 42%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
     width: 80vw;
     height: auto;
     object-fit: contain;
-    transform: scale(0);
     /* Start hidden */
     opacity: 0;
 }
@@ -3554,17 +3555,17 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
 @keyframes logoBounce {
     0% {
-        transform: scale(0);
+        transform: translate(-50%, -50%) scale(0);
         opacity: 0;
     }
 
     70% {
-        transform: scale(1.1);
+        transform: translate(-50%, -50%) scale(1.1);
         opacity: 1;
     }
 
     100% {
-        transform: scale(1);
+        transform: translate(-50%, -50%) scale(0.9);
         opacity: 1;
     }
 }

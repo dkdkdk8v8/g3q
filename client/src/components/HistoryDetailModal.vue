@@ -1,11 +1,13 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { useUserStore } from '../stores/user.js';
 import { formatCoins } from '../utils/format.js';
 import { transformServerCard, calculateHandType } from '../utils/bullfight.js';
 import HistoryPokerCard from './HistoryPokerCard.vue';
 import bankerIcon from '@/assets/common/zhuang.png';
 import { showToast } from 'vant';
+
+// ... (imports)
 
 // Import Bet History Images
 import niu1 from '@/assets/bethistory/niu_1.png';
@@ -23,6 +25,59 @@ import niuBoom from '@/assets/bethistory/niu_boom.png';
 import niuWuhua from '@/assets/bethistory/niu_wuhua.png';
 import niuWuxiao from '@/assets/bethistory/niu_wuxiao.png';
 import niuSihua from '@/assets/bethistory/niu_sihua.png';
+
+// Status images (Rob Banker qz_)
+import qzBetNo from '@/assets/beishu/qz_bet_no.png';
+import qzBet1 from '@/assets/beishu/qz_bet_1.png';
+import qzBet2 from '@/assets/beishu/qz_bet_2.png';
+import qzBet3 from '@/assets/beishu/qz_bet_3.png';
+import qzBet4 from '@/assets/beishu/qz_bet_4.png';
+import qzBet5 from '@/assets/beishu/qz_bet_5.png';
+import qzBet10 from '@/assets/beishu/qz_bet_10.png';
+import qzBet15 from '@/assets/beishu/qz_bet_15.png';
+import qzBet20 from '@/assets/beishu/qz_bet_20.png';
+
+// Status images (Betting ya_)
+import yaBet1 from '@/assets/beishu/ya_bet_1.png';
+import yaBet2 from '@/assets/beishu/ya_bet_2.png';
+import yaBet3 from '@/assets/beishu/ya_bet_3.png';
+import yaBet4 from '@/assets/beishu/ya_bet_4.png';
+import yaBet5 from '@/assets/beishu/ya_bet_5.png';
+import yaBet10 from '@/assets/beishu/ya_bet_10.png';
+import yaBet15 from '@/assets/beishu/ya_bet_15.png';
+import yaBet20 from '@/assets/beishu/ya_bet_20.png';
+
+// Status Maps (qz_ / ya_)
+const robStatusImageMap = {
+    0: qzBetNo,
+    1: qzBet1,
+    2: qzBet2,
+    3: qzBet3,
+    4: qzBet4,
+    5: qzBet5,
+    10: qzBet10,
+    15: qzBet15,
+    20: qzBet20,
+};
+
+const betStatusImageMap = {
+    1: yaBet1,
+    2: yaBet2,
+    3: yaBet3,
+    4: yaBet4,
+    5: yaBet5,
+    10: yaBet10,
+    15: yaBet15,
+    20: yaBet20,
+};
+
+const getRobStatusImageUrl = (multiplier) => {
+    return robStatusImageMap[multiplier] || null;
+};
+
+const getBetStatusImageUrl = (multiplier) => {
+    return betStatusImageMap[multiplier] || null;
+};
 
 const handTypeImages = {
     'BULL_1': niu1,
@@ -47,6 +102,40 @@ const getHandTypeImage = (type) => handTypeImages[type];
 const props = defineProps({
     visible: Boolean,
     data: Object
+});
+
+const visualAreaRef = ref(null);
+const visualContentScale = ref(1);
+
+const updateVisualScale = () => {
+    if (!visualAreaRef.value) return;
+
+    // Design reference: The layout works well at ~400px height for the visual area
+    // (60vh of 844px is ~506px total, minus header ~100px = ~400px)
+    const designHeight = 400;
+    const currentHeight = visualAreaRef.value.clientHeight;
+
+    if (currentHeight < designHeight) {
+        visualContentScale.value = currentHeight / designHeight;
+    } else {
+        visualContentScale.value = 1;
+    }
+};
+
+onMounted(() => {
+    window.addEventListener('resize', updateVisualScale);
+});
+
+onUnmounted(() => {
+    window.removeEventListener('resize', updateVisualScale);
+});
+
+watch(() => props.visible, (val) => {
+    if (val) {
+        nextTick(() => {
+            updateVisualScale();
+        });
+    }
 });
 
 const emit = defineEmits(['update:visible', 'close']);
@@ -283,7 +372,7 @@ const positionedPlayers = computed(() => {
 
                 <div class="summary-row">
 
-                    <div class="sum-item">本局总输赢: <span :class="summaryData.total >= 0 ? 'win' : 'lose'">{{
+                    <div class="sum-item">总输赢: <span :class="summaryData.total >= 0 ? 'win' : 'lose'">{{
                         formatCoins(summaryData.total) }}</span></div>
 
                     <div class="sum-item">税: <span :class="summaryData.total >= 0 ? 'lose' : 'lno-tax'">{{
@@ -301,77 +390,80 @@ const positionedPlayers = computed(() => {
 
 
 
-            <div class="visual-area">
+            <div class="visual-area" ref="visualAreaRef">
+                <div class="visual-scale-wrapper" :style="{ transform: `scale(${visualContentScale})` }">
 
-                <div v-for="p in positionedPlayers" :key="p.ID" class="player-seat" :class="'pos-' + p.viewPos">
+                    <div v-for="p in positionedPlayers" :key="p.ID" class="player-seat" :class="'pos-' + p.viewPos">
 
-                    <template v-if="!p.isEmpty && !p.isObserver">
-
-                        <div class="multipliers-row">
-
-                            <span v-if="p.BankerMulti > 0" class="rob-tag">抢{{ p.BankerMulti }}倍</span>
-
-                            <span v-else-if="p.BankerMulti === 0" class="rob-tag" style="color: #cbd5e1;">不抢</span>
-
-                            <span v-if="p.BetMulti > 0" class="bet-tag">押{{ p.BetMulti }}倍</span>
-
-                            <span class="score-text" :class="(p.BalanceChange || 0) >= 0 ? 'win' : 'lose'">
-                                ({{ (p.BalanceChange || 0) > 0 ? '+' : '' }}{{ formatCoins(p.BalanceChange || 0) }})
-                            </span>
-
-                        </div>
+                        <template v-if="!p.isEmpty && !p.isObserver">
 
 
+                            <div class="multipliers-row">
 
-                        <div class="cards-row">
+                                <img v-if="getRobStatusImageUrl(p.BankerMulti)"
+                                    :src="getRobStatusImageUrl(p.BankerMulti)" class="status-img-small" />
 
+                                <img v-if="getBetStatusImageUrl(p.BetMulti)" :src="getBetStatusImageUrl(p.BetMulti)"
+                                    class="status-img-small" />
 
-
-                            <div class="cards-container">
-
-
-
-                                <HistoryPokerCard v-for="(card, cIdx) in p.uiCards" :key="cIdx" :card="card"
-                                    :isSmall="true" :simplified="true" :mini="true" :largeIcons="p.isMe"
-                                    class="mini-card" />
-
-
+                                <span class="score-text" :class="(p.BalanceChange || 0) >= 0 ? 'win' : 'lose'">
+                                    ({{ (p.BalanceChange || 0) > 0 ? '+' : '' }}{{ formatCoins(p.BalanceChange || 0) }})
+                                </span>
 
                             </div>
 
 
 
-                            <img v-if="getHandTypeImage(p.handTypeKey)" :src="getHandTypeImage(p.handTypeKey)"
-                                class="niu-type-img" />
-
-                        </div>
+                            <div class="cards-row">
 
 
 
-                        <div class="info-row" :class="{ 'me': p.isMe }">
+                                <div class="cards-container">
 
-                            <span class="nickname" :class="{ 'me': p.isMe }">{{ p.NickName }}</span>
 
-                            <img v-if="p.isBanker" :src="bankerIcon" class="banker-icon" />
 
-                        </div>
+                                    <HistoryPokerCard v-for="(card, cIdx) in p.uiCards" :key="cIdx" :card="card"
+                                        :isSmall="true" :simplified="true" :mini="true" :largeIcons="p.isMe"
+                                        class="mini-card" />
 
-                    </template>
-                    <template v-else>
-                        <!-- Placeholder to align text with cards area -->
-                        <div class="multipliers-row" style="opacity: 0; pointer-events: none;">
-                            <span class="rob-tag">占位</span>
-                        </div>
 
-                        <div class="cards-row" style="align-items: center; justify-content: center;">
-                            <div class="empty-seat-msg">
-                                <div>空座</div>
+
+                                </div>
+
+
+
+                                <img v-if="getHandTypeImage(p.handTypeKey)" :src="getHandTypeImage(p.handTypeKey)"
+                                    class="niu-type-img" />
+
                             </div>
-                        </div>
-                    </template>
+
+
+
+                            <div class="info-row" :class="{ 'me': p.isMe }">
+
+                                <span class="nickname" :class="{ 'me': p.isMe }">{{ p.NickName }}</span>
+
+                                <img v-if="p.isBanker" :src="bankerIcon" class="banker-icon" />
+
+                            </div>
+
+                        </template>
+                        <template v-else>
+                            <!-- Placeholder to align text with cards area -->
+                            <div class="multipliers-row" style="opacity: 0; pointer-events: none;">
+                                <div style="height: 20px;"></div>
+                            </div>
+
+                            <div class="cards-row" style="align-items: center; justify-content: center;">
+                                <div class="empty-seat-msg">
+                                    <div>空座</div>
+                                </div>
+                            </div>
+                        </template>
+
+                    </div>
 
                 </div>
-
             </div>
 
         </div>
@@ -392,15 +484,12 @@ const positionedPlayers = computed(() => {
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    /* Bottom Sheet style or center? User said "from bottom appear a window". */
-    /* Using center for now or bottom sheet? "appear a window from bottom" usually means BottomSheet. */
 }
 
 .detail-content {
     background: #1a1d26;
     width: 100%;
     height: 60vh;
-    /* "Half the screen high" */
     border-radius: 20px 20px 0 0;
     display: flex;
     flex-direction: column;
@@ -458,7 +547,6 @@ const positionedPlayers = computed(() => {
     width: 100%;
     color: #cbd5e1;
     font-size: 13px;
-    /* margin-bottom: 10px; removed */
 }
 
 .sum-item {
@@ -491,12 +579,23 @@ const positionedPlayers = computed(() => {
     flex: 1;
     position: relative;
     background: #1a1d26;
-    /* Darker bg for table feel */
     overflow: hidden;
-    /* No scroll, fixed positions */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.visual-scale-wrapper {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    /* Base design height */
+    transform-origin: center center;
+    transition: transform 0.2s;
 }
 
 /* Player Positions */
+
 .player-seat {
     position: absolute;
     display: flex;
@@ -552,19 +651,20 @@ const positionedPlayers = computed(() => {
     display: flex;
     gap: 4px;
     justify-content: center;
+    align-items: center;
+    /* Ensure vertical alignment */
 }
 
-.rob-tag {
-    color: #ffab00;
-}
-
-.bet-tag {
-    color: white;
-    margin-left: 5px;
+.status-img-small {
+    height: 15px;
+    width: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
 }
 
 .score-text {
     margin-left: 5px;
+    font-size: 13px;
 }
 
 .cards-row {

@@ -86,13 +86,12 @@ const userInfo = computed(() => {
     };
 });
 
-const currentMode = ref(0); // 0: Bukan, 1: San, 2: Si
+const currentMode = ref(userStore.lastSelectedMode || 0); // 0: Bukan, 1: San, 2: Si
 
 const setMode = (mode) => {
     playBtnSound();
     currentMode.value = mode;
     userStore.lastSelectedMode = mode;
-    localStorage.setItem('lastSelectedMode', mode);
 };
 
 const enterGame = debounce(async (level) => {
@@ -488,7 +487,7 @@ const goBack = () => {
 
 
 
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(0, 0, 0, 0.2);
 
 
 

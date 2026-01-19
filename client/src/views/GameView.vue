@@ -32,8 +32,16 @@ const allRobOptions = computed(() => {
 });
 
 const showHosting = ref(false); // Hosting Modal State
+const isSwitchingRoom = ref(false); // Switching Room State
+const switchRoomCooldown = ref(0); // 5s Cooldown
 const isHosting = ref(false); // Is Hosting Active?
 const hostingSettings = ref({ rob: 0, bet: 1 }); // Stored Settings
+
+const switchRoomButtonText = computed(() => {
+    if (isSwitchingRoom.value) return "正在切换房间";
+    if (switchRoomCooldown.value > 0) return `切换房间 ${switchRoomCooldown.value}`;
+    return "切换房间";
+});
 
 // ... (existing logic)
 
@@ -127,10 +135,15 @@ const handleHostingConfirm = (settings) => {
 };
 
 const switchRoom = debounce(() => {
+    if (isSwitchingRoom.value || switchRoomCooldown.value > 0) return;
     if (settingsStore.soundEnabled) {
         AudioUtils.playEffect(btnClickSound);
     }
-    vantToast("等待与服务器接入功能");
+    // Disable hosting when switching room
+    isHosting.value = false;
+
+    isSwitchingRoom.value = true;
+    gameClient.send("QZNN.PlayerChangeRoom", { RoomId: store.roomId });
 }, 500);
 
 
@@ -180,9 +193,7 @@ import niuWuhuaImg from '@/assets/niu/niu_wuhua.png';
 import niuWuxiaoImg from '@/assets/niu/niu_wuxiao.png';
 import niuMeiImg from '@/assets/niu/niu_mei.png'; // Add this import
 
-// Multiplier images
-
-const NO_BULL_TYPE_NAME = '没牛'; // New constant
+// Multiplier images (Buttons)
 import beishuBuqiangImg from '@/assets/beishu/beishu_buqiang.png';
 import beishu1Img from '@/assets/beishu/beishu_1.png';
 import beishu2Img from '@/assets/beishu/beishu_2.png';
@@ -192,6 +203,29 @@ import beishu5Img from '@/assets/beishu/beishu_5.png';
 import beishu10Img from '@/assets/beishu/beishu_10.png';
 import beishu15Img from '@/assets/beishu/beishu_15.png';
 import beishu20Img from '@/assets/beishu/beishu_20.png';
+
+// Status images (Rob Banker qz_)
+import qzBetNo from '@/assets/beishu/qz_bet_no.png';
+import qzBet1 from '@/assets/beishu/qz_bet_1.png';
+import qzBet2 from '@/assets/beishu/qz_bet_2.png';
+import qzBet3 from '@/assets/beishu/qz_bet_3.png';
+import qzBet4 from '@/assets/beishu/qz_bet_4.png';
+import qzBet5 from '@/assets/beishu/qz_bet_5.png';
+import qzBet10 from '@/assets/beishu/qz_bet_10.png';
+import qzBet15 from '@/assets/beishu/qz_bet_15.png';
+import qzBet20 from '@/assets/beishu/qz_bet_20.png';
+
+// Status images (Betting ya_)
+import yaBet1 from '@/assets/beishu/ya_bet_1.png';
+import yaBet2 from '@/assets/beishu/ya_bet_2.png';
+import yaBet3 from '@/assets/beishu/ya_bet_3.png';
+import yaBet4 from '@/assets/beishu/ya_bet_4.png';
+import yaBet5 from '@/assets/beishu/ya_bet_5.png';
+import yaBet10 from '@/assets/beishu/ya_bet_10.png';
+import yaBet15 from '@/assets/beishu/ya_bet_15.png';
+import yaBet20 from '@/assets/beishu/ya_bet_20.png';
+
+const NO_BULL_TYPE_NAME = '没牛';
 
 const handTypeImageMap = {
     '牛1': niu1Img,
@@ -218,8 +252,9 @@ const getHandTypeImageUrl = (handTypeName) => {
     return handTypeImageMap[normalizedHandTypeName] || null; // Return null if no image found
 };
 
+// Button Map (beishu_)
 const multiplierImageMap = {
-    0: beishuBuqiangImg, // For '不抢'
+    0: beishuBuqiangImg,
     1: beishu1Img,
     2: beishu2Img,
     3: beishu3Img,
@@ -232,6 +267,38 @@ const multiplierImageMap = {
 
 const getMultiplierImageUrl = (multiplier) => {
     return multiplierImageMap[multiplier] || null;
+};
+
+// Status Maps (qz_ / ya_)
+const robStatusImageMap = {
+    0: qzBetNo,
+    1: qzBet1,
+    2: qzBet2,
+    3: qzBet3,
+    4: qzBet4,
+    5: qzBet5,
+    10: qzBet10,
+    15: qzBet15,
+    20: qzBet20,
+};
+
+const betStatusImageMap = {
+    1: yaBet1,
+    2: yaBet2,
+    3: yaBet3,
+    4: yaBet4,
+    5: yaBet5,
+    10: yaBet10,
+    15: yaBet15,
+    20: yaBet20,
+};
+
+const getRobStatusImageUrl = (multiplier) => {
+    return robStatusImageMap[multiplier] || null;
+};
+
+const getBetStatusImageUrl = (multiplier) => {
+    return betStatusImageMap[multiplier] || null;
 };
 
 
@@ -330,7 +397,7 @@ const dealingCounts = ref({});
 
 const modeName = computed(() => {
     const m = store.gameMode;
-    if (m === 0) return '不看牌抢庄';
+    if (m === 0) return '抢庄牛牛';
     if (m === 1) return '看三张抢庄';
     if (m === 2) return '看四张抢庄';
     return '未知玩法';
@@ -627,6 +694,12 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
         }, 2550);
     } else if (newPhase === 'PRE_DEAL') {
         visibleCounts.value = {};
+        // Initialize to 0 to prevent premature display
+        store.players.forEach(p => {
+            if (p.hand && p.hand.length > 0) {
+                visibleCounts.value[p.id] = 0;
+            }
+        });
         dealingCounts.value = {}; // Reset dealing counts
         setTimeout(() => {
             startDealingAnimation();
@@ -645,15 +718,24 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
             }, 100);
         }
     } else if (newPhase === 'DEALING') {
-        // Initial Deal: Reset visibleCounts to 0 to prevent flash and start fresh
-        store.players.forEach(p => {
-            if (p.hand && p.hand.length > 0) {
-                visibleCounts.value[p.id] = 0;
-            }
-        });
-        setTimeout(() => {
-            startDealingAnimation(false); // isSupplemental = false
-        }, 100);
+        if (store.gameMode === 0) {
+            // Mode 0: Initial Deal (5 cards)
+            // Reset visibleCounts to 0 to start fresh
+            store.players.forEach(p => {
+                if (p.hand && p.hand.length > 0) {
+                    visibleCounts.value[p.id] = 0;
+                }
+            });
+            setTimeout(() => {
+                startDealingAnimation(false); // isSupplemental = false
+            }, 100);
+        } else {
+            // Mode 1 & 2: Supplemental Deal (fill remaining cards)
+            // Do NOT reset visibleCounts
+            setTimeout(() => {
+                startDealingAnimation(true); // isSupplemental = true
+            }, 100);
+        }
     } else if (['SHOWDOWN', 'SETTLEMENT'].includes(newPhase)) {
         // Supplemental Deal: Do NOT reset visibleCounts, just trigger animation for new cards
         setTimeout(() => {
@@ -831,6 +913,12 @@ const startDealingAnimation = (isSupplemental = false) => {
             if (!dealingCounts.value[p.id]) dealingCounts.value[p.id] = 0;
             dealingCounts.value[p.id] += toDeal;
 
+            // NEW: For myPlayer in supplemental deal, reserve space immediately to trigger slide
+            if (isSupplemental && p.id === store.myPlayerId) {
+                if (!visibleCounts.value[p.id]) visibleCounts.value[p.id] = 0;
+                visibleCounts.value[p.id] += toDeal;
+            }
+
             const seatEl = seatRefs.value[p.id];
             if (seatEl) {
                 const handArea = seatEl.querySelector('.hand-area');
@@ -893,8 +981,11 @@ const startDealingAnimation = (isSupplemental = false) => {
 
         setTimeout(() => {
             dealingLayer.value.dealToPlayer(cardTargets, () => {
-                if (!visibleCounts.value[t.id]) visibleCounts.value[t.id] = 0;
-                visibleCounts.value[t.id] += t.count;
+                // Modified: Only update visibleCounts if NOT already updated (i.e. not myPlayer in supplemental)
+                if (!(isSupplemental && t.id === store.myPlayerId)) {
+                    if (!visibleCounts.value[t.id]) visibleCounts.value[t.id] = 0;
+                    visibleCounts.value[t.id] += t.count;
+                }
 
                 // Animation finished: remove from flying count
                 if (dealingCounts.value[t.id]) {
@@ -937,6 +1028,23 @@ onMounted(() => {
         }
     });
 
+    // Register handler for PlayerChangeRoom response
+    gameClient.on('QZNN.PlayerChangeRoom', (msg) => {
+        isSwitchingRoom.value = false;
+        if (msg.code !== 0) {
+            vantToast(msg.msg || "切换房间失败");
+        } else {
+            // Success: Start cooldown
+            switchRoomCooldown.value = 5;
+            const timer = setInterval(() => {
+                switchRoomCooldown.value--;
+                if (switchRoomCooldown.value <= 0) {
+                    clearInterval(timer);
+                }
+            }, 1000);
+        }
+    });
+
     // Register latency callback
     gameClient.setLatencyCallback((ms) => {
         networkLatency.value = ms;
@@ -948,6 +1056,7 @@ onUnmounted(() => {
 
     AudioUtils.stopMusic();
     gameClient.off('QZNN.PlayerLeave');
+    gameClient.off('QZNN.PlayerChangeRoom');
     gameClient.setLatencyCallback(null);
 });
 
@@ -1299,13 +1408,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
 
 
-        <!-- Watermark for Room Name and Mode -->
 
-        <div class="room-mode-watermark">
-
-            {{ store.roomName }}•{{ modeName }}
-
-        </div>
 
 
 
@@ -1350,21 +1453,18 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                 <div class="hand-area">
 
-                    <div class="cards">
-
-                        <PokerCard v-for="(card, idx) in myPlayer.hand" :key="idx"
-                            :card="(shouldShowCardFace && (visibleCounts[myPlayer.id] === undefined || idx < visibleCounts[myPlayer.id])) ? card : null"
-                            :is-small="false"
-                            :class="{ 'hand-card': true, 'bull-card-overlay': isBullPart(idx), 'selected': selectedCardIndices.includes(idx) }"
-                            :style="{
-
-                                marginLeft: idx === 0 ? '0' : '1px', /* for myPlayer */
-
-                                opacity: (visibleCounts[myPlayer.id] === undefined || idx < visibleCounts[myPlayer.id]) ? 1 : 0
-
-                            }" @click="handleCardClick({ card, index: idx })" />
-
-                    </div>
+                    <TransitionGroup tag="div" class="cards" name="list">
+                        <template v-for="(card, idx) in myPlayer.hand" :key="idx">
+                            <PokerCard
+                                v-if="visibleCounts[myPlayer.id] === undefined || idx < visibleCounts[myPlayer.id]"
+                                :card="shouldShowCardFace ? card : null" :is-small="false"
+                                :class="{ 'hand-card': true, 'bull-card-overlay': isBullPart(idx), 'selected': selectedCardIndices.includes(idx) }"
+                                :style="{
+                                    marginLeft: idx === 0 ? '0' : '1px', /* for myPlayer */
+                                    opacity: (dealingCounts[myPlayer.id] && idx >= (visibleCounts[myPlayer.id] - dealingCounts[myPlayer.id])) ? 0 : 1
+                                }" @click="handleCardClick({ card, index: idx })" />
+                        </template>
+                    </TransitionGroup>
 
                     <!-- Hand Result Badge - adapted from PlayerSeat -->
 
@@ -1448,31 +1548,17 @@ const shouldMoveStatusToHighPosition = computed(() => {
                         :class="{ 'move-up-high': shouldMoveStatusFloat && shouldMoveStatusToHighPosition, 'move-up-low': shouldMoveStatusFloat && !shouldMoveStatusToHighPosition }">
 
                         <Transition name="pop-up">
-
                             <div v-if="shouldShowRobMult" class="status-content">
-
-                                <span v-if="myPlayer.robMultiplier > 0" class="status-text rob-text text-large">抢{{
-
-                                    myPlayer.robMultiplier
-
-                                    }}倍</span>
-
-                                <span v-else class="status-text no-rob-text text-large">不抢</span>
-
+                                <img :src="getRobStatusImageUrl(myPlayer.robMultiplier)" class="status-img"
+                                    alt="抢庄状态" />
                             </div>
-
                         </Transition>
 
-
-
                         <Transition name="pop-up">
-
                             <div v-if="shouldShowBetMult" class="status-content">
-
-                                <span class="status-text bet-text text-large">压{{ myPlayer.betMultiplier }}倍</span>
-
+                                <img :src="getBetStatusImageUrl(myPlayer.betMultiplier)" class="status-img"
+                                    alt="下注状态" />
                             </div>
-
                         </Transition>
 
                     </div>
@@ -1549,8 +1635,14 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                 <!-- Switch Room Button -->
                 <div v-if="myPlayer.isObserver || ['IDLE', 'READY_COUNTDOWN', 'SETTLEMENT'].includes(store.currentPhase)"
-                    class="game-btn switch-room-btn" @click="switchRoom">
-                    切换房间
+                    class="game-btn switch-room-btn" :class="{ 'disabled': isSwitchingRoom || switchRoomCooldown > 0 }"
+                    @click="switchRoom">
+                    <template v-if="isSwitchingRoom">
+                        正在切换房间<span class="loading-dots"></span>
+                    </template>
+                    <template v-else>
+                        {{ switchRoomButtonText }}
+                    </template>
                 </div>
 
                 <!-- Observer Waiting Text -->
@@ -2005,24 +2097,24 @@ const shouldMoveStatusToHighPosition = computed(() => {
 }
 
 .seat-right {
-    top: 38%;
+    top: 42%;
     /* Adjusted for fixed top alignment */
     right: -2px;
     /* transform: scale(0.85); Removed redundant scale */
 }
 
 .seat-right-top {
-    top: 16%;
+    top: 20%;
     right: 6vw;
 }
 
 .seat-left-top {
-    top: 16%;
+    top: 20%;
     left: 6vw;
 }
 
 .seat-left {
-    top: 38%;
+    top: 42%;
     /* Adjusted for fixed top alignment */
     left: 0;
     /* transform: scale(0.85); Removed redundant scale */
@@ -2064,7 +2156,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
 .table-center {
     position: absolute;
-    top: 36%;
+    top: 42%;
     left: 50%;
     transform: translate(-50%, -50%);
     text-align: center;
@@ -2496,6 +2588,13 @@ const shouldMoveStatusToHighPosition = computed(() => {
     transition: bottom 0.3s ease;
 }
 
+.status-img {
+    height: 27px;
+    width: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
 .my-player-info-row .status-float.move-up-high {
     bottom: calc(100% + 23vw);
     /* Approx 140px on mobile, clears cards + calc area */
@@ -2670,6 +2769,10 @@ const shouldMoveStatusToHighPosition = computed(() => {
 .pop-up-leave-to {
     opacity: 0;
     transform: scale(0.5);
+}
+
+.list-move {
+    transition: transform 0.5s ease;
 }
 
 .game-start-icon {
@@ -3081,115 +3184,11 @@ const shouldMoveStatusToHighPosition = computed(() => {
     padding: 10px;
 }
 
-/* Watermark Style */
-.room-mode-watermark {
-    position: absolute;
-    bottom: 35%;
-    /* 40% from the bottom */
-    left: 50%;
-    transform: translateX(-50%);
-    color: #55a773;
-    /* Very light white, translucent for watermark effect */
-    font-size: 16px;
-    /* Not too large */
-    font-weight: bold;
-    pointer-events: none;
-    /* Do not block interactions */
-    z-index: 0;
-    /* Ensure it's behind interactive elements */
-    white-space: nowrap;
-    text-shadow: 1px 2px 1px rgba(0, 0, 0, 0.3);
-    /* Subtle shadow for better readability on varied backgrounds */
-}
 
-/* --- Status Text Styles (Duplicated from PlayerSeat for myPlayer) --- */
-.status-text {
-    font-family: "Microsoft YaHei", "Heiti SC", sans-serif;
-    font-weight: 900;
-    font-style: italic;
-    padding: 2px 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    white-space: nowrap;
-    /* Default shadow */
-    text-shadow:
-        -1px -1px 0 #000,
-        1px -1px 0 #000,
-        -1px 1px 0 #000,
-        1px 1px 0 #000,
-        0 3px 5px rgba(0, 0, 0, 0.5);
-}
 
-.rob-text {
-    color: #fcd34d;
-    text-shadow:
-        -2px -2px 0 #b45309,
-        2px -2px 0 #b45309,
-        -2px 2px 0 #b45309,
-        2px 2px 0 #b45309,
-        0 3px 5px rgba(0, 0, 0, 0.5);
-    font-size: 18px;
-}
 
-.no-rob-text {
-    color: #fcd34d;
-    /* Updated to match rob-text */
-    text-shadow:
-        -2px -2px 0 #b45309,
-        2px -2px 0 #b45309,
-        -2px 2px 0 #b45309,
-        2px 2px 0 #b45309,
-        0 3px 5px rgba(0, 0, 0, 0.5);
-    font-size: 18px;
-    /* Updated to match rob-text */
-}
 
-.bet-text {
-    color: #ffffff;
-    /* White */
-    text-shadow:
-        -2px -2px 0 #166534,
-        /* Green-800 */
-        2px -2px 0 #166534,
-        -2px 2px 0 #166534,
-        2px 2px 0 #166534,
-        0 3px 5px rgba(0, 0, 0, 0.5);
-    font-size: 18px;
-}
 
-/* Large Size for Self */
-.text-large {
-    font-size: 22px !important;
-    /* Reduced from 26px */
-    height: 40px;
-    text-shadow:
-        -2px -2px 0 #000,
-        2px -2px 0 #000,
-        -2px 2px 0 #000,
-        2px 2px 0 #000,
-        0 4px 8px rgba(0, 0, 0, 0.6);
-}
-
-.rob-text.text-large,
-.no-rob-text.text-large {
-    text-shadow:
-        -2px -2px 0 #b45309,
-        2px -2px 0 #b45309,
-        -2px 2px 0 #b45309,
-        2px 2px 0 #b45309,
-        0 4px 8px rgba(0, 0, 0, 0.6);
-}
-
-.bet-text.text-large {
-    text-shadow:
-        -2px -2px 0 #166534,
-        /* Green-800 */
-        2px -2px 0 #166534,
-        -2px 2px 0 #166534,
-        2px 2px 0 #166534,
-        0 4px 8px rgba(0, 0, 0, 0.6);
-}
 
 /* Banker Selection Overlay */
 .banker-selection-overlay {
@@ -3344,6 +3343,18 @@ const shouldMoveStatusToHighPosition = computed(() => {
     left: 50%;
     transform: translateX(-50%);
     z-index: 10;
+}
+
+.switch-room-btn.disabled {
+    background: #64748b;
+    /* Slate-500 for gray */
+    color: #cbd5e1;
+    /* Slate-300 */
+    border-color: #475569;
+    cursor: not-allowed;
+    pointer-events: none;
+    /* Ensure no clicks */
+    box-shadow: none;
 }
 
 .hosting-btn {

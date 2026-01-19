@@ -87,6 +87,20 @@ const userInfo = computed(() => {
 });
 
 const currentMode = ref(userStore.lastSelectedMode || 0); // 0: Bukan, 1: San, 2: Si
+const roomsScrollArea = ref(null);
+
+const transitionName = ref('');
+
+watch(currentMode, (newVal, oldVal) => {
+    if (newVal > oldVal) {
+        transitionName.value = 'swipe-left';
+    } else {
+        transitionName.value = 'swipe-right';
+    }
+    if (roomsScrollArea.value) {
+        roomsScrollArea.value.scrollTop = 0;
+    }
+});
 
 const setMode = (mode) => {
     playBtnSound();
@@ -251,15 +265,20 @@ const goBack = () => {
         </div>
 
         <!-- 4. Room Grid -->
-        <div class="rooms-scroll-area" :style="{ backgroundImage: `url(${roomAreaBg})` }">
-            <TransitionGroup tag="div" class="rooms-grid" name="room-list" appear :key="currentMode">
-                <div v-for="(room, index) in rooms" :key="room.level" class="room-item" :class="['room-idx-' + index]"
-                    :style="{ '--delay': index * 0.1 + 's' }" @click="enterGame(room.level)">
+        <div class="rooms-scroll-area" ref="roomsScrollArea" :style="{ backgroundImage: `url(${roomAreaBg})` }">
+            <Transition :name="transitionName">
+                <div class="rooms-grid-wrapper" :key="currentMode">
+                    <TransitionGroup tag="div" class="rooms-grid" name="room-init" :appear="transitionName === ''">
+                        <div v-for="(room, index) in rooms" :key="room.level" class="room-item"
+                            :class="['room-idx-' + index]" :style="{ '--delay': index * 0.1 + 's' }"
+                            @click="enterGame(room.level)">
 
-                    <!-- Background Layer -->
-                    <img :src="room.assets.bg" class="room-bg" />
+                            <!-- Background Layer -->
+                            <img :src="room.assets.bg" class="room-bg" />
+                        </div>
+                    </TransitionGroup>
                 </div>
-            </TransitionGroup>
+            </Transition>
         </div>
         <!-- History Modal -->
         <HistoryModal v-model:visible="showHistory" />
@@ -761,6 +780,8 @@ const goBack = () => {
     flex: 1;
 
     overflow-y: auto;
+    overflow-x: hidden; /* Prevent horizontal scroll during swipe */
+    position: relative; /* Establish positioning context for absolute children */
 
     width: 100%;
 
@@ -921,14 +942,59 @@ const goBack = () => {
     display: block;
 }
 
-/* Room List Animation */
-.room-list-enter-active {
+/* Room List Animation (Initial Staggered Load) */
+.room-init-enter-active {
     transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1);
     transition-delay: var(--delay);
 }
 
-.room-list-enter-from {
+.room-init-enter-from {
     opacity: 0;
     transform: translateY(100px);
+}
+
+/* Wrapper Style for Swap */
+.rooms-grid-wrapper {
+    width: 100%;
+    /* Ensure it takes full width of scroll area */
+}
+
+/* Swipe Left Animation (Next Tab) */
+.swipe-left-enter-active,
+.swipe-left-leave-active,
+.swipe-right-enter-active,
+.swipe-right-leave-active {
+    transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    width: 100%;
+}
+
+.swipe-left-leave-active,
+.swipe-right-leave-active {
+    position: absolute;
+    top: 10px;
+    /* Match padding-top of scroll area */
+    left: 0;
+}
+
+/* Left: Old goes Left, New comes from Right */
+.swipe-left-enter-from {
+    opacity: 0;
+    transform: translateX(100%);
+}
+
+.swipe-left-leave-to {
+    opacity: 0;
+    transform: translateX(-100%);
+}
+
+/* Right: Old goes Right, New comes from Left */
+.swipe-right-enter-from {
+    opacity: 0;
+    transform: translateX(-100%);
+}
+
+.swipe-right-leave-to {
+    opacity: 0;
+    transform: translateX(100%);
 }
 </style>

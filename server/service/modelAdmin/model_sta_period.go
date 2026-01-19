@@ -25,7 +25,7 @@ type ModelStaPeriod struct {
 }
 
 func (u *ModelStaPeriod) TableName() string {
-	return "sta_peroid"
+	return "sta_period"
 }
 
 func GetStaPeriod(userId string, date time.Time) (*ModelStaPeriod, error) {

@@ -15,10 +15,12 @@ func RegModels() {
 	orm.RegisterModel(
 		&ModelStaUser{},
 		&ModelSysParam{},
+		&ModelStaPeriod{},
 	)
 }
 
 func Init() {
+	SysParamCache.Reload()
 	ticker := time.NewTicker(time.Second * 10)
 	go func() {
 		for range ticker.C {

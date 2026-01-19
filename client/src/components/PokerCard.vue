@@ -90,7 +90,7 @@ const suitSymbol = computed(() => {
 
 .poker-card.is-small {
   width: 12.8vw;
-  height: 18.6667vw;
+  height: 16vw;
   font-size: 0.8em;
 }
 

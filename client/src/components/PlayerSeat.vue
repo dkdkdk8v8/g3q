@@ -988,7 +988,7 @@ const shouldMoveStatusFloat = computed(() => {
 
 .opponent-hand {
     position: absolute !important;
-    top: -32px !important;
+    top: -28px !important;
     left: 0;
     width: 100%;
     margin-top: 0 !important;
@@ -1092,8 +1092,10 @@ const shouldMoveStatusFloat = computed(() => {
     }
 
     100% {
-        transform: translateY(-50px) scale(1); /* Stay at 80% position */
-        opacity: 1; /* Remain visible */
+        transform: translateY(-50px) scale(1);
+        /* Stay at 80% position */
+        opacity: 1;
+        /* Remain visible */
     }
 }
 </style>

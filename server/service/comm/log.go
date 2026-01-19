@@ -30,7 +30,7 @@ func InitLog(isTerminal bool, serverName string, disableFilePos bool, rotateType
 			logDir = logDir + "/"
 		}
 		os.Mkdir(logDir+"log/", os.ModePerm)
-		defLog, err := logrotate.GetRotate(logDir+"log/"+serverName+".log", rotateType, 2)
+		defLog, err := logrotate.GetRotate(logDir+"log/"+serverName+".log", rotateType, 7)
 		if err != nil {
 			logrus.WithError(err).Error("OpenLogFail")
 			return nil, err

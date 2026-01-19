@@ -197,6 +197,8 @@ const switchRoom = debounce(() => {
     isHosting.value = false;
 
     isSwitchingRoom.value = true;
+    showSwitchRoomOverlay.value = true; // Show overlay immediately
+    logoAnimationState.value = 'entering'; // Start logo animation
     gameClient.send("QZNN.PlayerChangeRoom", { RoomId: store.roomId });
 }, 500);
 
@@ -439,6 +441,10 @@ let candidateIndex = 0;
 
 // Auto-join message state
 const showAutoJoinMessage = ref(false);
+
+const showSwitchRoomOverlay = ref(false);
+const logoAnimationState = ref(''); // 'entering', 'leaving', ''
+import lobbyLogoImg from '@/assets/lobby/logo.png'; // Import lobby logo
 
 // Robot Speech/Emoji Logic Removed (now server-driven)
 
@@ -1145,6 +1151,8 @@ onMounted(() => {
         isSwitchingRoom.value = false;
         if (msg.code !== 0) {
             vantToast(msg.msg || "切换房间失败");
+            showSwitchRoomOverlay.value = false; // Hide overlay on failure
+            logoAnimationState.value = ''; // Reset animation state
         } else {
             // Success: Start cooldown
             switchRoomCooldown.value = 5;
@@ -1154,6 +1162,15 @@ onMounted(() => {
                     clearInterval(timer);
                 }
             }, 1000);
+
+            // Trigger visual feedback: Wait 1 second, then scale out logo and hide overlay
+            setTimeout(() => {
+                logoAnimationState.value = 'leaving'; // Start logo leaving animation
+                setTimeout(() => {
+                    showSwitchRoomOverlay.value = false; // Hide overlay
+                    logoAnimationState.value = ''; // Reset animation state
+                }, 500); // Wait for logo to scale out
+            }, 1000); // Wait 1 second after success
         }
     });
 
@@ -1365,9 +1382,25 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
         <img v-if="showResultAnim" :src="resultImage" class="result-icon" :class="resultAnimClass" />
 
-        <DealingLayer ref="dealingLayer" />
+                <DealingLayer ref="dealingLayer" />
 
-        <CoinLayer ref="coinLayer" />
+                <CoinLayer ref="coinLayer" />
+
+        
+
+                <!-- Full-screen Switch Room Overlay with Frosted Glass Effect -->
+
+                <transition name="switch-room-fade">
+
+                    <div v-if="showSwitchRoomOverlay" class="switch-room-overlay">
+
+                        <img :src="lobbyLogoImg" alt="Lobby Logo" class="switch-room-logo"
+
+                            :class="logoAnimationState === 'entering' ? 'logo-enter' : (logoAnimationState === 'leaving' ? 'logo-leave' : '')" />
+
+                    </div>
+
+                </transition>
 
 
 
@@ -3494,6 +3527,47 @@ const shouldMoveStatusToHighPosition = computed(() => {
 </style>
 
 <style>
+/* Switch Room Overlay Styles */
+.switch-room-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black */
+    backdrop-filter: blur(8px); /* Frosted glass effect */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9998; /* Below global loading, above everything else in game */
+}
+
+.switch-room-logo {
+    width: 0; /* Start with no width */
+    height: auto;
+    object-fit: contain;
+    transition: all 0.5s ease-out; /* Smooth transition for scale */
+}
+
+.switch-room-logo.logo-enter {
+    width: 80vw; /* Scale to 80% of viewport width */
+}
+
+.switch-room-logo.logo-leave {
+    width: 0; /* Scale back to 0 */
+}
+
+/* Transition for the overlay itself */
+.switch-room-fade-enter-active,
+.switch-room-fade-leave-active {
+    transition: opacity 0.5s ease;
+}
+
+.switch-room-fade-enter-from,
+.switch-room-fade-leave-to {
+    opacity: 0;
+}
+
 /* Global styles for Vant components in dark mode */
 
 @keyframes shine {

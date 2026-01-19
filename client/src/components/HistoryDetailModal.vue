@@ -138,6 +138,20 @@ const summaryData = computed(() => {
     };
 });
 
+const processNickname = (name) => {
+    if (name.length <= 1) return name;
+
+    const first = name.charAt(0);
+    const last = name.charAt(name.length - 1);
+
+    if (/^[\u4e00-\u9fa5]/.test(name)) {
+        const starCount = Math.max(0, name.length - 2);
+        return `${first}${'*'.repeat(starCount)}${last}`;
+    } else {
+        return `${first}******${last}`;
+    }
+};
+
 // Positioning Logic
 const positionedPlayers = computed(() => {
     // Default to empty array if no data
@@ -189,6 +203,8 @@ const positionedPlayers = computed(() => {
             return 0;
         };
 
+        const processedNickName = p.ID === myId.value ? '您的手牌' : processNickname(p.NickName || 'Unknown');
+
         return {
             ...p,
             viewPos: diff,
@@ -197,7 +213,7 @@ const positionedPlayers = computed(() => {
             isBanker: isBanker,
             BankerMulti: getNum(p.CallMult, p.robMultiplier),
             BetMulti: getNum(p.BetMult, p.betMultiplier),
-            NickName: p.ID === myId.value ? '您的手牌' : (p.NickName || 'Unknown'),
+            NickName: processedNickName,
             isObserver: p.IsOb || false,
             isEmpty: false,
             isMe: p.ID === myId.value

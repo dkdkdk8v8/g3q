@@ -913,6 +913,12 @@ const startDealingAnimation = (isSupplemental = false) => {
             if (!dealingCounts.value[p.id]) dealingCounts.value[p.id] = 0;
             dealingCounts.value[p.id] += toDeal;
 
+            // NEW: For myPlayer in supplemental deal, reserve space immediately to trigger slide
+            if (isSupplemental && p.id === store.myPlayerId) {
+                if (!visibleCounts.value[p.id]) visibleCounts.value[p.id] = 0;
+                visibleCounts.value[p.id] += toDeal;
+            }
+
             const seatEl = seatRefs.value[p.id];
             if (seatEl) {
                 const handArea = seatEl.querySelector('.hand-area');
@@ -975,8 +981,11 @@ const startDealingAnimation = (isSupplemental = false) => {
 
         setTimeout(() => {
             dealingLayer.value.dealToPlayer(cardTargets, () => {
-                if (!visibleCounts.value[t.id]) visibleCounts.value[t.id] = 0;
-                visibleCounts.value[t.id] += t.count;
+                // Modified: Only update visibleCounts if NOT already updated (i.e. not myPlayer in supplemental)
+                if (!(isSupplemental && t.id === store.myPlayerId)) {
+                    if (!visibleCounts.value[t.id]) visibleCounts.value[t.id] = 0;
+                    visibleCounts.value[t.id] += t.count;
+                }
 
                 // Animation finished: remove from flying count
                 if (dealingCounts.value[t.id]) {
@@ -1444,16 +1453,17 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                 <div class="hand-area">
 
-                    <div class="cards">
+                    <TransitionGroup tag="div" class="cards" name="list">
                         <template v-for="(card, idx) in myPlayer.hand" :key="idx">
                             <PokerCard v-if="visibleCounts[myPlayer.id] === undefined || idx < visibleCounts[myPlayer.id]"
                                 :card="shouldShowCardFace ? card : null" :is-small="false"
                                 :class="{ 'hand-card': true, 'bull-card-overlay': isBullPart(idx), 'selected': selectedCardIndices.includes(idx) }"
                                 :style="{
-                                    marginLeft: idx === 0 ? '0' : '1px' /* for myPlayer */
+                                    marginLeft: idx === 0 ? '0' : '1px', /* for myPlayer */
+                                    opacity: (dealingCounts[myPlayer.id] && idx >= (visibleCounts[myPlayer.id] - dealingCounts[myPlayer.id])) ? 0 : 1
                                 }" @click="handleCardClick({ card, index: idx })" />
                         </template>
-                    </div>
+                    </TransitionGroup>
 
                     <!-- Hand Result Badge - adapted from PlayerSeat -->
 
@@ -2758,6 +2768,22 @@ const shouldMoveStatusToHighPosition = computed(() => {
 .pop-up-leave-to {
     opacity: 0;
     transform: scale(0.5);
+}
+
+.list-move,
+.list-enter-active,
+.list-leave-active {
+    transition: all 0.5s ease;
+}
+
+.list-enter-from,
+.list-leave-to {
+    opacity: 0;
+    transform: translateY(30px);
+}
+
+.list-leave-active {
+    position: absolute;
 }
 
 .game-start-icon {

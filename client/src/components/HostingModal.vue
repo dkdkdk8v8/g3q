@@ -207,7 +207,7 @@ const getBetLabel = (val) => {
 }
 
 .modal-title-img {
-    width: 70%;
+    width: 80%;
     /* 50% of the modal's width */
     height: auto;
     object-fit: contain;

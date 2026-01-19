@@ -1115,6 +1115,13 @@ onMounted(() => {
     const gameMode = route.query.mode !== undefined ? route.query.mode : 0;
     store.initGame(gameMode);
 
+    // Preload animation images to prevent layout jumps
+    const preloadImages = [gameWinImg, gameLoseImg, iconGameStart, lobbyLogoImg];
+    preloadImages.forEach(src => {
+        const img = new Image();
+        img.src = src;
+    });
+
     if (route.query.autoJoin) {
         // Show prominent message for re-joining
         showAutoJoinMessage.value = true;
@@ -1372,9 +1379,9 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
     <div class="game-table" :style="backgroundImageStyle">
 
-        <img v-if="showStartAnim" :src="iconGameStart" class="game-start-icon" :class="startAnimationClass" />
+        <img v-show="showStartAnim" :src="iconGameStart" class="game-start-icon" :class="startAnimationClass" />
 
-        <img v-if="showResultAnim" :src="resultImage" class="result-icon" :class="resultAnimClass" />
+        <img v-show="showResultAnim" :src="resultImage" class="result-icon" :class="resultAnimClass" />
 
         <DealingLayer ref="dealingLayer" />
 
@@ -1386,7 +1393,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
         <transition name="switch-room-fade">
 
-            <div v-if="showSwitchRoomOverlay" class="switch-room-overlay">
+            <div v-show="showSwitchRoomOverlay" class="switch-room-overlay">
 
                 <img :src="lobbyLogoImg" alt="Lobby Logo" class="switch-room-logo"
                     :class="logoAnimationState === 'entering' ? 'logo-enter' : (logoAnimationState === 'leaving' ? 'logo-leave' : '')" />
@@ -2929,20 +2936,23 @@ const shouldMoveStatusToHighPosition = computed(() => {
     position: fixed;
     top: 40%;
     left: 50%;
-    transform: translate(-50%, -50%) scale(0);
+    transform: translate(-50%, -50%) scale(0.1);
     width: 70vw;
     height: auto;
     z-index: 6000;
     pointer-events: none;
-    transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    opacity: 0;
+    transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.5s ease;
 }
 
 .result-icon.pop {
     transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
 }
 
 .result-icon.bounce {
     transform: translate(-50%, -50%) scale(0.666);
+    opacity: 1;
 }
 
 .showdown-wrapper {
@@ -3535,7 +3545,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
     position: absolute;
     top: 42%;
     left: 50%;
-    transform: translate(-50%, -50%) scale(0);
+    transform: translate(-50%, -50%) scale(0.1);
     width: 80vw;
     height: auto;
     object-fit: contain;
@@ -3549,13 +3559,13 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
 .switch-room-logo.logo-leave {
     transition: all 0.3s ease-in;
-    transform: scale(0);
+    transform: scale(0.1);
     opacity: 0;
 }
 
 @keyframes logoBounce {
     0% {
-        transform: translate(-50%, -50%) scale(0);
+        transform: translate(-50%, -50%) scale(0.1);
         opacity: 0;
     }
 

@@ -180,7 +180,7 @@ const suitSymbol = computed(() => {
 
 .is-small .corner-top-left {
   top: 0;
-  left: 0;
+  left: -0.5vw;
 }
 
 .is-small .corner-bottom-right {

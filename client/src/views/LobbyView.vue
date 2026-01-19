@@ -230,15 +230,16 @@ const goBack = () => {
 
             <!-- Stacked Images (Display Only) -->
             <!-- Mode 0: Bukan (No Look) -->
-            <img :src="currentMode === 0 ? tabBukanSel : tabBukan" class="tab-btn"
-                :class="{ 'active': currentMode === 0 }" />
+            <img :src="tabBukanSel" class="tab-btn active" v-show="currentMode === 0" />
+            <img :src="tabBukan" class="tab-btn" v-show="currentMode !== 0" />
 
             <!-- Mode 1: San (3 cards) -->
-            <img :src="currentMode === 1 ? tabSanSel : tabSan" class="tab-btn"
-                :class="{ 'active': currentMode === 1 }" />
+            <img :src="tabSanSel" class="tab-btn active" v-show="currentMode === 1" />
+            <img :src="tabSan" class="tab-btn" v-show="currentMode !== 1" />
 
             <!-- Mode 2: Si (4 cards) -->
-            <img :src="currentMode === 2 ? tabSiSel : tabSi" class="tab-btn" :class="{ 'active': currentMode === 2 }" />
+            <img :src="tabSiSel" class="tab-btn active" v-show="currentMode === 2" />
+            <img :src="tabSi" class="tab-btn" v-show="currentMode !== 2" />
 
             <!-- Click Layer (Interaction) -->
             <div class="tab-click-layer">

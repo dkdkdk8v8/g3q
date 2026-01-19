@@ -345,7 +345,7 @@ watch(() => props.visible, (val) => {
                             <div class="hc-bet-amt">
                                 投注: <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{
                                     formatCoins(item.bet)
-                                    }}</span>
+                                }}</span>
                             </div>
                         </div>
                     </div>
@@ -671,16 +671,11 @@ watch(() => props.visible, (val) => {
 }
 
 /* DatePicker Dark Theme Overrides */
-:deep(.dark-theme-popup) {
-    --van-popup-background: red;
-    --van-picker-background: red;
-    --van-picker-option-text-color: #94a3b8;
-    --van-picker-title-color: #f1f5f9;
-    --van-picker-action-text-color: #60a5fa;
-    --van-picker-mask-color: linear-gradient(180deg, rgba(32, 35, 45, 0.9), rgba(32, 35, 45, 0.4)), linear-gradient(0deg, rgba(32, 35, 45, 0.9), rgba(32, 35, 45, 0.4));
+:deep(.van-picker__columns) {
+    background-color: rgba(38, 43, 58, 1);
 }
 
 :deep(.van-picker) {
-    background-color: transparent;
+    background-color: rgba(32, 35, 45, 1);
 }
 </style>

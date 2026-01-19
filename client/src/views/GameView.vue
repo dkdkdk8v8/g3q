@@ -1455,7 +1455,8 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                     <TransitionGroup tag="div" class="cards" name="list">
                         <template v-for="(card, idx) in myPlayer.hand" :key="idx">
-                            <PokerCard v-if="visibleCounts[myPlayer.id] === undefined || idx < visibleCounts[myPlayer.id]"
+                            <PokerCard
+                                v-if="visibleCounts[myPlayer.id] === undefined || idx < visibleCounts[myPlayer.id]"
                                 :card="shouldShowCardFace ? card : null" :is-small="false"
                                 :class="{ 'hand-card': true, 'bull-card-overlay': isBullPart(idx), 'selected': selectedCardIndices.includes(idx) }"
                                 :style="{
@@ -2155,7 +2156,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
 .table-center {
     position: absolute;
-    top: 40%;
+    top: 42%;
     left: 50%;
     transform: translate(-50%, -50%);
     text-align: center;

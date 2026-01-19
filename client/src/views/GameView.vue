@@ -87,15 +87,8 @@ const allRobOptions = computed(() => {
 
 const showHosting = ref(false); // Hosting Modal State
 const isSwitchingRoom = ref(false); // Switching Room State
-const switchRoomCooldown = ref(0); // 5s Cooldown
 const isHosting = ref(false); // Is Hosting Active?
 const hostingSettings = ref({ rob: 0, bet: 1 }); // Stored Settings
-
-const switchRoomButtonText = computed(() => {
-    if (isSwitchingRoom.value) return "正在切换房间";
-    if (switchRoomCooldown.value > 0) return `${switchRoomCooldown.value}秒后可切换房间`;
-    return "切换房间";
-});
 
 // ... (existing logic)
 
@@ -188,8 +181,10 @@ const handleHostingConfirm = (settings) => {
     }
 };
 
+const switchRoomStartTime = ref(0);
+
 const switchRoom = debounce(() => {
-    if (isSwitchingRoom.value || switchRoomCooldown.value > 0) return;
+    if (isSwitchingRoom.value) return;
     if (settingsStore.soundEnabled) {
         AudioUtils.playEffect(btnClickSound);
     }
@@ -197,6 +192,7 @@ const switchRoom = debounce(() => {
     isHosting.value = false;
 
     isSwitchingRoom.value = true;
+    switchRoomStartTime.value = Date.now();
     showSwitchRoomOverlay.value = true; // Show overlay immediately
     logoAnimationState.value = 'entering'; // Start logo animation
     gameClient.send("QZNN.PlayerChangeRoom", { RoomId: store.roomId });
@@ -1154,23 +1150,19 @@ onMounted(() => {
             showSwitchRoomOverlay.value = false; // Hide overlay on failure
             logoAnimationState.value = ''; // Reset animation state
         } else {
-            // Success: Start cooldown
-            switchRoomCooldown.value = 5;
-            const timer = setInterval(() => {
-                switchRoomCooldown.value--;
-                if (switchRoomCooldown.value <= 0) {
-                    clearInterval(timer);
-                }
-            }, 1000);
+            // Calculate delay to ensure minimum 1.5s total display time
+            const elapsed = Date.now() - switchRoomStartTime.value;
+            const minDuration = 1500;
+            const delay = Math.max(0, minDuration - elapsed);
 
-            // Trigger visual feedback: Wait 1 second, then scale out logo and hide overlay
+            // Trigger visual feedback: Wait calculated delay, then scale out logo and hide overlay
             setTimeout(() => {
                 logoAnimationState.value = 'leaving'; // Start logo leaving animation
                 setTimeout(() => {
                     showSwitchRoomOverlay.value = false; // Hide overlay
                     logoAnimationState.value = ''; // Reset animation state
                 }, 500); // Wait for logo to scale out
-            }, 1000); // Wait 1 second after success
+            }, delay);
         }
     });
 
@@ -1780,14 +1772,9 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                 <!-- Switch Room Button -->
                 <div v-if="myPlayer.isObserver || ['IDLE', 'READY_COUNTDOWN', 'SETTLEMENT', 'WAITING_FOR_PLAYERS'].includes(store.currentPhase)"
-                    class="game-btn switch-room-btn" :class="{ 'disabled': isSwitchingRoom || switchRoomCooldown > 0 }"
+                    class="game-btn switch-room-btn" :class="{ 'disabled': isSwitchingRoom }"
                     @click="switchRoom">
-                    <template v-if="isSwitchingRoom">
-                        正在切换房间<span class="loading-dots"></span>
-                    </template>
-                    <template v-else>
-                        {{ switchRoomButtonText }}
-                    </template>
+                    切换房间
                 </div>
 
                 <!-- Observer Waiting Text -->

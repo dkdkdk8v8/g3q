@@ -35,11 +35,11 @@ const backgroundImageStyle = computed(() => {
 });
 
 const baseBetStyle = computed(() => {
-    let borderColor = '#22c55e'; // Default Green (Mode 0)
+    let borderColor = '#22c55eaa'; // Default Green (Mode 0)
     if (store.gameMode === 1) {
-        borderColor = '#3b82f6'; // Blue (Mode 1)
+        borderColor = '#3b82f6aa'; // Blue (Mode 1)
     } else if (store.gameMode === 2) {
-        borderColor = '#a855f7'; // Purple (Mode 2)
+        borderColor = '#a855f7aa'; // Purple (Mode 2)
     }
     return {
         borderColor: borderColor,
@@ -1047,16 +1047,16 @@ const startDealingAnimation = (isSupplemental = false) => {
         // --- NEW LOGIC START ---
         // Immediately update visibleCounts to trigger layout update (start moving)
         if (!(isSupplemental && t.id === store.myPlayerId)) {
-             if (!visibleCounts.value[t.id]) visibleCounts.value[t.id] = 0;
-             visibleCounts.value[t.id] += t.count;
+            if (!visibleCounts.value[t.id]) visibleCounts.value[t.id] = 0;
+            visibleCounts.value[t.id] += t.count;
 
-             // Mark new cards as hidden for opponents (MyPlayer uses dealingCounts logic in template)
-             if (!t.isMe) {
-                 const currentHidden = hiddenCardsMap.value[t.id] || [];
-                 // Add indices of new cards
-                 const newIndices = cardTargets.map(c => c.index);
-                 hiddenCardsMap.value[t.id] = [...currentHidden, ...newIndices];
-             }
+            // Mark new cards as hidden for opponents (MyPlayer uses dealingCounts logic in template)
+            if (!t.isMe) {
+                const currentHidden = hiddenCardsMap.value[t.id] || [];
+                // Add indices of new cards
+                const newIndices = cardTargets.map(c => c.index);
+                hiddenCardsMap.value[t.id] = [...currentHidden, ...newIndices];
+            }
         }
         // --- NEW LOGIC END ---
 
@@ -1425,13 +1425,13 @@ const shouldMoveStatusToHighPosition = computed(() => {
             <div v-for="(p, index) in opponentSeats" :key="index" class="opponent-seat-abs"
                 :class="getOpponentClass(index + 1)" :style="getSeatStyle(index + 1)">
 
-                            <PlayerSeat v-if="p && p.id" :player="p" :ref="(el) => setSeatRef(el, p.id)"
-                                :position="getLayoutType(index + 1)"
-                                :visible-card-count="visibleCounts[p.id] !== undefined ? visibleCounts[p.id] : 0"
-                                :hidden-card-indices="hiddenCardsMap[p.id] || []"
-                                :is-ready="p.isReady" :is-animating-highlight="p.id === currentlyHighlightedPlayerId"
-                                :trigger-banker-animation="showBankerConfirmAnim && p.isBanker" :is-win="!!winEffects[p.id]" />
-                                <div v-else class="empty-seat">
+                <PlayerSeat v-if="p && p.id" :player="p" :ref="(el) => setSeatRef(el, p.id)"
+                    :position="getLayoutType(index + 1)"
+                    :visible-card-count="visibleCounts[p.id] !== undefined ? visibleCounts[p.id] : 0"
+                    :hidden-card-indices="hiddenCardsMap[p.id] || []" :is-ready="p.isReady"
+                    :is-animating-highlight="p.id === currentlyHighlightedPlayerId"
+                    :trigger-banker-animation="showBankerConfirmAnim && p.isBanker" :is-win="!!winEffects[p.id]" />
+                <div v-else class="empty-seat">
 
                     <div class="empty-seat-avatar">
 

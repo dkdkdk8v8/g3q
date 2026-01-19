@@ -2144,7 +2144,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
 .table-center {
     position: absolute;
-    top: 36%;
+    top: 40%;
     left: 50%;
     transform: translate(-50%, -50%);
     text-align: center;

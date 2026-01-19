@@ -522,11 +522,11 @@ const goBack = () => {
 
 
 
-    width: 16px;
+    width: 18px;
 
 
 
-    height: 16px;
+    height: 18px;
 
 
 
@@ -546,7 +546,7 @@ const goBack = () => {
 
 
 
-    font-size: 13px;
+    font-size: 14px;
 
 
 

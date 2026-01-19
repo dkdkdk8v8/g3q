@@ -635,11 +635,28 @@ const positionedPlayers = computed(() => {
 
 .nickname.me {
     color: #000000;
+    font-weight: bold;
+}
+
+@keyframes banker-scale-pulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.2);
+    }
+
+    100% {
+        transform: scale(1);
+    }
 }
 
 .banker-icon {
     width: 14px;
     height: 14px;
+    animation: banker-scale-pulse 1.5s infinite ease-in-out;
+    /* Apply the animation */
 }
 
 .empty-seat-msg {

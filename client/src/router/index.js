@@ -24,4 +24,9 @@ const router = createRouter({
   ]
 })
 
+// Debug: Log all route changes
+router.beforeEach((to, from, next) => {
+  next();
+});
+
 export default router

@@ -106,7 +106,7 @@ export class GameRobotService extends BaseService {
     }
 
     async generateAvatar(): Promise<string> {
-        const count = await this.baseSysParamService.dataByKey('avatar_count');
+        const count = await this.baseSysParamService.dataByKey('admin.AvatarCount');
         const index = Math.floor(Math.random() * count) + 1;
         return `gwd3czq/${index}.jpg`;
     }
@@ -140,7 +140,7 @@ export class GameRobotService extends BaseService {
     }
 
     async page(query, option, connectionName) {
-        const host = await this.baseSysParamService.dataByKey('avatar_host');
+        const host = await this.baseSysParamService.dataByKey('admin.AvatarHost');
         const result = await super.page(query, option, connectionName);
         result?.list?.map((item: GameUserEntity) => {
             if (item.avatar) item.avatar = `${host}/${item.avatar}`;

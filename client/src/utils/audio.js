@@ -1,4 +1,4 @@
-import { Howl } from 'howler';
+import { Howl, Howler } from 'howler';
 
 /**
  * Audio Manager using Howler.js
@@ -9,6 +9,7 @@ import { Howl } from 'howler';
 const effects = {};
 let currentMusic = null;
 let currentMusicPath = null;
+let wasMusicPlaying = false; // Track if music was playing before suspend
 
 export const AudioUtils = {
     /**
@@ -46,6 +47,7 @@ export const AudioUtils = {
         if (currentMusic && currentMusicPath === src) {
             if (!currentMusic.playing()) {
                 currentMusic.play();
+                wasMusicPlaying = true;
             }
             currentMusic.volume(volume);
             return;
@@ -67,6 +69,7 @@ export const AudioUtils = {
         });
 
         currentMusic.play();
+        wasMusicPlaying = true;
     },
 
     /**
@@ -78,6 +81,7 @@ export const AudioUtils = {
             // Optional: reset path if you want to force reload next time
             // currentMusicPath = null; 
         }
+        wasMusicPlaying = false;
     },
 
     /**
@@ -87,6 +91,7 @@ export const AudioUtils = {
         if (currentMusic) {
             currentMusic.pause();
         }
+        wasMusicPlaying = false;
     },
 
     /**
@@ -95,6 +100,33 @@ export const AudioUtils = {
     setMusicVolume(volume) {
         if (currentMusic) {
             currentMusic.volume(volume);
+        }
+    },
+
+    /**
+     * Suspend all audio (Global Mute + Pause Music)
+     * Used when app goes to background
+     */
+    suspend() {
+        // Check if music is ACTUALLY playing right now
+        if (currentMusic && currentMusic.playing()) {
+            currentMusic.pause();
+            wasMusicPlaying = true;
+        } else {
+            // If it was already paused/stopped, we shouldn't resume it automatically
+            wasMusicPlaying = false;
+        }
+        Howler.mute(true);
+    },
+
+    /**
+     * Resume audio (Global Unmute + Resume Music if was playing)
+     * Used when app comes to foreground
+     */
+    resume() {
+        Howler.mute(false);
+        if (wasMusicPlaying && currentMusic) {
+            currentMusic.play();
         }
     }
 };

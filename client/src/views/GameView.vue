@@ -1455,7 +1455,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                                     myPlayer.robMultiplier
 
-                                    }}倍</span>
+                                }}倍</span>
 
                                 <span v-else class="status-text no-rob-text text-large">不抢</span>
 
@@ -2582,11 +2582,6 @@ const shouldMoveStatusToHighPosition = computed(() => {
     transition: transform 0.1s;
 }
 
-.game-btn:active {
-    transform: translateY(4px);
-    box-shadow: none;
-}
-
 .multiplier-btn-img {
     height: auto;
     width: 100%;
@@ -3327,14 +3322,9 @@ const shouldMoveStatusToHighPosition = computed(() => {
         opacity: 1;
     }
 
-    80% {
-        transform: translate(-50%, -50px) scale(1);
-        opacity: 1;
-    }
-
     100% {
         transform: translate(-50%, -60px) scale(1);
-        opacity: 0;
+        opacity: 1;
     }
 }
 

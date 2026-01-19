@@ -48,8 +48,10 @@ var (
 
 // PlayerSimple 用于解析 HTTP 接口返回的玩家数据
 type PlayerSimple struct {
-	ID      string
-	IsRobot bool
+	ID       string
+	IsRobot  bool
+	Nickname string
+	Avatar   string
 }
 
 // RoomDataSimple 用于解析 HTTP 接口返回的房间数据
@@ -92,6 +94,17 @@ func cleanupRoomLeaveCooldown() {
 	}
 }
 
+func isRobotCompatible(user *modelClient.ModelUser, room *RoomDataSimple) bool {
+	for _, p := range room.Players {
+		if p != nil && p.IsRobot {
+			if p.Nickname == user.NickName || p.Avatar == user.Avatar {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 // managerRound 执行一轮调度
 func managerRound() {
 	// 1. 读取全部房间数据
@@ -114,14 +127,41 @@ func managerRound() {
 	}
 
 	// 4. 执行调度
-	// 取行动数和机器人数的较小值
-	count := len(actions)
-	if len(robots) < count {
-		count = len(robots)
+	roomMap := make(map[string]*RoomDataSimple)
+	for _, r := range rooms {
+		roomMap[r.ID] = r
 	}
 
-	for i := 0; i < count; i++ {
-		go launchRobot(robots[i], actions[i])
+	usedRobotIndices := make(map[int]bool)
+	for _, action := range actions {
+		for i, robot := range robots {
+			if usedRobotIndices[i] {
+				continue
+			}
+
+			if action.RoomId != "" {
+				if room, ok := roomMap[action.RoomId]; ok {
+					if !isRobotCompatible(robot, room) {
+						logrus.WithFields(logrus.Fields{
+							"roomId": action.RoomId,
+							"uid":    robot.UserId,
+							"nick":   robot.NickName,
+						}).Info("Robot - Compatibility check failed (duplicate nickname or avatar), skipping room")
+						continue
+					}
+					// 虚拟加入，防止本轮后续机器人冲突
+					room.Players = append(room.Players, &PlayerSimple{
+						IsRobot:  true,
+						Nickname: robot.NickName,
+						Avatar:   robot.Avatar,
+					})
+				}
+			}
+
+			usedRobotIndices[i] = true
+			go launchRobot(robot, action)
+			break
+		}
 	}
 }
 
@@ -423,7 +463,7 @@ func (r *Robot) Run() {
 			"roomId":  r.Target.RoomId,
 			"uid":     r.Uid,
 			"balance": r.Balance,
-		}).Errorf("Robot failed to connect to server: %v", err)
+		}).Errorf("Robot - Failed to connect to server: %v", err)
 		return
 	}
 
@@ -472,7 +512,7 @@ func (r *Robot) Run() {
 				"roomId":  roomId,
 				"uid":     r.Uid,
 				"balance": balance,
-			}).Errorf("Robot read message error: %v", err)
+			}).Errorf("Robot - Read message error: %v", err)
 			return
 		}
 
@@ -812,7 +852,7 @@ func (r *Robot) checkLeave() {
 			roomLeaveCooldown[roomId] = time.Now()
 			roomLeaveMu.Unlock()
 
-			logrus.WithFields(logrus.Fields{"roomId": roomId, "uid": r.Uid, "balance": balance}).Infof("Robot decided to leave room, current players: %d, games played: %d, probability: %.2f", count, gamesPlayed, prob)
+			logrus.WithFields(logrus.Fields{"roomId": roomId, "uid": r.Uid, "balance": balance}).Infof("Robot - Decided to leave room, current players: %d, games played: %d, probability: %.2f", count, gamesPlayed, prob)
 			r.Send(qznn.CmdPlayerLeave, map[string]interface{}{"RoomId": roomId})
 			r.Close()
 		}

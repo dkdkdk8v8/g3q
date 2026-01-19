@@ -35,11 +35,11 @@ const backgroundImageStyle = computed(() => {
 });
 
 const baseBetStyle = computed(() => {
-    let borderColor = '#22c55eaa'; // Default Green (Mode 0)
+    let borderColor = '#22c55e66'; // Default Green (Mode 0)
     if (store.gameMode === 1) {
-        borderColor = '#3b82f6aa'; // Blue (Mode 1)
+        borderColor = '#3b82f666'; // Blue (Mode 1)
     } else if (store.gameMode === 2) {
-        borderColor = '#a855f7aa'; // Purple (Mode 2)
+        borderColor = '#a855f766'; // Purple (Mode 2)
     }
     return {
         borderColor: borderColor,

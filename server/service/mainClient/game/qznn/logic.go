@@ -27,13 +27,14 @@ var errorStateNotMatch = errors.New("stateNotMatch")
 
 // UserStrategyData 用户策略运行时数据
 type UserStrategyData struct {
-	TotalProfit       int64   // 历史总盈亏
-	PendingCompensate int64   // 待补偿金额 (低分场输的钱)
-	BaseLucky         float64 // 基础 Lucky 值 (进场时计算)
-	FinalLucky        float64 // 最终 Lucky 值 (发牌前修正)
-	IsHighRisk        bool    // 是否被标记为高风险(投机)
-	WinningStreak     int     // 连胜局数
-	LosingStreak      int     // 连败局数
+	TotalProfit       int64    // 历史总盈亏
+	PendingCompensate int64    // 待补偿金额 (低分场输的钱)
+	BaseLucky         float64  // 基础 Lucky 值 (进场时计算)
+	FinalLucky        float64  // 最终 Lucky 值 (发牌前修正)
+	IsHighRisk        bool     // 是否被标记为高风险(投机)
+	WinningStreak     int      // 连胜局数
+	LosingStreak      int      // 连败局数
+	LuckyReasons      []string // 记录Lucky变动原因
 }
 
 /*
@@ -86,27 +87,10 @@ func (s *RoomStrategy) Log() {
 
 func NewRoomStrategy() *RoomStrategy {
 	cfg := strategy.StrategyConfig{
-		TargetProfitRate: modelAdmin.SysParamCache.GetFloat64("strategy.TargetProfitRate", 0.05),
-		// ----------------------------------------------------------------
-		// [风控参数直观分布表] y = -40*x + 1.0
-		//
-		// 1. 库存保护 (杀率过低 -> 降低玩家Lucky)
-		//    杀率 0.0%  -> y=1.0 -> 100% 概率触发保护 (强力回收)
-		//    杀率 1.0%  -> y=0.6 -> 60%  概率触发保护
-		//    杀率 2.0%  -> y=0.2 -> 20%  概率触发保护
-		//    杀率 2.5%  -> y=0.0 -> 0%   停止保护 (平衡点)
-		//
-		// 2. 系统放水 (杀率过高 -> 提升玩家Lucky, 阈值设定为 -2.0)
-		//    杀率 2.5% ~ 7.5% -> 系统不干预 (自由博弈区间)
-		//    杀率 7.5%  -> y=-2.0 -> 0%   开始放水
-		//    杀率 8.0%  -> y=-2.2 -> 20%  概率放水
-		//    杀率 10.0% -> y=-3.0 -> 100% 概率放水 (强力送分)
-		// ----------------------------------------------------------------
-		ProtectK:          modelAdmin.SysParamCache.GetFloat64("strategy.ProtectK", -50.0),
-		ProtectB:          modelAdmin.SysParamCache.GetFloat64("strategy.ProtectB", 1),
+		TargetProfitRate:  modelAdmin.SysParamCache.GetFloat64("strategy.TargetProfitRate", 0.05),
 		BaseLucky:         modelAdmin.SysParamCache.GetFloat64("strategy.BaseLucky", 50),
 		HighRiskMult:      int64(modelAdmin.SysParamCache.GetInt("strategy.BaseLucky", 20)),        // 示例: 4倍抢庄 * 5倍下注 = 20
-		EnableNewbieBonus: modelAdmin.SysParamCache.GetBool("strategy.EnableNewbieBonus", true),    // 是否开启新手光环    // 开启新手光环
+		EnableNewbieBonus: modelAdmin.SysParamCache.GetBool("strategy.EnableNewbieBonust", true),   // 是否开启新手光环    // 开启新手光环
 		MinTurnover:       int64(modelAdmin.SysParamCache.GetInt("strategy.MinTurnover", 5000000)), // 最小流水阈值 (例如200万分/2万元)，低于此值不介入强风控
 	}
 	rs := &RoomStrategy{
@@ -928,7 +912,7 @@ func (r *QZNNRoom) startGame() {
 	}
 
 	// 每次游戏开始前更新策略参数
-	r.UpdateStrategyParams()
+	//r.UpdateStrategyParams()
 
 	//保底的检查，用户能不能玩，至少2个有效用户，不够要再踢回waiting
 	activePlayer := r.GetActivePlayers(nil)
@@ -1120,7 +1104,7 @@ func (r *QZNNRoom) startGame() {
 
 	// 【核心修改】在此处介入策略系统
 	// 在进入 StateDealing (发牌/补牌) 之前，根据倍数和库存调整手牌
-	r.applyStrategyRiskControl()
+	//r.applyStrategyRiskControl()
 
 	//补牌到5张，不看牌发5张，看3补2，看4
 	if !r.SetStatus([]RoomState{StateBetting}, StateDealing, 0) {
@@ -1606,12 +1590,13 @@ func (r *QZNNRoom) calculateRealtimeLucky(p *Player) float64 {
 	}
 
 	// 调用通用策略管理器进行计算
-	baseLucky := r.Strategy.Manager.CalcBaseLucky(ctx)
-	finalLucky, isHighRisk := r.Strategy.Manager.ApplyRiskControl(baseLucky, ctx)
+	baseLucky, reasons1 := r.Strategy.Manager.CalcBaseLucky(ctx)
+	finalLucky, isHighRisk, reasons2 := r.Strategy.Manager.ApplyRiskControl(baseLucky, ctx)
 
 	strategyData.BaseLucky = baseLucky
 	strategyData.FinalLucky = finalLucky
 	strategyData.IsHighRisk = isHighRisk
+	strategyData.LuckyReasons = append(reasons1, reasons2...)
 
 	// 日志记录
 	if r.CanLog() {
@@ -1621,6 +1606,7 @@ func (r *QZNNRoom) calculateRealtimeLucky(p *Player) float64 {
 			"baseLucky":   fmt.Sprintf("%.2f", baseLucky),
 			"totalMult":   totalMult,
 			"finalLucky":  fmt.Sprintf("%.2f", finalLucky),
+			"reasons":     strategyData.LuckyReasons,
 		}).Info("CalcLucky")
 	}
 
@@ -1685,15 +1671,11 @@ func (r *QZNNRoom) adjustCardsBasedOnLucky() {
 		// 3.3 库存保护 (System Inventory Protection)
 		// 当系统库存低于警戒线时，启动收割模式
 		shouldProtect := false
-		if r.Strategy.TodayTurnover > 0 {
-			rate := float64(r.Strategy.TodayProfit) / float64(r.Strategy.TodayTurnover)
-			// 线性公式: y = kx + b
-			protectProb := r.Strategy.Config.ProtectK*rate + r.Strategy.Config.ProtectB
-			if protectProb > 1.0 {
-				protectProb = 1.0
-			}
-			if protectProb > 0 && rand.Float64() < protectProb {
+		// 复用 calculateRealtimeLucky 中计算出的风控结果，避免重复计算和逻辑不一致
+		for _, reason := range strategyData.LuckyReasons {
+			if strings.Contains(reason, "InventoryProtect") {
 				shouldProtect = true
+				break
 			}
 		}
 
@@ -1726,7 +1708,7 @@ func (r *QZNNRoom) adjustCardsBasedOnLucky() {
 					"target":      "WIN",
 					"currentNiu":  p.CardResult.Niu,
 					"bankerNiu":   banker.CardResult.Niu,
-					"targetLucky": targetLucky,
+					"targetLucky": util.Round(targetLucky, 2),
 				}).Info("Strategy: TrySwap")
 			}
 			// 目标：换一副比庄家大的牌
@@ -1744,7 +1726,7 @@ func (r *QZNNRoom) adjustCardsBasedOnLucky() {
 					"target":      "LOSE",
 					"currentNiu":  p.CardResult.Niu,
 					"bankerNiu":   banker.CardResult.Niu,
-					"targetLucky": targetLucky,
+					"targetLucky": util.Round(targetLucky, 2),
 				}).Info("Strategy: TrySwap")
 			}
 			// 目标：换一副比庄家小的牌

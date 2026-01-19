@@ -1,6 +1,7 @@
 package strategy
 
 import (
+	"compoment/util"
 	"math"
 	"math/rand"
 
@@ -10,8 +11,6 @@ import (
 // StrategyConfig 策略配置参数
 type StrategyConfig struct {
 	TargetProfitRate  float64 // 目标利润率 (e.g., 0.05 for 5%)
-	ProtectK          float64 // 线性保护公式斜率 k
-	ProtectB          float64 // 线性保护公式截距 b
 	BaseLucky         float64 // 默认幸运值 (50)
 	HighRiskMult      int64   // 高风险倍数阈值 (抢庄*下注 > 此值时触发风控)
 	EnableNewbieBonus bool    // 是否开启新手光环
@@ -21,8 +20,6 @@ type StrategyConfig struct {
 func (c *StrategyConfig) Log() {
 	logrus.WithFields(logrus.Fields{
 		"TargetProfitRate":  c.TargetProfitRate,
-		"ProtectK":          c.ProtectK,
-		"ProtectB":          c.ProtectB,
 		"BaseLucky":         c.BaseLucky,
 		"HighRiskMult":      c.HighRiskMult,
 		"EnableNewbieBonus": c.EnableNewbieBonus,
@@ -58,7 +55,7 @@ func (c *StrategyContext) Log() {
 		"TotalProfit":             c.TotalProfit,
 		"PendingCompensate":       c.PendingCompensate,
 		"BaseBet":                 c.BaseBet,
-		"KillRateToday":           c.KillRateToday,
+		"KillRateToday":           util.Round(c.KillRateToday, 2),
 		"TurnoverTodayAndYestory": c.TurnoverTodayAndYestory,
 		"TotalMult":               c.TotalMult,
 		"RiskExposure":            c.RiskExposure,
@@ -72,10 +69,10 @@ func (c *StrategyContext) Log() {
 // IStrategyCore 策略核心接口
 type IStrategyCore interface {
 	// CalcBaseLucky 计算基础 Lucky (进场时调用)
-	CalcBaseLucky(ctx *StrategyContext) float64
+	CalcBaseLucky(ctx *StrategyContext) (float64, []string)
 
 	// ApplyRiskControl 实时风控修正 (下注/操作时调用)
-	ApplyRiskControl(baseLucky float64, ctx *StrategyContext) (finalLucky float64, isHighRisk bool)
+	ApplyRiskControl(baseLucky float64, ctx *StrategyContext) (finalLucky float64, isHighRisk bool, reasons []string)
 }
 
 // StrategyManager 通用策略管理器实现
@@ -92,8 +89,9 @@ func NewStrategyManager(cfg StrategyConfig) *StrategyManager {
 
 // CalcBaseLucky 默认实现：计算基础 Lucky 值
 // 包含：水位修正、待补偿池修正、系统溢出返还
-func (s *StrategyManager) CalcBaseLucky(ctx *StrategyContext) float64 {
+func (s *StrategyManager) CalcBaseLucky(ctx *StrategyContext) (float64, []string) {
 	baseLucky := s.Config.BaseLucky
+	var reasons []string
 
 	// 1. 水位修正 (Water Level Correction)
 	// 逻辑：输得越多，Lucky 越高；赢得越多，Lucky 越低
@@ -106,10 +104,12 @@ func (s *StrategyManager) CalcBaseLucky(ctx *StrategyContext) float64 {
 		// 亏损用户：给予补偿
 		loss := float64(-ctx.TotalProfit)
 		waterCorrection = math.Min(MaxBonus, loss/UnitStep)
+		reasons = append(reasons, "WaterLevelBonus")
 	} else {
 		// 盈利用户：给予压制
 		profit := float64(ctx.TotalProfit)
 		waterCorrection = math.Max(-MaxPenalty, -(profit / UnitStep))
+		reasons = append(reasons, "WaterLevelPenalty")
 	}
 
 	// 2. 待补偿池修正 (Pending Compensation & Span Penalty)
@@ -124,23 +124,15 @@ func (s *StrategyManager) CalcBaseLucky(ctx *StrategyContext) float64 {
 	if ctx.PendingCompensate > 0 {
 		compensateLucky = float64(ctx.PendingCompensate) / (currentBaseBet * DilutionFactor)
 		compensateLucky = math.Min(20.0, compensateLucky)
+		reasons = append(reasons, "PendingCompensate")
 	}
-
-	// 3. 系统溢出返还 (System Overflow Bonus)
-	// 逻辑：当系统库存远超警戒线时，全员加 Lucky
-	// overflowBonus := 0.0
-	// const OverflowUnit = 50000.0
-	// if ctx.RoomStock > s.Config.OverflowThreshold {
-	// 	overflowAmt := float64(ctx.RoomStock - s.Config.OverflowThreshold)
-	// 	overflowBonus = overflowAmt / OverflowUnit
-	// 	overflowBonus = math.Min(15.0, overflowBonus)
-	// }
 
 	// 4. 新手光环 (Newbie Bonus)
 	// 逻辑：如果是新手且开关开启，给予额外 Lucky 加成
 	newbieBonus := 0.0
 	if s.Config.EnableNewbieBonus && ctx.IsNewbie {
 		newbieBonus = 10.0 // 新手固定加成 10 点
+		reasons = append(reasons, "NewbieBonus")
 	}
 
 	// 5. 连胜/连败修正 (Streak Correction)
@@ -152,23 +144,26 @@ func (s *StrategyManager) CalcBaseLucky(ctx *StrategyContext) float64 {
 	if ctx.LosingStreak >= 3 {
 		bonus := float64(ctx.LosingStreak-2) * 5.0
 		streakCorrection = math.Min(20.0, bonus)
+		reasons = append(reasons, "LosingStreakBonus")
 	}
 
 	// 连胜压制：连赢3局开始压制，每多赢1局-5点，上限-20点
 	if ctx.WinningStreak >= 3 {
 		penalty := float64(ctx.WinningStreak-2) * 5.0
 		streakCorrection = -math.Min(20.0, penalty)
+		reasons = append(reasons, "WinningStreakPenalty")
 	}
 	// ----------------------------------------------------------------
 
-	return baseLucky + waterCorrection + compensateLucky + newbieBonus + streakCorrection
+	return baseLucky + waterCorrection + compensateLucky + newbieBonus + streakCorrection, reasons
 }
 
 // ApplyRiskControl 默认实现：应用风控修正
 // 包含：倍数杠杆压制、库存保护压制
-func (s *StrategyManager) ApplyRiskControl(baseLucky float64, ctx *StrategyContext) (float64, bool) {
+func (s *StrategyManager) ApplyRiskControl(baseLucky float64, ctx *StrategyContext) (float64, bool, []string) {
 	tempLucky := baseLucky
 	isHighRisk := false
+	var reasons []string
 
 	// 1. 倍数杠杆与风控
 	// 如果 TotalMult (总倍数) 超过阈值，强制 Lucky 回归 50
@@ -181,65 +176,68 @@ func (s *StrategyManager) ApplyRiskControl(baseLucky float64, ctx *StrategyConte
 		// 应用衰减：保留 (Lucky - 50) 的一部分
 		offset := tempLucky - 50.0
 		tempLucky = 50.0 + (offset * decayFactor)
+		reasons = append(reasons, "HighRiskDecay")
 	}
 
 	// 2. 库存保护与系统返还 (System Inventory Protection & Overflow)
-	// 基于线性公式: y = kx + b + delta
+	// 改为直接基于实时杀率 X (ctx.KillRateToday) 与 目标杀率 (TargetProfitRate) 的偏差进行判断
 	shouldProtect := false
 	shouldRelease := false
 
 	// 计算杀率贡献值：如果流水不足，使用目标杀率代替实时杀率，防止波动过大
-	var rateContribution float64
+	currentRate := ctx.KillRateToday
+
+	targetRate := s.Config.TargetProfitRate
 	if ctx.TurnoverTodayAndYestory > 0 && ctx.TurnoverTodayAndYestory < s.Config.MinTurnover {
-		rateContribution = s.Config.ProtectK * s.Config.TargetProfitRate
-	} else {
-		rateContribution = s.Config.ProtectK * ctx.KillRateToday
+		currentRate = targetRate
 	}
 
-	// 线性公式: y = kx + b + delta
-	// y > 0: 保护倾向 (System needs to win) -> 降低玩家 Lucky
-	// y < 0: 放水倾向 (System has won too much) -> 增加玩家 Lucky
-	controlVal := rateContribution + s.Config.ProtectB
+	// 设定容忍区间 (Tolerance) 和 强度系数 (Scale)
+	// 容忍区间: 目标杀率 ± 2.5% (0.025)
+	// 强度系数: 40 (每偏离 1% 增加 40% 概率)
+	const Tolerance = 0.025
+	const Scale = 40.0
 
-	if controlVal > 0 {
-		// 保护逻辑
-		protectProb := controlVal
+	diff := currentRate - targetRate
+	if diff < -Tolerance {
+		// 杀率过低 (低于 Target - 2.5%) -> 触发保护
+		// 偏离越多，保护概率越大
+		over := -Tolerance - diff // positive value
+		protectProb := over * Scale
 		if protectProb > 1.0 {
 			protectProb = 1.0
 		}
 		if rand.Float64() < protectProb {
 			shouldProtect = true
 		}
-	} else {
-		// 返还逻辑 (Overflow)
-		// 当 controlVal 为负数时，表示杀率偏高，系统盈利过多
-		// 设定一个阈值 (例如 -2.0) 来触发返还，避免在目标附近(y=-1.4)频繁波动
-		// 这里使用 -2.0 作为基准 (对应 Rate > ~0.062)
-		releaseProb := -controlVal - 2.0
-		if releaseProb > 0 {
-			if releaseProb > 1.0 {
-				releaseProb = 1.0
-			}
-			if rand.Float64() < releaseProb {
-				shouldRelease = true
-			}
+	} else if diff > Tolerance {
+		// 杀率过高 (高于 Target + 2.5%) -> 触发放水
+		over := diff - Tolerance
+		releaseProb := over * Scale
+		if releaseProb > 1.0 {
+		}
+		if rand.Float64() < releaseProb {
+			shouldRelease = true
 		}
 	}
 
 	if shouldProtect {
 		if isHighRisk {
 			tempLucky -= 15.0 // 高风险且触发保护，重罚
+			reasons = append(reasons, "InventoryProtect_HighRisk")
 		} else {
 			tempLucky -= 5.0 // 普通情况触发保护，轻罚
+			reasons = append(reasons, "InventoryProtect_Normal")
 		}
 	}
 
 	if shouldRelease {
 		tempLucky += 5.0 // 触发返还，奖励 Lucky
+		reasons = append(reasons, "InventoryRelease")
 	}
 
 	// 3. 最终边界锁定
 	finalLucky := math.Min(math.Max(tempLucky, 20.0), 85.0)
 
-	return finalLucky, isHighRisk
+	return finalLucky, isHighRisk, reasons
 }

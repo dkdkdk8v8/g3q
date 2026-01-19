@@ -55,7 +55,7 @@ func joinRoom(roomId string, excludeRoomId string, userId string, connWrap *ws.W
 	modelUser, err := modelClient.GameLockUserBalance(p.ID, cfg.MinBalance)
 	if err != nil {
 		//有用户的金额不够锁住,尝试踢出用户
-		logrus.WithField("!", nil).WithField("userId", p.ID).WithError(err).Error("PlayerLockBal-Fail")
+		logrus.WithField("userId", p.ID).WithError(err).Error("PlayerLockBal-Fail")
 		return nil, err
 	}
 	//设置金额

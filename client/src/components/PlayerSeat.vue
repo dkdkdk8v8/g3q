@@ -1033,7 +1033,7 @@ const shouldMoveStatusFloat = computed(() => {
 
 .hand-result-badge {
     position: absolute;
-    bottom: 0;
+    bottom: 9px;
     /* Adjust as needed */
     left: 50%;
     transform: translateX(-50%);
@@ -1056,9 +1056,9 @@ const shouldMoveStatusFloat = computed(() => {
 
 .score-float {
     position: absolute;
-    top: -20px;
+    top: -10px;
     font-weight: bold;
-    font-size: 24px;
+    font-size: 22px;
     text-shadow: 2px 2px 0 #000;
     animation: floatUp 3s forwards;
     z-index: 20;

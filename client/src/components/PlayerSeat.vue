@@ -1098,4 +1098,22 @@ const shouldMoveStatusFloat = computed(() => {
         /* Remain visible */
     }
 }
+
+/* Status Float Pop-up Animation */
+.pop-up-enter-active,
+.pop-up-leave-active {
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform-origin: bottom center;
+}
+
+.pop-up-enter-from {
+    opacity: 0;
+    /* Start from lower (avatar center approx) and small */
+    transform: translateY(40px) scale(0.2);
+}
+
+.pop-up-leave-to {
+    opacity: 0;
+    transform: scale(0.5);
+}
 </style>

@@ -46,7 +46,7 @@ const baseBetStyle = computed(() => {
         borderWidth: '2px',
         borderStyle: 'solid',
         borderRadius: '20px', // Make it pill-shaped
-        backgroundColor: 'rgba(0, 0, 0, 0.4)' // Semi-transparent background
+        backgroundColor: 'rgba(0, 0, 0, 0.2)' // Semi-transparent background
     };
 });
 

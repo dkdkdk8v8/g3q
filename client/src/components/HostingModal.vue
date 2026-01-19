@@ -1,7 +1,7 @@
 <script setup>
 import { ref, watch, computed } from 'vue';
 import { useGameStore } from '../stores/game.js';
-
+import menuTuoGuanImg from '@/assets/common/menu_tuoguan.png';
 const props = defineProps({
     visible: Boolean,
     robOptions: {
@@ -62,7 +62,7 @@ const getBetLabel = (val) => {
         <div class="modal-content hosting-modal" @click.stop>
             <div class="modal-header">
                 <div class="header-left"></div>
-                <h3>托管设置</h3>
+                <img :src="menuTuoGuanImg" alt="托管设置" class="modal-title-img" />
                 <div class="header-right">
                     <div class="close-icon" @click="close">×</div>
                 </div>
@@ -204,6 +204,15 @@ const getBetLabel = (val) => {
     padding: 16px 20px 24px 20px;
     display: flex;
     justify-content: center;
+}
+
+.modal-title-img {
+    width: 70%;
+    /* 50% of the modal's width */
+    height: auto;
+    object-fit: contain;
+    flex-shrink: 0;
+    /* Prevent image from shrinking */
 }
 
 .cancel-btn {

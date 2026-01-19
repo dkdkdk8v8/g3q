@@ -316,7 +316,7 @@ const positionedPlayers = computed(() => {
 
 
                                 <HistoryPokerCard v-for="(card, cIdx) in p.uiCards" :key="cIdx" :card="card"
-                                    :isSmall="true" :simplified="true" :mini="true" class="mini-card" />
+                                    :isSmall="true" :simplified="true" :mini="true" :largeIcons="p.isMe" class="mini-card" />
 
 
 
@@ -348,8 +348,7 @@ const positionedPlayers = computed(() => {
 
                         <div class="cards-row" style="align-items: center; justify-content: center;">
                             <div class="empty-seat-msg">
-                                <div>此座位</div>
-                                <div>暂无用户</div>
+                                <div>暂无用户加入</div>
                             </div>
                         </div>
                     </template>

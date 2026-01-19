@@ -24,6 +24,83 @@ type LobbyConfigRsp struct {
 	LobbyConfigs any `json:"LobbyConfigs"`
 }
 
+func joinRoom(roomId string, excludeRoomId string, userId string, connWrap *ws.WsConnWrap, user *modelClient.ModelUser,
+	cfg *qznn.LobbyConfig) (*qznn.QZNNRoom, error) {
+
+	alreadyRoom, alreadyPlayer := game.GetMgr().CheckPlayerInRoom(userId)
+	if alreadyPlayer != nil && alreadyRoom != nil {
+		//客户端弹框，确认要不要重新进入
+		alreadyRoom.PushPlayer(alreadyPlayer, comm.PushData{
+			Cmd:      comm.ServerPush,
+			PushType: qznn.PushRoom,
+			Data:     qznn.PushRoomStruct{Room: alreadyRoom.GetClientRoom(alreadyPlayer.ID)}})
+		return nil, comm.ErrPlayerInRoom
+	}
+
+	//player初始化完成，看房间
+	p := qznn.NewPlayer()
+	p.ID = userId
+	p.IsRobot = user.IsRobot
+	p.ConnWrap = connWrap
+	p.GameCount = user.GameCount
+	p.NickName = func() string {
+		if user.NickName == "" {
+			return user.UserId
+		}
+		return user.NickName
+	}()
+	p.Avatar = user.Avatar
+
+	//锁用户的balance，进房间就锁
+	modelUser, err := modelClient.GameLockUserBalance(p.ID, cfg.MinBalance)
+	if err != nil {
+		//有用户的金额不够锁住,尝试踢出用户
+		logrus.WithField("!", nil).WithField("userId", p.ID).WithError(err).Error("PlayerLockBal-Fail")
+		return nil, err
+	}
+	//设置金额
+	p.Balance = modelUser.BalanceLock
+	logrus.WithField("userId", p.ID).WithField(
+		"balance", modelUser.Balance).WithField("balanceLock", modelUser.BalanceLock).Info("RoomJoin-LockBalOk")
+
+	//处理进房间逻辑
+	var room *qznn.QZNNRoom
+	if roomId != "" {
+		room = game.GetMgr().GetRoomByRoomId(roomId)
+		if room == nil {
+			return nil, comm.NewMyError("房间不存在")
+		}
+	}
+
+	if room == nil && !user.IsRobot {
+		room, err = game.GetMgr().SelectRoom(user, p, cfg, excludeRoomId)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if room == nil {
+		room = game.GetMgr().CreateRoom(cfg)
+	}
+
+	room, err = game.GetMgr().JoinQZNNRoom(room, user, p)
+	if err != nil {
+		return nil, err
+	}
+
+	room.BroadcastWithPlayer(
+		func(p *qznn.Player) any {
+			return comm.PushData{
+				Cmd:      comm.ServerPush,
+				PushType: qznn.PushPlayJoin,
+				Data: qznn.PushPlayerJoinStruct{
+					Room:   room.GetClientRoom(p.ID),
+					UserId: userId,
+				},
+			}
+		})
+	return room, nil
+}
+
 func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []byte) error {
 	var req struct {
 		Level      int
@@ -68,80 +145,11 @@ func handlePlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string, data []b
 	}
 
 	userId := appId + appUserId
-
-	alreadyRoom, alreadyPlayer := game.GetMgr().CheckPlayerInRoom(userId)
-	if alreadyPlayer != nil && alreadyRoom != nil {
-		//客户端弹框，确认要不要重新进入
-		alreadyRoom.PushPlayer(alreadyPlayer, comm.PushData{
-			Cmd:      comm.ServerPush,
-			PushType: qznn.PushRoom,
-			Data:     qznn.PushRoomStruct{Room: alreadyRoom.GetClientRoom(alreadyPlayer.ID)}})
-		return comm.ErrPlayerInRoom
-	}
-
-	//player初始化完成，看房间
-	p := qznn.NewPlayer()
-	p.ID = userId
-	p.IsRobot = user.IsRobot
-	p.ConnWrap = connWrap
-	p.GameCount = user.GameCount
-	p.NickName = func() string {
-		if user.NickName == "" {
-			return user.UserId
-		}
-		return user.NickName
-	}()
-	p.Avatar = user.Avatar
-
-	//锁用户的balance，进房间就锁
-	modelUser, err := modelClient.GameLockUserBalance(p.ID, cfg.MinBalance)
-	if err != nil {
-		//有用户的金额不够锁住,尝试踢出用户
-		logrus.WithField("!", nil).WithField("userId", p.ID).WithError(err).Error("PlayerLockBal-Fail")
-		return err
-	}
-	//设置金额
-	p.Balance = modelUser.BalanceLock
-	logrus.WithField("userId", p.ID).WithField(
-		"balance", modelUser.Balance).WithField("balanceLock", modelUser.BalanceLock).Info("RoomJoin-LockBalOk")
-
-	//处理进房间逻辑
-	var room *qznn.QZNNRoom
-	if req.RoomId != "" {
-		room = game.GetMgr().GetRoomByRoomId(req.RoomId)
-		if room == nil {
-			return comm.NewMyError("房间不存在")
-		}
-	}
-
-	if room == nil && !user.IsRobot {
-		room, err = game.GetMgr().SelectRoom(user, p, req.Level, req.BankerType, cfg)
-		if err != nil {
-			return err
-		}
-	}
-	if room == nil {
-		room = game.GetMgr().CreateRoom(req.Level, req.BankerType, cfg)
-	}
-
-	room, err = game.GetMgr().JoinQZNNRoom(room, user, p)
+	_, err = joinRoom(req.RoomId, "", userId, connWrap, user, cfg)
 	if err != nil {
 		return err
 	}
-
-	room.BroadcastWithPlayer(
-		func(p *qznn.Player) any {
-			return comm.PushData{
-				Cmd:      comm.ServerPush,
-				PushType: qznn.PushPlayJoin,
-				Data: qznn.PushPlayerJoinStruct{
-					Room:   room.GetClientRoom(p.ID),
-					UserId: userId,
-				},
-			}
-		})
-
-	return err
+	return nil
 }
 
 func handlePlayerLeave(userId string, data []byte) error {
@@ -246,6 +254,48 @@ func handlerPlayerTalk(userId string, data []byte) error {
 	}
 
 	return nil
+}
+
+type handlePlayerChangeRoomRsp struct {
+	RoomId string
+}
+
+func handlePlayerChangeRoom(connWrap *ws.WsConnWrap, userId string, data []byte) (handlePlayerChangeRoomRsp, error) {
+	var req struct {
+		RoomId string
+	}
+	var rsp handlePlayerChangeRoomRsp
+	if err := json.Unmarshal(data, &req); err != nil {
+		return rsp, comm.ErrClientParam
+	}
+
+	user, err := modelClient.GetUserByUserId(userId)
+	if err != nil {
+		return rsp, comm.NewMyError("获取用户信息失败")
+	}
+
+	room := game.GetMgr().GetRoomByRoomId(req.RoomId)
+	if room != nil {
+		if room.Leave(userId) {
+			//旧房间广播
+			room.BroadcastWithPlayer(
+				func(p *qznn.Player) any {
+					return comm.PushData{
+						Cmd:      comm.ServerPush,
+						PushType: qznn.PushPlayLeave,
+						Data:     qznn.PushPlayerLeaveStruct{UserIds: []string{}, Room: room.GetClientRoom(p.ID)}}
+				})
+
+			//新房间
+			_, err = joinRoom("", req.RoomId, userId, connWrap, user, &room.Config)
+			if err != nil {
+				return rsp, err
+			}
+		}
+	} else {
+		return rsp, comm.NewMyError("当前房间信息获取失败")
+	}
+	return rsp, nil
 }
 
 func handleLobbyConfig() *LobbyConfigRsp {

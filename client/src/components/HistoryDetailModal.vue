@@ -664,6 +664,7 @@ const positionedPlayers = computed(() => {
 
 .score-text {
     margin-left: 5px;
+    font-size: 13px;
 }
 
 .cards-row {

@@ -3168,94 +3168,9 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
 
 
-/* --- Status Text Styles (Duplicated from PlayerSeat for myPlayer) --- */
-.status-text {
-    font-family: "Microsoft YaHei", "Heiti SC", sans-serif;
-    font-weight: 900;
-    font-style: italic;
-    padding: 2px 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    white-space: nowrap;
-    /* Default shadow */
-    text-shadow:
-        -1px -1px 0 #000,
-        1px -1px 0 #000,
-        -1px 1px 0 #000,
-        1px 1px 0 #000,
-        0 3px 5px rgba(0, 0, 0, 0.5);
-}
 
-.rob-text {
-    color: #fcd34d;
-    text-shadow:
-        -2px -2px 0 #b45309,
-        2px -2px 0 #b45309,
-        -2px 2px 0 #b45309,
-        2px 2px 0 #b45309,
-        0 3px 5px rgba(0, 0, 0, 0.5);
-    font-size: 18px;
-}
 
-.no-rob-text {
-    color: #fcd34d;
-    /* Updated to match rob-text */
-    text-shadow:
-        -2px -2px 0 #b45309,
-        2px -2px 0 #b45309,
-        -2px 2px 0 #b45309,
-        2px 2px 0 #b45309,
-        0 3px 5px rgba(0, 0, 0, 0.5);
-    font-size: 18px;
-    /* Updated to match rob-text */
-}
 
-.bet-text {
-    color: #ffffff;
-    /* White */
-    text-shadow:
-        -2px -2px 0 #166534,
-        /* Green-800 */
-        2px -2px 0 #166534,
-        -2px 2px 0 #166534,
-        2px 2px 0 #166534,
-        0 3px 5px rgba(0, 0, 0, 0.5);
-    font-size: 18px;
-}
-
-/* Large Size for Self */
-.text-large {
-    font-size: 22px !important;
-    /* Reduced from 26px */
-    height: 40px;
-    text-shadow:
-        -2px -2px 0 #000,
-        2px -2px 0 #000,
-        -2px 2px 0 #000,
-        2px 2px 0 #000,
-        0 4px 8px rgba(0, 0, 0, 0.6);
-}
-
-.rob-text.text-large,
-.no-rob-text.text-large {
-    text-shadow:
-        -2px -2px 0 #b45309,
-        2px -2px 0 #b45309,
-        -2px 2px 0 #b45309,
-        2px 2px 0 #b45309,
-        0 4px 8px rgba(0, 0, 0, 0.6);
-}
-
-.bet-text.text-large {
-    text-shadow:
-        -2px -2px 0 #166534,
-        /* Green-800 */
-        2px -2px 0 #166534,
-        -2px 2px 0 #166534,
-        2px 2px 0 #166534,
-        0 4px 8px rgba(0, 0, 0, 0.6);
-}
 
 /* Banker Selection Overlay */
 .banker-selection-overlay {

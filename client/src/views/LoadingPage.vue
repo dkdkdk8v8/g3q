@@ -1,12 +1,11 @@
 <template>
   <div class="loading-page">
-    <h1>抢庄牛牛</h1>
+    <img src="../assets/lobby/logo.png" alt="抢庄牛牛" class="lobby-logo" />
     <div class="input-group">
       <label for="ip-address">服务器 IP:</label>
       <input type="text" id="ip-address" v-model="ipAddress" placeholder="请输入服务器 IP 地址" />
     </div>
-    <p v-if="appId">App ID: {{ appId }}</p>
-    <p v-if="userId">User ID: {{ userId }}</p>
+    <p v-if="appId">APP:【 {{ appId }} 】 UID: 【{{ userId }}】</p>
     <button v-if="lastUid" @click="enterGameWithLast">继续上次UID进入 ({{ lastUid }})</button>
     <button @click="enterGameRandom" class="random-btn">随机UID进入</button>
     <button @click="enterGameByUrl" class="url-btn">使用URL参数进入</button>
@@ -295,10 +294,19 @@ export default {
   align-items: center;
   justify-content: center;
   min-height: 100dvh;
-  background-color: #2c3e50;
+  background-image: url('../assets/lobby/bg.jpg');
+  background-size: cover;
+  background-position: center;
   color: #ecf0f1;
   font-family: Arial, sans-serif;
   padding: 20px;
+}
+
+.lobby-logo {
+  width: 200px;
+  /* Adjust as needed */
+  height: auto;
+  margin-bottom: 30px;
 }
 
 h1 {
@@ -321,12 +329,12 @@ h1 {
 }
 
 .input-group input {
-  width: 100%;
+  width: 95%;
   padding: 10px;
   border: none;
   border-radius: 5px;
   font-size: 1em;
-  background-color: #34495e;
+  background-color: #4c354e;
   color: #ecf0f1;
 }
 
@@ -340,7 +348,7 @@ button {
   border: none;
   padding: 10px 20px;
   margin: 10px;
-  border-radius: 5px;
+  border-radius: 50px;
   cursor: pointer;
   font-size: 1.1em;
   transition: background-color 0.3s ease;

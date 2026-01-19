@@ -1155,10 +1155,10 @@ onMounted(() => {
             const minDuration = 1500;
             const delay = Math.max(0, minDuration - elapsed);
 
-            // Trigger visual feedback: Wait calculated delay, then scale out logo and hide overlay simultaneously
+            // Trigger visual feedback: Wait calculated delay
             setTimeout(() => {
-                logoAnimationState.value = 'leaving'; // Start logo leaving animation
-                showSwitchRoomOverlay.value = false; // Hide overlay (starts fade out)
+                logoAnimationState.value = 'leaving'; // Start logo leaving animation (0.3s)
+                showSwitchRoomOverlay.value = false; // Hide overlay (starts fade out 0.5s) simultaneously
 
                 // Reset animation state after transition completes
                 setTimeout(() => {
@@ -3544,7 +3544,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 }
 
 .switch-room-logo.logo-leave {
-    transition: all 0.5s ease-in;
+    transition: all 0.3s ease-in;
     transform: scale(0);
     opacity: 0;
 }

@@ -141,7 +141,7 @@ const switchRoom = debounce(() => {
     }
     // Disable hosting when switching room
     isHosting.value = false;
-    
+
     isSwitchingRoom.value = true;
     gameClient.send("QZNN.PlayerChangeRoom", { RoomId: store.roomId });
 }, 500);
@@ -343,7 +343,7 @@ const dealingCounts = ref({});
 
 const modeName = computed(() => {
     const m = store.gameMode;
-    if (m === 0) return '不看牌抢庄';
+    if (m === 0) return '抢庄牛牛';
     if (m === 1) return '看三张抢庄';
     if (m === 2) return '看四张抢庄';
     return '未知玩法';
@@ -1495,7 +1495,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                                     myPlayer.robMultiplier
 
-                                    }}倍</span>
+                                }}倍</span>
 
                                 <span v-else class="status-text no-rob-text text-large">不抢</span>
 
@@ -1589,8 +1589,8 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                 <!-- Switch Room Button -->
                 <div v-if="myPlayer.isObserver || ['IDLE', 'READY_COUNTDOWN', 'SETTLEMENT'].includes(store.currentPhase)"
-                    class="game-btn switch-room-btn"
-                    :class="{ 'disabled': isSwitchingRoom || switchRoomCooldown > 0 }" @click="switchRoom">
+                    class="game-btn switch-room-btn" :class="{ 'disabled': isSwitchingRoom || switchRoomCooldown > 0 }"
+                    @click="switchRoom">
                     <template v-if="isSwitchingRoom">
                         正在切换房间<span class="loading-dots"></span>
                     </template>

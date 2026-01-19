@@ -1,11 +1,13 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { useUserStore } from '../stores/user.js';
 import { formatCoins } from '../utils/format.js';
 import { transformServerCard, calculateHandType } from '../utils/bullfight.js';
 import HistoryPokerCard from './HistoryPokerCard.vue';
 import bankerIcon from '@/assets/common/zhuang.png';
 import { showToast } from 'vant';
+
+// ... (imports)
 
 // Import Bet History Images
 import niu1 from '@/assets/bethistory/niu_1.png';
@@ -47,6 +49,40 @@ const getHandTypeImage = (type) => handTypeImages[type];
 const props = defineProps({
     visible: Boolean,
     data: Object
+});
+
+const visualAreaRef = ref(null);
+const visualContentScale = ref(1);
+
+const updateVisualScale = () => {
+    if (!visualAreaRef.value) return;
+    
+    // Design reference: The layout works well at ~400px height for the visual area
+    // (60vh of 844px is ~506px total, minus header ~100px = ~400px)
+    const designHeight = 400; 
+    const currentHeight = visualAreaRef.value.clientHeight;
+
+    if (currentHeight < designHeight) {
+        visualContentScale.value = currentHeight / designHeight;
+    } else {
+        visualContentScale.value = 1;
+    }
+};
+
+onMounted(() => {
+    window.addEventListener('resize', updateVisualScale);
+});
+
+onUnmounted(() => {
+    window.removeEventListener('resize', updateVisualScale);
+});
+
+watch(() => props.visible, (val) => {
+    if (val) {
+        nextTick(() => {
+            updateVisualScale();
+        });
+    }
 });
 
 const emit = defineEmits(['update:visible', 'close']);
@@ -301,11 +337,13 @@ const positionedPlayers = computed(() => {
 
 
 
-            <div class="visual-area">
+            <div class="visual-area" ref="visualAreaRef">
+                <div class="visual-scale-wrapper" :style="{ transform: `scale(${visualContentScale})` }">
 
-                <div v-for="p in positionedPlayers" :key="p.ID" class="player-seat" :class="'pos-' + p.viewPos">
+                    <div v-for="p in positionedPlayers" :key="p.ID" class="player-seat" :class="'pos-' + p.viewPos">
 
-                    <template v-if="!p.isEmpty && !p.isObserver">
+                        <template v-if="!p.isEmpty && !p.isObserver">
+
 
                         <div class="multipliers-row">
 
@@ -372,6 +410,7 @@ const positionedPlayers = computed(() => {
 
                 </div>
 
+                </div>
             </div>
 
         </div>
@@ -392,15 +431,12 @@ const positionedPlayers = computed(() => {
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    /* Bottom Sheet style or center? User said "from bottom appear a window". */
-    /* Using center for now or bottom sheet? "appear a window from bottom" usually means BottomSheet. */
 }
 
 .detail-content {
     background: #1a1d26;
     width: 100%;
     height: 60vh;
-    /* "Half the screen high" */
     border-radius: 20px 20px 0 0;
     display: flex;
     flex-direction: column;
@@ -458,7 +494,6 @@ const positionedPlayers = computed(() => {
     width: 100%;
     color: #cbd5e1;
     font-size: 13px;
-    /* margin-bottom: 10px; removed */
 }
 
 .sum-item {
@@ -491,12 +526,23 @@ const positionedPlayers = computed(() => {
     flex: 1;
     position: relative;
     background: #1a1d26;
-    /* Darker bg for table feel */
     overflow: hidden;
-    /* No scroll, fixed positions */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.visual-scale-wrapper {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    /* Base design height */
+    transform-origin: center center;
+    transition: transform 0.2s;
 }
 
 /* Player Positions */
+
 .player-seat {
     position: absolute;
     display: flex;

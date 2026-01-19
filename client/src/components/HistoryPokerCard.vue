@@ -220,7 +220,7 @@ const suitSymbol = computed(() => {
 }
 
 .is-small .corner-suit {
-  font-size: 8.5333vw;
+  font-size: 9.5333vw;
 }
 
 /* Mini Mode Styles */

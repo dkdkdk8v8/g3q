@@ -903,6 +903,14 @@ const goBack = () => {
 
 }
 
+.modal-title-img {
+    width: 70%;
+    /* 50% of the modal's width */
+    height: auto;
+    object-fit: contain;
+    flex-shrink: 0;
+    /* Prevent image from shrinking */
+}
 
 /* Internal Room Assets */
 

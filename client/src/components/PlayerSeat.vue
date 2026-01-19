@@ -297,7 +297,7 @@ const shouldMoveStatusFloat = computed(() => {
                     <Transition :name="slideTransitionName">
                         <div v-if="shouldShowBetMult" class="status-content">
                             <span class="status-text bet-text" :class="{ 'text-large': isMe }">压{{ player.betMultiplier
-                                }}倍</span>
+                            }}倍</span>
                         </div>
                     </Transition>
                 </div>
@@ -988,7 +988,7 @@ const shouldMoveStatusFloat = computed(() => {
 
 .opponent-hand {
     position: absolute !important;
-    top: -32px !important;
+    top: -26px !important;
     left: 0;
     width: 100%;
     margin-top: 0 !important;
@@ -1024,7 +1024,7 @@ const shouldMoveStatusFloat = computed(() => {
 }
 
 .cards .hand-card+.hand-card {
-    margin-left: -7.4667vw;
+    margin-left: -5.6667vw;
 }
 
 .cards.is-me-cards .hand-card+.hand-card {
@@ -1092,8 +1092,10 @@ const shouldMoveStatusFloat = computed(() => {
     }
 
     100% {
-        transform: translateY(-50px) scale(1); /* Stay at 80% position */
-        opacity: 1; /* Remain visible */
+        transform: translateY(-50px) scale(1);
+        /* Stay at 80% position */
+        opacity: 1;
+        /* Remain visible */
     }
 }
 </style>

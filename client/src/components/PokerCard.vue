@@ -77,7 +77,7 @@ const suitSymbol = computed(() => {
 <style scoped>
 .poker-card {
   width: 16vw;
-  height: 23.4667vw;
+  height: 21.4667vw;
   border-radius: 1.6vw;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
   position: relative;
@@ -89,8 +89,8 @@ const suitSymbol = computed(() => {
 }
 
 .poker-card.is-small {
-  width: 12.8vw;
-  height: 18.6667vw;
+  width: 11vw;
+  height: 15vw;
   font-size: 0.8em;
 }
 
@@ -168,19 +168,19 @@ const suitSymbol = computed(() => {
 }
 
 .corner-top-left {
-  top: 1.0667vw;
-  left: 1.0667vw;
+  top: 0;
+  left: 0;
 }
 
 .corner-bottom-right {
-  bottom: 0.5333vw;
-  right: 0.5333vw;
+  bottom: 0;
+  right: 0;
   /* transform: rotate(180deg); Removed per request */
 }
 
 .is-small .corner-top-left {
-  top: 0.5333vw;
-  left: 0.5333vw;
+  top: 0;
+  left: -0.5vw;
 }
 
 .is-small .corner-bottom-right {
@@ -191,11 +191,10 @@ const suitSymbol = computed(() => {
 .rank {
   font-weight: 800;
   font-size: 6.9333vw;
-  letter-spacing: -0.5333vw;
 }
 
 .is-small .rank {
-  font-size: 4.8vw;
+  font-size: 5vw;
 }
 
 .suit {
@@ -214,7 +213,7 @@ const suitSymbol = computed(() => {
 }
 
 .corner-suit {
-  font-size: 13.3333vw;
+  font-size: 14vw;
   font-weight: bold;
   line-height: 1;
 }

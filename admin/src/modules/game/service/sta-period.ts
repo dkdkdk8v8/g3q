@@ -370,13 +370,23 @@ export class StaPeriodService extends BaseService {
         const accumulate = (arr: any[], limitIndex?: number) => {
             let accGameUserCount = 0;
             let accFirstGameUserCount = 0;
+            let accBetCount = 0;
+            let accBetAmount = 0;
+            let accGameWin = 0;
             const max = limitIndex ?? arr.length - 1;
             for (let i = 0; i <= max; i++) {
                 const item = arr[i];
                 accGameUserCount += (item.gameUserCount || 0);
                 accFirstGameUserCount += (item.firstGameUserCount || 0);
+                accBetCount += (item.betCount || 0);
+                accBetAmount += (Number(item.betAmount) || 0);
+                accGameWin += (Number(item.gameWin) || 0);
+
                 item.gameUserCount = accGameUserCount;
                 item.firstGameUserCount = accFirstGameUserCount;
+                item.betCount = accBetCount;
+                item.betAmount = accBetAmount;
+                item.gameWin = accGameWin;
             }
         };
 

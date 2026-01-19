@@ -841,7 +841,7 @@ const shouldMoveStatusFloat = computed(() => {
 }
 
 .status-float.move-up {
-    bottom: calc(100% + 20px);
+    bottom: calc(100% + 10px);
 }
 
 .status-float.is-me.move-up {
@@ -988,7 +988,7 @@ const shouldMoveStatusFloat = computed(() => {
 
 .opponent-hand {
     position: absolute !important;
-    top: -32px !important;
+    top: -26px !important;
     left: 0;
     width: 100%;
     margin-top: 0 !important;
@@ -1024,7 +1024,7 @@ const shouldMoveStatusFloat = computed(() => {
 }
 
 .cards .hand-card+.hand-card {
-    margin-left: -7.4667vw;
+    margin-left: -5.6667vw;
 }
 
 .cards.is-me-cards .hand-card+.hand-card {
@@ -1033,7 +1033,7 @@ const shouldMoveStatusFloat = computed(() => {
 
 .hand-result-badge {
     position: absolute;
-    bottom: 0;
+    bottom: 9px;
     /* Adjust as needed */
     left: 50%;
     transform: translateX(-50%);
@@ -1056,9 +1056,9 @@ const shouldMoveStatusFloat = computed(() => {
 
 .score-float {
     position: absolute;
-    top: -20px;
+    top: -6px;
     font-weight: bold;
-    font-size: 24px;
+    font-size: 22px;
     text-shadow: 2px 2px 0 #000;
     animation: floatUp 3s forwards;
     z-index: 20;
@@ -1092,8 +1092,10 @@ const shouldMoveStatusFloat = computed(() => {
     }
 
     100% {
-        transform: translateY(-50px) scale(1); /* Stay at 80% position */
-        opacity: 1; /* Remain visible */
+        transform: translateY(-50px) scale(1);
+        /* Stay at 80% position */
+        opacity: 1;
+        /* Remain visible */
     }
 }
 </style>

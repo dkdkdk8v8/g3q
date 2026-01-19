@@ -725,8 +725,8 @@ func (r *Robot) handleStateChange(state qznn.RoomState) {
 	r.mu.Unlock()
 
 	go func() {
-		// 模拟用户随机等待 1-5 秒
-		time.Sleep(time.Duration(rand.Intn(5)+1) * time.Second)
+		// 模拟用户随机等待 1-3 秒
+		time.Sleep(time.Duration(rand.Intn(3)+1) * time.Second)
 
 		switch state {
 		case qznn.StateBanking:

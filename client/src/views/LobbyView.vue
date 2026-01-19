@@ -214,18 +214,9 @@ const goBack = () => {
             </div>
 
             <!-- Right: User Info -->
-            <div class="user-info-area">
-                <div class="avatar-wrapper">
-                    <img :src="userInfo.avatar" class="avatar" />
-                </div>
-                <div class="info-details">
-                    <div class="name-row">{{ userInfo.displayName }}</div>
-                    <div class="coin-row">
-                        <img :src="goldImg" class="coin-icon" />
-                        <span class="coin-val">{{ userInfo.coins }}</span>
-                        <div class="add-btn">+</div>
-                    </div>
-                </div>
+            <div class="coin-row">
+                <img :src="goldImg" class="coin-icon" />
+                <span class="coin-val">{{ userInfo.coins }}</span>
             </div>
         </div>
 
@@ -320,7 +311,7 @@ const goBack = () => {
 
     align-items: center;
 
-    padding: 20px 15px;
+    padding: 10px 15px 20px 15px;
 
     /* Reduced padding */
 
@@ -531,11 +522,11 @@ const goBack = () => {
 
 
 
-    width: 16px;
+    width: 18px;
 
 
 
-    height: 16px;
+    height: 18px;
 
 
 
@@ -555,7 +546,7 @@ const goBack = () => {
 
 
 
-    font-size: 12px;
+    font-size: 14px;
 
 
 
@@ -614,8 +605,6 @@ const goBack = () => {
     display: flex;
 
     justify-content: center;
-
-    margin-top: 20px;
 
     margin-bottom: 20px;
 
@@ -914,6 +903,14 @@ const goBack = () => {
 
 }
 
+.modal-title-img {
+    width: 70%;
+    /* 50% of the modal's width */
+    height: auto;
+    object-fit: contain;
+    flex-shrink: 0;
+    /* Prevent image from shrinking */
+}
 
 /* Internal Room Assets */
 

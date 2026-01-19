@@ -138,6 +138,20 @@ const summaryData = computed(() => {
     };
 });
 
+const processNickname = (name) => {
+    if (name.length <= 1) return name;
+
+    const first = name.charAt(0);
+    const last = name.charAt(name.length - 1);
+
+    if (/^[\u4e00-\u9fa5]/.test(name)) {
+        const starCount = Math.max(0, name.length - 2);
+        return `${first}${'*'.repeat(starCount)}${last}`;
+    } else {
+        return `${first}******${last}`;
+    }
+};
+
 // Positioning Logic
 const positionedPlayers = computed(() => {
     // Default to empty array if no data
@@ -189,6 +203,8 @@ const positionedPlayers = computed(() => {
             return 0;
         };
 
+        const processedNickName = p.ID === myId.value ? '您的手牌' : processNickname(p.NickName || 'Unknown');
+
         return {
             ...p,
             viewPos: diff,
@@ -197,7 +213,7 @@ const positionedPlayers = computed(() => {
             isBanker: isBanker,
             BankerMulti: getNum(p.CallMult, p.robMultiplier),
             BetMulti: getNum(p.BetMult, p.betMultiplier),
-            NickName: p.ID === myId.value ? '您的手牌' : (p.NickName || 'Unknown'),
+            NickName: processedNickName,
             isObserver: p.IsOb || false,
             isEmpty: false,
             isMe: p.ID === myId.value
@@ -316,7 +332,8 @@ const positionedPlayers = computed(() => {
 
 
                                 <HistoryPokerCard v-for="(card, cIdx) in p.uiCards" :key="cIdx" :card="card"
-                                    :isSmall="true" :simplified="true" :mini="true" class="mini-card" />
+                                    :isSmall="true" :simplified="true" :mini="true" :largeIcons="p.isMe"
+                                    class="mini-card" />
 
 
 
@@ -348,8 +365,7 @@ const positionedPlayers = computed(() => {
 
                         <div class="cards-row" style="align-items: center; justify-content: center;">
                             <div class="empty-seat-msg">
-                                <div>此座位</div>
-                                <div>暂无用户</div>
+                                <div>空座</div>
                             </div>
                         </div>
                     </template>
@@ -466,9 +482,9 @@ const positionedPlayers = computed(() => {
 
 .detail-title {
     text-align: center;
-    font-size: 16px;
+    font-size: 18px;
     font-weight: bold;
-    color: white;
+    color: rgb(244, 168, 4);
 }
 
 .visual-area {
@@ -619,11 +635,28 @@ const positionedPlayers = computed(() => {
 
 .nickname.me {
     color: #000000;
+    font-weight: bold;
+}
+
+@keyframes banker-scale-pulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.2);
+    }
+
+    100% {
+        transform: scale(1);
+    }
 }
 
 .banker-icon {
     width: 14px;
     height: 14px;
+    animation: banker-scale-pulse 1.5s infinite ease-in-out;
+    /* Apply the animation */
 }
 
 .empty-seat-msg {

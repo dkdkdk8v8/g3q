@@ -1455,7 +1455,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                                     myPlayer.robMultiplier
 
-                                }}倍</span>
+                                    }}倍</span>
 
                                 <span v-else class="status-text no-rob-text text-large">不抢</span>
 
@@ -2192,8 +2192,8 @@ const shouldMoveStatusToHighPosition = computed(() => {
     justify-content: center;
     align-items: center;
     width: 100%;
-    margin-top: 10px;
-    margin-bottom: -50px;
+    margin-top: 5px;
+    margin-bottom: -53px;
     position: relative;
     z-index: 1;
 }
@@ -2489,7 +2489,6 @@ const shouldMoveStatusToHighPosition = computed(() => {
     transform: translateX(-50%);
     z-index: 150;
     margin-left: 0;
-    margin-bottom: 10px;
     width: max-content;
     display: flex;
     flex-direction: column;
@@ -2503,7 +2502,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 }
 
 .my-player-info-row .status-float.move-up-low {
-    bottom: calc(100% + 6vw);
+    bottom: calc(100% + 7vw);
     /* Approx 75px on mobile, clears cards only */
 }
 
@@ -3280,7 +3279,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
 .score-float {
     position: absolute;
-    top: -40px;
+    top: -18px;
     left: 50%;
     transform: translateX(-50%);
     font-weight: bold;

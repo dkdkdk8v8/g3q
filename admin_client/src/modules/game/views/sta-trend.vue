@@ -154,40 +154,15 @@ function generateCharts(data: any) {
         let currentTotal = 0;
         let yesterdayTotal = 0;
 
-        const isCumulative = ['gameUserCount', 'firstGameUserCount'].includes(m.key);
+        // 后端已改为返回累加数据，因此直接取最后一条有效数据即可
+        // 1. 当前数据
+        currentTotal = activeLen > 0 ? (data.current[activeLen - 1][m.key] || 0) : 0;
 
-        if (isCumulative) {
-            // 1. 累加数据（活跃、新增）：取有效长度的最后一条记录作为当前总计
-            currentTotal = activeLen > 0 ? (data.current[activeLen - 1][m.key] || 0) : 0;
-
-            // 对比昨日：如果是今天则对比昨日同一小时，如果是历史日期则对比昨日全天最后一条
-            const yesIdx = isToday ? activeLen - 1 : (data.yesterday.length - 1);
-            yesterdayTotal = (data.yesterday && yesIdx >= 0 && data.yesterday[yesIdx])
-                ? (data.yesterday[yesIdx][m.key] || 0)
-                : 0;
-        } else if (m.key === 'platformKillRate') {
-            // 2. 杀率：根据盈亏和投注重新计算
-            const curWin = data.current.reduce((a: number, b: any) => a + (b.gameWin || 0), 0);
-            const curBet = data.current.reduce((a: number, b: any) => a + (b.betAmount || 0), 0);
-            currentTotal = curBet > 0 ? curWin / curBet : 0;
-
-            let yesData = data.yesterday || [];
-            if (isToday) {
-                yesData = yesData.slice(0, activeLen);
-            }
-            const yesWin = yesData.reduce((a: number, b: any) => a + (b.gameWin || 0), 0);
-            const yesBet = yesData.reduce((a: number, b: any) => a + (b.betAmount || 0), 0);
-            yesterdayTotal = yesBet > 0 ? yesWin / yesBet : 0;
-        } else {
-            // 3. 普通数值：求和
-            currentTotal = data.current.reduce((a: number, b: any) => a + (b[m.key] || 0), 0);
-
-            let yesData = data.yesterday || [];
-            if (isToday) {
-                yesData = yesData.slice(0, activeLen);
-            }
-            yesterdayTotal = yesData.reduce((a: number, b: any) => a + (b[m.key] || 0), 0);
-        }
+        // 2. 昨日同期/昨日全天
+        const yesIdx = isToday ? activeLen - 1 : (data.yesterday.length - 1);
+        yesterdayTotal = (data.yesterday && yesIdx >= 0 && data.yesterday[yesIdx])
+            ? (data.yesterday[yesIdx][m.key] || 0)
+            : 0;
 
         let diff = 0;
         if (yesterdayTotal !== 0) {

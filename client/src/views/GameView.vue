@@ -34,6 +34,32 @@ const backgroundImageStyle = computed(() => {
     };
 });
 
+const calcContainerBackgroundStyle = computed(() => {
+    let bgUrl;
+    // Mode 0: Default game, uses existing 'couniu.png'
+    if (store.gameMode === 0) {
+        bgUrl = new URL('../assets/common/couniu.png', import.meta.url).href;
+    }
+    // Mode 1: 看三张抢庄, uses couniu_san.png
+    else if (store.gameMode === 1) {
+        bgUrl = couniuSanImg;
+    }
+    // Mode 2: 看四张抢庄, uses couniu_si.png
+    else if (store.gameMode === 2) {
+        bgUrl = couniuSiImg;
+    }
+    
+    if (bgUrl) {
+        return {
+            backgroundImage: `url(${bgUrl})`,
+            backgroundSize: '100% 100%',
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'center center'
+        };
+    }
+    return {};
+});
+
 const baseBetStyle = computed(() => {
     let borderColor = '#22c55e66'; // Default Green (Mode 0)
     if (store.gameMode === 1) {
@@ -195,6 +221,8 @@ import btnClickSound from '@/assets/sounds/btn_click.mp3';
 import goldImg from '@/assets/common/gold.png';
 import zhuangImg from '@/assets/common/zhuang.png';
 import tanpaiImg from '@/assets/common/tanpai.png';
+import couniuSanImg from '@/assets/common/couniu_san.png';
+import couniuSiImg from '@/assets/common/couniu_si.png';
 
 // Lobby style buttons
 import btnExit from '@/assets/lobby/exit_btn.png';
@@ -1509,7 +1537,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                 <!-- Calculation Formula -->
 
-                <div class="calc-container">
+                <div class="calc-container" :style="calcContainerBackgroundStyle">
 
                     <div class="calc-box">{{ calculationData.labels[0] || '' }}</div>
 
@@ -2910,8 +2938,6 @@ const shouldMoveStatusToHighPosition = computed(() => {
     display: flex;
     align-items: center;
     gap: 8px;
-    background: url('@/assets/common/couniu.png') no-repeat center center;
-    background-size: 100% 100%;
     padding: 8px 30px;
     /* Removed border-radius and box-shadow to let image dictate shape */
 }

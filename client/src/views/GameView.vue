@@ -1718,7 +1718,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
                 </div>
 
                 <!-- Switch Room Button -->
-                <div v-if="myPlayer.isObserver || ['IDLE', 'READY_COUNTDOWN', 'SETTLEMENT'].includes(store.currentPhase)"
+                <div v-if="myPlayer.isObserver || ['IDLE', 'READY_COUNTDOWN', 'SETTLEMENT', 'WAITING_FOR_PLAYERS'].includes(store.currentPhase)"
                     class="game-btn switch-room-btn" :class="{ 'disabled': isSwitchingRoom || switchRoomCooldown > 0 }"
                     @click="switchRoom">
                     <template v-if="isSwitchingRoom">

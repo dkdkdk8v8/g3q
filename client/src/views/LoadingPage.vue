@@ -71,7 +71,7 @@ export default {
       } else if (storedAppId) {
         appId.value = storedAppId;
       } else {
-        appId.value = '91xj';
+        appId.value = 'test';
       }
 
       if (urlUserId) {
@@ -106,7 +106,7 @@ export default {
       for (let i = 0; i < length; i++) {
         result += chars.charAt(Math.floor(Math.random() * chars.length));
       }
-      appId.value = '91xj';
+      appId.value = 'test';
       userId.value = result;
 
       // Save immediately
@@ -185,12 +185,12 @@ export default {
       const checkReady = () => {
         if (hasUserInfo && hasLobbyConfig && targetRoute) {
           isLoading.value = false; // Stop loading
-          
+
           // Explicitly remove listeners to prevent ghost callbacks
           gameClient.offServerPush('PushRouter');
           gameClient.off('UserInfo');
           gameClient.off('QZNN.LobbyConfig');
-          
+
           router.push(targetRoute);
         }
       };

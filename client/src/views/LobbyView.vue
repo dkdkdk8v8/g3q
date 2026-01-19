@@ -252,14 +252,14 @@ const goBack = () => {
 
         <!-- 4. Room Grid -->
         <div class="rooms-scroll-area" :style="{ backgroundImage: `url(${roomAreaBg})` }">
-            <div class="rooms-grid">
+            <TransitionGroup tag="div" class="rooms-grid" name="room-list" appear :key="currentMode">
                 <div v-for="(room, index) in rooms" :key="room.level" class="room-item" :class="['room-idx-' + index]"
-                    @click="enterGame(room.level)">
+                    :style="{ '--delay': index * 0.1 + 's' }" @click="enterGame(room.level)">
 
                     <!-- Background Layer -->
                     <img :src="room.assets.bg" class="room-bg" />
                 </div>
-            </div>
+            </TransitionGroup>
         </div>
         <!-- History Modal -->
         <HistoryModal v-model:visible="showHistory" />
@@ -919,5 +919,16 @@ const goBack = () => {
     height: auto;
     object-fit: contain;
     display: block;
+}
+
+/* Room List Animation */
+.room-list-enter-active {
+    transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    transition-delay: var(--delay);
+}
+
+.room-list-enter-from {
+    opacity: 0;
+    transform: translateY(100px);
 }
 </style>

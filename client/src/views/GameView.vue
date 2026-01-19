@@ -3405,7 +3405,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 }
 
 .switch-room-btn {
-    background: linear-gradient(to bottom, #3b82f6, #2563eb);
+    background: linear-gradient(to bottom, #eab44f, #a06500);
     color: white;
     font-size: 14px;
     padding: 0 16px;

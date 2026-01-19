@@ -256,12 +256,12 @@ const suitSymbol = computed(() => {
 
 /* Large Icons in Mini Mode (for My Hand in History Detail) */
 .is-mini.is-large-icons .rank {
-  font-size: 18px;
-  /* Increased from 14px */
+  font-size: 20px;
+  /* Increased for better visibility */
 }
 
 .is-mini.is-large-icons .corner-suit {
-  font-size: 30px;
-  /* Increased from 26px */
+  font-size: 35px;
+  /* Increased for better visibility */
 }
 </style>

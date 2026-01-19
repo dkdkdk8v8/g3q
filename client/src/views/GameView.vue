@@ -3530,18 +3530,36 @@ const shouldMoveStatusToHighPosition = computed(() => {
 }
 
 .switch-room-logo {
-    width: 0; /* Start with no width */
+    width: 80vw;
     height: auto;
     object-fit: contain;
-    transition: all 0.5s ease-out; /* Smooth transition for scale */
+    transform: scale(0); /* Start hidden */
+    opacity: 0;
 }
 
 .switch-room-logo.logo-enter {
-    width: 80vw; /* Scale to 80% of viewport width */
+    animation: logoBounce 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 .switch-room-logo.logo-leave {
-    width: 0; /* Scale back to 0 */
+    transition: all 0.5s ease-in;
+    transform: scale(0);
+    opacity: 0;
+}
+
+@keyframes logoBounce {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    70% {
+        transform: scale(1.1);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
 }
 
 /* Transition for the overlay itself */

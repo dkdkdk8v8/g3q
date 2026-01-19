@@ -2774,10 +2774,6 @@ const shouldMoveStatusToHighPosition = computed(() => {
     transition: transform 0.5s ease;
 }
 
-.list-leave-active {
-    position: absolute;
-}
-
 .game-start-icon {
     position: fixed;
     top: 40%;

@@ -694,6 +694,12 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
         }, 2550);
     } else if (newPhase === 'PRE_DEAL') {
         visibleCounts.value = {};
+        // Initialize to 0 to prevent premature display
+        store.players.forEach(p => {
+            if (p.hand && p.hand.length > 0) {
+                visibleCounts.value[p.id] = 0;
+            }
+        });
         dealingCounts.value = {}; // Reset dealing counts
         setTimeout(() => {
             startDealingAnimation();
@@ -1439,19 +1445,14 @@ const shouldMoveStatusToHighPosition = computed(() => {
                 <div class="hand-area">
 
                     <div class="cards">
-
-                        <PokerCard v-for="(card, idx) in myPlayer.hand" :key="idx"
-                            :card="(shouldShowCardFace && (visibleCounts[myPlayer.id] === undefined || idx < visibleCounts[myPlayer.id])) ? card : null"
-                            :is-small="false"
-                            :class="{ 'hand-card': true, 'bull-card-overlay': isBullPart(idx), 'selected': selectedCardIndices.includes(idx) }"
-                            :style="{
-
-                                marginLeft: idx === 0 ? '0' : '1px', /* for myPlayer */
-
-                                opacity: (visibleCounts[myPlayer.id] === undefined || idx < visibleCounts[myPlayer.id]) ? 1 : 0
-
-                            }" @click="handleCardClick({ card, index: idx })" />
-
+                        <template v-for="(card, idx) in myPlayer.hand" :key="idx">
+                            <PokerCard v-if="visibleCounts[myPlayer.id] === undefined || idx < visibleCounts[myPlayer.id]"
+                                :card="shouldShowCardFace ? card : null" :is-small="false"
+                                :class="{ 'hand-card': true, 'bull-card-overlay': isBullPart(idx), 'selected': selectedCardIndices.includes(idx) }"
+                                :style="{
+                                    marginLeft: idx === 0 ? '0' : '1px' /* for myPlayer */
+                                }" @click="handleCardClick({ card, index: idx })" />
+                        </template>
                     </div>
 
                     <!-- Hand Result Badge - adapted from PlayerSeat -->

@@ -381,13 +381,13 @@ const shouldMoveStatusFloat = computed(() => {
         <div class="hand-area" :class="{ 'opponent-hand': !isMe }">
             <div class="cards" :class="{ 'is-me-cards': isMe }"
                 :style="{ visibility: showCards ? 'visible' : 'hidden' }">
-                <PokerCard v-for="(card, idx) in displayedHand" :key="idx"
-                    :card="(shouldShowCardFace && (visibleCardCount === -1 || idx < visibleCardCount)) ? card : null"
-                    :is-small="!isMe"
-                    :class="{ 'hand-card': true, 'bull-card-overlay': isBullPart(idx), 'selected': selectedCardIndices.includes(idx) }"
-                    :style="{
-                        opacity: (visibleCardCount === -1 || idx < visibleCardCount) ? 1 : 0,
-                    }" @click="props.isMe ? emit('card-click', { card, index: idx }) : null" />
+                <template v-for="(card, idx) in displayedHand" :key="idx">
+                    <PokerCard v-if="visibleCardCount === -1 || idx < visibleCardCount"
+                        :card="(shouldShowCardFace) ? card : null" :is-small="!isMe"
+                        :class="{ 'hand-card': true, 'bull-card-overlay': isBullPart(idx), 'selected': selectedCardIndices.includes(idx) }"
+                        :style="{
+                        }" @click="props.isMe ? emit('card-click', { card, index: idx }) : null" />
+                </template>
             </div>
             <!-- ... (keep hand result) -->
             <div v-if="shouldShowBadge" class="hand-result-badge">

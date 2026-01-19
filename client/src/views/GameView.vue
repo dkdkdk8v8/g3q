@@ -1537,13 +1537,15 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                         <Transition name="pop-up">
                             <div v-if="shouldShowRobMult" class="status-content">
-                                <img :src="getRobStatusImageUrl(myPlayer.robMultiplier)" class="status-img" alt="抢庄状态" />
+                                <img :src="getRobStatusImageUrl(myPlayer.robMultiplier)" class="status-img"
+                                    alt="抢庄状态" />
                             </div>
                         </Transition>
 
                         <Transition name="pop-up">
                             <div v-if="shouldShowBetMult" class="status-content">
-                                <img :src="getBetStatusImageUrl(myPlayer.betMultiplier)" class="status-img" alt="下注状态" />
+                                <img :src="getBetStatusImageUrl(myPlayer.betMultiplier)" class="status-img"
+                                    alt="下注状态" />
                             </div>
                         </Transition>
 
@@ -2083,24 +2085,24 @@ const shouldMoveStatusToHighPosition = computed(() => {
 }
 
 .seat-right {
-    top: 38%;
+    top: 42%;
     /* Adjusted for fixed top alignment */
     right: -2px;
     /* transform: scale(0.85); Removed redundant scale */
 }
 
 .seat-right-top {
-    top: 16%;
+    top: 20%;
     right: 6vw;
 }
 
 .seat-left-top {
-    top: 16%;
+    top: 20%;
     left: 6vw;
 }
 
 .seat-left {
-    top: 38%;
+    top: 42%;
     /* Adjusted for fixed top alignment */
     left: 0;
     /* transform: scale(0.85); Removed redundant scale */

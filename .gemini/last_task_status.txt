@@ -6,6 +6,7 @@ Task Completed:
 
 2. Updated `client/src/views/GameView.vue`:
    - Updated `.status-img` size to 27px (2/3 size) for the main player area.
+   - Cleaned up unused text-based CSS classes.
 
 3. Updated `client/src/components/HistoryDetailModal.vue`:
    - Replaced text-based Rob/Bet status with images.

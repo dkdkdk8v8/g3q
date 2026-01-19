@@ -109,10 +109,10 @@ const visualContentScale = ref(1);
 
 const updateVisualScale = () => {
     if (!visualAreaRef.value) return;
-    
+
     // Design reference: The layout works well at ~400px height for the visual area
     // (60vh of 844px is ~506px total, minus header ~100px = ~400px)
-    const designHeight = 400; 
+    const designHeight = 400;
     const currentHeight = visualAreaRef.value.clientHeight;
 
     if (currentHeight < designHeight) {
@@ -398,68 +398,70 @@ const positionedPlayers = computed(() => {
                         <template v-if="!p.isEmpty && !p.isObserver">
 
 
-                        <div class="multipliers-row">
+                            <div class="multipliers-row">
 
-                            <img v-if="getRobStatusImageUrl(p.BankerMulti)" :src="getRobStatusImageUrl(p.BankerMulti)" class="status-img-small" />
+                                <img v-if="getRobStatusImageUrl(p.BankerMulti)"
+                                    :src="getRobStatusImageUrl(p.BankerMulti)" class="status-img-small" />
 
-                            <img v-if="getBetStatusImageUrl(p.BetMulti)" :src="getBetStatusImageUrl(p.BetMulti)" class="status-img-small" />
+                                <img v-if="getBetStatusImageUrl(p.BetMulti)" :src="getBetStatusImageUrl(p.BetMulti)"
+                                    class="status-img-small" />
 
-                            <span class="score-text" :class="(p.BalanceChange || 0) >= 0 ? 'win' : 'lose'">
-                                ({{ (p.BalanceChange || 0) > 0 ? '+' : '' }}{{ formatCoins(p.BalanceChange || 0) }})
-                            </span>
-
-                        </div>
-
-
-
-                        <div class="cards-row">
-
-
-
-                            <div class="cards-container">
-
-
-
-                                <HistoryPokerCard v-for="(card, cIdx) in p.uiCards" :key="cIdx" :card="card"
-                                    :isSmall="true" :simplified="true" :mini="true" :largeIcons="p.isMe"
-                                    class="mini-card" />
-
-
+                                <span class="score-text" :class="(p.BalanceChange || 0) >= 0 ? 'win' : 'lose'">
+                                    ({{ (p.BalanceChange || 0) > 0 ? '+' : '' }}{{ formatCoins(p.BalanceChange || 0) }})
+                                </span>
 
                             </div>
 
 
 
-                            <img v-if="getHandTypeImage(p.handTypeKey)" :src="getHandTypeImage(p.handTypeKey)"
-                                class="niu-type-img" />
-
-                        </div>
+                            <div class="cards-row">
 
 
 
-                        <div class="info-row" :class="{ 'me': p.isMe }">
+                                <div class="cards-container">
 
-                            <span class="nickname" :class="{ 'me': p.isMe }">{{ p.NickName }}</span>
 
-                            <img v-if="p.isBanker" :src="bankerIcon" class="banker-icon" />
 
-                        </div>
+                                    <HistoryPokerCard v-for="(card, cIdx) in p.uiCards" :key="cIdx" :card="card"
+                                        :isSmall="true" :simplified="true" :mini="true" :largeIcons="p.isMe"
+                                        class="mini-card" />
 
-                    </template>
-                    <template v-else>
-                        <!-- Placeholder to align text with cards area -->
-                        <div class="multipliers-row" style="opacity: 0; pointer-events: none;">
-                            <div style="height: 20px;"></div>
-                        </div>
 
-                        <div class="cards-row" style="align-items: center; justify-content: center;">
-                            <div class="empty-seat-msg">
-                                <div>空座</div>
+
+                                </div>
+
+
+
+                                <img v-if="getHandTypeImage(p.handTypeKey)" :src="getHandTypeImage(p.handTypeKey)"
+                                    class="niu-type-img" />
+
                             </div>
-                        </div>
-                    </template>
 
-                </div>
+
+
+                            <div class="info-row" :class="{ 'me': p.isMe }">
+
+                                <span class="nickname" :class="{ 'me': p.isMe }">{{ p.NickName }}</span>
+
+                                <img v-if="p.isBanker" :src="bankerIcon" class="banker-icon" />
+
+                            </div>
+
+                        </template>
+                        <template v-else>
+                            <!-- Placeholder to align text with cards area -->
+                            <div class="multipliers-row" style="opacity: 0; pointer-events: none;">
+                                <div style="height: 20px;"></div>
+                            </div>
+
+                            <div class="cards-row" style="align-items: center; justify-content: center;">
+                                <div class="empty-seat-msg">
+                                    <div>空座</div>
+                                </div>
+                            </div>
+                        </template>
+
+                    </div>
 
                 </div>
             </div>
@@ -649,11 +651,12 @@ const positionedPlayers = computed(() => {
     display: flex;
     gap: 4px;
     justify-content: center;
-    align-items: center; /* Ensure vertical alignment */
+    align-items: center;
+    /* Ensure vertical alignment */
 }
 
 .status-img-small {
-    height: 20px;
+    height: 15px;
     width: auto;
     object-fit: contain;
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));

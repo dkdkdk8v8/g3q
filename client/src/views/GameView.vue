@@ -1387,7 +1387,8 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
         <CoinLayer ref="coinLayer" />
 
-
+        <!-- Overlay for Hand Result Badges (Niu Type) to be above Coins -->
+        <div id="badges-overlay" class="badges-overlay"></div>
 
         <!-- Full-screen Switch Room Overlay with Frosted Glass Effect -->
 
@@ -2233,6 +2234,16 @@ const shouldMoveStatusToHighPosition = computed(() => {
     pointer-events: none;
     z-index: 200;
     /* Above room info, below menu */
+}
+
+.badges-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 8000; /* Higher than CoinLayer (7000) */
 }
 
 .opponent-seat-abs {

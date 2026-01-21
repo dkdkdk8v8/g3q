@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { useGameStore } from '../stores/game.js';
 import PokerCard from './PokerCard.vue';
 import { formatCoins } from '../utils/format.js';
@@ -279,6 +279,62 @@ const shouldShowBetMult = computed(() => {
     return props.player.betMultiplier > 0;
 });
 
+// Teleport Logic for Hand Result Badge
+const badgeAnchorRef = ref(null);
+const teleportStyle = ref({});
+let badgeUpdateFrame = null;
+
+const updateBadgePosition = () => {
+    if (badgeAnchorRef.value) {
+        const rect = badgeAnchorRef.value.getBoundingClientRect();
+        // Ensure we only update if visible and has size
+        if (rect.width > 0 && rect.height > 0) {
+            teleportStyle.value = {
+                position: 'absolute',
+                top: `${rect.top}px`,
+                left: `${rect.left}px`,
+                width: `${rect.width}px`,
+                height: `${rect.height}px`,
+                zIndex: 8001, // Higher than overlay base
+                pointerEvents: 'none', // Pass clicks through
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+            };
+        }
+    }
+};
+
+const startBadgeLoop = () => {
+    if (badgeUpdateFrame) cancelAnimationFrame(badgeUpdateFrame);
+    const loop = () => {
+        updateBadgePosition();
+        badgeUpdateFrame = requestAnimationFrame(loop);
+    };
+    loop();
+};
+
+const stopBadgeLoop = () => {
+    if (badgeUpdateFrame) {
+        cancelAnimationFrame(badgeUpdateFrame);
+        badgeUpdateFrame = null;
+    }
+};
+
+watch(shouldShowBadge, (val) => {
+    if (val) {
+        nextTick(() => {
+            startBadgeLoop();
+        });
+    } else {
+        stopBadgeLoop();
+    }
+}, { immediate: true });
+
+onUnmounted(() => {
+    stopBadgeLoop();
+});
+
 const slideTransitionName = computed(() => {
     return 'pop-up';
 });
@@ -395,14 +451,30 @@ const shouldMoveStatusFloat = computed(() => {
                 </template>
             </TransitionGroup>
             <!-- ... (keep hand result) -->
-            <div v-if="shouldShowBadge" class="hand-result-badge">
+            <!-- Hand Result Badge (Anchor + Teleport) -->
+            <div v-if="shouldShowBadge" class="hand-result-badge" ref="badgeAnchorRef" style="opacity: 0;">
                 <img v-if="getHandTypeImageUrl(player.handResult.typeName)"
                     :src="getHandTypeImageUrl(player.handResult.typeName)" alt="手牌类型" class="hand-type-img" />
                 <template v-else>
-                    TypeName: "{{ player.handResult.typeName }}" - URL Debug: {{
-                        getHandTypeImageUrl(player.handResult.typeName) || 'null' }}
+                    TypeName: "{{ player.handResult.typeName }}"
                 </template>
             </div>
+            
+            <Teleport to="#badges-overlay">
+                <div v-if="shouldShowBadge" :style="teleportStyle">
+                     <img v-if="getHandTypeImageUrl(player.handResult.typeName)"
+                        :src="getHandTypeImageUrl(player.handResult.typeName)" 
+                        alt="手牌类型" 
+                        class="hand-type-img"
+                        style="height: 100%; width: auto;" />
+                     <template v-else>
+                         <!-- Fallback text styling needs to match if used -->
+                         <span style="color: #fbbf24; font-size: 12px; font-weight: bold;">
+                             {{ player.handResult.typeName }}
+                         </span>
+                    </template>
+                </div>
+            </Teleport>
         </div>
     </div>
 </template>
@@ -938,7 +1010,7 @@ const shouldMoveStatusFloat = computed(() => {
     left: 0;
     width: 100%;
     margin-top: 0 !important;
-    z-index: 15;
+    z-index: 150;
     pointer-events: none;
 }
 

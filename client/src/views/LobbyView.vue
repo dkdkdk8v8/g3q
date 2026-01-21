@@ -906,7 +906,7 @@ const goBack = () => {
     /* Gap between columns */
 
     column-gap: 10px;
-    row-gap: 10px;
+    row-gap: 0;
 
     margin-top: 10px;
 

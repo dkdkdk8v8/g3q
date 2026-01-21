@@ -704,10 +704,10 @@ const shouldMoveStatusFloat = computed(() => {
 
     right: -10px;
 
-    width: 21px;
+    width: 23px;
     /* 3/4 of original size (24px) */
 
-    height: 21px;
+    height: 23px;
     /* 3/4 of original size (24px) */
 
     /* 使用 flex 完美居中 */

@@ -868,8 +868,10 @@ const goBack = () => {
     flex: 1;
 
     overflow-y: auto;
-    overflow-x: hidden; /* Prevent horizontal scroll during swipe */
-    position: relative; /* Establish positioning context for absolute children */
+    overflow-x: hidden;
+    /* Prevent horizontal scroll during swipe */
+    position: relative;
+    /* Establish positioning context for absolute children */
 
     width: 100%;
 
@@ -910,7 +912,7 @@ const goBack = () => {
 
     /* 20px horizontal padding from screen edges */
 
-    padding: 0 20px;
+    padding: 0 10px;
 
     width: 100%;
 

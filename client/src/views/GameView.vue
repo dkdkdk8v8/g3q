@@ -1841,7 +1841,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
                 </div>
 
                 <div v-show="store.currentPhase === 'BETTING' && myPlayer.isBanker" class="waiting-text">
-                    等待闲家下注...
+                    等待闲家下注<span class="loading-dots"></span>
                 </div>
 
                 <!-- Switch Room Button -->

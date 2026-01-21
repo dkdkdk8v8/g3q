@@ -1349,12 +1349,13 @@ const shouldMoveStatusFloat = computed(() => {
 
 // --- My Player Badge Teleport Logic ---
 const myBadgeAnchorRef = ref(null);
-const myTeleportStyle = ref({});
+const myTeleportStyle = ref({ display: 'none' }); // Hidden initially to prevent flash
 let myBadgeUpdateFrame = null;
 
 const updateMyBadgePosition = () => {
     if (myBadgeAnchorRef.value) {
         const rect = myBadgeAnchorRef.value.getBoundingClientRect();
+        
         // Relaxed check: Allow 0 width (image loading), just ensure element exists
         if (rect) {
             myTeleportStyle.value = {

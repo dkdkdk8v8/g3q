@@ -221,6 +221,8 @@ import zhuangImg from '@/assets/common/zhuang.png';
 import tanpaiImg from '@/assets/common/tanpai.png';
 import couniuSanImg from '@/assets/common/couniu_san.png';
 import couniuSiImg from '@/assets/common/couniu_si.png';
+import tuoguanImg from '@/assets/common/tuoguan.jpg';
+import tuguanzhongImg from '@/assets/common/tuguanzhong.jpg';
 
 // Lobby style buttons
 import btnExit from '@/assets/lobby/exit_btn.png';
@@ -1777,12 +1779,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
                 <!-- Hosting Button -->
                 <div class="hosting-btn" v-if="!myPlayer.isObserver" @click="openHostingDebounced"
                     :class="{ active: isHosting }">
-                    <template v-if="isHosting">
-                        托管中<span class="loading-dots"></span>
-                    </template>
-                    <template v-else>
-                        托管
-                    </template>
+                    <img :src="isHosting ? tuguanzhongImg : tuoguanImg" alt="托管" class="hosting-btn-img" />
                 </div>
 
                 <!-- My Score Float -->
@@ -3558,21 +3555,20 @@ const shouldMoveStatusToHighPosition = computed(() => {
     top: 78%;
     transform: translateY(-50%);
 
-    background: rgba(0, 0, 0, 0.6);
-    color: #cbd5e1;
-    font-size: 15px;
-    padding: 6px 13px;
-    border-top-left-radius: 16px;
-    border-bottom-left-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
     cursor: pointer;
     z-index: 1000;
-    white-space: nowrap;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     transition: all 0.2s;
+}
+
+.hosting-btn-img {
+    height: 36px;
+    width: auto;
+    object-fit: contain;
+    border-top-left-radius: 16px;
+    border-bottom-left-radius: 16px;
 }
 
 .hosting-btn:active {

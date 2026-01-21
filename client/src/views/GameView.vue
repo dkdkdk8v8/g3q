@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, computed, onUnmounted, ref, watch } from 'vue';
+import { onMounted, computed, onUnmounted, ref, watch, nextTick } from 'vue';
 import { debounce } from '../utils/debounce.js';
 import { useGameStore } from '../stores/game.js';
 import { useSettingsStore } from '../stores/settings.js';
@@ -1345,6 +1345,62 @@ const shouldMoveStatusFloat = computed(() => {
 
 
 
+// --- My Player Badge Teleport Logic ---
+const myBadgeAnchorRef = ref(null);
+const myTeleportStyle = ref({});
+let myBadgeUpdateFrame = null;
+
+const updateMyBadgePosition = () => {
+    if (myBadgeAnchorRef.value) {
+        const rect = myBadgeAnchorRef.value.getBoundingClientRect();
+        // Relaxed check: Allow 0 width (image loading), just ensure element exists
+        if (rect) {
+            myTeleportStyle.value = {
+                position: 'absolute',
+                top: `${rect.top}px`,
+                left: `${rect.left}px`,
+                width: `${rect.width}px`,
+                height: `${rect.height}px`,
+                zIndex: 8001, // Higher than CoinLayer (7000)
+                pointerEvents: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+            };
+        }
+    }
+};
+
+const startMyBadgeLoop = () => {
+    if (myBadgeUpdateFrame) cancelAnimationFrame(myBadgeUpdateFrame);
+    const loop = () => {
+        updateMyBadgePosition();
+        myBadgeUpdateFrame = requestAnimationFrame(loop);
+    };
+    loop();
+};
+
+const stopMyBadgeLoop = () => {
+    if (myBadgeUpdateFrame) {
+        cancelAnimationFrame(myBadgeUpdateFrame);
+        myBadgeUpdateFrame = null;
+    }
+};
+
+watch(shouldShowBadge, (val) => {
+    if (val) {
+        nextTick(() => {
+            startMyBadgeLoop();
+        });
+    } else {
+        stopMyBadgeLoop();
+    }
+}, { immediate: true });
+
+onUnmounted(() => {
+    stopMyBadgeLoop();
+});
+
 const shouldMoveStatusToHighPosition = computed(() => {
 
 
@@ -1386,9 +1442,6 @@ const shouldMoveStatusToHighPosition = computed(() => {
         <DealingLayer ref="dealingLayer" />
 
         <CoinLayer ref="coinLayer" />
-
-        <!-- Overlay for Hand Result Badges (Niu Type) to be above Coins -->
-        <div id="badges-overlay" class="badges-overlay"></div>
 
         <!-- Full-screen Switch Room Overlay with Frosted Glass Effect -->
 
@@ -1614,19 +1667,29 @@ const shouldMoveStatusToHighPosition = computed(() => {
                         </template>
                     </TransitionGroup>
 
-                    <!-- Hand Result Badge - adapted from PlayerSeat -->
-
+                    <!-- Hand Result Badge - adapted from PlayerSeat (Anchor + Teleport) -->
                     <div v-if="myPlayer.handResult && myPlayer.handResult.typeName && shouldShowBadge"
-                        class="hand-result-badge">
-
+                        class="hand-result-badge" ref="myBadgeAnchorRef" style="opacity: 0;">
                         <img v-if="getHandTypeImageUrl(myPlayer.handResult.typeName)"
                             :src="getHandTypeImageUrl(myPlayer.handResult.typeName)" alt="手牌类型" class="hand-type-img" />
-
-                        <template v-else>TypeName: "{{ myPlayer.handResult.typeName }}" - URL Debug: {{
-
-                            getHandTypeImageUrl(myPlayer.handResult.typeName) || 'null' }}</template>
-
+                        <template v-else>TypeName: "{{ myPlayer.handResult.typeName }}"</template>
                     </div>
+
+                    <Teleport to="body">
+                        <div v-if="myPlayer.handResult && myPlayer.handResult.typeName && shouldShowBadge" 
+                             :style="myTeleportStyle">
+                             <img v-if="getHandTypeImageUrl(myPlayer.handResult.typeName)"
+                                :src="getHandTypeImageUrl(myPlayer.handResult.typeName)" 
+                                alt="手牌类型" 
+                                class="hand-type-img"
+                                style="height: 100%; width: auto;" />
+                             <template v-else>
+                                 <span style="color: #fbbf24; font-size: 14px; font-weight: bold;">
+                                     {{ myPlayer.handResult.typeName }}
+                                 </span>
+                            </template>
+                        </div>
+                    </Teleport>
 
                 </div>
 
@@ -2236,16 +2299,6 @@ const shouldMoveStatusToHighPosition = computed(() => {
     /* Above room info, below menu */
 }
 
-.badges-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 8000; /* Higher than CoinLayer (7000) */
-}
-
 .opponent-seat-abs {
     position: absolute;
     pointer-events: auto;
@@ -2436,7 +2489,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
     margin-top: 5px;
     margin-bottom: -53px;
     position: relative;
-    z-index: 1;
+    z-index: 150;
 }
 
 /* Hand area styles (adapted from PlayerSeat.vue for myPlayer) */

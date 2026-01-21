@@ -287,8 +287,8 @@ let badgeUpdateFrame = null;
 const updateBadgePosition = () => {
     if (badgeAnchorRef.value) {
         const rect = badgeAnchorRef.value.getBoundingClientRect();
-        // Ensure we only update if visible and has size
-        if (rect.width > 0 && rect.height > 0) {
+        // Relaxed check: Allow 0 width, just ensure element exists
+        if (rect) {
             teleportStyle.value = {
                 position: 'absolute',
                 top: `${rect.top}px`,
@@ -460,7 +460,7 @@ const shouldMoveStatusFloat = computed(() => {
                 </template>
             </div>
             
-            <Teleport to="#badges-overlay">
+            <Teleport to="body">
                 <div v-if="shouldShowBadge" :style="teleportStyle">
                      <img v-if="getHandTypeImageUrl(player.handResult.typeName)"
                         :src="getHandTypeImageUrl(player.handResult.typeName)" 

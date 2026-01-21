@@ -1676,17 +1676,15 @@ const shouldMoveStatusToHighPosition = computed(() => {
                     </div>
 
                     <Teleport to="body">
-                        <div v-if="myPlayer.handResult && myPlayer.handResult.typeName && shouldShowBadge" 
-                             :style="myTeleportStyle">
-                             <img v-if="getHandTypeImageUrl(myPlayer.handResult.typeName)"
-                                :src="getHandTypeImageUrl(myPlayer.handResult.typeName)" 
-                                alt="手牌类型" 
-                                class="hand-type-img"
-                                style="height: 100%; width: auto;" />
-                             <template v-else>
-                                 <span style="color: #fbbf24; font-size: 14px; font-weight: bold;">
-                                     {{ myPlayer.handResult.typeName }}
-                                 </span>
+                        <div v-if="myPlayer.handResult && myPlayer.handResult.typeName && shouldShowBadge"
+                            :style="myTeleportStyle">
+                            <img v-if="getHandTypeImageUrl(myPlayer.handResult.typeName)"
+                                :src="getHandTypeImageUrl(myPlayer.handResult.typeName)" alt="手牌类型"
+                                class="hand-type-img" style="height: 100%; width: auto;" />
+                            <template v-else>
+                                <span style="color: #fbbf24; font-size: 14px; font-weight: bold;">
+                                    {{ myPlayer.handResult.typeName }}
+                                </span>
                             </template>
                         </div>
                     </Teleport>
@@ -2101,7 +2099,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.7);
-    z-index: 8000;
+    z-index: 8500;
     display: flex;
     justify-content: center;
     align-items: center;

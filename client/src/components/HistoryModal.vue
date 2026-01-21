@@ -276,7 +276,7 @@ watch(() => props.visible, (val) => {
 </script>
 
 <template>
-    <div v-if="visible" class="modal-overlay" style="z-index: 8000;" @click="close">
+    <div v-if="visible" class="modal-overlay" style="z-index: 8500;" @click="close">
         <div class="modal-content history-modal" @click.stop>
             <div class="modal-header">
                 <div class="modal-header-top">
@@ -384,7 +384,7 @@ watch(() => props.visible, (val) => {
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.7);
-    z-index: 8000;
+    z-index: 8500;
     display: flex;
     justify-content: center;
     align-items: center;

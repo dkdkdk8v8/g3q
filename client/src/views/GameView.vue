@@ -1394,10 +1394,12 @@ const shouldMoveStatusToHighPosition = computed(() => {
         <transition name="switch-room-fade">
 
             <div v-show="showSwitchRoomOverlay" class="switch-room-overlay">
-
-                <img :src="lobbyLogoImg" alt="Lobby Logo" class="switch-room-logo"
-                    :class="logoAnimationState === 'entering' ? 'logo-enter' : (logoAnimationState === 'leaving' ? 'logo-leave' : '')" />
-
+                <div class="switch-room-content">
+                    <!-- <img :src="lobbyLogoImg" alt="Lobby Logo" class="switch-room-logo"
+                        :class="logoAnimationState === 'entering' ? 'logo-enter' : (logoAnimationState === 'leaving' ? 'logo-leave' : '')" /> -->
+                    <div class="switch-room-text" :class="{ 'text-leave': logoAnimationState === 'leaving' }">
+                        正在切换房间<span class="loading-dots"></span></div>
+                </div>
             </div>
 
         </transition>
@@ -3536,21 +3538,48 @@ const shouldMoveStatusToHighPosition = computed(() => {
     /* Semi-transparent black */
     backdrop-filter: blur(8px);
     /* Frosted glass effect */
-    /* Removed flexbox centering properties */
     z-index: 9998;
     /* Below global loading, above everything else in game */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.switch-room-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    top: 7%;
 }
 
 .switch-room-logo {
-    position: absolute;
-    top: 42%;
-    left: 50%;
-    transform: translate(-50%, -50%) scale(0.1);
-    width: 80vw;
+    width: 58vw;
     height: auto;
     object-fit: contain;
     /* Start hidden */
     opacity: 0;
+    transform: scale(0.1);
+}
+
+.switch-room-text {
+    margin-top: 20px;
+    color: rgb(223, 187, 87);
+    font-size: 17px;
+    opacity: 0;
+    animation: fadeIn 0.5s ease-in 0.3s forwards;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.switch-room-text.text-leave {
+    transition: opacity 0.3s ease-in;
+    opacity: 0;
+}
+
+@keyframes fadeIn {
+    to {
+        opacity: 1;
+    }
 }
 
 .switch-room-logo.logo-enter {
@@ -3565,17 +3594,17 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
 @keyframes logoBounce {
     0% {
-        transform: translate(-50%, -50%) scale(0.1);
+        transform: scale(0.1);
         opacity: 0;
     }
 
     70% {
-        transform: translate(-50%, -50%) scale(1.1);
+        transform: scale(1.1);
         opacity: 1;
     }
 
     100% {
-        transform: translate(-50%, -50%) scale(0.9);
+        transform: scale(1.0);
         opacity: 1;
     }
 }

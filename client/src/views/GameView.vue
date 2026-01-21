@@ -3568,7 +3568,6 @@ const shouldMoveStatusToHighPosition = computed(() => {
     font-size: 17px;
     opacity: 0;
     animation: fadeIn 0.5s ease-in 0.3s forwards;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .switch-room-text.text-leave {

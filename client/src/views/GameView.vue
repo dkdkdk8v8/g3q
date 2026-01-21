@@ -3550,9 +3550,9 @@ const shouldMoveStatusToHighPosition = computed(() => {
 }
 
 .hosting-btn {
-    position: fixed;
+    position: absolute;
     right: 0;
-    top: 36%;
+    top: 76%;
     transform: translateY(-50%);
 
     cursor: pointer;

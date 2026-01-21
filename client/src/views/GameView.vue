@@ -3552,7 +3552,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 .hosting-btn {
     position: absolute;
     right: 0;
-    top: 78%;
+    top: 75%;
     transform: translateY(-50%);
 
     cursor: pointer;
@@ -3567,20 +3567,10 @@ const shouldMoveStatusToHighPosition = computed(() => {
     height: 36px;
     width: auto;
     object-fit: contain;
-    border-top-left-radius: 16px;
-    border-bottom-left-radius: 16px;
 }
 
 .hosting-btn:active {
     transform: translateY(-50%) scale(0.95);
-}
-
-.hosting-btn.active {
-    background: linear-gradient(to bottom, #22c55e, #16a34a);
-    color: white;
-    border-color: #86efac;
-    font-weight: bold;
-    box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
 }
 </style>
 

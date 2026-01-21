@@ -196,6 +196,15 @@ const switchRoom = debounce(() => {
     showSwitchRoomOverlay.value = true; // Show overlay immediately
     logoAnimationState.value = 'entering'; // Start logo animation
     gameClient.send("QZNN.PlayerChangeRoom", { RoomId: store.roomId });
+
+    // Set a 5-second timeout to hide the overlay forcefully
+    switchRoomTimeout.value = setTimeout(() => {
+        if (showSwitchRoomOverlay.value) {
+            console.warn("[GameView] Room switch overlay timed out after 5s.");
+            showSwitchRoomOverlay.value = false;
+            logoAnimationState.value = '';
+        }
+    }, 5000); // 5 seconds
 }, 500);
 
 
@@ -442,6 +451,7 @@ const showAutoJoinMessage = ref(false);
 
 const showSwitchRoomOverlay = ref(false);
 const logoAnimationState = ref(''); // 'entering', 'leaving', ''
+const switchRoomTimeout = ref(null); // Timeout for forced overlay disappearance
 import lobbyLogoImg from '@/assets/lobby/logo.png'; // Import lobby logo
 
 // Robot Speech/Emoji Logic Removed (now server-driven)
@@ -1153,6 +1163,12 @@ onMounted(() => {
 
     // Register handler for PlayerChangeRoom response
     gameClient.on('QZNN.PlayerChangeRoom', (msg) => {
+        // Clear the force-hide timeout if a response is received
+        if (switchRoomTimeout.value) {
+            clearTimeout(switchRoomTimeout.value);
+            switchRoomTimeout.value = null;
+        }
+
         isSwitchingRoom.value = false;
         if (msg.code !== 0) {
             vantToast(msg.msg || "切换房间失败");

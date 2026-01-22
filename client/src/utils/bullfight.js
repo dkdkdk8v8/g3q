@@ -67,7 +67,8 @@ export function transformServerCard(serverCardId) {
         rank,
         label,
         value,
-        id: `${suit}-${rank}` // Consistent with createDeck IDs
+        id: `${suit}-${rank}`, // Consistent with createDeck IDs
+        rawId: id // Store original server ID for image mapping
     };
 }
 

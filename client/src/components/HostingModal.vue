@@ -239,7 +239,7 @@ const getBetLabel = (val) => {
 .confirm-btn {
     width: 100%;
 
-    color: #fef3c7;
+    color: #fef0c7;
 
     font-size: 4.26667vw;
 

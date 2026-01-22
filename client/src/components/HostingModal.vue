@@ -188,7 +188,7 @@ const getBetLabel = (val) => {
     border-radius: 10px;
     font-size: 14px;
     cursor: pointer;
-    border: 1px solid #1f2937;
+    border: 1px solid #2e2e2e;
     color: #e2e8f0;
 }
 
@@ -213,7 +213,7 @@ const getBetLabel = (val) => {
 
 .cancel-btn {
     width: 100%;
-    padding: 7px;
+    padding: 10px 0 10px 0;
     background: linear-gradient(to bottom, #6d6d6d, #636363);
     color: white;
     text-align: center;
@@ -224,12 +224,13 @@ const getBetLabel = (val) => {
 
 .confirm-btn {
     width: 100%;
-    padding: 7px;
-    background: linear-gradient(to bottom, #188540, #0e4e25);
+    padding: 10px;
+    background: linear-gradient(to bottom, #d79d0a, #af810f);
     color: white;
     text-align: center;
     border-radius: 8px;
     font-size: 16px;
+    font-weight: bold;
     cursor: pointer;
 }
 

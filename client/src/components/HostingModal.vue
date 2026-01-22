@@ -168,7 +168,7 @@ const getBetLabel = (val) => {
 
 .group-title {
     font-size: 14px;
-    color: #cbd5e1;
+    color: #9f9f9f;
     margin-bottom: 10px;
     font-weight: bold;
 }
@@ -184,16 +184,18 @@ const getBetLabel = (val) => {
     min-width: 60px;
     text-align: center;
     padding: 8px 4px;
-    background: linear-gradient(to bottom, #262d38, #1f2937);
+    background: #262d38;
     border-radius: 10px;
     font-size: 14px;
     cursor: pointer;
-    border: 1px solid #2e2e2e;
-    color: #e2e8f0;
+    color: #aaaaaa;
 }
 
 .option-btn.active {
+    font-weight: bold;
     border-color: #fbbf24;
+    color: #e2e8f0;
+    background: linear-gradient(to bottom, #48505f, #2f3a4a);
 }
 
 .modal-footer {

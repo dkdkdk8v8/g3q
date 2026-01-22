@@ -10,21 +10,21 @@ import { showToast } from 'vant';
 // ... (imports)
 
 // Import Bet History Images
-import niu1 from '@/assets/bethistory/niu_1.png';
-import niu2 from '@/assets/bethistory/niu_2.png';
-import niu3 from '@/assets/bethistory/niu_3.png';
-import niu4 from '@/assets/bethistory/niu_4.png';
-import niu5 from '@/assets/bethistory/niu_5.png';
-import niu6 from '@/assets/bethistory/niu_6.png';
-import niu7 from '@/assets/bethistory/niu_7.png';
-import niu8 from '@/assets/bethistory/niu_8.png';
-import niu9 from '@/assets/bethistory/niu_9.png';
-import niuNiu from '@/assets/bethistory/niu_niu.png';
-import niuMei from '@/assets/bethistory/niu_mei.png';
-import niuBoom from '@/assets/bethistory/niu_boom.png';
-import niuWuhua from '@/assets/bethistory/niu_wuhua.png';
-import niuWuxiao from '@/assets/bethistory/niu_wuxiao.png';
-import niuSihua from '@/assets/bethistory/niu_sihua.png';
+import niu1 from '@/assets/niu/niu_1.png';
+import niu2 from '@/assets/niu/niu_2.png';
+import niu3 from '@/assets/niu/niu_3.png';
+import niu4 from '@/assets/niu/niu_4.png';
+import niu5 from '@/assets/niu/niu_5.png';
+import niu6 from '@/assets/niu/niu_6.png';
+import niu7 from '@/assets/niu/niu_7.png';
+import niu8 from '@/assets/niu/niu_8.png';
+import niu9 from '@/assets/niu/niu_9.png';
+import niuNiu from '@/assets/niu/niu_niu.png';
+import niuMei from '@/assets/niu/niu_mei.png';
+import niuBoom from '@/assets/niu/niu_boom.png';
+import niuWuhua from '@/assets/niu/niu_wuhua.png';
+import niuWuxiao from '@/assets/niu/niu_wuxiao.png';
+import niuSihua from '@/assets/niu/niu_sihua.png';
 
 // Status images (Rob Banker qz_)
 import qzBetNo from '@/assets/beishu/qz_bet_no.png';

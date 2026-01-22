@@ -2559,7 +2559,9 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
     align-items: center;
 
-    width: 95%;
+    width: 100%;
+
+    box-sizing: border-box;
 
     padding: 0 20px;
     /* Padding for spacing from screen edges */

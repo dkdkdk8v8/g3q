@@ -231,7 +231,7 @@ import tanpaiImg from '@/assets/common/tanpai.png';
 import couniuSanImg from '@/assets/common/couniu_san.png';
 import couniuSiImg from '@/assets/common/couniu_si.png';
 import tuoguanImg from '@/assets/common/tuoguan.jpg';
-import tuguanzhongImg from '@/assets/common/tuguanzhong.jpg';
+import tuguanzhongImg from '@/assets/common/tuguanzhong.png';
 
 // Lobby style buttons
 import btnExit from '@/assets/lobby/exit_btn.png';
@@ -1371,7 +1371,7 @@ let myBadgeUpdateFrame = null;
 const updateMyBadgePosition = () => {
     if (myBadgeAnchorRef.value) {
         const rect = myBadgeAnchorRef.value.getBoundingClientRect();
-        
+
         // Relaxed check: Allow 0 width (image loading), just ensure element exists
         if (rect) {
             myTeleportStyle.value = {

@@ -62,7 +62,7 @@ export const AudioUtils = {
         currentMusicPath = src;
         currentMusic = new Howl({
             src: [src],
-            html5: true, // Use HTML5 Audio for larger files (music) to save memory/bandwidth
+            html5: false, // Use Web Audio API for seamless looping (HTML5 Audio has gaps)
             loop: true,
             volume: volume,
             preload: true,

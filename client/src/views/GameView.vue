@@ -22,6 +22,52 @@ import PokerCard from '../components/PokerCard.vue';
 const store = useGameStore();
 const settingsStore = useSettingsStore();
 
+// --- Showdown Sound Logic ---
+const playedShowdownSounds = ref(new Set());
+
+const niuSoundMap = {
+    'NO_BULL': niu0Sound,
+    'BULL_1': niu1Sound,
+    'BULL_2': niu2Sound,
+    'BULL_3': niu3Sound,
+    'BULL_4': niu4Sound,
+    'BULL_5': niu5Sound,
+    'BULL_6': niu6Sound,
+    'BULL_7': niu7Sound,
+    'BULL_8': niu8Sound,
+    'BULL_9': niu9Sound,
+    'BULL_BULL': niuNiuSound,
+    'FIVE_SMALL': niuWuxiaoSound,
+    'FIVE_FLOWER': niuWuhuaSound,
+    'BOMB': niuBoomSound,
+    'FOUR_FLOWER': null // No sound
+};
+
+const playHandSound = (handResult) => {
+    if (!settingsStore.soundEnabled || !handResult || !handResult.type) return;
+    const sound = niuSoundMap[handResult.type];
+    if (sound) {
+        AudioUtils.playEffect(sound);
+    }
+};
+
+watch(() => store.players, (newPlayers) => {
+    newPlayers.forEach(p => {
+        // Play sound if player shows hand, has result, and sound hasn't been played this round
+        if (p.isShowHand && p.handResult && !playedShowdownSounds.value.has(p.id)) {
+            playHandSound(p.handResult);
+            playedShowdownSounds.value.add(p.id);
+        }
+    });
+}, { deep: true });
+
+watch(() => store.currentPhase, (val) => {
+    if (['IDLE', 'READY_COUNTDOWN', 'ROB_BANKER'].includes(val)) {
+        playedShowdownSounds.value.clear();
+    }
+});
+// ----------------------------
+
 const backgroundImageStyle = computed(() => {
     let bgUrl = gameBgImg; // Default
     if (store.gameMode === 1) {
@@ -225,6 +271,20 @@ import sendCoinSound from '@/assets/sounds/send_coin.mp3';
 import countdownSound from '@/assets/sounds/countdown.mp3';
 import countdownAlertSound from '@/assets/sounds/countdown_alert.mp3';
 import btnClickSound from '@/assets/sounds/btn_click.mp3';
+import niu0Sound from '@/assets/sounds/niu_0.mp3';
+import niu1Sound from '@/assets/sounds/niu_1.mp3';
+import niu2Sound from '@/assets/sounds/niu_2.mp3';
+import niu3Sound from '@/assets/sounds/niu_3.mp3';
+import niu4Sound from '@/assets/sounds/niu_4.mp3';
+import niu5Sound from '@/assets/sounds/niu_5.mp3';
+import niu6Sound from '@/assets/sounds/niu_6.mp3';
+import niu7Sound from '@/assets/sounds/niu_7.mp3';
+import niu8Sound from '@/assets/sounds/niu_8.mp3';
+import niu9Sound from '@/assets/sounds/niu_9.mp3';
+import niuNiuSound from '@/assets/sounds/niu_niu.mp3';
+import niuBoomSound from '@/assets/sounds/niu_boom.mp3';
+import niuWuhuaSound from '@/assets/sounds/niu_wuhuan.mp3';
+import niuWuxiaoSound from '@/assets/sounds/niu_wuxiao.mp3';
 import goldImg from '@/assets/common/gold.png';
 import zhuangImg from '@/assets/common/zhuang.png';
 import tanpaiImg from '@/assets/common/tanpai.png';

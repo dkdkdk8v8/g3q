@@ -1,19 +1,15 @@
 import { Howl, Howler } from 'howler';
 
 /**
- * Audio Manager
- * Effects uses Howler.js (Web Audio API) for low latency.
- * Music uses native HTML5 Audio for streaming and better control separation.
+ * Audio Manager using Howler.js
+ * Solves latency issues by using Web Audio API.
  */
 
 // Cache for sound effects
 const effects = {};
-
-// Music State
-let currentMusic = null; // Will be an instance of Audio
+let currentMusic = null;
 let currentMusicPath = null;
 let wasMusicPlaying = false; // Track if music was playing before suspend
-let currentMusicVolume = 0.5; // Store volume to re-apply
 
 export const AudioUtils = {
     /**
@@ -23,11 +19,6 @@ export const AudioUtils = {
      */
     playEffect(src, volume = 1.0) {
         if (!src) return;
-
-        // Ensure global mute is off when trying to play an effect (defensive)
-        if (Howler._muted) {
-            Howler.mute(false);
-        }
 
         if (!effects[src]) {
             effects[src] = new Howl({
@@ -45,37 +36,39 @@ export const AudioUtils = {
     },
 
     /**
-     * Play background music (loop) using native Audio.
+     * Play background music (loop).
      * @param {string} src - Path to the audio file.
      * @param {number} volume - Volume (0.0 to 1.0).
      */
     playMusic(src, volume = 0.5) {
         if (!src) return;
-        currentMusicVolume = volume;
 
-        // If already playing this track
+        // If already playing this track, just update volume
         if (currentMusic && currentMusicPath === src) {
-            if (currentMusic.paused) {
-                currentMusic.play().catch(e => console.warn("Music playback failed:", e));
+            if (!currentMusic.playing()) {
+                currentMusic.play();
                 wasMusicPlaying = true;
             }
-            currentMusic.volume = volume;
+            currentMusic.volume(volume);
             return;
         }
 
         // Stop previous music
         if (currentMusic) {
-            currentMusic.pause();
-            currentMusic.currentTime = 0;
-            currentMusic = null;
+            currentMusic.stop();
+            currentMusic.unload(); // Unload to free resources if switching tracks
         }
 
         currentMusicPath = src;
-        currentMusic = new Audio(src);
-        currentMusic.loop = true;
-        currentMusic.volume = volume;
+        currentMusic = new Howl({
+            src: [src],
+            html5: true, // Use HTML5 Audio for larger files (music) to save memory/bandwidth
+            loop: true,
+            volume: volume,
+            preload: true,
+        });
 
-        currentMusic.play().catch(e => console.warn("Music playback failed:", e));
+        currentMusic.play();
         wasMusicPlaying = true;
     },
 
@@ -84,8 +77,9 @@ export const AudioUtils = {
      */
     stopMusic() {
         if (currentMusic) {
-            currentMusic.pause();
-            currentMusic.currentTime = 0;
+            currentMusic.stop();
+            // Optional: reset path if you want to force reload next time
+            // currentMusicPath = null; 
         }
         wasMusicPlaying = false;
     },
@@ -104,9 +98,8 @@ export const AudioUtils = {
      * Set music volume.
      */
     setMusicVolume(volume) {
-        currentMusicVolume = volume;
         if (currentMusic) {
-            currentMusic.volume = volume;
+            currentMusic.volume(volume);
         }
     },
 
@@ -115,16 +108,14 @@ export const AudioUtils = {
      * Used when app goes to background
      */
     suspend() {
-        // Handle Music
-        if (currentMusic && !currentMusic.paused) {
+        // Check if music is ACTUALLY playing right now
+        if (currentMusic && currentMusic.playing()) {
             currentMusic.pause();
             wasMusicPlaying = true;
         } else {
             // If it was already paused/stopped, we shouldn't resume it automatically
             wasMusicPlaying = false;
         }
-
-        // Handle Howler (Effects)
         Howler.mute(true);
     },
 
@@ -133,12 +124,9 @@ export const AudioUtils = {
      * Used when app comes to foreground
      */
     resume() {
-        // Handle Howler (Effects)
         Howler.mute(false);
-
-        // Handle Music
         if (wasMusicPlaying && currentMusic) {
-            currentMusic.play().catch(e => console.warn("Music resume failed:", e));
+            currentMusic.play();
         }
     }
 };

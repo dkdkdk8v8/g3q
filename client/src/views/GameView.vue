@@ -292,6 +292,7 @@ import couniuSanImg from '@/assets/common/couniu_san.png';
 import couniuSiImg from '@/assets/common/couniu_si.png';
 import tuoguanImg from '@/assets/common/tuoguan.png';
 import tuguanzhongImg from '@/assets/common/tuguanzhong.png';
+import replaceRoomTextImg from '@/assets/common/replace_room_text.png';
 
 // Lobby style buttons
 import btnExit from '@/assets/lobby/exit_btn.png';
@@ -1531,7 +1532,8 @@ const shouldMoveStatusToHighPosition = computed(() => {
                     <!-- <img :src="lobbyLogoImg" alt="Lobby Logo" class="switch-room-logo"
                         :class="logoAnimationState === 'entering' ? 'logo-enter' : (logoAnimationState === 'leaving' ? 'logo-leave' : '')" /> -->
                     <div class="switch-room-text" :class="{ 'text-leave': logoAnimationState === 'leaving' }">
-                        正在切换房间<span class="loading-dots"></span></div>
+                        <img :src="replaceRoomTextImg" class="switch-room-text-img" /><span class="loading-dots"></span>
+                    </div>
                 </div>
             </div>
 
@@ -3696,6 +3698,14 @@ const shouldMoveStatusToHighPosition = computed(() => {
     font-size: 17px;
     opacity: 0;
     animation: fadeIn 0.5s ease-in 0.3s forwards;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.switch-room-text-img {
+    width: 30%;
+    margin-right: 2px;
 }
 
 .switch-room-text.text-leave {

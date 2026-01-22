@@ -168,7 +168,7 @@ const getBetLabel = (val) => {
 
 .group-title {
     font-size: 14px;
-    color: #9f9f9f;
+    color: #ccc;
     margin-bottom: 10px;
     font-weight: bold;
 }
@@ -195,7 +195,7 @@ const getBetLabel = (val) => {
     font-weight: bold;
     border-color: #fbbf24;
     color: #e2e8f0;
-    background: linear-gradient(to bottom, #48505f, #2f3a4a);
+    background: linear-gradient(to bottom, #596274, #2f3a4a);
 }
 
 .modal-footer {
@@ -234,6 +234,8 @@ const getBetLabel = (val) => {
     justify-content: center;
 
     backdrop-filter: blur(1.06667vw);
+
+    border: 0.2667vw solid rgba(255, 255, 253, 0.3);
 }
 
 .confirm-btn {
@@ -252,7 +254,6 @@ const getBetLabel = (val) => {
 
     border: 0.2667vw solid rgba(255, 255, 253, 0.3);
 
-    text-shadow: 0 0.5333vw 1.0667vw rgba(0, 0, 0, 0.9);
 
     display: flex;
 
@@ -263,6 +264,8 @@ const getBetLabel = (val) => {
     justify-content: center;
 
     backdrop-filter: blur(1.06667vw);
+
+    background: linear-gradient(180deg, #cd9403 0%, #cb6d01 100%);
 
 }
 

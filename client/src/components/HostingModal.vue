@@ -213,25 +213,55 @@ const getBetLabel = (val) => {
 
 .cancel-btn {
     width: 100%;
-    padding: 10px 0 10px 0;
-    background: linear-gradient(to bottom, #6d6d6d, #636363);
-    color: white;
+    color: rgb(167, 167, 167);
     text-align: center;
-    border-radius: 8px;
+    border-radius: 6.4vw;
     font-size: 16px;
     cursor: pointer;
+    padding: 1.6vw 1.4vw;
+
+    border-radius: 6.4vw;
+
+
+    display: flex;
+
+    align-items: center;
+
+    align-self: center;
+
+    justify-content: center;
+
+    backdrop-filter: blur(1.06667vw);
 }
 
 .confirm-btn {
     width: 100%;
-    padding: 10px;
-    background: linear-gradient(to bottom, #d79d0a, #af810f);
-    color: white;
-    text-align: center;
-    border-radius: 8px;
-    font-size: 16px;
+
+    color: #fef3c7;
+
+    font-size: 4.26667vw;
+
     font-weight: bold;
-    cursor: pointer;
+
+
+    padding: 1.6vw 6.4vw;
+
+    border-radius: 6.4vw;
+
+    border: 0.2667vw solid rgba(255, 255, 253, 0.3);
+
+    text-shadow: 0 0.5333vw 1.0667vw rgba(0, 0, 0, 0.9);
+
+    display: flex;
+
+    align-items: center;
+
+    align-self: center;
+
+    justify-content: center;
+
+    backdrop-filter: blur(1.06667vw);
+
 }
 
 .confirm-btn:active {

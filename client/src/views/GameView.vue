@@ -1751,7 +1751,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
                         class="hand-result-badge" ref="myBadgeAnchorRef" style="opacity: 0;">
                         <img v-if="getHandTypeImageUrl(myPlayer.handResult.typeName)"
                             :src="getHandTypeImageUrl(myPlayer.handResult.typeName)" alt="手牌类型" class="hand-type-img"
-                            :style="['FIVE_SMALL', 'FIVE_FLOWER', 'FOUR_FLOWER', 'BOMB'].includes(myPlayer.handResult.type) ? { height: '40.5px' } : {}" />
+                            :style="['FIVE_SMALL', 'FIVE_FLOWER', 'FOUR_FLOWER', 'BOMB'].includes(myPlayer.handResult.type) ? { height: '75px' } : {}" />
                         <template v-else>TypeName: "{{ myPlayer.handResult.typeName }}"</template>
                     </div>
 

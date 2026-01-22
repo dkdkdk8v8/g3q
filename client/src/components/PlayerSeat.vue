@@ -459,19 +459,17 @@ const shouldMoveStatusFloat = computed(() => {
                     TypeName: "{{ player.handResult.typeName }}"
                 </template>
             </div>
-            
+
             <Teleport to="body">
                 <div v-if="shouldShowBadge" :style="teleportStyle">
-                     <img v-if="getHandTypeImageUrl(player.handResult.typeName)"
-                        :src="getHandTypeImageUrl(player.handResult.typeName)" 
-                        alt="手牌类型" 
-                        class="hand-type-img"
+                    <img v-if="getHandTypeImageUrl(player.handResult.typeName)"
+                        :src="getHandTypeImageUrl(player.handResult.typeName)" alt="手牌类型" class="hand-type-img"
                         style="height: 100%; width: auto;" />
-                     <template v-else>
-                         <!-- Fallback text styling needs to match if used -->
-                         <span style="color: #fbbf24; font-size: 12px; font-weight: bold;">
-                             {{ player.handResult.typeName }}
-                         </span>
+                    <template v-else>
+                        <!-- Fallback text styling needs to match if used -->
+                        <span style="color: #fbbf24; font-size: 12px; font-weight: bold;">
+                            {{ player.handResult.typeName }}
+                        </span>
                     </template>
                 </div>
             </Teleport>
@@ -774,12 +772,12 @@ const shouldMoveStatusFloat = computed(() => {
 
     bottom: 25%;
 
-    right: -10px;
+    right: -14px;
 
-    width: 23px;
+    width: 22px;
     /* 3/4 of original size (24px) */
 
-    height: 23px;
+    height: 22px;
     /* 3/4 of original size (24px) */
 
     /* 使用 flex 完美居中 */

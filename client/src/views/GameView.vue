@@ -2735,11 +2735,11 @@ const shouldMoveStatusToHighPosition = computed(() => {
     position: absolute;
     top: 25%;
     /* Center vertically */
-    right: -6px;
+    right: -10px;
     /* Position on the right edge */
-    width: 25px;
+    width: 23px;
     /* 3/4 of original size (24px) */
-    height: 25px;
+    height: 23px;
     /* 3/4 of original size (24px) */
     /* 使用 flex 完美居中 */
     display: flex;

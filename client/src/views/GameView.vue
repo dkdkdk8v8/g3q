@@ -230,7 +230,7 @@ import zhuangImg from '@/assets/common/zhuang.png';
 import tanpaiImg from '@/assets/common/tanpai.png';
 import couniuSanImg from '@/assets/common/couniu_san.png';
 import couniuSiImg from '@/assets/common/couniu_si.png';
-import tuoguanImg from '@/assets/common/tuoguan.jpg';
+import tuoguanImg from '@/assets/common/tuoguan.png';
 import tuguanzhongImg from '@/assets/common/tuguanzhong.png';
 
 // Lobby style buttons

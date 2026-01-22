@@ -22,7 +22,8 @@ export function createDeck() {
         rank: r,
         label,
         value,
-        id: `${suit}-${r}`
+        id: `${suit}-${r}`,
+        rawId: (r - 1) * 4 + suits.indexOf(suit)
       });
     }
   });

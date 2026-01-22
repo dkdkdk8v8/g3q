@@ -1,6 +1,5 @@
 <script setup>
-import { watch } from 'vue';
-import { computed, onMounted, ref, nextTick } from 'vue';
+import { watch, computed, onMounted, ref, nextTick } from 'vue';
 
 const props = defineProps({
   card: Object, // 如果没有card，显示背面
@@ -9,6 +8,11 @@ const props = defineProps({
 
 // 控制卡片是否翻转显示正面
 const isFlipped = ref(false);
+
+const cardImgUrl = computed(() => {
+    if (!props.card || props.card.rawId === undefined) return null;
+    return new URL(`../assets/card/card_${props.card.rawId}.png`, import.meta.url).href;
+});
 
 onMounted(async () => {
   // 初始状态先为背面，延迟一小段时间后再翻转，以展示翻转动画
@@ -32,40 +36,19 @@ watch(() => props.card, async (newVal) => {
     // 当card prop变为falsy时，卡片翻转到背面
     isFlipped.value = false;
   }
-}); // 移除 immediate: true，逻辑由 onMounted 接管初始状态
-
-const isRed = computed(() => {
-  return props.card && (props.card.suit === 'heart' || props.card.suit === 'diamond');
 });
 
-const suitSymbol = computed(() => {
-  if (!props.card) return '';
-  switch (props.card.suit) {
-    case 'spade': return '♠';
-    case 'heart': return '♥';
-    case 'club': return '♣';
-    case 'diamond': return '♦';
-    default: return '';
-  }
-});
 </script>
 
 <template>
   <div class="poker-card" :class="{ 'is-small': isSmall }">
     <div class="card-inner" :class="{ 'is-flipped': isFlipped }">
-      <div class="card-face" :class="{ 'is-red': isRed }">
-        <template v-if="card">
-          <!-- 左上角标 -->
-          <div class="corner-top-left">
-            <span class="rank">{{ card.label }}</span>
-            <span class="suit">{{ suitSymbol }}</span>
-          </div>
-
-          <!-- 右下角标 (旋转180度) -->
-          <div class="corner-bottom-right">
-            <span class="corner-suit">{{ suitSymbol }}</span>
-          </div>
-        </template>
+      <div class="card-face">
+        <img v-if="cardImgUrl" :src="cardImgUrl" class="card-img" />
+        <div v-else class="card-placeholder">
+            <!-- Fallback if image fails or rawId missing -->
+             {{ card ? card.label : '?' }}
+        </div>
       </div>
       <div class="card-back-face">
         <div class="back-pattern"></div>
@@ -82,16 +65,13 @@ const suitSymbol = computed(() => {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
   position: relative;
   box-sizing: border-box;
-  font-family: 'Times New Roman', serif;
   user-select: none;
   perspective: 1000px;
-  /* 3D 效果支持 */
 }
 
 .poker-card.is-small {
   width: 11vw;
   height: 15vw;
-  font-size: 0.8em;
 }
 
 .card-inner {
@@ -100,16 +80,12 @@ const suitSymbol = computed(() => {
   height: 100%;
   text-align: center;
   transition: transform 0.6s;
-  /* 翻转动画时长 */
   transform-style: preserve-3d;
-  /* 保持子元素 3D 变换 */
-  transform: rotateY(180deg);
-  /* 默认显示背面 */
+  transform: rotateY(180deg); /* Start flipped */
 }
 
 .card-inner.is-flipped {
   transform: rotateY(0deg);
-  /* 当 isFlipped 为 true 时，显示正面 */
 }
 
 .card-face,
@@ -118,107 +94,41 @@ const suitSymbol = computed(() => {
   width: 100%;
   height: 100%;
   backface-visibility: hidden;
-  /* 翻转时隐藏背面 */
   border-radius: 1.6vw;
   box-sizing: border-box;
+  overflow: hidden; /* Ensure image doesn't bleed */
 }
 
 .card-face {
   background-color: white;
-  border: 0.5333vw solid white;
-  /* 和背面保持一致的边框 */
+  /* Removed border to allow full bleed image if desired, or keep thin border */
+}
+
+.card-img {
+    width: 100%;
+    height: 100%;
+    object-fit: fill; /* Use fill to match card dimensions exactly */
+    display: block;
+}
+
+.card-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    font-size: 20px;
 }
 
 .card-back-face {
   background: url('@/assets/common/card_back.png') no-repeat center center;
   background-size: 100% 100%;
-  /* Stretch to fit */
-  border-radius: 1.6vw;
-  /* Match parent radius */
   transform: rotateY(180deg);
-  /* 初始旋转180度，使其背面朝外 */
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
-  /* Optional: subtle border */
 }
 
 .back-pattern {
   display: none;
-  /* Hide old pattern */
-}
-
-/* 现有卡面样式调整 */
-.card-face.is-red {
-  color: #d40000;
-}
-
-.card-face:not(.is-red) {
-  color: #000;
-}
-
-/* 角标通用样式 */
-.corner-top-left,
-.corner-bottom-right {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  line-height: 1;
-  width: 6.4vw;
-  /* 限制宽度防止溢出 */
-}
-
-.corner-top-left {
-  top: 0;
-  left: 0;
-}
-
-.corner-bottom-right {
-  bottom: 0;
-  right: 0;
-  /* transform: rotate(180deg); Removed per request */
-}
-
-.is-small .corner-top-left {
-  top: 0;
-  left: -0.5vw;
-}
-
-.is-small .corner-bottom-right {
-  bottom: 0.2667vw;
-  right: 0.2667vw;
-}
-
-.rank {
-  font-weight: 800;
-  font-size: 6.9333vw;
-}
-
-.is-small .rank {
-  font-size: 5vw;
-}
-
-.suit {
-  font-size: 5.8667vw;
-  font-weight: bold;
-  margin-top: -0.5333vw;
-}
-
-.is-small .suit {
-  font-size: 4.2667vw;
-  margin-top: -0.2667vw;
-}
-
-.corner-bottom-right {
-  width: auto;
-}
-
-.corner-suit {
-  font-size: 14vw;
-  font-weight: bold;
-  line-height: 1;
-}
-
-.is-small .corner-suit {
-  font-size: 8.5333vw;
 }
 </style>

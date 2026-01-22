@@ -1062,9 +1062,9 @@ const startDealingAnimation = (isSupplemental = false) => {
         const viewportRatio = window.innerWidth / 375;
 
         // Spacing calculation (Base pixels at 375 width):
-        // Me: 60px width + 1px margin = 61px
+        // Me: 60px width + 5px margin = 65px
         // Opponent: 48px width - 28px margin = 20px
-        const baseSpacing = t.isMe ? 61 : 20;
+        const baseSpacing = t.isMe ? 65 : 20;
 
         // Spacing must be scaled because the static cards are inside a scaled container
         // and thus the visual distance between centers is scaled.
@@ -1680,7 +1680,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
                                 :card="shouldShowCardFace ? getEffectiveCardProp(card, idx) : null" :is-small="false"
                                 :class="{ 'hand-card': true, 'bull-card-overlay': isBullPart(idx), 'selected': selectedCardIndices.includes(idx) }"
                                 :style="{
-                                    marginLeft: idx === 0 ? '0' : '1px', /* for myPlayer */
+                                    marginLeft: idx === 0 ? '0' : '5px', /* for myPlayer */
                                     opacity: (dealingCounts[myPlayer.id] && idx >= (visibleCounts[myPlayer.id] - dealingCounts[myPlayer.id])) ? 0 : 1
                                 }" @click="handleCardClick({ card, index: idx })" />
                         </template>

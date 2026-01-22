@@ -70,7 +70,7 @@ const getBetLabel = (val) => {
 
             <div class="modal-body">
                 <div class="setting-group">
-                    <div class="group-title">抢庄倍数</div>
+                    <div class="group-title">选择抢庄倍数</div>
                     <div class="options-grid">
                         <div v-for="opt in robOptions" :key="opt" class="option-btn"
                             :class="{ active: selectedRob === opt }" @click="selectedRob = opt">
@@ -80,7 +80,7 @@ const getBetLabel = (val) => {
                 </div>
 
                 <div class="setting-group">
-                    <div class="group-title">压注倍数</div>
+                    <div class="group-title">选择压注倍数</div>
                     <div class="options-grid">
                         <div v-for="opt in betOptions" :key="opt" class="option-btn"
                             :class="{ active: selectedBet === opt }" @click="selectedBet = opt">
@@ -184,20 +184,16 @@ const getBetLabel = (val) => {
     min-width: 60px;
     text-align: center;
     padding: 8px 4px;
-    background: #334155;
-    border-radius: 6px;
+    background: linear-gradient(to bottom, #262d38, #1f2937);
+    border-radius: 10px;
     font-size: 14px;
     cursor: pointer;
-    border: 1px solid transparent;
-    transition: all 0.2s;
+    border: 1px solid #1f2937;
     color: #e2e8f0;
 }
 
 .option-btn.active {
-    background: #d97706;
-    color: white;
     border-color: #fbbf24;
-    box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
 }
 
 .modal-footer {
@@ -217,28 +213,24 @@ const getBetLabel = (val) => {
 
 .cancel-btn {
     width: 100%;
-    padding: 12px;
-    background: linear-gradient(to bottom, #a9adab, #868987);
+    padding: 7px;
+    background: linear-gradient(to bottom, #6d6d6d, #636363);
     color: white;
     text-align: center;
     border-radius: 8px;
-    font-weight: bold;
     font-size: 16px;
     cursor: pointer;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
 }
 
 .confirm-btn {
     width: 100%;
-    padding: 12px;
-    background: linear-gradient(to bottom, #22c55e, #15803d);
+    padding: 7px;
+    background: linear-gradient(to bottom, #188540, #0e4e25);
     color: white;
     text-align: center;
     border-radius: 8px;
-    font-weight: bold;
     font-size: 16px;
     cursor: pointer;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
 }
 
 .confirm-btn:active {

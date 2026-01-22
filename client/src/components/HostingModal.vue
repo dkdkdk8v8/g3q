@@ -1,7 +1,10 @@
 <script setup>
 import { ref, watch, computed } from 'vue';
 import { useGameStore } from '../stores/game.js';
+import { AudioUtils } from '../utils/audio.js';
 import menuTuoGuanImg from '@/assets/common/menu_tuoguan.png';
+import btnClickSound from '@/assets/sounds/btn_click.mp3';
+
 const props = defineProps({
     visible: Boolean,
     robOptions: {
@@ -22,6 +25,10 @@ const store = useGameStore();
 const selectedRob = ref(0);
 const selectedBet = ref(props.betOptions[0] || 1);
 
+const playBtnSound = () => {
+    AudioUtils.playEffect(btnClickSound);
+};
+
 // Initialize selections when modal opens or options change
 watch(() => props.visible, (val) => {
     if (val) {
@@ -40,6 +47,7 @@ const close = () => {
 };
 
 const confirm = () => {
+    playBtnSound();
     emit('confirm', {
         rob: selectedRob.value,
         bet: selectedBet.value
@@ -64,7 +72,7 @@ const getBetLabel = (val) => {
                 <div class="header-left"></div>
                 <img :src="menuTuoGuanImg" alt="托管设置" class="modal-title-img" />
                 <div class="header-right">
-                    <div class="close-icon" @click="close">×</div>
+                    <div class="close-icon" @click="playBtnSound(); close()">×</div>
                 </div>
             </div>
 
@@ -73,7 +81,7 @@ const getBetLabel = (val) => {
                     <div class="group-title">选择抢庄倍数</div>
                     <div class="options-grid">
                         <div v-for="opt in robOptions" :key="opt" class="option-btn"
-                            :class="{ active: selectedRob === opt }" @click="selectedRob = opt">
+                            :class="{ active: selectedRob === opt }" @click="playBtnSound(); selectedRob = opt">
                             {{ getRobLabel(opt) }}
                         </div>
                     </div>
@@ -83,7 +91,7 @@ const getBetLabel = (val) => {
                     <div class="group-title">选择压注倍数</div>
                     <div class="options-grid">
                         <div v-for="opt in betOptions" :key="opt" class="option-btn"
-                            :class="{ active: selectedBet === opt }" @click="selectedBet = opt">
+                            :class="{ active: selectedBet === opt }" @click="playBtnSound(); selectedBet = opt">
                             {{ getBetLabel(opt) }}
                         </div>
                     </div>
@@ -91,7 +99,7 @@ const getBetLabel = (val) => {
             </div>
 
             <div class="modal-footer">
-                <div class="cancel-btn" @click="close">暂不托管</div>
+                <div class="cancel-btn" @click="playBtnSound(); close()">暂不托管</div>
                 <div style="width:50px" />
                 <div class="confirm-btn" @click="confirm">确认托管</div>
             </div>

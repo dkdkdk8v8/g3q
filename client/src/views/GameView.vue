@@ -1594,13 +1594,23 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
             <!-- Network Latency -->
 
-            <div class="network-badge" :class="networkStatusClass">
+                        <div class="network-badge" :class="networkStatusClass">
 
-                <div class="wifi-dot"></div>
+                            <div class="signal-icon">
 
-                <span>{{ networkLatency }}ms</span>
+                                <div class="bar bar-1"></div>
 
-            </div>
+                                <div class="bar bar-2"></div>
+
+                                <div class="bar bar-3"></div>
+
+                                <div class="bar bar-4"></div>
+
+                            </div>
+
+                            <span>{{ networkLatency }}ms</span>
+
+                        </div>
 
         </div>
 
@@ -2148,28 +2158,52 @@ const shouldMoveStatusToHighPosition = computed(() => {
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.wifi-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background-color: #22c55e;
-    /* Default green */
-    box-shadow: 0 0 4px currentColor;
+.signal-icon {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 12px;
+    width: 18px;
 }
 
-.network-badge.good .wifi-dot {
-    background-color: #22c55e;
-    color: #22c55e;
+.bar {
+    width: 3px;
+    background-color: rgba(255, 255, 255, 0.3);
+    border-radius: 1px;
 }
 
-.network-badge.fair .wifi-dot {
+.bar-1 { height: 25%; }
+.bar-2 { height: 50%; }
+.bar-3 { height: 75%; }
+.bar-4 { height: 100%; }
+
+/* Good: All bars green */
+.network-badge.good .bar {
+    background-color: #22c55e;
+    box-shadow: 0 0 2px #22c55e;
+}
+
+/* Fair: 3 bars yellow */
+.network-badge.fair .bar {
+    background-color: rgba(255, 255, 255, 0.3);
+    box-shadow: none;
+}
+.network-badge.fair .bar-1,
+.network-badge.fair .bar-2,
+.network-badge.fair .bar-3 {
     background-color: #facc15;
-    color: #facc15;
+    box-shadow: 0 0 2px #facc15;
 }
 
-.network-badge.poor .wifi-dot {
+/* Poor: 2 bars red */
+.network-badge.poor .bar {
+    background-color: rgba(255, 255, 255, 0.3);
+    box-shadow: none;
+}
+.network-badge.poor .bar-1,
+.network-badge.poor .bar-2 {
     background-color: #ef4444;
-    color: #ef4444;
+    box-shadow: 0 0 2px #ef4444;
 }
 
 

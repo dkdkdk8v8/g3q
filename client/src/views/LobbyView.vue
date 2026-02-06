@@ -489,8 +489,7 @@ const goBack = () => {
 
 .room-name-container {
     background-size: 100% 100%;
-    padding: 5px 15px;
-    min-width: 80px;
+    padding: 13px 15px 8px 20px;
     display: flex;
     justify-content: center;
     align-items: center;

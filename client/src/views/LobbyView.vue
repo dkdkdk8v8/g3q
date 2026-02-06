@@ -326,7 +326,7 @@ const goBack = () => {
 }
 
 .top-left .btn-exit {
-    height: 23px;
+    height: 21px;
     cursor: pointer;
 }
 

@@ -452,7 +452,7 @@ const goBack = () => {
 .room-list-container {
     flex: 1;
     overflow-y: auto;
-    padding: 0 15px 20px 5px;
+    padding: 0 5px 20px 10px;
 }
 
 .room-list {
@@ -464,14 +464,14 @@ const goBack = () => {
 .room-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     height: 60px;
-    gap: 10px;
+    position: relative;
+    /* Adjust based on design */
 }
 
 /* Room Info (Left 70%) */
 .room-info {
-    flex: 7;
+    width: 70%;
     height: 100%;
     background-size: 100% 100%;
     display: flex;
@@ -485,11 +485,13 @@ const goBack = () => {
     align-items: center;
     width: 100%;
     justify-content: space-between;
+    padding-right: 40px;
+    /* Make space for the button text not to be covered if needed */
 }
 
 .room-name-container {
     background-size: 100% 100%;
-    padding: 13px 15px 8px 20px;
+    padding: 13px 15px 10px 20px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -522,13 +524,18 @@ const goBack = () => {
 
 /* Enter Button (Right) */
 .room-enter-btn {
-    flex: 3;
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
     height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    z-index: 10;
     max-width: 100px;
+    /* Prevent it from getting too wide */
 }
 
 .enter-btn-img {

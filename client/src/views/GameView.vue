@@ -1580,7 +1580,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
             <div class="top-left-btns">
 
-                <img :src="btnExit" class="icon-btn" @click="quitGameDebounced" alt="Exit" />
+                <img :src="btnExit" class="icon-exit" @click="quitGameDebounced" alt="Exit" />
 
                 <img :src="btnHistory" class="icon-btn" @click="openHistoryDebounced" alt="History" />
 
@@ -2114,6 +2114,14 @@ const shouldMoveStatusToHighPosition = computed(() => {
     align-items: center;
     flex-shrink: 0;
     /* Prevent shrinking */
+}
+
+.icon-exit {
+    width: 22px;
+    height: 32px;
+    cursor: pointer;
+    transition: transform 0.1s;
+    object-fit: contain;
 }
 
 .icon-btn {

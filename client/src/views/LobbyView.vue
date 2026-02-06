@@ -6,7 +6,6 @@ import { formatCoins } from '../utils/format.js';
 import { useUserStore } from '../stores/user.js';
 import { useGameStore } from '../stores/game.js';
 import { useSettingsStore } from '../stores/settings.js';
-import { calculateHandType, transformServerCard } from '../utils/bullfight.js';
 import { AudioUtils } from '../utils/audio.js';
 import gameClient from '../socket.js';
 import HistoryModal from '../components/HistoryModal.vue';
@@ -15,29 +14,31 @@ import HelpModal from '../components/HelpModal.vue';
 
 // Assets
 import bgImg from '@/assets/lobby/bg.jpg';
+import topBgImg from '@/assets/lobby/top_bg.png';
 import logoImg from '@/assets/lobby/logo.png';
 import btnExit from '@/assets/lobby/exit_btn.png';
 import btnHelp from '@/assets/lobby/help_btn.png';
 import btnHistory from '@/assets/lobby/bet_history_btn.png';
 import btnSetting from '@/assets/lobby/sett_btn.png';
+import topBtnLine from '@/assets/lobby/top_btn_line.png';
+import topLine from '@/assets/lobby/top_line.png';
+import diamondBg from '@/assets/lobby/diamond_bg.png';
 
-// Tabs
-import tabBukan from '@/assets/lobby/tab_bukan.png';
-import tabBukanSel from '@/assets/lobby/tab_bukan_choose.png';
+// Tab Assets
+import tabBgImg from '@/assets/lobby/tab_bg.png';
+import tabBukan from '@/assets/lobby/tab_bukanpai.png';
+import tabBukanSel from '@/assets/lobby/tab_bukanpai_choose.png';
 import tabSan from '@/assets/lobby/tab_kansanzhang.png';
 import tabSanSel from '@/assets/lobby/tab_kansanzhang_choose.png';
 import tabSi from '@/assets/lobby/tab_kansizhang.png';
 import tabSiSel from '@/assets/lobby/tab_kansizhang_choose.png';
-import tabBgImg from '@/assets/lobby/tab_bg.png';
 
-// Room Assets Explicit Import
-import roomAreaBg from '@/assets/lobby/room_bg.jpg';
-import roomTiyanBg from '@/assets/lobby/room_tiyan_bg.png';
-import roomChujiBg from '@/assets/lobby/room_chuji_bg.png';
-import roomZhongjiBg from '@/assets/lobby/room_zhongji_bg.png';
-import roomGaojiBg from '@/assets/lobby/room_gaoji_bg.png';
-import roomDashiBg from '@/assets/lobby/room_dashi_bg.png';
-import roomDianfengBg from '@/assets/lobby/room_dianfeng_bg.png';
+// Room Assets
+import eachRoomBg from '@/assets/lobby/each_room_bg.png';
+import eachRoomEnterBtn from '@/assets/lobby/each_room_enter_btn.png';
+import roomNameBgLv from '@/assets/lobby/each_room_name_bg_lv.png';
+import roomNameBgLan from '@/assets/lobby/each_room_name_bg_lan.png';
+import roomNameBgLz from '@/assets/lobby/each_room_name_bg_lz.png';
 
 import defaultAvatar from '@/assets/common/default_avatar.png';
 import lobbyBgSound from '@/assets/sounds/lobby_bg.mp3';
@@ -53,21 +54,6 @@ const playBtnSound = () => {
     if (settingsStore.soundEnabled) {
         AudioUtils.playEffect(btnClickSound);
     }
-};
-
-const roomAssetsMap = {
-    tiyan: { bg: roomTiyanBg },
-    chuji: { bg: roomChujiBg },
-    zhongji: { bg: roomZhongjiBg },
-    gaoji: { bg: roomGaojiBg },
-    dashi: { bg: roomDashiBg },
-    dianfeng: { bg: roomDianfengBg },
-};
-
-const getRoomAssets = (levelIndex) => {
-    const types = ['tiyan', 'chuji', 'zhongji', 'gaoji', 'dashi', 'dianfeng'];
-    const type = types[levelIndex] || 'dianfeng';
-    return roomAssetsMap[type];
 };
 
 const userInfo = computed(() => {
@@ -87,26 +73,24 @@ const userInfo = computed(() => {
 });
 
 const currentMode = ref(userStore.lastSelectedMode || 0); // 0: Bukan, 1: San, 2: Si
-const roomsScrollArea = ref(null);
-
-const transitionName = ref('');
-
-watch(currentMode, (newVal, oldVal) => {
-    if (newVal > oldVal) {
-        transitionName.value = 'swipe-left';
-    } else {
-        transitionName.value = 'swipe-right';
-    }
-    if (roomsScrollArea.value) {
-        roomsScrollArea.value.scrollTop = 0;
-    }
-});
 
 const setMode = (mode) => {
+    if (currentMode.value === mode) return;
     playBtnSound();
     currentMode.value = mode;
     userStore.lastSelectedMode = mode;
+    // Potentially re-fetch or filter rooms here if the server API supports it
 };
+
+// Get appropriate room name background based on current mode
+const currentRoomNameBg = computed(() => {
+    switch (currentMode.value) {
+        case 0: return roomNameBgLv;  // No look (Greenish/Lv)
+        case 1: return roomNameBgLan; // Look 3 (Blueish/Lan)
+        case 2: return roomNameBgLz;  // Look 4 (Purpleish/Lz)
+        default: return roomNameBgLv;
+    }
+});
 
 const enterGame = debounce(async (level) => {
     playBtnSound();
@@ -118,101 +102,14 @@ const enterGame = debounce(async (level) => {
     }
 }, 500);
 
-const touchStartX = ref(0);
-const touchStartY = ref(0);
-const isHorizontalSwipe = ref(false);
-const isVerticalScroll = ref(false);
-
-const handleTouchStart = (e) => {
-    if (e.touches.length > 0) {
-        touchStartX.value = e.touches[0].clientX;
-        touchStartY.value = e.touches[0].clientY;
-        isHorizontalSwipe.value = false;
-        isVerticalScroll.value = false;
-    }
-};
-
-const handleTouchMove = (e) => {
-    if (isVerticalScroll.value) return;
-
-    if (e.touches.length > 0) {
-        const currentX = e.touches[0].clientX;
-        const currentY = e.touches[0].clientY;
-        const diffX = currentX - touchStartX.value;
-        const diffY = currentY - touchStartY.value;
-
-        if (isHorizontalSwipe.value) {
-            if (e.cancelable) {
-                e.preventDefault();
-            }
-            return;
-        }
-
-        // Determine direction if not yet locked
-        if (Math.abs(diffX) > 5 || Math.abs(diffY) > 5) {
-            if (Math.abs(diffX) > Math.abs(diffY)) {
-                isHorizontalSwipe.value = true;
-                if (e.cancelable) {
-                    e.preventDefault();
-                }
-            } else {
-                isVerticalScroll.value = true;
-            }
-        }
-    }
-};
-
-const handleTouchEnd = (e) => {
-    if (isHorizontalSwipe.value) {
-        const endX = e.changedTouches[0].clientX;
-        const diff = touchStartX.value - endX; // Start - End: >0 is Left Swipe (Next)
-        const threshold = 50;
-
-        if (Math.abs(diff) > threshold) {
-            if (diff > 0) {
-                // Swipe Left -> Next Tab
-                if (currentMode.value < 2) {
-                    setMode(currentMode.value + 1);
-                }
-            } else {
-                // Swipe Right -> Previous Tab
-                if (currentMode.value > 0) {
-                    setMode(currentMode.value - 1);
-                }
-            }
-        }
-    }
-    // Reset flags
-    isHorizontalSwipe.value = false;
-    isVerticalScroll.value = false;
-};
-
-// Register Touch Listeners Manually to use { passive: false }
-onMounted(() => {
-    const el = roomsScrollArea.value;
-    if (el) {
-        el.addEventListener('touchstart', handleTouchStart, { passive: true });
-        el.addEventListener('touchmove', handleTouchMove, { passive: false });
-        el.addEventListener('touchend', handleTouchEnd);
-    }
-});
-
-onUnmounted(() => {
-    const el = roomsScrollArea.value;
-    if (el) {
-        el.removeEventListener('touchstart', handleTouchStart);
-        el.removeEventListener('touchmove', handleTouchMove);
-        el.removeEventListener('touchend', handleTouchEnd);
-    }
-});
-
 const rooms = computed(() => {
     const configs = userStore.roomConfigs || [];
-    return configs.map((cfg, index) => {
+    return configs.map((cfg) => {
         return {
             level: cfg.level,
             name: cfg.name,
-            assets: getRoomAssets(index)
+            baseBet: cfg.base_bet || 0,
+            minBalance: cfg.min_balance || 0,
         };
     });
 });
@@ -304,787 +201,348 @@ const goBack = () => {
 
 <template>
     <div class="lobby-container" :style="{ backgroundImage: `url(${bgImg})` }">
-        <!-- 1. Top Bar -->
-        <div class="top-bar">
-            <!-- Left: Functional Buttons -->
-            <div class="top-left-btns">
-                <img :src="btnExit" class="icon-btn" @click="goBack" alt="Exit" />
-                <img :src="btnHistory" class="icon-btn" @click="openHistoryDebounced" alt="History" />
-                <img :src="btnHelp" class="icon-btn" @click="openHelpDebounced" alt="Help" />
-                <img :src="btnSetting" class="icon-btn" @click="openSettingsDebounced" alt="Settings" />
-            </div>
-
-            <!-- Right: User Info -->
-            <div class="coin-row">
-                <img :src="goldImg" class="coin-icon" />
-                <span class="coin-val">{{ userInfo.coins }}</span>
-            </div>
-        </div>
-
-        <!-- 2. Logo Row -->
-        <div class="logo-row">
-            <img :src="logoImg" class="logo-img" alt="Logo" />
-        </div>
-
-        <!-- 3. Tabs Row -->
-
-        <div class="tabs-container" :style="{ backgroundImage: `url(${tabBgImg})` }">
-
-            <!-- Stacked Images (Display Only) -->
-            <!-- Mode 0: Bukan (No Look) -->
-            <img :src="tabBukanSel" class="tab-btn active" v-show="currentMode === 0" />
-            <img :src="tabBukan" class="tab-btn" v-show="currentMode !== 0" />
-
-            <!-- Mode 1: San (3 cards) -->
-            <img :src="tabSanSel" class="tab-btn active" v-show="currentMode === 1" />
-            <img :src="tabSan" class="tab-btn" v-show="currentMode !== 1" />
-
-            <!-- Mode 2: Si (4 cards) -->
-            <img :src="tabSiSel" class="tab-btn active" v-show="currentMode === 2" />
-            <img :src="tabSi" class="tab-btn" v-show="currentMode !== 2" />
-
-            <!-- Click Layer (Interaction) -->
-            <div class="tab-click-layer">
-                <div class="tab-click-zone" @click="setMode(0)"></div>
-                <div class="tab-click-zone" @click="setMode(1)"></div>
-                <div class="tab-click-zone" @click="setMode(2)"></div>
-            </div>
-
-        </div>
-
-        <!-- 4. Room Grid -->
-        <div class="rooms-scroll-area" ref="roomsScrollArea" :style="{ backgroundImage: `url(${roomAreaBg})` }">
-            <Transition :name="transitionName">
-                <div class="rooms-grid-wrapper" :key="currentMode">
-                    <TransitionGroup tag="div" class="rooms-grid" name="room-init" :appear="transitionName === ''">
-                        <div v-for="(room, index) in rooms" :key="room.level" class="room-item"
-                            :class="['room-idx-' + index]" :style="{ '--delay': index * 0.1 + 's' }"
-                            @click="enterGame(room.level)">
-
-                            <!-- Background Layer -->
-                            <img :src="room.assets.bg" class="room-bg" />
-                        </div>
-                    </TransitionGroup>
+        <!-- Top Area -->
+        <div class="top-area" :style="{ backgroundImage: `url(${topBgImg})` }">
+            <!-- Row 1: Exit + Buttons -->
+            <div class="top-row-1">
+                <div class="top-left">
+                    <img :src="btnExit" class="btn-exit" @click="goBack" alt="Exit" />
                 </div>
-            </Transition>
+                <div class="top-right">
+                    <img :src="btnHistory" class="top-icon-btn" @click="openHistoryDebounced" alt="History" />
+                    <img :src="topBtnLine" class="top-separator" />
+                    <img :src="btnHelp" class="top-icon-btn" @click="openHelpDebounced" alt="Help" />
+                    <img :src="topBtnLine" class="top-separator" />
+                    <img :src="btnSetting" class="top-icon-btn" @click="openSettingsDebounced" alt="Settings" />
+                </div>
+            </div>
+
+            <!-- Separator Line -->
+            <div class="top-line-container">
+                <img :src="topLine" class="top-line-img" />
+            </div>
+
+            <!-- Row 2: Logo + Coins -->
+            <div class="top-row-2">
+                <div class="logo-container">
+                    <img :src="logoImg" class="logo-img" alt="Logo" />
+                </div>
+                <div class="coins-container" :style="{ backgroundImage: `url(${diamondBg})` }">
+                    <img :src="goldImg" class="coin-icon" />
+                    <span class="coin-val">{{ userInfo.coins }}</span>
+                    <div class="add-btn">+</div>
+                </div>
+            </div>
         </div>
-        <!-- History Modal -->
+
+        <!-- Main Content: Tabs + Room List -->
+        <div class="main-content">
+            <!-- Left: Vertical Tabs -->
+            <div class="tabs-sidebar" :style="{ backgroundImage: `url(${tabBgImg})` }">
+                <!-- Mode 0: Bukan (No Look) -->
+                <div class="tab-item" @click="setMode(0)">
+                    <img :src="currentMode === 0 ? tabBukanSel : tabBukan" class="tab-img" />
+                </div>
+                <!-- Mode 1: San (3 cards) -->
+                <div class="tab-item" @click="setMode(1)">
+                    <img :src="currentMode === 1 ? tabSanSel : tabSan" class="tab-img" />
+                </div>
+                <!-- Mode 2: Si (4 cards) -->
+                <div class="tab-item" @click="setMode(2)">
+                    <img :src="currentMode === 2 ? tabSiSel : tabSi" class="tab-img" />
+                </div>
+            </div>
+
+            <!-- Right: Room List -->
+            <div class="room-list-container">
+                <div class="room-list">
+                    <div v-for="(room, index) in rooms" :key="room.level" class="room-row">
+                        <!-- Left: Room Info (70%) -->
+                        <div class="room-info" :style="{ backgroundImage: `url(${eachRoomBg})` }"
+                            @click="enterGame(room.level)">
+                            <div class="room-info-content">
+                                <!-- Room Name with specific bg -->
+                                <div class="room-name-container"
+                                    :style="{ backgroundImage: `url(${currentRoomNameBg})` }">
+                                    <span class="room-name-text">{{ room.name }}</span>
+                                </div>
+                                <!-- Base Score -->
+                                <div class="room-stat">
+                                    <span class="stat-label">底分:</span>
+                                    <span class="stat-value">{{ room.baseBet }}</span>
+                                </div>
+                                <!-- Entry Limit -->
+                                <div class="room-stat">
+                                    <span class="stat-label">入场:</span>
+                                    <span class="stat-value">{{ room.minBalance }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right: Enter Button -->
+                        <div class="room-enter-btn" @click="enterGame(room.level)">
+                            <img :src="eachRoomEnterBtn" class="enter-btn-img" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modals -->
         <HistoryModal v-model:visible="showHistory" />
-
-        <!-- Settings Modal -->
         <SettingsModal v-model:visible="showSettings" />
-
-        <!-- Help Modal -->
         <HelpModal v-model:visible="showHelp" :mode="currentMode" />
     </div>
 </template>
 
-
-
 <style scoped>
 .lobby-container {
-
     width: 100vw;
-
     height: 100dvh;
-
     background-size: cover;
-
     background-position: center;
-
     background-repeat: no-repeat;
-
     display: flex;
-
     flex-direction: column;
-
     overflow: hidden;
-
-    position: relative;
-
     font-family: "Microsoft YaHei", Arial, sans-serif;
-
 }
 
-
-
-/* 1. Top Bar */
-
-.top-bar {
-
-    display: flex;
-
-    justify-content: space-between;
-
-    align-items: center;
-
-    padding: 10px 15px 20px 15px;
-
-    /* Reduced padding */
-
-    z-index: 10;
-
+/* --- Top Area --- */
+.top-area {
     width: 100%;
-
-    box-sizing: border-box;
-
-    /* Ensure padding doesn't add to width */
-
-}
-
-
-
-.top-left-btns {
-
-    display: flex;
-
-    gap: 8px;
-
-    /* Reduced gap */
-
-    align-items: center;
-
     flex-shrink: 0;
-
-    /* Prevent shrinking */
-
-}
-
-
-
-.icon-btn {
-
-    width: 32px;
-
-    /* Reduced from 36px */
-
-    height: 32px;
-
-    cursor: pointer;
-
-    transition: transform 0.1s;
-
-    object-fit: contain;
-
-}
-
-
-
-.icon-btn:active {
-
-    transform: scale(0.9);
-
-}
-
-
-
-.user-info-area {
-
+    background-size: 100% 100%;
     display: flex;
-
-    align-items: center;
-
-    /* Removed background and border from the main container */
-
-    background: transparent;
-
-    border: none;
-
-    padding: 0;
-
-    gap: 5px;
-
-    max-width: 55%
-}
-
-
-
-.avatar-wrapper {
-
-    width: 36px;
-
-    height: 36px;
-
-    border-radius: 6px;
-
-    /* Square with slight rounding */
-
-    border: 2px solid #fac27d;
-
-    overflow: hidden;
-
-    flex-shrink: 0;
-
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-
-}
-
-
-
-.avatar {
-
-    width: 100%;
-
-    height: 100%;
-
-    object-fit: cover;
-
-}
-
-
-
-.info-details {
-
-
-
     flex-direction: column;
-
-
-
-    justify-content: center;
-
-
-
-
-
-    gap: 2px;
-
-
-
+    padding-bottom: 5px;
 }
 
-
-
-.name-row {
-
-    font-size: 13px;
-
-    font-weight: bold;
-
-    color: white;
-
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
-
-    /* Added shadow for readability without bg */
-
-    white-space: nowrap;
-
-    overflow: hidden;
-
-    text-overflow: ellipsis;
-
-    padding-left: 2px;
-
-}
-
-
-
-.coin-row {
-
-
-
-    display: inline-flex;
-
-
-
-    align-items: center;
-
-
-
-    /* Added background for coin row */
-
-
-
-    background: rgba(0, 0, 0, 0.2);
-
-
-
-    border: 1px solid rgba(255, 255, 255, 0.2);
-
-
-
-    border-radius: 12px;
-
-
-
-    padding: 2px 6px;
-    /* Added padding */
-
-
-
-    gap: 4px;
-    /* Added gap for spacing between items */
-
-
-
-}
-
-
-
-
-
-
-
-.coin-icon {
-
-
-
-    width: 18px;
-
-
-
-    height: 18px;
-
-
-
-    /* Removed margin-right as gap handles spacing */
-
-
-
-}
-
-
-
-
-
-
-
-.coin-val {
-
-
-
-    font-size: 14px;
-
-
-
-    color: #FFD700;
-
-
-
-    font-weight: bold;
-
-
-
-    /* Removed margin-right as gap handles spacing */
-
-
-
-    white-space: nowrap;
-
-
-
-}
-
-
-
-.add-btn {
-
-    background: linear-gradient(to bottom, #e56f20, #fd7a00e6);
-
-    width: 14px;
-
-    height: 14px;
-
-    border-radius: 50%;
-
-    text-align: center;
-
-    line-height: 14px;
-
-    font-size: 12px;
-
-    color: white;
-
-    cursor: pointer;
-
-    font-weight: bold;
-
-    flex-shrink: 0;
-
-}
-
-
-
-/* 2. Logo Row */
-
-.logo-row {
-
+/* Row 1 */
+.top-row-1 {
     display: flex;
-
-    justify-content: center;
-
-    margin-bottom: 20px;
-
-    z-index: 5;
-
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px 5px 15px;
 }
 
+.top-left .btn-exit {
+    height: 36px;
+    cursor: pointer;
+}
 
+.top-right {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.top-icon-btn {
+    height: 32px;
+    cursor: pointer;
+}
+
+.top-separator {
+    width: 2px;
+    height: 13px;
+    margin: 0 5px;
+}
+
+/* Separator Line */
+.top-line-container {
+    width: 100%;
+    padding: 0 10px;
+    box-sizing: border-box;
+    margin: 5px 0;
+    display: flex;
+    justify-content: center;
+}
+
+.top-line-img {
+    width: 100%;
+    height: 2px;
+}
+
+/* Row 2 */
+.top-row-2 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 15px 10px 15px;
+}
 
 .logo-img {
-
-    width: 60vw;
-
-    /* 1/2 of screen width */
-
-    height: auto;
-
+    height: 40px;
     object-fit: contain;
-
-    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
-
 }
 
-
-
-/* 3. Tabs Row */
-
-.tabs-container {
+.coins-container {
     display: flex;
-    justify-content: center;
     align-items: center;
-    z-index: 5;
-
-    /* Container fits screen width */
-    width: 100vw;
-    /* Height matches the tab height */
-    height: 40px;
-
-    align-self: center;
-    position: relative;
-    /* Ensure background behaves correctly if needed, or remove if tabs cover it */
+    padding: 5px 15px 5px 10px;
     background-size: 100% 100%;
     background-repeat: no-repeat;
-    background-position: center;
+    height: 30px;
+    gap: 8px;
+    min-width: 120px;
+    justify-content: space-between;
 }
 
-.tab-btn {
-    /* Each tab takes full screen width */
-    width: 100vw;
-    height: 48px;
+.coin-icon {
+    width: 20px;
+    height: 20px;
+}
+
+.coin-val {
+    color: #FFD700;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.add-btn {
+    background: linear-gradient(to bottom, #e56f20, #fd7a00e6);
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 16px;
+    font-size: 14px;
+    color: white;
     cursor: pointer;
-    transition: filter 0.2s ease-in-out;
-    object-fit: fill;
-
-    /* Overlay them */
-    position: absolute;
-    top: 0;
-    left: 0;
-
-    /* Default lower z-index for inactive tabs */
-    z-index: 1;
-    /* Opacity logic: if you want non-selected to be invisible, set opacity: 0. 
-       If they are transparent PNGs designed to overlay, keep opacity: 1.
-       Assuming they are full opaque bars where only one shows 'selected' state:
-    */
+    font-weight: bold;
 }
 
-.tab-btn.active {
-    /* Active tab on top */
-    z-index: 2;
-    filter: brightness(1.1);
-}
-
-/* Specific z-index ordering for clicking if needed, 
-   but since they are stacked, click handling might need explicit areas 
-   if the images are full width.
-   
-   HOWEVER, if the images are 100vw wide, they stack on top of each other.
-   Clicking anywhere will click the top-most one (z-index 2).
-   This prevents clicking the other tabs if they are fully covered.
-   
-   CRITICAL: If the images are designed such that the visual "tab" part 
-   is only a portion, but the image file is 100vw transparent, 
-   we need to know where the click zones are.
-   
-   If the user says "images are width of screen wide", and they are stacked, 
-   we can't click the ones underneath unless we use a map or invisible divs for clicks.
-   
-   Assumption: The user implies the visual design is a single bar where the "selected" state
-   changes the whole look, but logically they are 3 buttons.
-   
-   If the IMAGES contain all 3 tabs visually but highlight one, then stacking them 
-   works purely for display, BUT we need a way to click.
-   
-   Solution: Create an invisible click layer on top with 3 columns.
-*/
-
-.tab-click-layer {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    z-index: 10;
-    /* Above images */
-}
-
-.tab-click-zone {
+/* --- Main Content --- */
+.main-content {
     flex: 1;
-    /* 3 equal zones */
-    height: 100%;
-    cursor: pointer;
-}
-
-.tab-btn:hover {
-    filter: brightness(1.2);
-}
-
-
-
-
-
-
-
-
-
-
-
-.lobby-divider {
-
-    width: 100vw;
-
-    height: 8px;
-
-    object-fit: fill;
-
-    position: absolute;
-
-    bottom: -7.5px;
-
-    left: 50%;
-
-    transform: translateX(-50%);
-
-}
-
-
-
-/* 4. Room Grid */
-
-.rooms-scroll-area {
-
-    flex: 1;
-
-    overflow-y: auto;
-    overflow-x: hidden;
-    /* Prevent horizontal scroll during swipe */
-    position: relative;
-    /* Establish positioning context for absolute children */
-
-    width: 100%;
-
-    padding: 10px 0 40px 0;
-
-    background-size: cover;
-
-    background-position: center;
-
-    background-repeat: no-repeat;
-
-}
-
-
-
-/* Hide scrollbar */
-
-.rooms-scroll-area::-webkit-scrollbar {
-
-    display: none;
-
-}
-
-
-
-.rooms-grid {
-
-    display: grid;
-
-    grid-template-columns: repeat(2, 1fr);
-
-    /* Gap between columns */
-
-    column-gap: 10px;
-    row-gap: 0;
-
-    margin-top: 10px;
-
-    /* 20px horizontal padding from screen edges */
-
-    padding: 0 10px;
-
-    width: 100%;
-
-    box-sizing: border-box;
-
-    justify-items: center;
-
-}
-
-
-
-.room-item {
-
-
-
-    position: relative;
-
-
-
-
-
-
-
-    /* Fill the grid column width */
-
-
-
-    width: 100%;
-
-
-
-
-
-
-
-    /* Auto height based on content */
-
-
-
-    height: auto;
-
-
-
-
-
-
-
-    cursor: pointer;
-
-
-
-    transition: transform 0.2s;
-
-
-
-
-
-
-
-    /* NEW FLEX LAYOUT */
-
-
-
     display: flex;
-
-
-
-    flex-direction: column;
-
-
-
-
-
-
-
-    border-radius: 10px;
-
-
-
     overflow: hidden;
-
-
-
+    padding-top: 10px;
 }
 
-
-
-
-
-
-
-.room-item:active {
-
-
-
-    transform: scale(0.98);
-
-
-
+/* Tabs Sidebar */
+.tabs-sidebar {
+    width: 100px;
+    background-size: 100% 100%;
+    /* Adjust based on tab image width */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding-left: 0; 
+    padding-right: 0;
+    padding-top: 10px;
+    overflow-y: auto;
 }
 
-.modal-title-img {
-    width: 70%;
-    /* 50% of the modal's width */
+.tab-item {
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.tab-item:active {
+    transform: scale(0.95);
+}
+
+.tab-img {
+    width: 60px;
     height: auto;
-    object-fit: contain;
-    flex-shrink: 0;
-    /* Prevent image from shrinking */
-}
-
-/* Internal Room Assets */
-
-.room-bg {
-    width: 100%;
-    height: auto;
-    object-fit: contain;
     display: block;
 }
 
-/* Room List Animation (Initial Staggered Load) */
-.room-init-enter-active {
-    transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1);
-    transition-delay: var(--delay);
+/* Room List */
+.room-list-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 15px 20px 5px;
 }
 
-.room-init-enter-from {
-    opacity: 0;
-    transform: translateY(100px);
+.room-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
-/* Wrapper Style for Swap */
-.rooms-grid-wrapper {
+.room-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+    gap: 10px;
+}
+
+/* Room Info (Left 70%) */
+.room-info {
+    flex: 7;
+    height: 100%;
+    background-size: 100% 100%;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    cursor: pointer;
+}
+
+.room-info-content {
+    display: flex;
+    align-items: center;
     width: 100%;
-    /* Ensure it takes full width of scroll area */
+    justify-content: space-between;
 }
 
-/* Swipe Left Animation (Next Tab) */
-.swipe-left-enter-active,
-.swipe-left-leave-active,
-.swipe-right-enter-active,
-.swipe-right-leave-active {
-    transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+.room-name-container {
+    background-size: 100% 100%;
+    padding: 5px 15px;
+    min-width: 80px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.room-name-text {
+    color: white;
+    font-weight: bold;
+    font-size: 14px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.room-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.stat-label {
+    font-size: 10px;
+    color: #ddd;
+}
+
+.stat-value {
+    font-size: 12px;
+    color: #FFD700;
+    font-weight: bold;
+}
+
+/* Enter Button (Right) */
+.room-enter-btn {
+    flex: 3;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    max-width: 100px;
+}
+
+.enter-btn-img {
     width: 100%;
+    height: auto;
+    object-fit: contain;
 }
 
-.swipe-left-leave-active,
-.swipe-right-leave-active {
-    position: absolute;
-    top: 10px;
-    /* Match padding-top of scroll area */
-    left: 0;
-}
-
-/* Left: Old goes Left, New comes from Right */
-.swipe-left-enter-from {
-    opacity: 0;
-    transform: translateX(100%);
-}
-
-.swipe-left-leave-to {
-    opacity: 0;
-    transform: translateX(-100%);
-}
-
-/* Right: Old goes Right, New comes from Left */
-.swipe-right-enter-from {
-    opacity: 0;
-    transform: translateX(-100%);
-}
-
-.swipe-right-leave-to {
-    opacity: 0;
-    transform: translateX(100%);
+/* Scrollbar hiding */
+.tabs-sidebar::-webkit-scrollbar,
+.room-list-container::-webkit-scrollbar {
+    display: none;
 }
 </style>

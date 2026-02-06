@@ -230,7 +230,6 @@ const goBack = () => {
                 <div class="coins-container" :style="{ backgroundImage: `url(${diamondBg})` }">
                     <img :src="goldImg" class="coin-icon" />
                     <span class="coin-val">{{ userInfo.coins }}</span>
-                    <div class="add-btn">+</div>
                 </div>
             </div>
         </div>
@@ -327,7 +326,7 @@ const goBack = () => {
 }
 
 .top-left .btn-exit {
-    height: 36px;
+    height: 23px;
     cursor: pointer;
 }
 
@@ -368,24 +367,23 @@ const goBack = () => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 5px 15px 10px 15px;
+    padding: 0 15px 0 15px;
 }
 
 .logo-img {
-    height: 40px;
+    height: 70px;
     object-fit: contain;
 }
 
 .coins-container {
+    margin-bottom: 30px;
     display: flex;
     align-items: center;
     padding: 5px 15px 5px 10px;
     background-size: 100% 100%;
     background-repeat: no-repeat;
-    height: 30px;
+    height: 20px;
     gap: 8px;
-    min-width: 120px;
-    justify-content: space-between;
 }
 
 .coin-icon {
@@ -422,14 +420,14 @@ const goBack = () => {
 
 /* Tabs Sidebar */
 .tabs-sidebar {
-    width: 100px;
+    width: 60px;
     background-size: 100% 100%;
     /* Adjust based on tab image width */
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 10px;
-    padding-left: 0; 
+    padding-left: 0;
     padding-right: 0;
     padding-top: 10px;
     overflow-y: auto;
@@ -445,7 +443,7 @@ const goBack = () => {
 }
 
 .tab-img {
-    width: 60px;
+    width: 36px;
     height: auto;
     display: block;
 }

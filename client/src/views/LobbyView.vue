@@ -275,8 +275,9 @@ const goBack = () => {
 
             <!-- Right: Room List -->
             <div class="room-list-container">
-                <div class="room-list">
-                    <div v-for="(room, index) in rooms" :key="room.level" class="room-row">
+                <TransitionGroup name="list" tag="div" class="room-list">
+                    <div v-for="(room, index) in rooms" :key="room.level" class="room-row"
+                        :style="{ '--i': index, animationDelay: `${index * 0.1}s` }">
                         <!-- Left: Room Info (70%) -->
                         <div class="room-info" :style="{ backgroundImage: `url(${eachRoomBg})` }"
                             @click="enterGame(room.level)">
@@ -306,7 +307,7 @@ const goBack = () => {
                             <img :src="eachRoomEnterBtn" class="enter-btn-img" />
                         </div>
                     </div>
-                </div>
+                </TransitionGroup>
             </div>
         </div>
 
@@ -490,7 +491,17 @@ const goBack = () => {
     align-items: center;
     height: 50px;
     position: relative;
-    /* Adjust based on design */
+    /* Animation */
+    opacity: 0;
+    transform: translateX(30px);
+    animation: slideIn 0.5s ease forwards;
+}
+
+@keyframes slideIn {
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }
 
 /* Room Info (Left 70%) */

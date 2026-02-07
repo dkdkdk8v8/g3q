@@ -535,7 +535,7 @@ const goBack = () => {
 }
 
 .room-stat {
-    margin-left: 10px;
+    margin-left: 18px;
     display: flex;
     flex-direction: column;
     align-items: center;

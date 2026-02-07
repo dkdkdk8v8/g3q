@@ -26,12 +26,12 @@ import diamondBg from '@/assets/lobby/diamond_bg.png';
 
 // Tab Assets
 import tabBgImg from '@/assets/lobby/tab_bg.png';
-import tabBukan from '@/assets/lobby/tab_bukanpai.png';
-import tabBukanSel from '@/assets/lobby/tab_bukanpai_choose.png';
-import tabSan from '@/assets/lobby/tab_kansanzhang.png';
-import tabSanSel from '@/assets/lobby/tab_kansanzhang_choose.png';
-import tabSi from '@/assets/lobby/tab_kansizhang.png';
-import tabSiSel from '@/assets/lobby/tab_kansizhang_choose.png';
+import tabBukan from '@/assets/lobby/tab_bukanpai.jpg';
+import tabBukanSel from '@/assets/lobby/tab_bukanpai_choose.jpg';
+import tabSan from '@/assets/lobby/tab_kansanzhang.jpg';
+import tabSanSel from '@/assets/lobby/tab_kansanzhang_choose.jpg';
+import tabSi from '@/assets/lobby/tab_kansizhang.jpg';
+import tabSiSel from '@/assets/lobby/tab_kansizhang_choose.jpg';
 
 // Room Assets
 import eachRoomBg from '@/assets/lobby/each_room_bg.png';

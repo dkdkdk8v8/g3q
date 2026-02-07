@@ -488,7 +488,7 @@ const goBack = () => {
 .room-row {
     display: flex;
     align-items: center;
-    height: 60px;
+    height: 50px;
     position: relative;
     /* Adjust based on design */
 }
@@ -574,8 +574,8 @@ const goBack = () => {
 }
 
 .enter-btn-img {
-    width: 100%;
-    height: auto;
+    width: auto;
+    height: 100%;
     object-fit: contain;
 }
 

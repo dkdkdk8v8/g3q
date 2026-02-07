@@ -402,7 +402,7 @@ const goBack = () => {
     margin-bottom: 30px;
     display: flex;
     align-items: center;
-    padding: 5px 15px 5px 15px;
+    padding: 3px 10px 3px 10px;
     background-size: 100% 100%;
     background-repeat: no-repeat;
     height: 20px;
@@ -410,14 +410,15 @@ const goBack = () => {
 }
 
 .coin-icon {
-    width: 16px;
-    height: 16px;
+    width: 13px;
+    height: 13px;
+    margin-bottom: 3px;
 }
 
 .coin-val {
     color: #FFD700;
     font-weight: bold;
-    font-size: 14px;
+    font-size: 12px;
 }
 
 .add-btn {
@@ -546,6 +547,7 @@ const goBack = () => {
     width: auto;
     object-fit: contain;
     margin-bottom: 6px;
+    margin-top: 6px;
 }
 
 .stat-value {

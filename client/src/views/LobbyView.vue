@@ -448,17 +448,17 @@ const goBack = () => {
     /* Adjust based on tab image width */
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 10px;
+    align-items: stretch;
+    gap: 1px;
     padding-left: 0;
     padding-right: 0;
-    padding-top: 10px;
     overflow-y: auto;
 }
 
 .tab-item {
     cursor: pointer;
     transition: transform 0.1s;
+    width: 100%;
 }
 
 .tab-item:active {
@@ -466,7 +466,7 @@ const goBack = () => {
 }
 
 .tab-img {
-    width: 36px;
+    width: 100%;
     height: auto;
     display: block;
 }
@@ -534,6 +534,7 @@ const goBack = () => {
 }
 
 .room-stat {
+    margin-left: 10px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -541,16 +542,17 @@ const goBack = () => {
 }
 
 .stat-label-img {
-    height: 12px;
+    height: 10px;
     width: auto;
     object-fit: contain;
-    margin-bottom: 2px;
+    margin-bottom: 6px;
 }
 
 .stat-value {
     font-size: 12px;
     color: #FFD700;
     font-weight: bold;
+    margin-top: 2px;
 }
 
 /* Enter Button (Right) */

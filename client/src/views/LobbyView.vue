@@ -40,6 +40,16 @@ import roomNameBgLv from '@/assets/lobby/each_room_name_bg_lv.png';
 import roomNameBgLan from '@/assets/lobby/each_room_name_bg_lan.png';
 import roomNameBgLz from '@/assets/lobby/each_room_name_bg_lz.png';
 
+import roomTextTiyan from '@/assets/lobby/room_text_tiyan.png';
+import roomTextChuji from '@/assets/lobby/room_text_chuji.png';
+import roomTextZhongji from '@/assets/lobby/room_text_zhongji.png';
+import roomTextGaoji from '@/assets/lobby/room_text_gaoji.png';
+import roomTextDashi from '@/assets/lobby/room_text_dashi.png';
+import roomTextDianfeng from '@/assets/lobby/room_text_dianfeng.png';
+
+import roomIconTextDizhu from '@/assets/lobby/room_icontext_dizhu.png';
+import roomIconTextXianzhi from '@/assets/lobby/room_icontext_xianzhi.png';
+
 import defaultAvatar from '@/assets/common/default_avatar.png';
 import lobbyBgSound from '@/assets/sounds/lobby_bg.mp3';
 import btnClickSound from '@/assets/sounds/btn_click.mp3';
@@ -49,6 +59,17 @@ const router = useRouter();
 const userStore = useUserStore();
 const gameStore = useGameStore();
 const settingsStore = useSettingsStore();
+
+const getRoomTextImage = (roomName) => {
+    if (!roomName) return null;
+    if (roomName.includes('体验')) return roomTextTiyan;
+    if (roomName.includes('初级')) return roomTextChuji;
+    if (roomName.includes('中级')) return roomTextZhongji;
+    if (roomName.includes('高级')) return roomTextGaoji;
+    if (roomName.includes('大师')) return roomTextDashi;
+    if (roomName.includes('巅峰')) return roomTextDianfeng;
+    return null;
+};
 
 const playBtnSound = () => {
     if (settingsStore.soundEnabled) {
@@ -263,16 +284,18 @@ const goBack = () => {
                                 <!-- Room Name with specific bg -->
                                 <div class="room-name-container"
                                     :style="{ backgroundImage: `url(${currentRoomNameBg})` }">
-                                    <span class="room-name-text">{{ room.name }}</span>
+                                    <img v-if="getRoomTextImage(room.name)" :src="getRoomTextImage(room.name)"
+                                        class="room-name-img" />
+                                    <span v-else class="room-name-text">{{ room.name }}</span>
                                 </div>
                                 <!-- Base Score -->
                                 <div class="room-stat">
-                                    <span class="stat-label">底分:</span>
+                                    <img :src="roomIconTextDizhu" class="stat-label-img" />
                                     <span class="stat-value">{{ room.baseBet }}</span>
                                 </div>
                                 <!-- Entry Limit -->
                                 <div class="room-stat">
-                                    <span class="stat-label">入场:</span>
+                                    <img :src="roomIconTextXianzhi" class="stat-label-img" />
                                     <span class="stat-value">{{ room.minBalance }}</span>
                                 </div>
                             </div>
@@ -379,16 +402,16 @@ const goBack = () => {
     margin-bottom: 30px;
     display: flex;
     align-items: center;
-    padding: 5px 15px 5px 10px;
+    padding: 5px 15px 5px 15px;
     background-size: 100% 100%;
     background-repeat: no-repeat;
     height: 20px;
-    gap: 8px;
+    gap: 3px;
 }
 
 .coin-icon {
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
 }
 
 .coin-val {
@@ -504,6 +527,12 @@ const goBack = () => {
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
+.room-name-img {
+    height: 15px;
+    width: auto;
+    object-fit: contain;
+}
+
 .room-stat {
     display: flex;
     flex-direction: column;
@@ -511,9 +540,11 @@ const goBack = () => {
     justify-content: center;
 }
 
-.stat-label {
-    font-size: 10px;
-    color: #ddd;
+.stat-label-img {
+    height: 12px;
+    width: auto;
+    object-fit: contain;
+    margin-bottom: 2px;
 }
 
 .stat-value {

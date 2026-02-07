@@ -7,8 +7,11 @@ import { useGameStore } from './stores/game.js' // Import game store
 // 引入 Vant 样式
 import 'vant/lib/index.css';
 import './style.css'
+import SpriteNumber from './components/SpriteNumber.vue';
 
 const app = createApp(App)
+
+app.component('SpriteNumber', SpriteNumber);
 
 app.use(createPinia())
 app.use(router)

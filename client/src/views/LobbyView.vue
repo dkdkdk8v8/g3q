@@ -275,7 +275,7 @@ const goBack = () => {
 
             <!-- Right: Room List -->
             <div class="room-list-container">
-                <TransitionGroup name="list" tag="div" class="room-list">
+                <TransitionGroup name="list" tag="div" class="room-list" :key="currentMode">
                     <div v-for="(room, index) in rooms" :key="room.level" class="room-row"
                         :style="{ '--i': index, animationDelay: `${index * 0.1}s` }">
                         <!-- Left: Room Info (70%) -->

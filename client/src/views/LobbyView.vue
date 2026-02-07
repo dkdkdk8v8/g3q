@@ -129,8 +129,8 @@ const rooms = computed(() => {
         return {
             level: cfg.level,
             name: cfg.name,
-            baseBet: cfg.base_bet || 0,
-            minBalance: cfg.min_balance || 0,
+            baseBet: (cfg.base_bet || 0) / 100,
+            minBalance: (cfg.min_balance || 0) / 100,
         };
     });
 });
@@ -292,12 +292,12 @@ const goBack = () => {
                                 <!-- Base Score -->
                                 <div class="room-stat">
                                     <img :src="roomIconTextDizhu" class="stat-label-img" />
-                                    <span class="stat-value">{{ room.baseBet }}</span>
+                                    <SpriteNumber :value="room.baseBet" type="yellow" :height="14" />
                                 </div>
                                 <!-- Entry Limit -->
                                 <div class="room-stat">
                                     <img :src="roomIconTextXianzhi" class="stat-label-img" />
-                                    <span class="stat-value">{{ room.minBalance }}</span>
+                                    <SpriteNumber :value="room.minBalance" type="white" :height="14" />
                                 </div>
                             </div>
                         </div>

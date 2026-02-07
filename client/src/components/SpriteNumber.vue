@@ -30,7 +30,7 @@ const props = defineProps({
 });
 
 const displayChars = computed(() => {
-    return String(props.value).split('');
+    return String(props.value).split('').filter(c => /[0-9]/.test(c));
 });
 
 const getAsset = (char) => {

@@ -119,6 +119,7 @@ const enterGame = debounce(async (level) => {
     playBtnSound();
     try {
         // For Test Mode (3), use Mode 2 logic for server interaction
+        gameStore.gameMode = currentMode.value;
         const serverMode = currentMode.value === 3 ? 2 : currentMode.value;
         await gameStore.joinRoom(level, serverMode);
         router.push({ path: '/game', query: { mode: currentMode.value } });

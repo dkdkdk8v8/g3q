@@ -261,7 +261,7 @@ import gameBgSound from '@/assets/sounds/game_bg.mp3';
 import gameBgImg from '@/assets/common/game_bg.jpg'; // Import default BG explicitly
 import gameBgSanImg from '@/assets/common/game_bg_san.jpg';
 import gameBgSiImg from '@/assets/common/game_bg_si.jpg';
-import gameBgZiseImg from '@/assets/common/bg_zise.jpg';
+import gameBgZiseImg from '@/assets/common/game_bg_zise.jpg';
 import iconGameStart from '../assets/common/game_start.png';
 import gameStartSound from '@/assets/sounds/game_start.mp3';
 import gameWinImg from '../assets/common/game_win.png';

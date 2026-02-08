@@ -373,7 +373,11 @@ export const useGameStore = defineStore('game', () => {
             if (room.Config) {
                 if (room.Config.Name) roomName.value = room.Config.Name;
                 if (room.Config.BaseBet !== undefined) baseBet.value = room.Config.BaseBet;
-                if (room.Config.BankerType !== undefined) gameMode.value = room.Config.BankerType;
+                if (room.Config.BankerType !== undefined) {
+                    if (gameMode.value !== 3) {
+                        gameMode.value = room.Config.BankerType;
+                    }
+                }
                 if (room.Config.BankerMult) bankerMult.value = room.Config.BankerMult;
                 if (room.Config.BetMult) betMult.value = room.Config.BetMult;
             }

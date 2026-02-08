@@ -74,6 +74,8 @@ const backgroundImageStyle = computed(() => {
         bgUrl = gameBgSanImg;
     } else if (store.gameMode === 2) {
         bgUrl = gameBgSiImg;
+    } else if (store.gameMode === 3) {
+        bgUrl = gameBgZiseImg;
     }
     return {
         backgroundImage: `url(${bgUrl})`
@@ -91,7 +93,7 @@ const calcContainerBackgroundStyle = computed(() => {
         bgUrl = couniuSanImg;
     }
     // Mode 2: 看四张抢庄, uses couniu_si.png
-    else if (store.gameMode === 2) {
+    else if (store.gameMode === 2 || store.gameMode === 3) { // Mode 3 reuses Mode 2 logic
         bgUrl = couniuSiImg;
     }
 
@@ -110,8 +112,8 @@ const baseBetStyle = computed(() => {
     let borderColor = '#22c55e66'; // Default Green (Mode 0)
     if (store.gameMode === 1) {
         borderColor = '#3b82f666'; // Blue (Mode 1)
-    } else if (store.gameMode === 2) {
-        borderColor = '#a855f766'; // Purple (Mode 2)
+    } else if (store.gameMode === 2 || store.gameMode === 3) {
+        borderColor = '#a855f766'; // Purple (Mode 2 & 3)
     }
     return {
         borderColor: borderColor,
@@ -259,6 +261,7 @@ import gameBgSound from '@/assets/sounds/game_bg.mp3';
 import gameBgImg from '@/assets/common/game_bg.jpg'; // Import default BG explicitly
 import gameBgSanImg from '@/assets/common/game_bg_san.jpg';
 import gameBgSiImg from '@/assets/common/game_bg_si.jpg';
+import gameBgZiseImg from '@/assets/common/bg_zise.jpg';
 import iconGameStart from '../assets/common/game_start.png';
 import gameStartSound from '@/assets/sounds/game_start.mp3';
 import gameWinImg from '../assets/common/game_win.png';

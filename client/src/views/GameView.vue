@@ -74,8 +74,6 @@ const backgroundImageStyle = computed(() => {
         bgUrl = gameBgSanImg;
     } else if (store.gameMode === 2) {
         bgUrl = gameBgSiImg;
-    } else if (store.gameMode === 3) {
-        bgUrl = gameBgZiseImg;
     }
     return {
         backgroundImage: `url(${bgUrl})`
@@ -93,7 +91,7 @@ const calcContainerBackgroundStyle = computed(() => {
         bgUrl = couniuSanImg;
     }
     // Mode 2: 看四张抢庄, uses couniu_si.png
-    else if (store.gameMode === 2 || store.gameMode === 3) { // Mode 3 reuses Mode 2 logic
+    else if (store.gameMode === 2) {
         bgUrl = couniuSiImg;
     }
 
@@ -112,7 +110,7 @@ const baseBetStyle = computed(() => {
     let borderColor = '#22c55e66'; // Default Green (Mode 0)
     if (store.gameMode === 1) {
         borderColor = '#3b82f666'; // Blue (Mode 1)
-    } else if (store.gameMode === 2 || store.gameMode === 3) {
+    } else if (store.gameMode === 2) {
         borderColor = '#a855f766'; // Purple (Mode 2 & 3)
     }
     return {
@@ -260,8 +258,7 @@ const switchRoom = debounce(() => {
 import gameBgSound from '@/assets/sounds/game_bg.mp3';
 import gameBgImg from '@/assets/common/game_bg.jpg'; // Import default BG explicitly
 import gameBgSanImg from '@/assets/common/game_bg_san.jpg';
-import gameBgSiImg from '@/assets/common/game_bg_si.jpg';
-import gameBgZiseImg from '@/assets/common/game_bg_zise.jpg';
+import gameBgSiImg from '@/assets/common/game_bg_zise.jpg';
 import iconGameStart from '../assets/common/game_start.png';
 import gameStartSound from '@/assets/sounds/game_start.mp3';
 import gameWinImg from '../assets/common/game_win.png';
@@ -1597,23 +1594,23 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
             <!-- Network Latency -->
 
-                        <div class="network-badge" :class="networkStatusClass">
+            <div class="network-badge" :class="networkStatusClass">
 
-                            <div class="signal-icon">
+                <div class="signal-icon">
 
-                                <div class="bar bar-1"></div>
+                    <div class="bar bar-1"></div>
 
-                                <div class="bar bar-2"></div>
+                    <div class="bar bar-2"></div>
 
-                                <div class="bar bar-3"></div>
+                    <div class="bar bar-3"></div>
 
-                                <div class="bar bar-4"></div>
+                    <div class="bar bar-4"></div>
 
-                            </div>
+                </div>
 
-                            <span>{{ networkLatency }}ms</span>
+                <span>{{ networkLatency }}ms</span>
 
-                        </div>
+            </div>
 
         </div>
 
@@ -2175,10 +2172,21 @@ const shouldMoveStatusToHighPosition = computed(() => {
     border-radius: 1px;
 }
 
-.bar-1 { height: 25%; }
-.bar-2 { height: 50%; }
-.bar-3 { height: 75%; }
-.bar-4 { height: 100%; }
+.bar-1 {
+    height: 25%;
+}
+
+.bar-2 {
+    height: 50%;
+}
+
+.bar-3 {
+    height: 75%;
+}
+
+.bar-4 {
+    height: 100%;
+}
 
 /* Good: All bars green */
 .network-badge.good .bar {
@@ -2191,6 +2199,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
     background-color: rgba(255, 255, 255, 0.3);
     box-shadow: none;
 }
+
 .network-badge.fair .bar-1,
 .network-badge.fair .bar-2,
 .network-badge.fair .bar-3 {
@@ -2203,6 +2212,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
     background-color: rgba(255, 255, 255, 0.3);
     box-shadow: none;
 }
+
 .network-badge.poor .bar-1,
 .network-badge.poor .bar-2 {
     background-color: #ef4444;

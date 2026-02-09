@@ -38,8 +38,7 @@ import eachRoomBg from '@/assets/lobby/each_room_bg.png';
 import eachRoomEnterBtn from '@/assets/lobby/each_room_enter_btn.png';
 import roomNameBgLv from '@/assets/lobby/each_room_name_bg_lv.png';
 import roomNameBgLan from '@/assets/lobby/each_room_name_bg_lan.png';
-import roomNameBgLz from '@/assets/lobby/each_room_name_bg_lz.png';
-import roomNameBgZise from '@/assets/lobby/each_room_name_bg_zise.png';
+import roomNameBgLz from '@/assets/lobby/each_room_name_bg_zise.png';
 
 import roomTextTiyan from '@/assets/lobby/room_text_tiyan.png';
 import roomTextChuji from '@/assets/lobby/room_text_chuji.png';
@@ -110,7 +109,6 @@ const currentRoomNameBg = computed(() => {
         case 0: return roomNameBgLv;  // No look (Greenish/Lv)
         case 1: return roomNameBgLan; // Look 3 (Blueish/Lan)
         case 2: return roomNameBgLz;  // Look 4 (Purpleish/Lz)
-        case 3: return roomNameBgZise; // Test Mode (Purple/Zise)
         default: return roomNameBgLv;
     }
 });
@@ -118,10 +116,8 @@ const currentRoomNameBg = computed(() => {
 const enterGame = debounce(async (level) => {
     playBtnSound();
     try {
-        // For Test Mode (3), use Mode 2 logic for server interaction
         gameStore.gameMode = currentMode.value;
-        const serverMode = currentMode.value === 3 ? 2 : currentMode.value;
-        await gameStore.joinRoom(level, serverMode);
+        await gameStore.joinRoom(level, currentMode.value);
         router.push({ path: '/game', query: { mode: currentMode.value } });
     } catch (error) {
         console.error("Failed to join room:", error);
@@ -275,10 +271,6 @@ const goBack = () => {
                 <!-- Mode 2: Si (4 cards) -->
                 <div class="tab-item" @click="setMode(2)">
                     <img :src="currentMode === 2 ? tabSiSel : tabSi" class="tab-img" />
-                </div>
-                <!-- Mode 3: Test (Copy of Si) -->
-                <div class="tab-item" @click="setMode(3)">
-                    <img :src="currentMode === 3 ? tabSiSel : tabSi" class="tab-img" />
                 </div>
             </div>
 

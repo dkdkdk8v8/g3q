@@ -15,7 +15,6 @@ import HelpModal from '../components/HelpModal.vue';
 // Assets
 import bgImg from '@/assets/lobby/bg.jpg';
 import topBgImg from '@/assets/lobby/top_bg.png';
-import logoImg from '@/assets/lobby/logo.png';
 import btnExit from '@/assets/lobby/exit_btn.png';
 import btnHelp from '@/assets/lobby/help_btn.png';
 import btnHistory from '@/assets/lobby/bet_history_btn.png';
@@ -51,6 +50,7 @@ import roomIconTextDizhu from '@/assets/lobby/room_icontext_dizhu.png';
 import roomIconTextXianzhi from '@/assets/lobby/room_icontext_xianzhi.png';
 
 import defaultAvatar from '@/assets/common/default_avatar.png';
+import avatarFrameImg from '@/assets/common/avatar_circle.png';
 import lobbyBgSound from '@/assets/sounds/lobby_bg.mp3';
 import btnClickSound from '@/assets/sounds/btn_click.mp3';
 import goldImg from '@/assets/common/gold.png';
@@ -244,14 +244,20 @@ const goBack = () => {
                 <img :src="topLine" class="top-line-img" />
             </div>
 
-            <!-- Row 2: Logo + Coins -->
+            <!-- Row 2: User Info -->
             <div class="top-row-2">
-                <div class="logo-container">
-                    <img :src="logoImg" class="logo-img" alt="Logo" />
-                </div>
-                <div class="coins-container" :style="{ backgroundImage: `url(${diamondBg})` }">
-                    <img :src="goldImg" class="coin-icon" />
-                    <span class="coin-val">{{ userInfo.coins }}</span>
+                <div class="user-info-container">
+                    <div class="avatar-wrapper">
+                        <img :src="userInfo.avatar" class="user-avatar" alt="" />
+                        <img :src="avatarFrameImg" class="avatar-border-overlay" />
+                    </div>
+                    <div class="user-details">
+                        <span class="user-nickname">{{ userInfo.displayName }}</span>
+                        <div class="coins-display" :style="{ backgroundImage: `url(${diamondBg})` }">
+                            <img :src="goldImg" class="coin-icon" />
+                            <span class="coin-val">{{ userInfo.coins }}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -390,37 +396,81 @@ const goBack = () => {
 /* Row 2 */
 .top-row-2 {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
-    padding: 0 15px 0 15px;
+    padding: 0 15px 10px 15px;
 }
 
-.logo-img {
-    height: 70px;
-    object-fit: contain;
-}
-
-.coins-container {
-    margin-bottom: 30px;
+.user-info-container {
     display: flex;
     align-items: center;
-    padding: 3px 10px 3px 10px;
+    gap: 10px;
+}
+
+.avatar-wrapper {
+    position: relative;
+    width: 50px;
+    height: 50px;
+}
+
+.user-avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    /* border: 2px solid #e0e0e0; */
+    object-fit: cover;
+}
+
+.avatar-border-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.user-nickname {
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    padding-left: 5px;
+}
+
+.coins-display {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0 4px 0 10px;
     background-size: 100% 100%;
     background-repeat: no-repeat;
     height: 20px;
-    gap: 3px;
+    position: relative;
 }
 
 .coin-icon {
-    width: 13px;
-    height: 13px;
-    margin-bottom: 3px;
+    width: 22px;
+    height: 22px;
+    position: absolute;
+    left: -10px;
+    top: 40%;
+    transform: translateY(-50%);
 }
 
 .coin-val {
     color: #FFD700;
     font-weight: bold;
-    font-size: 12px;
+    font-size: 14px;
+    line-height: 1;
 }
 
 .add-btn {

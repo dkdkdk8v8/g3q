@@ -1,6 +1,6 @@
 <template>
   <div class="loading-page">
-    <img src="../assets/lobby/logo.png" alt="抢庄牛牛" class="lobby-logo" />
+    <!-- <img src="../assets/lobby/logo.png" alt="抢庄牛牛" class="lobby-logo" /> -->
     <!-- <div class="input-group">
       <label for="ip-address">服务器IP</label>
       <input type="text" id="ip-address" v-model="ipAddress" placeholder="请输入服务器 IP 地址" />

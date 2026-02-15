@@ -513,7 +513,6 @@ const showAutoJoinMessage = ref(false);
 const showSwitchRoomOverlay = ref(false);
 const logoAnimationState = ref(''); // 'entering', 'leaving', ''
 const switchRoomTimeout = ref(null); // Timeout for forced overlay disappearance
-import lobbyLogoImg from '@/assets/lobby/logo.png'; // Import lobby logo
 
 // Robot Speech/Emoji Logic Removed (now server-driven)
 
@@ -1189,7 +1188,7 @@ onMounted(() => {
     store.initGame(gameMode);
 
     // Preload animation images to prevent layout jumps
-    const preloadImages = [gameWinImg, gameLoseImg, iconGameStart, lobbyLogoImg];
+    const preloadImages = [gameWinImg, gameLoseImg, iconGameStart];
     preloadImages.forEach(src => {
         const img = new Image();
         img.src = src;

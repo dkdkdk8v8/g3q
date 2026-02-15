@@ -409,8 +409,8 @@ const goBack = () => {
 
 .avatar-wrapper {
     position: relative;
-    width: 50px;
-    height: 50px;
+    width: 40px;
+    height: 40px;
 }
 
 .user-avatar {
@@ -433,7 +433,7 @@ const goBack = () => {
 
 .user-nickname {
     color: white;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: bold;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
@@ -453,16 +453,16 @@ const goBack = () => {
     padding: 0 4px 0 10px;
     background-size: 100% 100%;
     background-repeat: no-repeat;
-    height: 20px;
+    height: 18px;
     position: relative;
 }
 
 .coin-icon {
-    width: 22px;
-    height: 22px;
+    width: 18px;
+    height: 18px;
     position: absolute;
-    left: -10px;
-    top: 40%;
+    left: -8px;
+    top: 38%;
     transform: translateY(-50%);
 }
 

@@ -35,6 +35,7 @@ import tabSiSel from '@/assets/lobby/tab_kansizhang_choose.jpg';
 // Room Assets
 import eachRoomBg from '@/assets/lobby/each_room_bg.png';
 import eachRoomEnterBtn from '@/assets/lobby/each_room_enter_btn.png';
+import eachRoomEnterBtnText from '@/assets/lobby/each_room_enter_btn_text.png';
 import roomNameBgLv from '@/assets/lobby/each_room_name_bg_lv.png';
 import roomNameBgLan from '@/assets/lobby/each_room_name_bg_lan.png';
 import roomNameBgLz from '@/assets/lobby/each_room_name_bg_zise.png';
@@ -124,6 +125,23 @@ const enterGame = debounce(async (level) => {
     }
 }, 500);
 
+// Helper to generate random particles
+const generateParticles = () => {
+    return Array.from({ length: 10 }, () => {
+        const left = Math.random() * 80 + 10; // 10% - 90%
+        const duration = Math.random() * 1.5 + 1.5; // 1.5s - 3s
+        const delay = Math.random() * 2; // 0s - 2s
+        const size = Math.random() * 2 + 2; // 2px - 4px
+        return {
+            left: `${left}%`,
+            animationDuration: `${duration}s`,
+            animationDelay: `${delay}s`,
+            width: `${size}px`,
+            height: `${size}px`
+        };
+    });
+};
+
 const rooms = computed(() => {
     const configs = userStore.roomConfigs || [];
     return configs.map((cfg) => {
@@ -132,6 +150,7 @@ const rooms = computed(() => {
             name: cfg.name,
             baseBet: (cfg.base_bet || 0) / 100,
             minBalance: (cfg.min_balance || 0) / 100,
+            particles: generateParticles()
         };
     });
 });
@@ -311,7 +330,14 @@ const goBack = () => {
 
                         <!-- Right: Enter Button -->
                         <div class="room-enter-btn" @click="enterGame(room.level)">
-                            <img :src="eachRoomEnterBtn" class="enter-btn-img" />
+                            <div class="enter-btn-wrapper">
+                                <img :src="eachRoomEnterBtn" class="enter-btn-bg-img" />
+                                <div class="particles-container">
+                                    <i v-for="(style, i) in room.particles" :key="i" class="star-particle"
+                                        :style="style"></i>
+                                </div>
+                                <img :src="eachRoomEnterBtnText" class="enter-btn-text-img" />
+                            </div>
                         </div>
                     </div>
                 </TransitionGroup>
@@ -632,18 +658,69 @@ const goBack = () => {
     cursor: pointer;
     z-index: 10;
     max-width: 100px;
-    /* Prevent it from getting too wide */
 }
 
-.enter-btn-img {
-    width: auto;
+.enter-btn-wrapper {
+    position: relative;
     height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.enter-btn-bg-img {
+    height: 100%;
+    width: auto;
     object-fit: contain;
 }
 
-/* Scrollbar hiding */
-.tabs-sidebar::-webkit-scrollbar,
-.room-list-container::-webkit-scrollbar {
-    display: none;
+.enter-btn-text-img {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    height: 28%;
+    width: auto;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.particles-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.star-particle {
+    position: absolute;
+    bottom: 10px;
+    width: 3px;
+    height: 3px;
+    background-color: #ffd700;
+    border-radius: 50%;
+    box-shadow: 0 0 3px #fff;
+    opacity: 0;
+    animation: particleMove 2s infinite linear;
+}
+
+@keyframes particleMove {
+    0% {
+        transform: translateY(0) scale(0.5);
+        opacity: 0;
+    }
+
+    20% {
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(-25px) scale(1);
+        opacity: 0;
+    }
 }
 </style>

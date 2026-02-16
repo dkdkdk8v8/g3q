@@ -14,6 +14,7 @@ import HelpModal from '../components/HelpModal.vue';
 
 // Assets
 import bgImg from '@/assets/lobby/bg.jpg';
+import tabBgUp from '@/assets/lobby/tab_bg_up.png';
 import topBgImg from '@/assets/lobby/top_bg.png';
 import btnExit from '@/assets/lobby/exit_btn.png';
 import btnHelp from '@/assets/lobby/help_btn.png';
@@ -242,6 +243,9 @@ const goBack = () => {
 
 <template>
     <div class="lobby-container" :style="{ backgroundImage: `url(${bgImg})` }">
+        <!-- Floating Background Layer -->
+        <img :src="tabBgUp" class="tab-bg-up" />
+
         <!-- Top Area -->
         <div class="top-area" :style="{ backgroundImage: `url(${topBgImg})` }">
             <!-- Row 1: Exit + Buttons -->
@@ -361,6 +365,38 @@ const goBack = () => {
     flex-direction: column;
     overflow: hidden;
     font-family: "Microsoft YaHei", Arial, sans-serif;
+    position: relative; /* Ensure relative positioning context for children */
+}
+
+/* Floating Background */
+.tab-bg-up {
+    position: absolute;
+    width: 100%;
+    /* Start position */
+    left: 0;
+    top: 20%;
+    z-index: 0; /* Above main bg, below content */
+    opacity: 0.8; /* Optional: adjust opacity if needed to blend */
+    pointer-events: none; /* Let clicks pass through */
+    animation: floatBg 20s infinite ease-in-out alternate;
+}
+
+@keyframes floatBg {
+    0% {
+        transform: translate(0, 0);
+    }
+    25% {
+        transform: translate(5%, 10%);
+    }
+    50% {
+        transform: translate(0, 20%); /* Close to 40% top total */
+    }
+    75% {
+        transform: translate(-5%, 15%);
+    }
+    100% {
+        transform: translate(0, 30%); /* Close to 50% top total */
+    }
 }
 
 /* --- Top Area --- */
@@ -371,6 +407,8 @@ const goBack = () => {
     display: flex;
     flex-direction: column;
     padding-bottom: 5px;
+    position: relative;
+    z-index: 1; /* Ensure content is above floating bg */
 }
 
 /* Row 1 */
@@ -518,6 +556,8 @@ const goBack = () => {
     overflow: hidden;
     padding-top: 10px;
     padding-bottom: 5px;
+    position: relative;
+    z-index: 1; /* Ensure content is above floating bg */
 }
 
 /* Room List */
@@ -697,21 +737,35 @@ const goBack = () => {
 }
 
 /* Bottom Tabs */
+
 .bottom-tabs {
+
     flex-shrink: 0;
+
     width: 100%;
-    height: 60px;
-    /* Adjust height based on background image or desired size */
+
+    height: 60px; /* Adjust height based on background image or desired size */
+
     background-size: 100% 100%;
+
     background-repeat: no-repeat;
+
     display: flex;
-    justify-content: flex-end;
-    /* Right aligned */
+
+    justify-content: flex-end; /* Right aligned */
+
     align-items: flex-end;
+
     padding-right: 10px;
-    padding-bottom: 0px;
-    /* Adjust if items need to sit on bottom */
+
+    padding-bottom: 0px; /* Adjust if items need to sit on bottom */
+
     gap: 0px;
+
+    position: relative;
+
+    z-index: 1; /* Ensure content is above floating bg */
+
 }
 
 .tab-item {

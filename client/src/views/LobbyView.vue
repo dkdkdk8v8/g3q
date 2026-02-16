@@ -127,11 +127,11 @@ const enterGame = debounce(async (level) => {
 
 // Helper to generate random particles
 const generateParticles = () => {
-    return Array.from({ length: 10 }, () => {
+    return Array.from({ length: 6 }, () => {
         const left = Math.random() * 80 + 10; // 10% - 90%
-        const duration = Math.random() * 1.5 + 1.5; // 1.5s - 3s
-        const delay = Math.random() * 2; // 0s - 2s
-        const size = Math.random() * 2 + 2; // 2px - 4px
+        const duration = Math.random() * 2 + 3; // 3s - 5s (slower)
+        const delay = Math.random() * 4; // 0s - 4s (spread out)
+        const size = Math.random() * 2 + 1; // 1px - 3px (smaller)
         return {
             left: `${left}%`,
             animationDuration: `${duration}s`,

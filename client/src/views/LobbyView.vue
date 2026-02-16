@@ -423,7 +423,7 @@ const goBack = () => {
     display: flex;
     justify-content: flex-start;
     align-items: center;
-    padding: 10px 15px 20px 15px;
+    padding: 10px 15px 15px 15px;
 }
 
 .user-info-container {
@@ -434,8 +434,8 @@ const goBack = () => {
 
 .avatar-wrapper {
     position: relative;
-    width: 40px;
-    height: 40px;
+    width: 43px;
+    height: 43px;
 }
 
 .user-avatar {
@@ -484,7 +484,7 @@ const goBack = () => {
 
 .coin-icon {
     width: auto;
-    height: 18px;
+    height: 16px;
     position: absolute;
     left: -10px;
     top: 40%;

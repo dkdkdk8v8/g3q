@@ -378,7 +378,7 @@ const goBack = () => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 15px 5px 15px;
+    padding: 20px 15px 5px 15px;
 }
 
 .top-left .btn-exit {
@@ -423,7 +423,7 @@ const goBack = () => {
     display: flex;
     justify-content: flex-start;
     align-items: center;
-    padding: 0 15px 10px 15px;
+    padding: 10px 15px 20px 15px;
 }
 
 .user-info-container {
@@ -483,11 +483,11 @@ const goBack = () => {
 }
 
 .coin-icon {
-    width: 18px;
+    width: auto;
     height: 18px;
     position: absolute;
-    left: -8px;
-    top: 38%;
+    left: -10px;
+    top: 40%;
     transform: translateY(-50%);
 }
 
@@ -728,7 +728,9 @@ const goBack = () => {
 }
 
 .tab-img {
-    height: 50px;
+    margin-bottom: 26px;
+    margin-right: 6px;
+    height: 25px;
     /* Adjust height of the tab button */
     width: auto;
     display: block;

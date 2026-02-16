@@ -281,25 +281,8 @@ const goBack = () => {
             </div>
         </div>
 
-        <!-- Main Content: Tabs + Room List -->
+        <!-- Main Content: Room List (Full Width) -->
         <div class="main-content">
-            <!-- Left: Vertical Tabs -->
-            <div class="tabs-sidebar" :style="{ backgroundImage: `url(${tabBgImg})` }">
-                <!-- Mode 0: Bukan (No Look) -->
-                <div class="tab-item" @click="setMode(0)">
-                    <img :src="currentMode === 0 ? tabBukanSel : tabBukan" class="tab-img" />
-                </div>
-                <!-- Mode 1: San (3 cards) -->
-                <div class="tab-item" @click="setMode(1)">
-                    <img :src="currentMode === 1 ? tabSanSel : tabSan" class="tab-img" />
-                </div>
-                <!-- Mode 2: Si (4 cards) -->
-                <div class="tab-item" @click="setMode(2)">
-                    <img :src="currentMode === 2 ? tabSiSel : tabSi" class="tab-img" />
-                </div>
-            </div>
-
-            <!-- Right: Room List -->
             <div class="room-list-container">
                 <TransitionGroup name="list" tag="div" class="room-list" :key="currentMode">
                     <div v-for="(room, index) in rooms" :key="room.level" class="room-row"
@@ -341,6 +324,22 @@ const goBack = () => {
                         </div>
                     </div>
                 </TransitionGroup>
+            </div>
+        </div>
+
+        <!-- Bottom Tabs -->
+        <div class="bottom-tabs" :style="{ backgroundImage: `url(${tabBgImg})` }">
+            <!-- Mode 0: Bukan (No Look) -->
+            <div class="tab-item" @click="setMode(0)">
+                <img :src="currentMode === 0 ? tabBukanSel : tabBukan" class="tab-img" />
+            </div>
+            <!-- Mode 1: San (3 cards) -->
+            <div class="tab-item" @click="setMode(1)">
+                <img :src="currentMode === 1 ? tabSanSel : tabSan" class="tab-img" />
+            </div>
+            <!-- Mode 2: Si (4 cards) -->
+            <div class="tab-item" @click="setMode(2)">
+                <img :src="currentMode === 2 ? tabSiSel : tabSi" class="tab-img" />
             </div>
         </div>
 
@@ -518,43 +517,16 @@ const goBack = () => {
     display: flex;
     overflow: hidden;
     padding-top: 10px;
-}
-
-/* Tabs Sidebar */
-.tabs-sidebar {
-    width: 60px;
-    background-size: 100% 100%;
-    /* Adjust based on tab image width */
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 1px;
-    padding-left: 0;
-    padding-right: 0;
-    overflow-y: auto;
-}
-
-.tab-item {
-    cursor: pointer;
-    transition: transform 0.1s;
-    width: 100%;
-}
-
-.tab-item:active {
-    transform: scale(0.95);
-}
-
-.tab-img {
-    width: 100%;
-    height: auto;
-    display: block;
+    padding-bottom: 5px;
 }
 
 /* Room List */
 .room-list-container {
     flex: 1;
+    width: 100%;
     overflow-y: auto;
-    padding: 0 5px 20px 10px;
+    padding: 0 15px 10px 15px;
+    /* Added side padding to center rooms if needed */
 }
 
 .room-list {
@@ -583,7 +555,7 @@ const goBack = () => {
 
 /* Room Info (Left 70%) */
 .room-info {
-    width: 70%;
+    width: 80%;
     height: 100%;
     background-size: 100% 100%;
     display: flex;
@@ -634,8 +606,8 @@ const goBack = () => {
     height: 10px;
     width: auto;
     object-fit: contain;
-    margin-bottom: 6px;
-    margin-top: 6px;
+    margin-bottom: 10px;
+    margin-top: 0;
 }
 
 .stat-value {
@@ -722,5 +694,49 @@ const goBack = () => {
         transform: translateY(-25px) scale(1);
         opacity: 0;
     }
+}
+
+/* Bottom Tabs */
+.bottom-tabs {
+    flex-shrink: 0;
+    width: 100%;
+    height: 60px;
+    /* Adjust height based on background image or desired size */
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    display: flex;
+    justify-content: flex-end;
+    /* Right aligned */
+    align-items: flex-end;
+    padding-right: 10px;
+    padding-bottom: 0px;
+    /* Adjust if items need to sit on bottom */
+    gap: 0px;
+}
+
+.tab-item {
+    cursor: pointer;
+    transition: transform 0.1s;
+    /* Adjust width if needed, or let img define it */
+    height: 100%;
+    display: flex;
+    align-items: flex-end;
+}
+
+.tab-item:active {
+    transform: scale(0.95);
+}
+
+.tab-img {
+    height: 50px;
+    /* Adjust height of the tab button */
+    width: auto;
+    display: block;
+    object-fit: contain;
+}
+
+/* Scrollbar hiding */
+.room-list-container::-webkit-scrollbar {
+    display: none;
 }
 </style>

@@ -3097,7 +3097,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
     color: #cbd5e1;
     font-size: 14px;
     background: rgba(0, 0, 0, 0.5);
-    padding: 0 12px 4px 12px;
+    padding: 0 12px 5px 12px;
     border-radius: 12px;
     align-self: center;
     /* Prevent stretching in flex container */

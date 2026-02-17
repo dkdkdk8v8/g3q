@@ -370,17 +370,20 @@ const goBack = () => {
                 <div class="tab-item" @click="setMode(0)"
                     :style="{ backgroundImage: `url(${currentMode === 0 ? tabBukanSelBg : tabBukanBg})` }">
                     <img v-if="currentMode === 0" :src="bkpAnimImg" class="tab-anim-icon" />
-                    <img :src="currentMode === 0 ? tabBukanSel : tabBukan" class="tab-content-img" />
+                    <img :src="currentMode === 0 ? tabBukanSel : tabBukan"
+                        :class="currentMode === 0 ? 'tab-bukan-sel-img' : 'tab-bukan-img'" />
                 </div>
                 <!-- Mode 1: San (3 cards) -->
                 <div class="tab-item2" @click="setMode(1)"
                     :style="{ backgroundImage: `url(${currentMode === 1 ? tabSansiSelBg : tabSansiBg})` }">
-                    <img :src="currentMode === 1 ? tabSanSel : tabSan" class="tab-content-img" />
+                    <img :src="currentMode === 1 ? tabSanSel : tabSan"
+                        :class="currentMode === 1 ? 'tab-san-sel-img' : 'tab-san-img'" />
                 </div>
                 <!-- Mode 2: Si (4 cards) -->
                 <div class="tab-item3" @click="setMode(2)"
                     :style="{ backgroundImage: `url(${currentMode === 2 ? tabSansiSelBg : tabSansiBg})` }">
-                    <img :src="currentMode === 2 ? tabSiSel : tabSi" class="tab-content-img" />
+                    <img :src="currentMode === 2 ? tabSiSel : tabSi"
+                        :class="currentMode === 2 ? 'tab-si-sel-img' : 'tab-si-img'" />
                 </div>
             </div>
             <!-- Bottom Decoration Bar -->
@@ -866,12 +869,30 @@ const goBack = () => {
     position: relative;
 }
 
-.tab-content-img {
+/* Individual Tab Image Styles */
+.tab-bukan-img,
+.tab-san-img,
+.tab-si-img {
     height: 50%;
-    /* Adjust size of text/icon inside */
+    /* Default size, can be customized individually */
     width: auto;
     object-fit: contain;
 }
+
+
+
+.tab-bukan-sel-img,
+.tab-san-sel-img,
+.tab-si-sel-img {
+    height: 42%;
+    /* Default size, can be customized individually */
+    width: auto;
+    object-fit: contain;
+}
+
+/* Example Customization:
+.tab-bukan-sel-img { height: 55%; }
+*/
 
 .tab-anim-icon {
     height: 60%;

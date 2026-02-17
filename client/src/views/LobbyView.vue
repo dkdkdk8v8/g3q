@@ -1,6 +1,6 @@
 <script setup>
 import { useRouter } from 'vue-router';
-import { ref, computed, watch, onMounted, onUnmounted, onActivated, onDeactivated } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, onActivated, onDeactivated, nextTick } from 'vue';
 import { debounce } from '../utils/debounce.js';
 import { formatCoins } from '../utils/format.js';
 import { useUserStore } from '../stores/user.js';
@@ -225,10 +225,10 @@ const stopMusic = () => {
 const showWinAnim = ref(false);
 
 const testWinAnim = () => {
-    showWinAnim.value = true;
-    // setTimeout(() => {
-    //     showWinAnim.value = false;
-    // }, 4000);
+    showWinAnim.value = false;
+    nextTick(() => {
+        showWinAnim.value = true;
+    });
 };
 
 watch(() => settingsStore.musicEnabled, (val) => {

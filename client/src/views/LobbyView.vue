@@ -129,20 +129,20 @@ const setMode = (mode) => {
     // Potentially re-fetch or filter rooms here if the server API supports it
 };
 
-const bkpAnimImg = ref(tabBkpStart);
-let bkpAnimTimer = null;
+// const bkpAnimImg = ref(tabBkpStart);
+// let bkpAnimTimer = null;
 
-watch(currentMode, (newVal) => {
-    if (newVal === 0) {
-        if (bkpAnimTimer) clearTimeout(bkpAnimTimer);
-        bkpAnimImg.value = tabBkpStart;
-        bkpAnimTimer = setTimeout(() => {
-            bkpAnimImg.value = tabBkpEnd;
-        }, 500);
-    } else {
-        if (bkpAnimTimer) clearTimeout(bkpAnimTimer);
-    }
-}, { immediate: true });
+// watch(currentMode, (newVal) => {
+//     if (newVal === 0) {
+//         if (bkpAnimTimer) clearTimeout(bkpAnimTimer);
+//         bkpAnimImg.value = tabBkpStart;
+//         bkpAnimTimer = setTimeout(() => {
+//             bkpAnimImg.value = tabBkpEnd;
+//         }, 500);
+//     } else {
+//         if (bkpAnimTimer) clearTimeout(bkpAnimTimer);
+//     }
+// }, { immediate: true });
 
 // Get appropriate room name background based on current mode
 const currentRoomNameBg = computed(() => {
@@ -378,7 +378,7 @@ const goBack = () => {
                 <div class="tab-item" @click="setMode(0)"
                     :style="{ backgroundImage: `url(${currentMode === 0 ? tabBukanSelBg : tabBukanBg})` }">
                     <img :src="currentMode === 0 ? tabBukanIconSel : tabBukanIcon" class="tab-icon-left" />
-                    <img v-if="currentMode === 0" :src="bkpAnimImg" class="tab-anim-icon" />
+                    <!-- <img v-if="currentMode === 0" :src="bkpAnimImg" class="tab-anim-icon" /> -->
                     <img :src="currentMode === 0 ? tabBukanSel : tabBukan"
                         :class="currentMode === 0 ? 'tab-bukan-sel-img' : 'tab-bukan-img'" />
                 </div>

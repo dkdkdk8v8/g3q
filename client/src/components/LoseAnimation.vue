@@ -12,6 +12,7 @@ import textRightTopIconImg from '@/assets/lose/text_right_top_icon.png';
 const showRibbons = ref(false);
 const showBackEffects = ref(false);
 const showText = ref(false);
+const showRightTextTilt = ref(false);
 
 onMounted(() => {
     // Sequence 1: Ribbons enter immediately
@@ -28,6 +29,11 @@ onMounted(() => {
     setTimeout(() => {
         showText.value = true;
     }, 550);
+
+    // Sequence 4: Right text tilts (1s delay, after text appears)
+    setTimeout(() => {
+        showRightTextTilt.value = true;
+    }, 1000);
 });
 </script>
 
@@ -50,7 +56,7 @@ onMounted(() => {
                 <!-- Text Container -->
                 <div class="text-container">
                     <img :src="loseTextLeftImg" class="lose-text-left" />
-                    <img :src="loseTextRightImg" class="lose-text-right" />
+                    <img :src="loseTextRightImg" class="lose-text-right" :class="{ 'tilt-active': showRightTextTilt }" />
                 </div>
                 <!-- Icon (Top Right) -->
                 <img :src="textRightTopIconImg" class="text-rt-icon" />
@@ -189,6 +195,12 @@ onMounted(() => {
     margin-left: -45px;
     margin-top: 10px;
     /* Adjust overlap amount */
+    transform-origin: bottom left; /* Pivot point for tilt */
+    transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.lose-text-right.tilt-active {
+    transform: rotate(20deg);
 }
 
 .text-rt-icon {

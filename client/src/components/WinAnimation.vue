@@ -16,7 +16,8 @@ import goldImg from '@/assets/common/gold.png';
 
 const showRibbons = ref(false);
 const showBackEffects = ref(false);
-const showDecorations = ref(false); // Decorations appear first
+const showBgDecorations = ref(false); // Decorations behind text
+const showFgDecorations = ref(false); // Decorations in front of text
 const showTextSmash = ref(false);   // Text smashes later
 const explosionParticles = ref([]); // For gold explosion
 let animFrameId = null; // Store frame ID for cleanup
@@ -32,9 +33,9 @@ onMounted(() => {
         showBackEffects.value = true;
     }, 350);
 
-    // Sequence 3: Decorations appear (0.5s delay) - BEFORE Text
+    // Sequence 3: Background Decorations appear (0.5s delay) - BEFORE Text
     setTimeout(() => {
-        showDecorations.value = true;
+        showBgDecorations.value = true;
     }, 500);
 
     // Sequence 4: Text Smash (0.7s delay) - Triggers explosion
@@ -42,6 +43,11 @@ onMounted(() => {
         showTextSmash.value = true;
         triggerExplosion();
     }, 700);
+
+    // Sequence 5: Foreground Decorations appear (0.8s delay) - AFTER Text
+    setTimeout(() => {
+        showFgDecorations.value = true;
+    }, 850);
 });
 
 onUnmounted(() => {
@@ -130,7 +136,7 @@ const triggerExplosion = () => {
         <div class="layer-text-group">
             <div class="text-group-inner">
                 <!-- Decorations Behind Text -->
-                <div class="decorations-group" :class="{ 'decor-active': showDecorations }">
+                <div class="decorations-group" :class="{ 'decor-active': showBgDecorations }">
                     <img :src="textBgIconImg" class="text-bg-icon" />
                     <img :src="bigDiamondImg" class="big-diamond" />
                 </div>
@@ -150,7 +156,7 @@ const triggerExplosion = () => {
                 </div>
 
                 <!-- Decorations On Top -->
-                <div class="decorations-group" :class="{ 'decor-active': showDecorations }">
+                <div class="decorations-group" :class="{ 'decor-active': showFgDecorations }">
                     <img :src="textLeftBottomIconImg" class="text-lb-icon" />
                     <div class="right-top-icons">
                         <img :src="textRightTopIconImg" class="text-rt-top" />
@@ -302,7 +308,7 @@ const triggerExplosion = () => {
     left: 0;
     opacity: 0;
     transform: scale(0.5);
-    transition: all 0.5s ease-out;
+    transition: all 0.2s ease-out;
     pointer-events: none;
     /* Let text smash through visually */
 }
@@ -324,7 +330,7 @@ const triggerExplosion = () => {
     opacity: 0;
     transform: scale(3);
     /* Start huge */
-    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     /* Bounce/Smash */
 }
 

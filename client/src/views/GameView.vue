@@ -239,7 +239,7 @@ const switchRoom = debounce(() => {
 
     isSwitchingRoom.value = true;
     switchRoomStartTime.value = Date.now();
-    
+
     // Start Animation (This captures the screenshot)
     startSwitchRoomAnimation();
 
@@ -251,14 +251,14 @@ const switchRoom = debounce(() => {
             console.warn("[GameView] Room switch timed out after 10s.");
             finishSwitchRoomAnimation();
         }
-    }, 10000); 
+    }, 10000);
 }, 500);
 
 const gameTableRef = ref(null);
 const snapshotContainer = ref(null);
 const showSnapshot = ref(false);
-const snapshotAnimClass = ref(''); 
-const gameViewStyle = ref({}); 
+const snapshotAnimClass = ref('');
+const gameViewStyle = ref({});
 
 const startSwitchRoomAnimation = () => {
     if (!gameTableRef.value) return;
@@ -267,14 +267,14 @@ const startSwitchRoomAnimation = () => {
     // Note: cloneNode(true) copies attributes like 'id', duplicate IDs are generally bad but harmless for display-only clone.
     const original = gameTableRef.value;
     const clone = original.cloneNode(true);
-    
+
     // Remove pointer events from clone to prevent interaction
     clone.style.pointerEvents = 'none';
-    
+
     // 2. Setup Overlay
     showSnapshot.value = true;
-    snapshotAnimClass.value = ''; 
-    
+    snapshotAnimClass.value = '';
+
     nextTick(() => {
         if (snapshotContainer.value) {
             snapshotContainer.value.innerHTML = '';
@@ -285,9 +285,9 @@ const startSwitchRoomAnimation = () => {
         // Instant move (0 transition) so it's ready to slide in later
         // But we wait a tick to ensure overlay is painted
         setTimeout(() => {
-            gameViewStyle.value = { 
+            gameViewStyle.value = {
                 transform: 'translateX(100%)',
-                transition: 'none' 
+                transition: 'none'
             };
         }, 50);
 
@@ -295,7 +295,7 @@ const startSwitchRoomAnimation = () => {
         setTimeout(() => {
             // Animate Overlay Left
             snapshotAnimClass.value = 'slide-out-left';
-            
+
             // Animate Real View from Right to Center
             gameViewStyle.value = {
                 transform: 'translateX(0)',
@@ -305,17 +305,17 @@ const startSwitchRoomAnimation = () => {
             // Cleanup after animation completes (0.5s match CSS)
             setTimeout(() => {
                 finishSwitchRoomAnimation();
-            }, 500); 
-        }, 2050); // 2000ms wait + 50ms buffer
+            }, 500);
+        }, 1050); // 2000ms wait + 50ms buffer
     });
 };
 
 const finishSwitchRoomAnimation = () => {
     showSnapshot.value = false;
     snapshotAnimClass.value = '';
-    gameViewStyle.value = {}; 
-    isSwitchingRoom.value = false; 
-    
+    gameViewStyle.value = {};
+    isSwitchingRoom.value = false;
+
     if (switchRoomTimeout.value) {
         clearTimeout(switchRoomTimeout.value);
         switchRoomTimeout.value = null;
@@ -1576,7 +1576,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
             <div v-if="showSnapshot" class="switch-snapshot-overlay" :class="snapshotAnimClass">
                 <!-- 1. The Snapshot Clone -->
                 <div class="snapshot-clone-container" ref="snapshotContainer"></div>
-                
+
                 <!-- 2. The Frosted Glass Layer -->
                 <div class="frosted-glass-layer"></div>
 
@@ -3765,8 +3765,10 @@ const shouldMoveStatusToHighPosition = computed(() => {
     left: 0;
     width: 100vw;
     height: 100dvh;
-    z-index: 9999; /* Highest priority */
-    pointer-events: none; /* Let clicks pass if needed, but usually blocks */
+    z-index: 9999;
+    /* Highest priority */
+    pointer-events: none;
+    /* Let clicks pass if needed, but usually blocks */
     overflow: hidden;
     transition: transform 0.5s ease-in-out;
 }
@@ -3790,8 +3792,10 @@ const shouldMoveStatusToHighPosition = computed(() => {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5); /* Match previous darkness */
-    backdrop-filter: blur(8px); /* Frosted glass effect */
+    background: rgba(0, 0, 0, 0.5);
+    /* Match previous darkness */
+    backdrop-filter: blur(8px);
+    /* Frosted glass effect */
     z-index: 2;
 }
 

@@ -49,6 +49,14 @@ import tabSanSel from '@/assets/lobby/tab_kansanzhang_choose.png';
 import tabSi from '@/assets/lobby/tab_kansizhang.png';
 import tabSiSel from '@/assets/lobby/tab_kansizhang_choose.png';
 
+// New Icons
+import tabBukanIcon from '@/assets/lobby/tab_bukan_icon.png';
+import tabBukanIconSel from '@/assets/lobby/tab_bukan_icon_choose.png';
+import tabSanIcon from '@/assets/lobby/tab_sanzhang_icon.png';
+import tabSanIconSel from '@/assets/lobby/tab_sanzhang_icon_choose.png';
+import tabSiIcon from '@/assets/lobby/tab_sizhang_icon.png';
+import tabSiIconSel from '@/assets/lobby/tab_sizhang_icon_choose.png';
+
 // Room Assets
 import eachRoomBg from '@/assets/lobby/each_room_bg.png';
 import eachRoomEnterBtn from '@/assets/lobby/each_room_enter_btn.png';
@@ -369,6 +377,7 @@ const goBack = () => {
                 <!-- Mode 0: Bukan (No Look) -->
                 <div class="tab-item" @click="setMode(0)"
                     :style="{ backgroundImage: `url(${currentMode === 0 ? tabBukanSelBg : tabBukanBg})` }">
+                    <img :src="currentMode === 0 ? tabBukanIconSel : tabBukanIcon" class="tab-icon-left" />
                     <img v-if="currentMode === 0" :src="bkpAnimImg" class="tab-anim-icon" />
                     <img :src="currentMode === 0 ? tabBukanSel : tabBukan"
                         :class="currentMode === 0 ? 'tab-bukan-sel-img' : 'tab-bukan-img'" />
@@ -376,12 +385,14 @@ const goBack = () => {
                 <!-- Mode 1: San (3 cards) -->
                 <div class="tab-item2" @click="setMode(1)"
                     :style="{ backgroundImage: `url(${currentMode === 1 ? tabSansiSelBg : tabSansiBg})` }">
+                    <img :src="currentMode === 1 ? tabSanIconSel : tabSanIcon" class="tab-icon-left" />
                     <img :src="currentMode === 1 ? tabSanSel : tabSan"
                         :class="currentMode === 1 ? 'tab-san-sel-img' : 'tab-san-img'" />
                 </div>
                 <!-- Mode 2: Si (4 cards) -->
                 <div class="tab-item3" @click="setMode(2)"
                     :style="{ backgroundImage: `url(${currentMode === 2 ? tabSansiSelBg : tabSansiBg})` }">
+                    <img :src="currentMode === 2 ? tabSiIconSel : tabSiIcon" class="tab-icon-left" />
                     <img :src="currentMode === 2 ? tabSiSel : tabSi"
                         :class="currentMode === 2 ? 'tab-si-sel-img' : 'tab-si-img'" />
                 </div>
@@ -802,6 +813,7 @@ const goBack = () => {
 }
 
 .bottom-bar-bg {
+    z-index: 2;
     width: 100%;
     height: 32px;
     /* Adjust based on tab_bg.png height */
@@ -825,12 +837,11 @@ const goBack = () => {
 
 .tab-item {
     cursor: pointer;
-    transition: transform 0.1s;
+    /* transition: transform 0.1s; removed scaling transition */
     width: 105px;
-    padding-left: 18px;
-    /* Adjust based on bg image width */
+    padding-left: 15px;
+    /* Adjusted padding */
     height: 45px;
-    /* Adjust based on bg image height */
     background-size: 100% 100%;
     background-repeat: no-repeat;
     display: flex;
@@ -839,34 +850,36 @@ const goBack = () => {
     position: relative;
 }
 
-.tab-item2 {
-    cursor: pointer;
-    transition: transform 0.1s;
-    width: 95px;
-    /* Adjust based on bg image width */
-    height: 45px;
-    /* Adjust based on bg image height */
-    background-size: 100% 100%;
-    background-repeat: no-repeat;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: relative;
-}
-
+.tab-item2,
 .tab-item3 {
     cursor: pointer;
-    transition: transform 0.1s;
+    /* transition: transform 0.1s; removed scaling transition */
     width: 95px;
-    /* Adjust based on bg image width */
     height: 45px;
-    /* Adjust based on bg image height */
+    padding-left: 10px;
+    /* Add some padding to center visually with the slant */
     background-size: 100% 100%;
     background-repeat: no-repeat;
     display: flex;
     justify-content: center;
     align-items: center;
     position: relative;
+}
+
+/* Ensure no scaling on active state */
+.tab-item:active,
+.tab-item2:active,
+.tab-item3:active {
+    transform: none !important;
+}
+
+
+.tab-icon-left {
+    height: 50%;
+    /* Adjust as needed */
+    width: auto;
+    object-fit: contain;
+    margin-right: 2px;
 }
 
 /* Individual Tab Image Styles */

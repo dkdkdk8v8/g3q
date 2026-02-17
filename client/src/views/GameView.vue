@@ -11,6 +11,7 @@ import SettingsModal from '../components/SettingsModal.vue';
 import HelpModal from '../components/HelpModal.vue';
 import HistoryModal from '../components/HistoryModal.vue';
 import HostingModal from '../components/HostingModal.vue';
+import WinAnimation from '../components/WinAnimation.vue';
 import { useRouter, useRoute } from 'vue-router';
 import { formatCoins } from '../utils/format.js';
 import { transformServerCard, calculateHandType } from '../utils/bullfight.js';
@@ -563,6 +564,7 @@ const showStartAnim = ref(false);
 const resultImage = ref('');
 const resultAnimClass = ref('');
 const showResultAnim = ref(false);
+const showWinAnim = ref(false); // New Win Animation State
 const resultTypeClass = ref('');
 
 const showSettings = ref(false);
@@ -1027,28 +1029,35 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
         if (me && !me.isObserver) {
             // Determine result (0 is also win/draw, but typically > 0 is win. Logic says >= 0 is win in display)
             const isWin = me.roundScore >= 0;
-            resultImage.value = isWin ? gameWinImg : gameLoseImg;
 
             if (settingsStore.soundEnabled) {
                 AudioUtils.playEffect(isWin ? gameWinSound : gameLoseSound);
             }
 
-            showResultAnim.value = true;
-            resultAnimClass.value = ''; // Reset class
+            if (isWin) {
+                showWinAnim.value = true;
+                setTimeout(() => {
+                    showWinAnim.value = false;
+                }, 4000); // 4s display
+            } else {
+                resultImage.value = gameLoseImg;
+                showResultAnim.value = true;
+                resultAnimClass.value = ''; // Reset class
 
-            setTimeout(() => {
-                resultAnimClass.value = 'pop';
-            }, 50);
+                setTimeout(() => {
+                    resultAnimClass.value = 'pop';
+                }, 50);
 
-            setTimeout(() => {
-                resultAnimClass.value = 'bounce';
-            }, 600);
+                setTimeout(() => {
+                    resultAnimClass.value = 'bounce';
+                }, 600);
 
-            // Cleanup
-            setTimeout(() => {
-                showResultAnim.value = false;
-                resultAnimClass.value = '';
-            }, 4000);
+                // Cleanup
+                setTimeout(() => {
+                    showResultAnim.value = false;
+                    resultAnimClass.value = '';
+                }, 4000);
+            }
         }
 
         const banker = store.players.find(p => p.isBanker);
@@ -1565,6 +1574,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
         <img v-show="showStartAnim" :src="iconGameStart" class="game-start-icon" :class="startAnimationClass" />
 
+        <WinAnimation v-if="showWinAnim" />
         <img v-show="showResultAnim" :src="resultImage" class="result-icon" :class="resultAnimClass" />
 
         <DealingLayer ref="dealingLayer" />
@@ -1582,7 +1592,8 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                 <!-- 3. The Text/Logo -->
                 <div class="snapshot-text-container">
-                    <img :src="replaceRoomTextImg" class="switch-room-text-img" /><span class="loading-dots"></span>
+                    <img :src="replaceRoomTextImg" class="switch-room-text-img" /><span
+                        class="relace-room-text-loading-dots"></span>
                 </div>
             </div>
         </Teleport>
@@ -2096,6 +2107,16 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
 
 .loading-dots::after {
+    font-size: 18px;
+    content: '...';
+    animation: dots-loading 1.5s steps(4, end) infinite;
+    display: inline-block;
+    vertical-align: bottom;
+    overflow: hidden;
+    width: 0px;
+}
+
+.relace-room-text-loading-dots::after {
     color: #ffd56c;
     font-weight: bold;
     font-size: 18px;

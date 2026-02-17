@@ -28,5 +28,6 @@ declare module 'vue' {
     VanLoading: typeof import('vant/es')['Loading']
     VanPopup: typeof import('vant/es')['Popup']
     VanSwitch: typeof import('vant/es')['Switch']
+    WinAnimation: typeof import('./src/components/WinAnimation.vue')['default']
   }
 }

@@ -430,14 +430,14 @@ const triggerExplosion = () => {
     width: 33px;
     height: auto;
     animation: floatUp 3s ease-in-out infinite;
-    margin-bottom: -10px;
+    margin-bottom: -6px;
 }
 
 .text-rt-bottom {
     width: 38px;
     height: auto;
-    animation: floatLeft 3s ease-in-out infinite;
-    margin-left: 20px;
+    animation: floatLeft 4s ease-in-out infinite;
+    margin-left: 10px;
 }
 
 @keyframes floatUp {

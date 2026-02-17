@@ -12,6 +12,7 @@ import HistoryModal from '../components/HistoryModal.vue';
 import SettingsModal from '../components/SettingsModal.vue';
 import HelpModal from '../components/HelpModal.vue';
 import WinAnimation from '../components/WinAnimation.vue';
+import LoseAnimation from '../components/LoseAnimation.vue';
 
 // Assets
 import bgImg from '@/assets/lobby/bg.jpg';
@@ -405,7 +406,7 @@ const goBack = () => {
         <SettingsModal v-model:visible="showSettings" />
         <HelpModal v-model:visible="showHelp" :mode="currentMode" />
 
-        <WinAnimation v-if="showWinAnim" />
+        <LoseAnimation v-if="showWinAnim" />
 
         <!-- Test Button -->
         <div style="position: fixed; bottom: 10px; left: 10px; z-index: 10000;">

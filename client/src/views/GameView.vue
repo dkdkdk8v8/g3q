@@ -306,7 +306,7 @@ const startSwitchRoomAnimation = () => {
             setTimeout(() => {
                 finishSwitchRoomAnimation();
             }, 500);
-        }, 1050); // 2000ms wait + 50ms buffer
+        }, 1250); // 2000ms wait + 50ms buffer
     });
 };
 
@@ -2096,6 +2096,9 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
 
 .loading-dots::after {
+    color: #ffd56c;
+    font-weight: bold;
+    font-size: 18px;
     content: '...';
     animation: dots-loading 1.5s steps(4, end) infinite;
     display: inline-block;

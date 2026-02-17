@@ -606,7 +606,7 @@ const goBack = () => {
 .room-list {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 13px;
 }
 
 .room-row {
@@ -782,7 +782,7 @@ const goBack = () => {
 
 .bottom-bar-bg {
     width: 100%;
-    height: 12px;
+    height: 32px;
     /* Adjust based on tab_bg.png height */
     background-size: 100% 100%;
     background-repeat: no-repeat;

@@ -26,6 +26,20 @@ import diamondBg from '@/assets/lobby/diamond_bg.png';
 
 // Tab Assets
 import tabBgImg from '@/assets/lobby/tab_bg.png';
+import tabBukanBg from '@/assets/lobby/tab_bukanpai_bg.png';
+import tabBukanSelBg from '@/assets/lobby/tab_bukanpai_choose_bg.png';
+import tabSansiBg from '@/assets/lobby/tab_sansi_bg.png';
+import tabSansiSelBg from '@/assets/lobby/tab_sansi_choose_bg.png';
+
+// Tab Text Images (Keep existing if they are text overlays, otherwise remove if replaced by bg)
+// Assuming previous tab images were text/icon overlays, we keep them or replace if new bgs contain text.
+// Based on filenames, these seem to be the full buttons. Let's assume the new ones are backgrounds 
+// and we might need to overlay text, OR the new ones are the complete button images including text.
+// Checking filenames: tab_bukanpai.png vs tab_bukanpai_bg.png. 
+// "bg" implies background. Let's assume we still need the text/icon on top if available, 
+// OR the new images are self-contained. 
+// User instruction says "background image". Let's check if we still have text images.
+// The previous imports were:
 import tabBukan from '@/assets/lobby/tab_bukanpai.png';
 import tabBukanSel from '@/assets/lobby/tab_bukanpai_choose.png';
 import tabSan from '@/assets/lobby/tab_kansanzhang.png';
@@ -331,20 +345,28 @@ const goBack = () => {
             </div>
         </div>
 
-        <!-- Bottom Tabs -->
-        <div class="bottom-tabs" :style="{ backgroundImage: `url(${tabBgImg})` }">
-            <!-- Mode 0: Bukan (No Look) -->
-            <div class="tab-item" @click="setMode(0)">
-                <img :src="currentMode === 0 ? tabBukanSel : tabBukan" class="tab-img" />
+        <!-- Bottom Tabs Area -->
+        <div class="bottom-area-container">
+            <!-- Tabs -->
+            <div class="bottom-tabs">
+                <!-- Mode 0: Bukan (No Look) -->
+                <div class="tab-item" @click="setMode(0)"
+                    :style="{ backgroundImage: `url(${currentMode === 0 ? tabBukanSelBg : tabBukanBg})` }">
+                    <img :src="currentMode === 0 ? tabBukanSel : tabBukan" class="tab-content-img" />
+                </div>
+                <!-- Mode 1: San (3 cards) -->
+                <div class="tab-item2" @click="setMode(1)"
+                    :style="{ backgroundImage: `url(${currentMode === 1 ? tabSansiSelBg : tabSansiBg})` }">
+                    <img :src="currentMode === 1 ? tabSanSel : tabSan" class="tab-content-img" />
+                </div>
+                <!-- Mode 2: Si (4 cards) -->
+                <div class="tab-item3" @click="setMode(2)"
+                    :style="{ backgroundImage: `url(${currentMode === 2 ? tabSansiSelBg : tabSansiBg})` }">
+                    <img :src="currentMode === 2 ? tabSiSel : tabSi" class="tab-content-img" />
+                </div>
             </div>
-            <!-- Mode 1: San (3 cards) -->
-            <div class="tab-item" @click="setMode(1)">
-                <img :src="currentMode === 1 ? tabSanSel : tabSan" class="tab-img" />
-            </div>
-            <!-- Mode 2: Si (4 cards) -->
-            <div class="tab-item" @click="setMode(2)">
-                <img :src="currentMode === 2 ? tabSiSel : tabSi" class="tab-img" />
-            </div>
+            <!-- Bottom Decoration Bar -->
+            <div class="bottom-bar-bg" :style="{ backgroundImage: `url(${tabBgImg})` }"></div>
         </div>
 
         <!-- Modals -->
@@ -748,62 +770,88 @@ const goBack = () => {
     }
 }
 
-/* Bottom Tabs */
-
-.bottom-tabs {
-
+/* --- Bottom Area --- */
+.bottom-area-container {
     flex-shrink: 0;
-
     width: 100%;
-
-    height: 60px;
-    /* Adjust height based on background image or desired size */
-
-    background-size: 100% 100%;
-
-    background-repeat: no-repeat;
-
     display: flex;
+    flex-direction: column;
+    position: relative;
+    z-index: 1;
+}
 
+.bottom-bar-bg {
+    width: 100%;
+    height: 12px;
+    /* Adjust based on tab_bg.png height */
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+}
+
+/* Bottom Tabs */
+.bottom-tabs {
+    width: 100%;
+    display: flex;
     justify-content: flex-end;
     /* Right aligned */
-
     align-items: flex-end;
-
     padding-right: 10px;
-
-    padding-bottom: 0px;
-    /* Adjust if items need to sit on bottom */
-
-    gap: 0px;
-
-    position: relative;
-
-    z-index: 1;
-    /* Ensure content is above floating bg */
-
+    gap: 0;
+    /* No gap if backgrounds are meant to touch or overlap slightly */
+    margin-bottom: -2px;
+    /* Pull down slightly to touch the bottom bar */
 }
 
 .tab-item {
     cursor: pointer;
     transition: transform 0.1s;
-    /* Adjust width if needed, or let img define it */
-    height: 100%;
+    width: 105px;
+    padding-left: 18px;
+    /* Adjust based on bg image width */
+    height: 45px;
+    /* Adjust based on bg image height */
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
     display: flex;
-    align-items: flex-end;
+    justify-content: center;
+    align-items: center;
+    position: relative;
 }
 
-.tab-item:active {
-    transform: scale(0.95);
+.tab-item2 {
+    cursor: pointer;
+    transition: transform 0.1s;
+    width: 95px;
+    /* Adjust based on bg image width */
+    height: 45px;
+    /* Adjust based on bg image height */
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
 }
 
-.tab-img {
-    margin-bottom: 26px;
-    margin-right: 6px;
-    height: 25px;
-    /* Adjust height of the tab button */
+.tab-item3 {
+    cursor: pointer;
+    transition: transform 0.1s;
+    width: 95px;
+    /* Adjust based on bg image width */
+    height: 45px;
+    /* Adjust based on bg image height */
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.tab-content-img {
+    height: 50%;
+    /* Adjust size of text/icon inside */
     width: auto;
-    display: block;
     object-fit: contain;
 }
 

@@ -1076,7 +1076,7 @@ const shouldMoveStatusFloat = computed(() => {
     top: -6px;
     font-weight: bold;
     font-size: 22px;
-    text-shadow: 2px 2px 1px #000;
+    text-shadow: 1px 1px 1px #000;
     animation: floatUp 2s forwards;
     z-index: 20;
     font-family: 'Arial Black', sans-serif;

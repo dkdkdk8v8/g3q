@@ -166,7 +166,7 @@ onMounted(() => {
     /* Wider than screen to slide in */
     height: auto;
     max-height: 200px;
-    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: transform 0.25s ease-out;
 }
 
 .ribbon-top {

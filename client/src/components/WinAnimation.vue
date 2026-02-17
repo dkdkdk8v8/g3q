@@ -66,6 +66,9 @@ const triggerExplosion = () => {
         // Let's try vy = -15 to -25 for significant jump.
         const vy = -15 - Math.random() * 10;
 
+        // Random scale between 0.4 and 0.8
+        const scale = 0.4 + Math.random() * 1.3;
+
         newParticles.push({
             id: i,
             x: 0, // Start at center (relative to container center)
@@ -73,7 +76,8 @@ const triggerExplosion = () => {
             rotation: angle,
             vx: vx,
             vy: vy,
-            opacity: 1
+            opacity: 1,
+            scale: scale
         });
     }
     explosionParticles.value = newParticles;
@@ -135,7 +139,7 @@ const triggerExplosion = () => {
                 <div class="explosion-container">
                     <img v-for="p in explosionParticles" :key="p.id" v-show="p.opacity > 0" :src="goldImg"
                         class="explosion-particle" :style="{
-                            transform: `translate(${p.x}px, ${p.y}px) rotate(${p.rotation}deg)`,
+                            transform: `translate(${p.x}px, ${p.y}px) rotate(${p.rotation}deg) scale(${p.scale})`,
                             opacity: p.opacity
                         }" />
                 </div>

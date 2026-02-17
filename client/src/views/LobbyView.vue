@@ -28,6 +28,8 @@ import diamondBg from '@/assets/lobby/diamond_bg.png';
 import tabBgImg from '@/assets/lobby/tab_bg.png';
 import tabBukanBg from '@/assets/lobby/tab_bukanpai_bg.png';
 import tabBukanSelBg from '@/assets/lobby/tab_bukanpai_choose_bg.png';
+import tabBkpStart from '@/assets/lobby/tab_bkp_start.png';
+import tabBkpEnd from '@/assets/lobby/tab_bkp_end.png';
 import tabSansiBg from '@/assets/lobby/tab_sansi_bg.png';
 import tabSansiSelBg from '@/assets/lobby/tab_sansi_choose_bg.png';
 
@@ -118,6 +120,21 @@ const setMode = (mode) => {
     userStore.lastSelectedMode = mode;
     // Potentially re-fetch or filter rooms here if the server API supports it
 };
+
+const bkpAnimImg = ref(tabBkpStart);
+let bkpAnimTimer = null;
+
+watch(currentMode, (newVal) => {
+    if (newVal === 0) {
+        if (bkpAnimTimer) clearTimeout(bkpAnimTimer);
+        bkpAnimImg.value = tabBkpStart;
+        bkpAnimTimer = setTimeout(() => {
+            bkpAnimImg.value = tabBkpEnd;
+        }, 500);
+    } else {
+        if (bkpAnimTimer) clearTimeout(bkpAnimTimer);
+    }
+}, { immediate: true });
 
 // Get appropriate room name background based on current mode
 const currentRoomNameBg = computed(() => {
@@ -352,6 +369,7 @@ const goBack = () => {
                 <!-- Mode 0: Bukan (No Look) -->
                 <div class="tab-item" @click="setMode(0)"
                     :style="{ backgroundImage: `url(${currentMode === 0 ? tabBukanSelBg : tabBukanBg})` }">
+                    <img v-if="currentMode === 0" :src="bkpAnimImg" class="tab-anim-icon" />
                     <img :src="currentMode === 0 ? tabBukanSel : tabBukan" class="tab-content-img" />
                 </div>
                 <!-- Mode 1: San (3 cards) -->
@@ -853,6 +871,13 @@ const goBack = () => {
     /* Adjust size of text/icon inside */
     width: auto;
     object-fit: contain;
+}
+
+.tab-anim-icon {
+    height: 60%;
+    width: auto;
+    object-fit: contain;
+    margin-right: -5px;
 }
 
 /* Scrollbar hiding */

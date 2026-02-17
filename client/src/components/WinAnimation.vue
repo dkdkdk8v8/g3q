@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 
 // Assets
 import topLineImg from '@/assets/win/top_line.png';
@@ -12,13 +12,17 @@ import bigDiamondImg from '@/assets/win/big_diamond.png';
 import textLeftBottomIconImg from '@/assets/win/text_left_botton_icon.png';
 import textRightTopIconImg from '@/assets/win/text_right_top_icon.png';
 import textRightBottomIconImg from '@/assets/win/text_right_bottom_icon.png';
+import goldImg from '@/assets/common/gold.png';
 
 const showRibbons = ref(false);
 const showBackEffects = ref(false);
-const showTextGroup = ref(false);
+const showDecorations = ref(false); // Decorations appear first
+const showTextSmash = ref(false);   // Text smashes later
+const explosionParticles = ref([]); // For gold explosion
+let animFrameId = null; // Store frame ID for cleanup
 
 onMounted(() => {
-    // Sequence 1: Ribbons enter immediately (but need a tick to render initial state)
+    // Sequence 1: Ribbons enter immediately
     setTimeout(() => {
         showRibbons.value = true;
     }, 50);
@@ -26,13 +30,80 @@ onMounted(() => {
     // Sequence 2: Back effects (0.3s delay)
     setTimeout(() => {
         showBackEffects.value = true;
-    }, 350); // 50 + 300
+    }, 350);
 
-    // Sequence 3: Text Smash (0.6s delay)
+    // Sequence 3: Decorations appear (0.5s delay) - BEFORE Text
     setTimeout(() => {
-        showTextGroup.value = true;
-    }, 650); // 50 + 600
+        showDecorations.value = true;
+    }, 500);
+
+    // Sequence 4: Text Smash (0.7s delay) - Triggers explosion
+    setTimeout(() => {
+        showTextSmash.value = true;
+        triggerExplosion();
+    }, 700);
 });
+
+onUnmounted(() => {
+    if (animFrameId) {
+        cancelAnimationFrame(animFrameId);
+    }
+});
+
+const triggerExplosion = () => {
+    // Generate 15-20 particles
+    const count = 15 + Math.floor(Math.random() * 6);
+    const newParticles = [];
+
+    for (let i = 0; i < count; i++) {
+        const angle = Math.random() * 360; // Random rotation
+        // Spread horizontally (-10 to 10 speed)
+        const vx = (Math.random() - 0.5) * 20;
+
+        // Initial upward velocity: 50-100 height equivalent roughly corresponds to negative Y velocity
+        // Assuming ~60fps, gravity 0.8:
+        // Peak height H = vy^2 / (2g). If H=100, vy = sqrt(200*0.8) ~ 12.6.
+        // Let's try vy = -15 to -25 for significant jump.
+        const vy = -15 - Math.random() * 10;
+
+        newParticles.push({
+            id: i,
+            x: 0, // Start at center (relative to container center)
+            y: 0,
+            rotation: angle,
+            vx: vx,
+            vy: vy,
+            opacity: 1
+        });
+    }
+    explosionParticles.value = newParticles;
+
+    // Animation Loop
+    const animate = () => {
+        let active = false;
+        // Use functional update or map to trigger reactivity efficiently
+        explosionParticles.value = explosionParticles.value.map(p => {
+            // Update physics
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.8; // Gravity
+            p.rotation += 5; // Spin
+
+            // Fade out if fallen far below (e.g., > 300px from center)
+            if (p.y > 400) {
+                p.opacity = 0;
+            } else {
+                active = true;
+            }
+            return p;
+        });
+
+        if (active) {
+            animFrameId = requestAnimationFrame(animate);
+        }
+    };
+    animFrameId = requestAnimationFrame(animate);
+};
 </script>
 
 <template>
@@ -43,13 +114,7 @@ onMounted(() => {
             <img :src="topLineImg" class="ribbon-top" />
         </div>
 
-        <!-- Layer 2: Center Effects (Behind text, In front of ribbons) -->
-        <!-- Note: User said "circle_light is above gray background, but blocked by ribbons". 
-             This implies Z-order: BackColor < CircleLight < Ribbons < Text.
-             Wait, "line_back_over_color ... behind the ribbons".
-             "circle_light ... above gray, but also blocked by ribbons".
-             So: BackColor < CircleLight < Ribbons.
-        -->
+        <!-- Layer 2: Center Effects -->
         <div class="layer-back-effects" :class="{ 'active': showBackEffects }">
             <img :src="backColorImg" class="back-color" />
             <div class="light-circle-wrapper">
@@ -57,21 +122,36 @@ onMounted(() => {
             </div>
         </div>
 
-        <!-- Layer 3: Text & Decorations (Topmost) -->
-        <div class="layer-text-group" :class="{ 'active': showTextGroup }">
+        <!-- Layer 3: Text & Decorations -->
+        <div class="layer-text-group">
             <div class="text-group-inner">
-                <!-- Behind Text -->
-                <img :src="textBgIconImg" class="text-bg-icon" />
-                <img :src="bigDiamondImg" class="big-diamond" />
+                <!-- Decorations Behind Text -->
+                <div class="decorations-group" :class="{ 'decor-active': showDecorations }">
+                    <img :src="textBgIconImg" class="text-bg-icon" />
+                    <img :src="bigDiamondImg" class="big-diamond" />
+                </div>
 
-                <!-- The Text -->
-                <img :src="winTextImg" class="win-text" />
+                <!-- Explosion Particles -->
+                <div class="explosion-container">
+                    <img v-for="p in explosionParticles" :key="p.id" v-show="p.opacity > 0" :src="goldImg"
+                        class="explosion-particle" :style="{
+                            transform: `translate(${p.x}px, ${p.y}px) rotate(${p.rotation}deg)`,
+                            opacity: p.opacity
+                        }" />
+                </div>
 
-                <!-- On Top of Text -->
-                <img :src="textLeftBottomIconImg" class="text-lb-icon" />
-                <div class="right-top-icons">
-                    <img :src="textRightTopIconImg" class="text-rt-top" />
-                    <img :src="textRightBottomIconImg" class="text-rt-bottom" />
+                <!-- The Text: Smash In -->
+                <div class="smash-text-wrapper" :class="{ 'smash-active': showTextSmash }">
+                    <img :src="winTextImg" class="win-text" />
+                </div>
+
+                <!-- Decorations On Top -->
+                <div class="decorations-group" :class="{ 'decor-active': showDecorations }">
+                    <img :src="textLeftBottomIconImg" class="text-lb-icon" />
+                    <div class="right-top-icons">
+                        <img :src="textRightTopIconImg" class="text-rt-top" />
+                        <img :src="textRightBottomIconImg" class="text-rt-bottom" />
+                    </div>
                 </div>
             </div>
         </div>
@@ -94,6 +174,7 @@ onMounted(() => {
     overflow: hidden;
 }
 
+/* ... (Keep previous styles for Layer 1 & 2) ... */
 /* --- Layer 2: Back Effects (Lowest Z-Index relative to others here) --- */
 .layer-back-effects {
     position: absolute;
@@ -132,7 +213,7 @@ onMounted(() => {
 .light-circle {
     width: 30%;
     height: 30%;
-    margin-bottom: 36px;
+    margin-bottom: 20px;
     animation: rotateCircle 16s linear infinite;
 }
 
@@ -204,13 +285,46 @@ onMounted(() => {
     display: flex;
     justify-content: center;
     align-items: center;
-    opacity: 0;
-    transform: scale(3);
-    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-    /* Bounce/Smash effect */
+    /* Remove transform/opacity from parent, manage children separately */
 }
 
-.layer-text-group.active {
+/* Decorations: Scale & Fade In */
+.decorations-group {
+    position: absolute;
+    /* They need to be absolute to layer correctly with text */
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    opacity: 0;
+    transform: scale(0.5);
+    transition: all 0.5s ease-out;
+    pointer-events: none;
+    /* Let text smash through visually */
+}
+
+.decorations-group.decor-active {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* Text: Smash In */
+.smash-text-wrapper {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transform: scale(3);
+    /* Start huge */
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    /* Bounce/Smash */
+}
+
+.smash-text-wrapper.smash-active {
     opacity: 1;
     transform: scale(1);
 }
@@ -232,13 +346,36 @@ onMounted(() => {
     height: auto;
 }
 
+/* Explosion Particles */
+.explosion-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    z-index: 8;
+    /* Behind text (10) but in front of bg icon (5) */
+}
+
+.explosion-particle {
+    position: absolute;
+    width: 25px;
+    /* Adjust coin size */
+    height: 25px;
+    object-fit: contain;
+    /* Centered on 0,0 originally */
+    top: -12px;
+    left: -12px;
+}
+
 /* Decorations */
 .text-bg-icon {
     position: absolute;
     z-index: 5;
     /* Behind text */
-    width: 20%;
-    left: 45%;
+    width: 18%;
+    top: 75px;
+    left: 48%;
 }
 
 .big-diamond {

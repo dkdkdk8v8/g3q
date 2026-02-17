@@ -239,21 +239,88 @@ const switchRoom = debounce(() => {
 
     isSwitchingRoom.value = true;
     switchRoomStartTime.value = Date.now();
-    showSwitchRoomOverlay.value = true; // Show overlay immediately
-    logoAnimationState.value = 'entering'; // Start logo animation
+    
+    // Start Animation (This captures the screenshot)
+    startSwitchRoomAnimation();
+
     gameClient.send("QZNN.PlayerChangeRoom", { RoomId: store.roomId });
 
-    // Set a 5-second timeout to hide the overlay forcefully
+    // Set a timeout to force reset if stuck (10s safety)
     switchRoomTimeout.value = setTimeout(() => {
-        if (showSwitchRoomOverlay.value) {
-            console.warn("[GameView] Room switch overlay timed out after 5s.");
-            showSwitchRoomOverlay.value = false;
-            logoAnimationState.value = '';
+        if (isSwitchingRoom.value) {
+            console.warn("[GameView] Room switch timed out after 10s.");
+            finishSwitchRoomAnimation();
         }
-    }, 5000); // 5 seconds
+    }, 10000); 
 }, 500);
 
+const gameTableRef = ref(null);
+const snapshotContainer = ref(null);
+const showSnapshot = ref(false);
+const snapshotAnimClass = ref(''); 
+const gameViewStyle = ref({}); 
 
+const startSwitchRoomAnimation = () => {
+    if (!gameTableRef.value) return;
+
+    // 1. Clone the current game view
+    // Note: cloneNode(true) copies attributes like 'id', duplicate IDs are generally bad but harmless for display-only clone.
+    const original = gameTableRef.value;
+    const clone = original.cloneNode(true);
+    
+    // Remove pointer events from clone to prevent interaction
+    clone.style.pointerEvents = 'none';
+    
+    // 2. Setup Overlay
+    showSnapshot.value = true;
+    snapshotAnimClass.value = ''; 
+    
+    nextTick(() => {
+        if (snapshotContainer.value) {
+            snapshotContainer.value.innerHTML = '';
+            snapshotContainer.value.appendChild(clone);
+        }
+
+        // 3. Move Real View to Right (Hidden behind overlay)
+        // Instant move (0 transition) so it's ready to slide in later
+        // But we wait a tick to ensure overlay is painted
+        setTimeout(() => {
+            gameViewStyle.value = { 
+                transform: 'translateX(100%)',
+                transition: 'none' 
+            };
+        }, 50);
+
+        // 4. Wait 2 seconds, then slide
+        setTimeout(() => {
+            // Animate Overlay Left
+            snapshotAnimClass.value = 'slide-out-left';
+            
+            // Animate Real View from Right to Center
+            gameViewStyle.value = {
+                transform: 'translateX(0)',
+                transition: 'transform 0.5s ease-in-out'
+            };
+
+            // Cleanup after animation completes (0.5s match CSS)
+            setTimeout(() => {
+                finishSwitchRoomAnimation();
+            }, 500); 
+        }, 2050); // 2000ms wait + 50ms buffer
+    });
+};
+
+const finishSwitchRoomAnimation = () => {
+    showSnapshot.value = false;
+    snapshotAnimClass.value = '';
+    gameViewStyle.value = {}; 
+    isSwitchingRoom.value = false; 
+    
+    if (switchRoomTimeout.value) {
+        clearTimeout(switchRoomTimeout.value);
+        switchRoomTimeout.value = null;
+    }
+};
 
 import gameBgSound from '@/assets/sounds/game_bg.mp3';
 import gameBgImg from '@/assets/common/game_bg.jpg'; // Import default BG explicitly
@@ -1223,33 +1290,15 @@ onMounted(() => {
 
     // Register handler for PlayerChangeRoom response
     gameClient.on('QZNN.PlayerChangeRoom', (msg) => {
-        // Clear the force-hide timeout if a response is received
-        if (switchRoomTimeout.value) {
-            clearTimeout(switchRoomTimeout.value);
-            switchRoomTimeout.value = null;
-        }
-
-        isSwitchingRoom.value = false;
         if (msg.code !== 0) {
             vantToast(msg.msg || "切换房间失败");
-            showSwitchRoomOverlay.value = false; // Hide overlay on failure
-            logoAnimationState.value = ''; // Reset animation state
+            // If failed, we should reset animation immediately
+            finishSwitchRoomAnimation();
         } else {
-            // Calculate delay to ensure minimum 1.5s total display time
-            const elapsed = Date.now() - switchRoomStartTime.value;
-            const minDuration = 1500;
-            const delay = Math.max(0, minDuration - elapsed);
-
-            // Trigger visual feedback: Wait calculated delay
-            setTimeout(() => {
-                logoAnimationState.value = 'leaving'; // Start logo leaving animation (0.3s)
-                showSwitchRoomOverlay.value = false; // Hide overlay (starts fade out 0.5s) simultaneously
-
-                // Reset animation state after transition completes
-                setTimeout(() => {
-                    logoAnimationState.value = '';
-                }, 500);
-            }, delay);
+            // Success. We don't hide overlay here. The animation loop (startSwitchRoomAnimation) handles the timing.
+            // The 2s delay ensures the "old" room stays visible (via snapshot) while the store updates.
+            // When the 2s is up, the real view (now updated) slides in.
+            // No action needed here unless we want to extend the wait if response is slow (but user said 2s fixed).
         }
     });
 
@@ -1512,7 +1561,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
 <template>
 
-    <div class="game-table" :style="backgroundImageStyle">
+    <div class="game-table" :style="{ ...backgroundImageStyle, ...gameViewStyle }" ref="gameTableRef">
 
         <img v-show="showStartAnim" :src="iconGameStart" class="game-start-icon" :class="startAnimationClass" />
 
@@ -1522,23 +1571,21 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
         <CoinLayer ref="coinLayer" />
 
-        <!-- Full-screen Switch Room Overlay with Frosted Glass Effect -->
+        <!-- Full-screen Switch Room Snapshot Overlay -->
+        <Teleport to="body">
+            <div v-if="showSnapshot" class="switch-snapshot-overlay" :class="snapshotAnimClass">
+                <!-- 1. The Snapshot Clone -->
+                <div class="snapshot-clone-container" ref="snapshotContainer"></div>
+                
+                <!-- 2. The Frosted Glass Layer -->
+                <div class="frosted-glass-layer"></div>
 
-        <transition name="switch-room-fade">
-
-            <div v-show="showSwitchRoomOverlay" class="switch-room-overlay">
-                <div class="switch-room-content">
-                    <!-- <img :src="lobbyLogoImg" alt="Lobby Logo" class="switch-room-logo"
-                        :class="logoAnimationState === 'entering' ? 'logo-enter' : (logoAnimationState === 'leaving' ? 'logo-leave' : '')" /> -->
-                    <div class="switch-room-text" :class="{ 'text-leave': logoAnimationState === 'leaving' }">
-                        <img :src="replaceRoomTextImg" class="switch-room-text-img" /><span class="loading-dots"></span>
-                    </div>
+                <!-- 3. The Text/Logo -->
+                <div class="snapshot-text-container">
+                    <img :src="replaceRoomTextImg" class="switch-room-text-img" /><span class="loading-dots"></span>
                 </div>
             </div>
-
-        </transition>
-
-
+        </Teleport>
 
         <!-- Random Banker Selection Overlay -->
 
@@ -3711,60 +3758,58 @@ const shouldMoveStatusToHighPosition = computed(() => {
 </style>
 
 <style>
-/* Switch Room Overlay Styles */
-.switch-room-overlay {
+/* Switch Room Snapshot Overlay */
+.switch-snapshot-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
-    height: 100vh;
-    background-color: rgba(0, 0, 0, 0.5);
-    /* Semi-transparent black */
-    backdrop-filter: blur(8px);
-    /* Frosted glass effect */
-    z-index: 9998;
-    /* Below global loading, above everything else in game */
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    height: 100dvh;
+    z-index: 9999; /* Highest priority */
+    pointer-events: none; /* Let clicks pass if needed, but usually blocks */
+    overflow: hidden;
+    transition: transform 0.5s ease-in-out;
 }
 
-.switch-room-content {
+.switch-snapshot-overlay.slide-out-left {
+    transform: translateX(-100%);
+}
+
+.snapshot-clone-container {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
+
+.frosted-glass-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5); /* Match previous darkness */
+    backdrop-filter: blur(8px); /* Frosted glass effect */
+    z-index: 2;
+}
+
+.snapshot-text-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 3;
     display: flex;
+    align-items: center;
+    justify-content: center;
     flex-direction: column;
-    align-items: center;
-    position: relative;
-    top: 7%;
 }
 
-.switch-room-logo {
-    width: 58vw;
-    height: auto;
-    object-fit: contain;
-    /* Start hidden */
-    opacity: 0;
-    transform: scale(0.1);
-}
-
-.switch-room-text {
-    margin-top: 20px;
-    color: rgb(223, 187, 87);
-    font-size: 17px;
-    opacity: 0;
-    animation: fadeIn 0.5s ease-in 0.3s forwards;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.switch-room-text-img {
-    width: 30%;
+.snapshot-text-container .switch-room-text-img {
+    width: 30vw;
     margin-right: 2px;
-}
-
-.switch-room-text.text-leave {
-    transition: opacity 0.3s ease-in;
-    opacity: 0;
 }
 
 @keyframes fadeIn {
@@ -3800,16 +3845,6 @@ const shouldMoveStatusToHighPosition = computed(() => {
     }
 }
 
-/* Transition for the overlay itself */
-.switch-room-fade-enter-active,
-.switch-room-fade-leave-active {
-    transition: opacity 0.5s ease;
-}
-
-.switch-room-fade-enter-from,
-.switch-room-fade-leave-to {
-    opacity: 0;
-}
 
 /* Global styles for Vant components in dark mode */
 

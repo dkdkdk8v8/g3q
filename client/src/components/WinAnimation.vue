@@ -132,8 +132,8 @@ onMounted(() => {
 .light-circle {
     width: 30%;
     height: 30%;
-    margin-bottom: 50px;
-    animation: rotateCircle 10s linear infinite;
+    margin-bottom: 36px;
+    animation: rotateCircle 16s linear infinite;
 }
 
 @keyframes rotateCircle {

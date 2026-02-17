@@ -1,6 +1,6 @@
 <script setup>
 import { useRouter } from 'vue-router';
-import { ref, computed, watch, onMounted, onUnmounted, onActivated, onDeactivated, nextTick } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, onActivated, onDeactivated } from 'vue';
 import { debounce } from '../utils/debounce.js';
 import { formatCoins } from '../utils/format.js';
 import { useUserStore } from '../stores/user.js';
@@ -11,8 +11,6 @@ import gameClient from '../socket.js';
 import HistoryModal from '../components/HistoryModal.vue';
 import SettingsModal from '../components/SettingsModal.vue';
 import HelpModal from '../components/HelpModal.vue';
-import WinAnimation from '../components/WinAnimation.vue';
-import LoseAnimation from '../components/LoseAnimation.vue';
 
 // Assets
 import bgImg from '@/assets/lobby/bg.jpg';
@@ -223,15 +221,6 @@ const stopMusic = () => {
     AudioUtils.pauseMusic();
 };
 
-const showWinAnim = ref(false);
-
-const testWinAnim = () => {
-    showWinAnim.value = false;
-    nextTick(() => {
-        showWinAnim.value = true;
-    });
-};
-
 watch(() => settingsStore.musicEnabled, (val) => {
     if (val) {
         playMusic();
@@ -405,13 +394,6 @@ const goBack = () => {
         <HistoryModal v-model:visible="showHistory" />
         <SettingsModal v-model:visible="showSettings" />
         <HelpModal v-model:visible="showHelp" :mode="currentMode" />
-
-        <LoseAnimation v-if="showWinAnim" />
-
-        <!-- Test Button -->
-        <div style="position: fixed; bottom: 10px; left: 10px; z-index: 10000;">
-            <button @click="testWinAnim" style="background: red; color: white; padding: 5px;">Test Win</button>
-        </div>
     </div>
 </template>
 

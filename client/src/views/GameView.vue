@@ -12,6 +12,7 @@ import HelpModal from '../components/HelpModal.vue';
 import HistoryModal from '../components/HistoryModal.vue';
 import HostingModal from '../components/HostingModal.vue';
 import WinAnimation from '../components/WinAnimation.vue';
+import LoseAnimation from '../components/LoseAnimation.vue';
 import { useRouter, useRoute } from 'vue-router';
 import { formatCoins } from '../utils/format.js';
 import { transformServerCard, calculateHandType } from '../utils/bullfight.js';
@@ -329,14 +330,11 @@ import gameBgSanImg from '@/assets/common/game_bg_san.jpg';
 import gameBgSiImg from '@/assets/common/game_bg_zise.jpg';
 import iconGameStart from '../assets/common/game_start.png';
 import gameStartSound from '@/assets/sounds/game_start.mp3';
-import gameWinImg from '../assets/common/game_win.png';
-import gameLoseImg from '../assets/common/game_lose.png';
 import gameWinSound from '@/assets/sounds/game_win.mp3';
 import gameLoseSound from '@/assets/sounds/game_lose.mp3';
 import sendCardSound from '@/assets/sounds/send_card.mp3';
 import randomBankSound from '@/assets/sounds/random_bank.mp3';
 import sendCoinSound from '@/assets/sounds/send_coin.mp3';
-import countdownSound from '@/assets/sounds/countdown.mp3';
 import countdownAlertSound from '@/assets/sounds/countdown_alert.mp3';
 import btnClickSound from '@/assets/sounds/btn_click.mp3';
 import niu0Sound from '@/assets/sounds/niu_0.mp3';
@@ -565,6 +563,7 @@ const resultImage = ref('');
 const resultAnimClass = ref('');
 const showResultAnim = ref(false);
 const showWinAnim = ref(false); // New Win Animation State
+const showLoseAnim = ref(false); // New Lose Animation State
 const resultTypeClass = ref('');
 
 const showSettings = ref(false);
@@ -1040,23 +1039,10 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
                     showWinAnim.value = false;
                 }, 4000); // 4s display
             } else {
-                resultImage.value = gameLoseImg;
-                showResultAnim.value = true;
-                resultAnimClass.value = ''; // Reset class
-
+                showLoseAnim.value = true;
                 setTimeout(() => {
-                    resultAnimClass.value = 'pop';
-                }, 50);
-
-                setTimeout(() => {
-                    resultAnimClass.value = 'bounce';
-                }, 600);
-
-                // Cleanup
-                setTimeout(() => {
-                    showResultAnim.value = false;
-                    resultAnimClass.value = '';
-                }, 4000);
+                    showLoseAnim.value = false;
+                }, 4000); // 4s display
             }
         }
 
@@ -1264,7 +1250,7 @@ onMounted(() => {
     store.initGame(gameMode);
 
     // Preload animation images to prevent layout jumps
-    const preloadImages = [gameWinImg, gameLoseImg, iconGameStart];
+    const preloadImages = [iconGameStart];
     preloadImages.forEach(src => {
         const img = new Image();
         img.src = src;
@@ -1575,6 +1561,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
         <img v-show="showStartAnim" :src="iconGameStart" class="game-start-icon" :class="startAnimationClass" />
 
         <WinAnimation v-if="showWinAnim" />
+        <LoseAnimation v-if="showLoseAnim" />
         <img v-show="showResultAnim" :src="resultImage" class="result-icon" :class="resultAnimClass" />
 
         <DealingLayer ref="dealingLayer" />

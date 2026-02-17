@@ -11,6 +11,7 @@ import gameClient from '../socket.js';
 import HistoryModal from '../components/HistoryModal.vue';
 import SettingsModal from '../components/SettingsModal.vue';
 import HelpModal from '../components/HelpModal.vue';
+import WinAnimation from '../components/WinAnimation.vue';
 
 // Assets
 import bgImg from '@/assets/lobby/bg.jpg';
@@ -221,6 +222,15 @@ const stopMusic = () => {
     AudioUtils.pauseMusic();
 };
 
+const showWinAnim = ref(false);
+
+const testWinAnim = () => {
+    showWinAnim.value = true;
+    // setTimeout(() => {
+    //     showWinAnim.value = false;
+    // }, 4000);
+};
+
 watch(() => settingsStore.musicEnabled, (val) => {
     if (val) {
         playMusic();
@@ -394,6 +404,13 @@ const goBack = () => {
         <HistoryModal v-model:visible="showHistory" />
         <SettingsModal v-model:visible="showSettings" />
         <HelpModal v-model:visible="showHelp" :mode="currentMode" />
+
+        <WinAnimation v-if="showWinAnim" />
+
+        <!-- Test Button -->
+        <div style="position: fixed; bottom: 10px; left: 10px; z-index: 10000;">
+            <button @click="testWinAnim" style="background: red; color: white; padding: 5px;">Test Win</button>
+        </div>
     </div>
 </template>
 

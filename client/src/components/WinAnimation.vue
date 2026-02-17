@@ -18,18 +18,20 @@ const showBackEffects = ref(false);
 const showTextGroup = ref(false);
 
 onMounted(() => {
-    // Sequence 1: Ribbons enter immediately
-    showRibbons.value = true;
+    // Sequence 1: Ribbons enter immediately (but need a tick to render initial state)
+    setTimeout(() => {
+        showRibbons.value = true;
+    }, 50);
 
     // Sequence 2: Back effects (0.3s delay)
     setTimeout(() => {
         showBackEffects.value = true;
-    }, 300);
+    }, 350); // 50 + 300
 
     // Sequence 3: Text Smash (0.6s delay)
     setTimeout(() => {
         showTextGroup.value = true;
-    }, 600);
+    }, 650); // 50 + 600
 });
 </script>
 
@@ -87,7 +89,8 @@ onMounted(() => {
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 9000; /* High z-index */
+    z-index: 9000;
+    /* High z-index */
     overflow: hidden;
 }
 
@@ -99,19 +102,24 @@ onMounted(() => {
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1; /* Lowest */
+    z-index: 1;
+    /* Lowest */
     opacity: 0;
     transition: opacity 0.5s;
 }
+
 .layer-back-effects.active {
     opacity: 1;
 }
+
 .back-color {
     position: absolute;
-    width: 80%; /* Adjust as needed */
+    width: 80%;
+    /* Adjust as needed */
     max-width: 600px;
     height: auto;
 }
+
 .light-circle-wrapper {
     position: absolute;
     width: 300px;
@@ -120,47 +128,62 @@ onMounted(() => {
     justify-content: center;
     align-items: center;
 }
+
 .light-circle {
-    width: 100%;
-    height: 100%;
-    animation: rotateCircle 4s linear infinite;
+    width: 30%;
+    height: 30%;
+    margin-bottom: 50px;
+    animation: rotateCircle 10s linear infinite;
 }
+
 @keyframes rotateCircle {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* --- Layer 1: Ribbons (Middle Z-Index) --- */
 .layer-ribbons {
     position: absolute;
     width: 100%;
-    height: 300px; /* Approximate height */
+    height: 300px;
+    /* Approximate height */
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 2; /* Above Back Effects */
+    z-index: 2;
+    /* Above Back Effects */
 }
 
-.ribbon-top, .ribbon-bottom {
+.ribbon-top,
+.ribbon-bottom {
     position: absolute;
-    width: 120%; /* Wider than screen to slide in */
+    width: 101%;
+    /* Wider than screen to slide in */
     height: auto;
     max-height: 200px;
-    transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .ribbon-top {
     transform: translateX(-100%);
     z-index: 2;
-    top: 50%;
-    margin-top: -60px; /* Adjust vertical overlap */
+    top: 60%;
+    margin-top: -60px;
+    /* Adjust vertical overlap */
 }
 
 .ribbon-bottom {
     transform: translateX(100%);
-    z-index: 1; /* Below Top Ribbon */
-    top: 50%;
-    margin-top: 10px; /* Adjust vertical overlap */
+    z-index: 1;
+    /* Below Top Ribbon */
+    top: 41.6%;
+    margin-top: 10px;
+    /* Adjust vertical overlap */
     /* "Only 30% visible" - usually implies it's mostly hidden by top or positioned such that only a strip shows.
        Let's try positioning. */
 }
@@ -168,6 +191,7 @@ onMounted(() => {
 .layer-ribbons.active .ribbon-top {
     transform: translateX(0);
 }
+
 .layer-ribbons.active .ribbon-bottom {
     transform: translateX(0);
 }
@@ -175,14 +199,17 @@ onMounted(() => {
 /* --- Layer 3: Text Group (Highest Z-Index) --- */
 .layer-text-group {
     position: absolute;
-    z-index: 3; /* Topmost */
+    z-index: 3;
+    /* Topmost */
     display: flex;
     justify-content: center;
     align-items: center;
     opacity: 0;
     transform: scale(3);
-    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); /* Bounce/Smash effect */
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    /* Bounce/Smash effect */
 }
+
 .layer-text-group.active {
     opacity: 1;
     transform: scale(1);
@@ -190,7 +217,8 @@ onMounted(() => {
 
 .text-group-inner {
     position: relative;
-    width: 400px; /* Base width reference */
+    width: 400px;
+    /* Base width reference */
     height: 200px;
     display: flex;
     justify-content: center;
@@ -200,70 +228,98 @@ onMounted(() => {
 .win-text {
     position: relative;
     z-index: 10;
-    width: 100%;
+    width: 28%;
     height: auto;
 }
 
 /* Decorations */
 .text-bg-icon {
     position: absolute;
-    z-index: 5; /* Behind text */
-    width: 120%;
-    top: -20%;
+    z-index: 5;
+    /* Behind text */
+    width: 20%;
+    left: 45%;
 }
 
 .big-diamond {
     position: absolute;
-    z-index: 6; /* Behind text? User said "half pressed by text". */
-    top: -40px;
-    left: -30px;
-    width: 80px;
+    z-index: 6;
+    /* Behind text? User said "half pressed by text". */
+    top: 50px;
+    left: 31%;
+    width: 55px;
     height: auto;
     animation: pulseScale 2s infinite ease-in-out;
 }
+
 @keyframes pulseScale {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.1); }
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
 }
 
 .text-lb-icon {
     position: absolute;
-    z-index: 11; /* On top of text */
-    bottom: -10px;
-    left: -20px;
-    width: 60px;
+    z-index: 11;
+    /* On top of text */
+    bottom: 70px;
+    left: 30%;
+    width: 40px;
     height: auto;
 }
 
 .right-top-icons {
     position: absolute;
-    top: -30px;
-    right: -20px;
-    z-index: 11; /* On top */
+    top: 35px;
+    right: 30%;
+    z-index: 11;
+    /* On top */
     display: flex;
     flex-direction: column;
     align-items: center;
 }
 
 .text-rt-top {
-    width: 40px;
+    width: 33px;
     height: auto;
     animation: floatUp 3s ease-in-out infinite;
     margin-bottom: -10px;
 }
+
 .text-rt-bottom {
-    width: 50px;
+    width: 38px;
     height: auto;
     animation: floatLeft 3s ease-in-out infinite;
     margin-left: 20px;
 }
 
 @keyframes floatUp {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
 }
+
 @keyframes floatLeft {
-    0%, 100% { transform: translateX(0); }
-    50% { transform: translateX(10px); }
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    50% {
+        transform: translateX(10px);
+    }
 }
 </style>

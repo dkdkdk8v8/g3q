@@ -885,19 +885,11 @@ const goBack = () => {
 /* Individual Tab Image Styles */
 .tab-bukan-img,
 .tab-san-img,
-.tab-si-img {
-    height: 50%;
-    /* Default size, can be customized individually */
-    width: auto;
-    object-fit: contain;
-}
-
-
-
 .tab-bukan-sel-img,
 .tab-san-sel-img,
-.tab-si-sel-img {
-    height: 42%;
+.tab-si-sel-img,
+.tab-si-img {
+    height: 40%;
     /* Default size, can be customized individually */
     width: auto;
     object-fit: contain;
@@ -908,7 +900,7 @@ const goBack = () => {
 */
 
 .tab-anim-icon {
-    height: 60%;
+    height: 50%;
     width: auto;
     object-fit: contain;
     margin-right: -5px;

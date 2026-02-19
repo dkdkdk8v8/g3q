@@ -164,33 +164,33 @@ watch(currentMode, (newVal) => {
         sanSelIconDisplay.value = tabSanIconSelStart;
         iconAnimTimer = setTimeout(() => {
             sanSelIconDisplay.value = tabSanIconSel;
-        }, 500);
+        }, 300);
     } else if (newVal === 2) {
         // Sizhang Mode Animation (4 steps: 0.2s each, then hold final step for 0.5s before resting on default selected icon)
         // Sequence: 1 -> 2 -> 3 -> 4 (hold 0.5s) -> Final
-        
+
         // Step 1: Start
         siSelIconDisplay.value = tabSiIconSel1;
-        
+
         // Step 2: 0.2s
         iconAnimTimer = setTimeout(() => {
             siSelIconDisplay.value = tabSiIconSel2;
-            
+
             // Step 3: 0.4s
             iconAnimTimer = setTimeout(() => {
                 siSelIconDisplay.value = tabSiIconSel3;
-                
+
                 // Step 4: 0.6s
                 iconAnimTimer = setTimeout(() => {
                     siSelIconDisplay.value = tabSiIconSel4;
-                    
+
                     // Final: 1.1s (0.6 + 0.5s) -> Revert to standard selected icon
                     iconAnimTimer = setTimeout(() => {
                         siSelIconDisplay.value = tabSiIconSel;
-                    }, 500);
-                }, 200);
-            }, 200);
-        }, 200);
+                    }, 300);
+                }, 160);
+            }, 160);
+        }, 160);
     }
 }, { immediate: true });
 

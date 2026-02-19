@@ -55,6 +55,10 @@ import tabSanIconSel from '@/assets/lobby/tab_sanzhang_icon_choose.png';
 import tabSiIcon from '@/assets/lobby/tab_sizhang_icon.png';
 import tabSiIconSel from '@/assets/lobby/tab_sizhang_icon_choose.png';
 
+// Tab Selection Animation Icons
+import tabBukanIconSelStart from '@/assets/lobby/tab_bukan_icon_choose_start.png';
+import tabSanIconSelStart from '@/assets/lobby/tab_sanzhang_icon_choose_start.png';
+
 // Room Assets
 import eachRoomBg from '@/assets/lobby/each_room_bg.png';
 import eachRoomEnterBtn from '@/assets/lobby/each_room_enter_btn.png';
@@ -126,6 +130,37 @@ const setMode = (mode) => {
     userStore.lastSelectedMode = mode;
     // Potentially re-fetch or filter rooms here if the server API supports it
 };
+
+// Tab Icon Animation Logic
+const bukanSelIconDisplay = ref(tabBukanIconSel);
+const sanSelIconDisplay = ref(tabSanIconSel);
+let iconAnimTimer = null;
+
+watch(currentMode, (newVal) => {
+    // Clear any existing timer
+    if (iconAnimTimer) {
+        clearTimeout(iconAnimTimer);
+        iconAnimTimer = null;
+    }
+
+    // Reset to default final state immediately so inactive tabs are correct
+    bukanSelIconDisplay.value = tabBukanIconSel;
+    sanSelIconDisplay.value = tabSanIconSel;
+
+    if (newVal === 0) {
+        // Bukan Mode Animation
+        bukanSelIconDisplay.value = tabBukanIconSelStart;
+        iconAnimTimer = setTimeout(() => {
+            bukanSelIconDisplay.value = tabBukanIconSel;
+        }, 500);
+    } else if (newVal === 1) {
+        // Sanzhang Mode Animation
+        sanSelIconDisplay.value = tabSanIconSelStart;
+        iconAnimTimer = setTimeout(() => {
+            sanSelIconDisplay.value = tabSanIconSel;
+        }, 500);
+    }
+}, { immediate: true });
 
 // const bkpAnimImg = ref(tabBkpStart);
 // let bkpAnimTimer = null;
@@ -375,7 +410,7 @@ const goBack = () => {
                 <!-- Mode 0: Bukan (No Look) -->
                 <div class="tab-item" @click="setMode(0)"
                     :style="{ backgroundImage: `url(${currentMode === 0 ? tabBukanSelBg : tabBukanBg})` }">
-                    <img :src="currentMode === 0 ? tabBukanIconSel : tabBukanIcon" class="tab-icon-left" />
+                    <img :src="currentMode === 0 ? bukanSelIconDisplay : tabBukanIcon" class="tab-icon-left" />
                     <!-- <img v-if="currentMode === 0" :src="bkpAnimImg" class="tab-anim-icon" /> -->
                     <img :src="currentMode === 0 ? tabBukanSel : tabBukan"
                         :class="currentMode === 0 ? 'tab-bukan-sel-img' : 'tab-bukan-img'" />
@@ -383,7 +418,7 @@ const goBack = () => {
                 <!-- Mode 1: San (3 cards) -->
                 <div class="tab-item2" @click="setMode(1)"
                     :style="{ backgroundImage: `url(${currentMode === 1 ? tabSansiSelBg : tabSansiBg})` }">
-                    <img :src="currentMode === 1 ? tabSanIconSel : tabSanIcon" class="tab-icon-left" />
+                    <img :src="currentMode === 1 ? sanSelIconDisplay : tabSanIcon" class="tab-icon-left" />
                     <img :src="currentMode === 1 ? tabSanSel : tabSan"
                         :class="currentMode === 1 ? 'tab-san-sel-img' : 'tab-san-img'" />
                 </div>

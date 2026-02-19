@@ -105,7 +105,7 @@ onUnmounted(() => {
 
 .star-wrapper {
     position: absolute;
-    top: 3%;
+    top: 0%;
     left: -22%;
     width: 100%;
     display: flex;
@@ -134,8 +134,8 @@ onUnmounted(() => {
     z-index: 3;
     width: 50%;
     /* Text is slightly larger to look good */
-    top: 50%;
-    left: 50%;
+    top: 58%;
+    left: 53%;
     transform: translate(-50%, -50%);
 }
 
@@ -170,7 +170,7 @@ onUnmounted(() => {
 }
 
 .gs-flash-image.flash-active {
-    animation: flashMove 0.8s ease-in forwards;
+    animation: flashMove 1.1s ease-in forwards;
     animation-delay: 0.4s;
     /* wait for slide-in to finish */
 }

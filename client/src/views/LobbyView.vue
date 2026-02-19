@@ -28,8 +28,6 @@ import diamondBg from '@/assets/lobby/diamond_bg.png';
 import tabBgImg from '@/assets/lobby/tab_bg.png';
 import tabBukanBg from '@/assets/lobby/tab_bukanpai_bg.png';
 import tabBukanSelBg from '@/assets/lobby/tab_bukanpai_choose_bg.png';
-import tabBkpStart from '@/assets/lobby/tab_bkp_start.png';
-import tabBkpEnd from '@/assets/lobby/tab_bkp_end.png';
 import tabSansiBg from '@/assets/lobby/tab_sansi_bg.png';
 import tabSansiSelBg from '@/assets/lobby/tab_sansi_choose_bg.png';
 

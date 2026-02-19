@@ -1,6 +1,6 @@
 <script setup>
 import { ref, nextTick } from 'vue';
-import goldImg from '@/assets/common/gold.png';
+import throwGoldImg from '@/assets/common/throw_gold.png';
 
 const coins = ref([]);
 let coinIdCounter = 0;
@@ -103,7 +103,7 @@ defineExpose({
             :key="coin.id" 
             class="coin" 
             :style="coin.style"
-            :src="goldImg"
+            :src="throwGoldImg"
         />
     </div>
 </template>

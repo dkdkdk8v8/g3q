@@ -58,6 +58,10 @@ import tabSiIconSel from '@/assets/lobby/tab_sizhang_icon_choose.png';
 // Tab Selection Animation Icons
 import tabBukanIconSelStart from '@/assets/lobby/tab_bukan_icon_choose_start.png';
 import tabSanIconSelStart from '@/assets/lobby/tab_sanzhang_icon_choose_start.png';
+import tabSiIconSel1 from '@/assets/lobby/tab_sizhang_icon_choose_1.png';
+import tabSiIconSel2 from '@/assets/lobby/tab_sizhang_icon_choose_2.png';
+import tabSiIconSel3 from '@/assets/lobby/tab_sizhang_icon_choose_3.png';
+import tabSiIconSel4 from '@/assets/lobby/tab_sizhang_icon_choose_4.png';
 
 // Room Assets
 import eachRoomBg from '@/assets/lobby/each_room_bg.png';
@@ -134,6 +138,7 @@ const setMode = (mode) => {
 // Tab Icon Animation Logic
 const bukanSelIconDisplay = ref(tabBukanIconSel);
 const sanSelIconDisplay = ref(tabSanIconSel);
+const siSelIconDisplay = ref(tabSiIconSel);
 let iconAnimTimer = null;
 
 watch(currentMode, (newVal) => {
@@ -146,6 +151,7 @@ watch(currentMode, (newVal) => {
     // Reset to default final state immediately so inactive tabs are correct
     bukanSelIconDisplay.value = tabBukanIconSel;
     sanSelIconDisplay.value = tabSanIconSel;
+    siSelIconDisplay.value = tabSiIconSel;
 
     if (newVal === 0) {
         // Bukan Mode Animation
@@ -159,6 +165,32 @@ watch(currentMode, (newVal) => {
         iconAnimTimer = setTimeout(() => {
             sanSelIconDisplay.value = tabSanIconSel;
         }, 500);
+    } else if (newVal === 2) {
+        // Sizhang Mode Animation (4 steps: 0.2s each, then hold final step for 0.5s before resting on default selected icon)
+        // Sequence: 1 -> 2 -> 3 -> 4 (hold 0.5s) -> Final
+        
+        // Step 1: Start
+        siSelIconDisplay.value = tabSiIconSel1;
+        
+        // Step 2: 0.2s
+        iconAnimTimer = setTimeout(() => {
+            siSelIconDisplay.value = tabSiIconSel2;
+            
+            // Step 3: 0.4s
+            iconAnimTimer = setTimeout(() => {
+                siSelIconDisplay.value = tabSiIconSel3;
+                
+                // Step 4: 0.6s
+                iconAnimTimer = setTimeout(() => {
+                    siSelIconDisplay.value = tabSiIconSel4;
+                    
+                    // Final: 1.1s (0.6 + 0.5s) -> Revert to standard selected icon
+                    iconAnimTimer = setTimeout(() => {
+                        siSelIconDisplay.value = tabSiIconSel;
+                    }, 500);
+                }, 200);
+            }, 200);
+        }, 200);
     }
 }, { immediate: true });
 
@@ -425,7 +457,7 @@ const goBack = () => {
                 <!-- Mode 2: Si (4 cards) -->
                 <div class="tab-item3" @click="setMode(2)"
                     :style="{ backgroundImage: `url(${currentMode === 2 ? tabSansiSelBg : tabSansiBg})` }">
-                    <img :src="currentMode === 2 ? tabSiIconSel : tabSiIcon" class="tab-icon-left" />
+                    <img :src="currentMode === 2 ? siSelIconDisplay : tabSiIcon" class="tab-icon-left" />
                     <img :src="currentMode === 2 ? tabSiSel : tabSi"
                         :class="currentMode === 2 ? 'tab-si-sel-img' : 'tab-si-img'" />
                 </div>

@@ -32,15 +32,16 @@ onUnmounted(() => {
         <div class="anim-wrapper" :class="animState">
             <div class="content-box">
                 <img :src="bgImg" class="gs-bg" />
-                
+
                 <div class="star-wrapper">
                     <img :src="bgStarImg" class="gs-star" />
                 </div>
-                
+
                 <div class="text-wrapper">
                     <img :src="textImg" class="gs-text" />
                     <div class="flash-container">
-                        <img :src="flashTextImg" class="gs-flash-image" :class="{ 'flash-active': animState === 'idle' }" />
+                        <img :src="flashTextImg" class="gs-flash-image"
+                            :class="{ 'flash-active': animState === 'idle' }" />
                     </div>
                 </div>
             </div>
@@ -104,8 +105,8 @@ onUnmounted(() => {
 
 .star-wrapper {
     position: absolute;
-    top: 5%;
-    left: 0;
+    top: 3%;
+    left: -22%;
     width: 100%;
     display: flex;
     justify-content: center;
@@ -119,14 +120,20 @@ onUnmounted(() => {
 }
 
 @keyframes rotateStar {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 .text-wrapper {
     position: absolute;
     z-index: 3;
-    width: 50%; /* Text is slightly larger to look good */
+    width: 50%;
+    /* Text is slightly larger to look good */
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -157,17 +164,24 @@ onUnmounted(() => {
     left: -150%;
     height: 200%;
     width: auto;
-    mix-blend-mode: screen; /* brightens the text */
+    mix-blend-mode: screen;
+    /* brightens the text */
     opacity: 0.8;
 }
 
 .gs-flash-image.flash-active {
     animation: flashMove 0.8s ease-in forwards;
-    animation-delay: 0.4s; /* wait for slide-in to finish */
+    animation-delay: 0.4s;
+    /* wait for slide-in to finish */
 }
 
 @keyframes flashMove {
-    0% { left: -100%; }
-    100% { left: 100%; }
+    0% {
+        left: -100%;
+    }
+
+    100% {
+        left: 100%;
+    }
 }
 </style>

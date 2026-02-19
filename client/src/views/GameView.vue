@@ -3666,7 +3666,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
     transform: translateX(-50%);
     font-weight: bold;
     font-size: 24px;
-    text-shadow: 2px 2px 1px #000;
+    text-shadow: 1px 1px 1px #000;
     animation: floatUpCentered 2s forwards;
     z-index: 200;
     font-family: 'Arial Black', sans-serif;
@@ -3681,7 +3681,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 }
 
 .score-float.lose {
-    color: #fd1414;
+    color: #f95f5f;
 }
 
 .coin-icon-float {

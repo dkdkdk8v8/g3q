@@ -1087,7 +1087,7 @@ const shouldMoveStatusFloat = computed(() => {
 }
 
 .score-float.lose {
-    color: #fd1414;
+    color: #f95f5f;
 }
 
 /* ... */

@@ -1933,7 +1933,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
                     <img :src="tuoguanBgImg" class="tuoguan-bg" alt="托管背景" />
                     
                     <svg v-if="isHosting" class="tuoguan-neon-border" viewBox="0 0 88 36" xmlns="http://www.w3.org/2000/svg">
-                        <rect x="1" y="1" width="86" height="34" rx="17" ry="17" fill="none" />
+                        <path d="M 18 1 L 87 1 L 87 35 L 18 35 A 17 17 0 0 1 18 1 Z" fill="none" />
                     </svg>
 
                     <div class="tuoguan-content">
@@ -3838,18 +3838,18 @@ const shouldMoveStatusToHighPosition = computed(() => {
     pointer-events: none;
 }
 
-.tuoguan-neon-border rect {
+.tuoguan-neon-border path {
     stroke: #00ffff; /* 霓虹青色 */
     stroke-width: 2.5px;
     stroke-linecap: round;
-    stroke-dasharray: 40 171; /* 211 左右的总周长 */
+    stroke-dasharray: 40 186; /* 226 总周长 (69+34+69+54) */
     animation: neon-chase 1.2s linear infinite;
     filter: drop-shadow(0 0 3px #00ffff);
 }
 
 @keyframes neon-chase {
     0% {
-        stroke-dashoffset: 211;
+        stroke-dashoffset: 226;
     }
     100% {
         stroke-dashoffset: 0;

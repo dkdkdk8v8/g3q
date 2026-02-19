@@ -1931,8 +1931,9 @@ const shouldMoveStatusToHighPosition = computed(() => {
                 <div class="hosting-btn" v-if="!myPlayer.isObserver" @click="openHostingDebounced"
                     :class="{ active: isHosting }">
                     <img :src="tuoguanBgImg" class="tuoguan-bg" alt="托管背景" />
-                    
-                    <svg v-if="isHosting" class="tuoguan-neon-border" viewBox="0 0 88 36" xmlns="http://www.w3.org/2000/svg">
+
+                    <svg v-if="isHosting" class="tuoguan-neon-border" viewBox="0 0 88 36"
+                        xmlns="http://www.w3.org/2000/svg">
                         <path d="M 18 1 L 87 1 L 87 35 L 18 35 A 17 17 0 0 1 18 1 Z" fill="none" />
                     </svg>
 
@@ -3839,11 +3840,13 @@ const shouldMoveStatusToHighPosition = computed(() => {
 }
 
 .tuoguan-neon-border path {
-    stroke: #e0e0e0; /* 银白色 */
-    stroke-width: 2.5px;
+    stroke: #e0e0e0;
+    /* 银白色 */
+    stroke-width: 1.5px;
     stroke-linecap: round;
-    stroke-dasharray: 40 186; /* 226 总周长 (69+34+69+54) */
-    animation: neon-chase 1.2s linear infinite;
+    stroke-dasharray: 40 186;
+    /* 226 总周长 (69+34+69+54) */
+    animation: neon-chase 2.2s linear infinite;
     filter: drop-shadow(0 0 3px #e0e0e0);
 }
 
@@ -3851,6 +3854,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
     0% {
         stroke-dashoffset: 226;
     }
+
     100% {
         stroke-dashoffset: 0;
     }

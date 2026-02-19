@@ -1934,7 +1934,12 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                     <svg v-if="isHosting" class="tuoguan-neon-border" viewBox="0 0 88 36"
                         xmlns="http://www.w3.org/2000/svg">
-                        <path d="M 18 1 L 87 1 L 87 35 L 18 35 A 17 17 0 0 1 18 1 Z" fill="none" />
+                        <path class="neon-base" d="M 18 1 L 87 1 L 87 35 L 18 35 A 17 17 0 0 1 18 1 Z" fill="none" />
+                        <path class="neon-layer-5" d="M 18 1 L 87 1 L 87 35 L 18 35 A 17 17 0 0 1 18 1 Z" fill="none" />
+                        <path class="neon-layer-4" d="M 18 1 L 87 1 L 87 35 L 18 35 A 17 17 0 0 1 18 1 Z" fill="none" />
+                        <path class="neon-layer-3" d="M 18 1 L 87 1 L 87 35 L 18 35 A 17 17 0 0 1 18 1 Z" fill="none" />
+                        <path class="neon-layer-2" d="M 18 1 L 87 1 L 87 35 L 18 35 A 17 17 0 0 1 18 1 Z" fill="none" />
+                        <path class="neon-layer-1" d="M 18 1 L 87 1 L 87 35 L 18 35 A 17 17 0 0 1 18 1 Z" fill="none" />
                     </svg>
 
                     <div class="tuoguan-content">
@@ -3840,23 +3845,96 @@ const shouldMoveStatusToHighPosition = computed(() => {
 }
 
 .tuoguan-neon-border path {
-    stroke: #e0e0e088;
-    /* 银白色 */
-    stroke-width: 1.5px;
+    stroke-width: 1.2px;
     stroke-linecap: round;
-    stroke-dasharray: 40 186;
-    /* 226 总周长 (69+34+69+54) */
-    animation: neon-chase 3.2s linear infinite;
-    filter: drop-shadow(0 0 3px #e0e0e0);
 }
 
-@keyframes neon-chase {
+.tuoguan-neon-border .neon-base {
+    stroke: rgba(224, 224, 224, 0.15);
+    filter: drop-shadow(0 0 2px rgba(224, 224, 224, 0.25));
+}
+
+.tuoguan-neon-border .neon-layer-5 {
+    stroke: rgba(224, 224, 224, 0.25);
+    stroke-dasharray: 180 46;
+    animation: neon-chase-5 2s linear infinite;
+}
+
+.tuoguan-neon-border .neon-layer-4 {
+    stroke: rgba(224, 224, 224, 0.25);
+    stroke-dasharray: 140 86;
+    animation: neon-chase-4 2s linear infinite;
+    filter: drop-shadow(0 0 2px rgba(224, 224, 224, 0.35));
+}
+
+.tuoguan-neon-border .neon-layer-3 {
+    stroke: rgba(224, 224, 224, 0.35);
+    stroke-dasharray: 100 126;
+    animation: neon-chase-3 2s linear infinite;
+    filter: drop-shadow(0 0 3px rgba(224, 224, 224, 0.45));
+}
+
+.tuoguan-neon-border .neon-layer-2 {
+    stroke: rgba(224, 224, 224, 0.85);
+    stroke-dasharray: 60 166;
+    animation: neon-chase-2 2s linear infinite;
+    filter: drop-shadow(0 0 4px rgba(224, 224, 224, 0.5));
+}
+
+.tuoguan-neon-border .neon-layer-1 {
+    stroke: #ffffff;
+    stroke-dasharray: 20 206;
+    animation: neon-chase-1 2s linear infinite;
+    filter: drop-shadow(0 0 5px #ffffff);
+}
+
+@keyframes neon-chase-5 {
     0% {
-        stroke-dashoffset: 226;
+        stroke-dashoffset: 90;
     }
 
     100% {
-        stroke-dashoffset: 0;
+        stroke-dashoffset: -136;
+    }
+}
+
+@keyframes neon-chase-4 {
+    0% {
+        stroke-dashoffset: 70;
+    }
+
+    100% {
+        stroke-dashoffset: -156;
+    }
+}
+
+@keyframes neon-chase-3 {
+    0% {
+        stroke-dashoffset: 50;
+    }
+
+    100% {
+        stroke-dashoffset: -176;
+    }
+}
+
+@keyframes neon-chase-2 {
+    0% {
+        stroke-dashoffset: 30;
+    }
+
+    100% {
+        stroke-dashoffset: -196;
+    }
+}
+
+@keyframes neon-chase-1 {
+    0% {
+        stroke-dashoffset: 10;
+    }
+
+    100% {
+        stroke-dashoffset: -216;
     }
 }
 

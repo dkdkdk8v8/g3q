@@ -139,6 +139,28 @@ const isSwitchingRoom = ref(false); // Switching Room State
 const isHosting = ref(false); // Is Hosting Active?
 const hostingSettings = ref({ rob: 0, bet: 1 }); // Stored Settings
 
+// Tuoguan icon animation state
+const currentTuoguaningIcon = ref(tuoguaningIconImg);
+let tuoguaningInterval = null;
+
+watch(isHosting, (newVal) => {
+    if (newVal) {
+        tuoguaningInterval = setInterval(() => {
+            currentTuoguaningIcon.value = currentTuoguaningIcon.value === tuoguaningIconImg ? tuoguaningIcon2Img : tuoguaningIconImg;
+        }, 500);
+    } else {
+        if (tuoguaningInterval) {
+            clearInterval(tuoguaningInterval);
+            tuoguaningInterval = null;
+        }
+        currentTuoguaningIcon.value = tuoguaningIconImg;
+    }
+});
+
+onUnmounted(() => {
+    if (tuoguaningInterval) clearInterval(tuoguaningInterval);
+});
+
 // ... (existing logic)
 
 // Hosting Watcher
@@ -357,8 +379,12 @@ import zhuangImg from '@/assets/common/zhuang.png';
 import tanpaiImg from '@/assets/common/tanpai.png';
 import couniuSanImg from '@/assets/common/couniu_san.png';
 import couniuSiImg from '@/assets/common/couniu_si.png';
-import tuoguanImg from '@/assets/common/tuoguan.png';
-import tuguanzhongImg from '@/assets/common/tuguanzhong.png';
+import tuoguanBgImg from '@/assets/tuoguan/tuoguan_bg.png';
+import tuoguanIconImg from '@/assets/tuoguan/tuoguan_icon.png';
+import tuoguanTextImg from '@/assets/tuoguan/tuoguan_text.png';
+import tuoguaningIconImg from '@/assets/tuoguan/tuoguaning_icon.png';
+import tuoguaningIcon2Img from '@/assets/tuoguan/tuoguaning_icon2.png';
+import tuoguaningTextImg from '@/assets/tuoguan/tuoguaning_text.png';
 import replaceRoomTextImg from '@/assets/common/replace_room_text.png';
 
 // Lobby style buttons
@@ -1904,7 +1930,14 @@ const shouldMoveStatusToHighPosition = computed(() => {
                 <!-- Hosting Button -->
                 <div class="hosting-btn" v-if="!myPlayer.isObserver" @click="openHostingDebounced"
                     :class="{ active: isHosting }">
-                    <img :src="isHosting ? tuguanzhongImg : tuoguanImg" alt="托管" class="hosting-btn-img" />
+                    <img :src="tuoguanBgImg" class="tuoguan-bg" alt="托管背景" />
+                    <div class="tuoguan-content">
+                        <img v-if="!isHosting" :src="tuoguanIconImg" alt="托管图标" class="tuoguan-icon" />
+                        <img v-else :src="currentTuoguaningIcon" alt="托管中图标" class="tuoguan-icon tuoguan-icon-anim" />
+
+                        <img v-if="!isHosting" :src="tuoguanTextImg" alt="托管文字" class="tuoguan-text" />
+                        <img v-else :src="tuoguaningTextImg" alt="托管中文字" class="tuoguan-text-ing" />
+                    </div>
                 </div>
 
                 <!-- My Score Float -->
@@ -3746,12 +3779,48 @@ const shouldMoveStatusToHighPosition = computed(() => {
     align-items: center;
     justify-content: center;
     transition: all 0.2s;
+    height: 36px;
+    width: 88px;
 }
 
-.hosting-btn-img {
-    height: 36px;
+.tuoguan-bg {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    z-index: 1;
+}
+
+.tuoguan-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    padding: 0 4%;
+    box-sizing: border-box;
+}
+
+.tuoguan-icon {
+    height: 60%;
     width: auto;
     object-fit: contain;
+}
+
+.tuoguan-text {
+    height: 40%;
+    width: auto;
+    object-fit: contain;
+    margin-left: 6px;
+}
+
+.tuoguan-text-ing {
+    height: 40%;
+    width: auto;
+    object-fit: contain;
+    margin-left: 2px;
 }
 
 .hosting-btn:active {

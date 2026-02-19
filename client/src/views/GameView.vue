@@ -3840,13 +3840,13 @@ const shouldMoveStatusToHighPosition = computed(() => {
 }
 
 .tuoguan-neon-border path {
-    stroke: #e0e0e0;
+    stroke: #e0e0e088;
     /* 银白色 */
     stroke-width: 1.5px;
     stroke-linecap: round;
     stroke-dasharray: 40 186;
     /* 226 总周长 (69+34+69+54) */
-    animation: neon-chase 2.2s linear infinite;
+    animation: neon-chase 3.2s linear infinite;
     filter: drop-shadow(0 0 3px #e0e0e0);
 }
 

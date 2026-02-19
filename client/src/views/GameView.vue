@@ -13,6 +13,7 @@ import HistoryModal from '../components/HistoryModal.vue';
 import HostingModal from '../components/HostingModal.vue';
 import WinAnimation from '../components/WinAnimation.vue';
 import LoseAnimation from '../components/LoseAnimation.vue';
+import GameStartAnimation from '../components/GameStartAnimation.vue';
 import { useRouter, useRoute } from 'vue-router';
 import { formatCoins } from '../utils/format.js';
 import { transformServerCard, calculateHandType } from '../utils/bullfight.js';
@@ -900,7 +901,6 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
         dealingCounts.value = {}; // Reset dealing counts
         lastBetStates.value = {};
     } else if (newPhase === 'GAME_START_ANIMATION') {
-        startAnimationClass.value = '';
         showStartAnim.value = true;
 
         if (settingsStore.soundEnabled) {
@@ -908,16 +908,7 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
         }
 
         setTimeout(() => {
-            startAnimationClass.value = 'enter';
-        }, 50);
-
-        setTimeout(() => {
-            startAnimationClass.value = 'leave';
-        }, 1550);
-
-        setTimeout(() => {
             showStartAnim.value = false;
-            startAnimationClass.value = '';
         }, 2550);
     } else if (newPhase === 'PRE_DEAL') {
         visibleCounts.value = {};
@@ -1558,7 +1549,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
     <div class="game-table" :style="{ ...backgroundImageStyle, ...gameViewStyle }" ref="gameTableRef">
 
-        <img v-show="showStartAnim" :src="iconGameStart" class="game-start-icon" :class="startAnimationClass" />
+        <GameStartAnimation v-if="showStartAnim" />
 
         <WinAnimation v-if="showWinAnim" />
         <LoseAnimation v-if="showLoseAnim" />

@@ -1931,6 +1931,11 @@ const shouldMoveStatusToHighPosition = computed(() => {
                 <div class="hosting-btn" v-if="!myPlayer.isObserver" @click="openHostingDebounced"
                     :class="{ active: isHosting }">
                     <img :src="tuoguanBgImg" class="tuoguan-bg" alt="托管背景" />
+                    
+                    <svg v-if="isHosting" class="tuoguan-neon-border" viewBox="0 0 88 36" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="1" y="1" width="86" height="34" rx="17" ry="17" fill="none" />
+                    </svg>
+
                     <div class="tuoguan-content">
                         <img v-if="!isHosting" :src="tuoguanIconImg" alt="托管图标" class="tuoguan-icon" />
                         <img v-else :src="currentTuoguaningIcon" alt="托管中图标" class="tuoguan-icon tuoguan-icon-anim" />
@@ -3821,6 +3826,34 @@ const shouldMoveStatusToHighPosition = computed(() => {
     width: auto;
     object-fit: contain;
     margin-left: 2px;
+}
+
+.tuoguan-neon-border {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 3;
+    pointer-events: none;
+}
+
+.tuoguan-neon-border rect {
+    stroke: #00ffff; /* 霓虹青色 */
+    stroke-width: 2.5px;
+    stroke-linecap: round;
+    stroke-dasharray: 40 171; /* 211 左右的总周长 */
+    animation: neon-chase 1.2s linear infinite;
+    filter: drop-shadow(0 0 3px #00ffff);
+}
+
+@keyframes neon-chase {
+    0% {
+        stroke-dashoffset: 211;
+    }
+    100% {
+        stroke-dashoffset: 0;
+    }
 }
 
 .hosting-btn:active {

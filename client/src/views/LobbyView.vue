@@ -11,7 +11,6 @@ import gameClient from '../socket.js';
 import HistoryModal from '../components/HistoryModal.vue';
 import SettingsModal from '../components/SettingsModal.vue';
 import HelpModal from '../components/HelpModal.vue';
-import GameStartAnimation from '../components/GameStartAnimation.vue';
 
 // Assets
 import bgImg from '@/assets/lobby/bg.jpg';
@@ -344,17 +343,6 @@ const goBack = () => {
     console.log("Exit clicked");
     // router.push('/'); // Uncomment if needed
 };
-
-// Test Animation Logic
-const showTestAnim = ref(false);
-const playTestAnim = () => {
-    playBtnSound();
-    if (showTestAnim.value) return; // Prevent multiple clicks
-    showTestAnim.value = true;
-    setTimeout(() => {
-        showTestAnim.value = false;
-    }, 2550); // Matches the animation duration in GameStartAnimation
-};
 </script>
 
 <template>
@@ -368,7 +356,6 @@ const playTestAnim = () => {
             <div class="top-row-1">
                 <div class="top-left">
                     <img :src="btnExit" class="btn-exit" @click="goBack" alt="Exit" />
-                    <button class="test-anim-btn" @click="playTestAnim" style="margin-left: 10px; background: rgba(0,0,0,0.5); border: 1px solid #ffd700; color: #ffd700; padding: 2px 8px; border-radius: 10px; font-size: 12px; cursor: pointer; height: 21px; line-height: 1;">测试动画</button>
                 </div>
                 <div class="top-right">
                     <img :src="btnHistory" class="top-icon-btn" @click="openHistoryDebounced" alt="History" />
@@ -483,9 +470,6 @@ const playTestAnim = () => {
         <HistoryModal v-model:visible="showHistory" />
         <SettingsModal v-model:visible="showSettings" />
         <HelpModal v-model:visible="showHelp" :mode="currentMode" />
-        
-        <!-- Test Animation -->
-        <GameStartAnimation v-if="showTestAnim" />
     </div>
 </template>
 

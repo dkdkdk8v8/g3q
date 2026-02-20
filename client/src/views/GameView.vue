@@ -1490,6 +1490,18 @@ const myBadgeAnchorRef = ref(null);
 const myTeleportStyle = ref({ display: 'none' }); // Hidden initially to prevent flash
 let myBadgeUpdateFrame = null;
 
+const getBadgeStyle = (handResult) => {
+    if (!handResult) return {};
+    const { type } = handResult;
+    if (['FIVE_SMALL', 'FIVE_FLOWER', 'FOUR_FLOWER', 'BOMB'].includes(type)) {
+        return { height: '75px' };
+    }
+    if (['NO_BULL', 'BULL_1', 'BULL_2', 'BULL_3', 'BULL_4', 'BULL_5', 'BULL_6'].includes(type)) {
+        return { height: '48px' };
+    }
+    return {};
+};
+
 const updateMyBadgePosition = () => {
     if (myBadgeAnchorRef.value) {
         const rect = myBadgeAnchorRef.value.getBoundingClientRect();
@@ -1824,14 +1836,14 @@ const shouldMoveStatusToHighPosition = computed(() => {
                     <div v-if="myPlayer.handResult && myPlayer.handResult.typeName && shouldShowBadge"
                         class="hand-result-badge" ref="myBadgeAnchorRef" style="opacity: 0;">
                         <NiuBadge :type="myPlayer.handResult.typeName" class="hand-type-img"
-                            :style="['FIVE_SMALL', 'FIVE_FLOWER', 'FOUR_FLOWER', 'BOMB'].includes(myPlayer.handResult.type) ? { height: '75px' } : {}" />
+                            :style="getBadgeStyle(myPlayer.handResult)" />
                     </div>
 
                     <Teleport to="body">
                         <div v-if="myPlayer.handResult && myPlayer.handResult.typeName && shouldShowBadge"
                             :style="myTeleportStyle">
                             <NiuBadge :type="myPlayer.handResult.typeName" class="hand-type-img"
-                                :style="['FIVE_SMALL', 'FIVE_FLOWER', 'FOUR_FLOWER', 'BOMB'].includes(myPlayer.handResult.type) ? { height: '100%' } : { height: '100%', width: 'auto' }" />
+                                :style="{ ...getBadgeStyle(myPlayer.handResult), ...(getBadgeStyle(myPlayer.handResult).height ? {} : { height: '100%', width: 'auto' }) }" />
                         </div>
                     </Teleport>
 

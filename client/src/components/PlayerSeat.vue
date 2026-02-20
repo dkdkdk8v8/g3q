@@ -2,6 +2,7 @@
 import { computed, ref, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { useGameStore } from '../stores/game.js';
 import PokerCard from './PokerCard.vue';
+import NiuBadge from './NiuBadge.vue';
 import { formatCoins } from '../utils/format.js';
 import goldImg from '@/assets/common/gold.png';
 import zhuangImg from '@/assets/common/zhuang.png';
@@ -481,25 +482,14 @@ const shouldMoveStatusFloat = computed(() => {
             <!-- ... (keep hand result) -->
             <!-- Hand Result Badge (Anchor + Teleport) -->
             <div v-if="shouldShowBadge" class="hand-result-badge" ref="badgeAnchorRef" style="opacity: 0;">
-                <img v-if="getHandTypeImageUrl(player.handResult.typeName)"
-                    :src="getHandTypeImageUrl(player.handResult.typeName)" alt="手牌类型" class="hand-type-img"
+                <NiuBadge :type="player.handResult.typeName" class="hand-type-img"
                     :style="['FIVE_SMALL', 'FIVE_FLOWER', 'FOUR_FLOWER', 'BOMB'].includes(player.handResult.type) ? { height: '40.5px' } : {}" />
-                <template v-else>
-                    TypeName: "{{ player.handResult.typeName }}"
-                </template>
             </div>
 
             <Teleport to="body">
                 <div v-if="shouldShowBadge" :style="teleportStyle">
-                    <img v-if="getHandTypeImageUrl(player.handResult.typeName)"
-                        :src="getHandTypeImageUrl(player.handResult.typeName)" alt="手牌类型" class="hand-type-img"
-                        style="height: 100%; width: auto;" />
-                    <template v-else>
-                        <!-- Fallback text styling needs to match if used -->
-                        <span style="color: #fbbf24; font-size: 12px; font-weight: bold;">
-                            {{ player.handResult.typeName }}
-                        </span>
-                    </template>
+                    <NiuBadge :type="player.handResult.typeName" class="hand-type-img"
+                        :style="['FIVE_SMALL', 'FIVE_FLOWER', 'FOUR_FLOWER', 'BOMB'].includes(player.handResult.type) ? { height: '100%' } : { height: '100%', width: 'auto' }" />
                 </div>
             </Teleport>
         </div>

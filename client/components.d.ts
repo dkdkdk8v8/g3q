@@ -17,6 +17,7 @@ declare module 'vue' {
     HistoryPokerCard: typeof import('./src/components/HistoryPokerCard.vue')['default']
     HostingModal: typeof import('./src/components/HostingModal.vue')['default']
     LoseAnimation: typeof import('./src/components/LoseAnimation.vue')['default']
+    NiuBadge: typeof import('./src/components/NiuBadge.vue')['default']
     PlayerSeat: typeof import('./src/components/PlayerSeat.vue')['default']
     PokerCard: typeof import('./src/components/PokerCard.vue')['default']
     ReconnectDialog: typeof import('./src/components/ReconnectDialog.vue')['default']

@@ -14,6 +14,7 @@ import HostingModal from '../components/HostingModal.vue';
 import WinAnimation from '../components/WinAnimation.vue';
 import LoseAnimation from '../components/LoseAnimation.vue';
 import GameStartAnimation from '../components/GameStartAnimation.vue';
+import NiuBadge from '../components/NiuBadge.vue';
 import { useRouter, useRoute } from 'vue-router';
 import { formatCoins } from '../utils/format.js';
 import { transformServerCard, calculateHandType } from '../utils/bullfight.js';
@@ -1822,23 +1823,15 @@ const shouldMoveStatusToHighPosition = computed(() => {
                     <!-- Hand Result Badge - adapted from PlayerSeat (Anchor + Teleport) -->
                     <div v-if="myPlayer.handResult && myPlayer.handResult.typeName && shouldShowBadge"
                         class="hand-result-badge" ref="myBadgeAnchorRef" style="opacity: 0;">
-                        <img v-if="getHandTypeImageUrl(myPlayer.handResult.typeName)"
-                            :src="getHandTypeImageUrl(myPlayer.handResult.typeName)" alt="手牌类型" class="hand-type-img"
+                        <NiuBadge :type="myPlayer.handResult.typeName" class="hand-type-img"
                             :style="['FIVE_SMALL', 'FIVE_FLOWER', 'FOUR_FLOWER', 'BOMB'].includes(myPlayer.handResult.type) ? { height: '75px' } : {}" />
-                        <template v-else>TypeName: "{{ myPlayer.handResult.typeName }}"</template>
                     </div>
 
                     <Teleport to="body">
                         <div v-if="myPlayer.handResult && myPlayer.handResult.typeName && shouldShowBadge"
                             :style="myTeleportStyle">
-                            <img v-if="getHandTypeImageUrl(myPlayer.handResult.typeName)"
-                                :src="getHandTypeImageUrl(myPlayer.handResult.typeName)" alt="手牌类型"
-                                class="hand-type-img" style="height: 100%; width: auto;" />
-                            <template v-else>
-                                <span style="color: #fbbf24; font-size: 14px; font-weight: bold;">
-                                    {{ myPlayer.handResult.typeName }}
-                                </span>
-                            </template>
+                            <NiuBadge :type="myPlayer.handResult.typeName" class="hand-type-img"
+                                :style="['FIVE_SMALL', 'FIVE_FLOWER', 'FOUR_FLOWER', 'BOMB'].includes(myPlayer.handResult.type) ? { height: '100%' } : { height: '100%', width: 'auto' }" />
                         </div>
                     </Teleport>
 

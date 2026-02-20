@@ -174,7 +174,7 @@ watch(normalizedType, () => {
 }
 
 .char-anim {
-    height: 70%;
+    height: 90%;
     width: auto;
     position: relative;
 }

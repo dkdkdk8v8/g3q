@@ -54,7 +54,7 @@ export const useGameStore = defineStore('game', () => {
     const roomName = ref('');
     const baseBet = ref(0);
     const gameMode = ref(0); // 0: Bukan, 1: Kan3, 2: Kan4
-    
+
     // History State
     const history = ref([]);
     const historyLastId = ref(0);
@@ -76,7 +76,7 @@ export const useGameStore = defineStore('game', () => {
         if (isLoadingHistory.value || isHistoryEnd.value) return;
 
         isLoadingHistory.value = true;
-        
+
         // Send request to server
         gameClient.send('GameRecord', {
             Limit: 10,
@@ -89,7 +89,7 @@ export const useGameStore = defineStore('game', () => {
     // Handle GameRecord Response
     gameClient.on('GameRecord', (msg) => {
         isLoadingHistory.value = false;
-        
+
         if (msg.code !== 0) {
             console.error('Failed to fetch history:', msg.msg);
             return;
@@ -134,7 +134,7 @@ export const useGameStore = defineStore('game', () => {
                     }
                     return item;
                 });
-            
+
             history.value.push(...processedList);
         }
     });
@@ -326,14 +326,14 @@ export const useGameStore = defineStore('game', () => {
             // 收到随机抢庄状态，播放全员随机动画
             // 逻辑更新：只在抢庄倍数最高且相同的玩家之间进行随机
             let activePlayers = players.value.filter(p => !p.isObserver);
-            
+
             if (activePlayers.length > 0) {
                 // 1. Find max multiplier
                 const maxMult = Math.max(...activePlayers.map(p => p.robMultiplier));
-                
+
                 // 2. Filter candidates with max multiplier
                 const candidates = activePlayers.filter(p => p.robMultiplier === maxMult);
-                
+
                 bankerCandidates.value = candidates.map(p => p.id);
             } else {
                 bankerCandidates.value = [];
@@ -363,7 +363,7 @@ export const useGameStore = defineStore('game', () => {
         }
 
 
-        
+
         const room = data.Room;
 
         // 1. Update Room Config & Info

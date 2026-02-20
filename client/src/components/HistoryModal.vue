@@ -299,7 +299,7 @@ watch(() => props.visible, (val) => {
                                 @click="selectFilter('custom')">自定义</div>
                         </div>
                     </div>
-                    <span class="hint-text">点击每一条记录可以查看详情</span>
+                    <span class="hint-text">点击记录查看详情</span>
                 </div>
             </div>
 
@@ -345,7 +345,7 @@ watch(() => props.visible, (val) => {
                             <div class="hc-bet-amt">
                                 投注: <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{
                                     formatCoins(item.bet)
-                                }}</span>
+                                    }}</span>
                             </div>
                         </div>
                     </div>

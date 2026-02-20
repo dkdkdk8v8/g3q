@@ -1497,7 +1497,7 @@ const getBadgeStyle = (handResult) => {
         return { height: '75px' };
     }
     if (['NO_BULL', 'BULL_1', 'BULL_2', 'BULL_3', 'BULL_4', 'BULL_5', 'BULL_6'].includes(type)) {
-        return { height: '48px' };
+        return { height: '68px' };
     }
     return {};
 };
@@ -3891,28 +3891,53 @@ const shouldMoveStatusToHighPosition = computed(() => {
 }
 
 @keyframes neon-chase-5 {
-    0% { stroke-dashoffset: 29; }
-    100% { stroke-dashoffset: -197; }
+    0% {
+        stroke-dashoffset: 29;
+    }
+
+    100% {
+        stroke-dashoffset: -197;
+    }
 }
 
 @keyframes neon-chase-4 {
-    0% { stroke-dashoffset: 23; }
-    100% { stroke-dashoffset: -203; }
+    0% {
+        stroke-dashoffset: 23;
+    }
+
+    100% {
+        stroke-dashoffset: -203;
+    }
 }
 
 @keyframes neon-chase-3 {
-    0% { stroke-dashoffset: 17; }
-    100% { stroke-dashoffset: -209; }
+    0% {
+        stroke-dashoffset: 17;
+    }
+
+    100% {
+        stroke-dashoffset: -209;
+    }
 }
 
 @keyframes neon-chase-2 {
-    0% { stroke-dashoffset: 11; }
-    100% { stroke-dashoffset: -215; }
+    0% {
+        stroke-dashoffset: 11;
+    }
+
+    100% {
+        stroke-dashoffset: -215;
+    }
 }
 
 @keyframes neon-chase-1 {
-    0% { stroke-dashoffset: 5; }
-    100% { stroke-dashoffset: -221; }
+    0% {
+        stroke-dashoffset: 5;
+    }
+
+    100% {
+        stroke-dashoffset: -221;
+    }
 }
 
 .hosting-btn:active {

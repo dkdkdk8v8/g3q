@@ -124,7 +124,7 @@ watch(normalizedType, () => {
 
 <style scoped>
 .niu-badge {
-    height: 35px;
+    height: 34px;
     width: 100%;
     display: flex;
     justify-content: center;

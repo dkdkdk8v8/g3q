@@ -348,6 +348,7 @@ watch(() => props.visible, (val) => {
                                 }}</span>
                             </div>
                         </div>
+                        <van-icon name="arrow" class="hc-arrow" />
                     </div>
                 </div>
 
@@ -656,6 +657,12 @@ watch(() => props.visible, (val) => {
 
 .coin-amount-text {
     font-family: monospace;
+}
+
+.hc-arrow {
+    font-size: 14px;
+    color: #64748b;
+    margin-left: 12px;
 }
 
 .empty-tip {

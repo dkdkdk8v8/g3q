@@ -1,7 +1,8 @@
 <template>
     <div class="sprite-number" :style="{ gap: gap + 'px' }">
         <template v-for="(char, index) in displayChars" :key="index">
-            <img v-if="/[0-9]/.test(char)" :src="getAsset(char)" :style="{ height: height + 'px' }" class="digit-img" :class="type" />
+            <img v-if="/[0-9]/.test(char)" :src="getAsset(char)" :style="{ height: height + 'px' }" class="digit-img"
+                :class="type" />
             <span v-else class="text-char" :class="type" :style="{ fontSize: height * 0.8 + 'px' }">{{ char }}</span>
         </template>
     </div>
@@ -61,7 +62,7 @@ const getAsset = (char) => {
 
 .digit-img.red {
     /* Tint yellow image to red */
-    filter: sepia(1) hue-rotate(-50deg) saturate(5) brightness(1.2);
+    /* filter: sepia(1) hue-rotate(-50deg) saturate(5) brightness(1.2); */
 }
 
 .text-char {

@@ -1954,11 +1954,8 @@ const shouldMoveStatusToHighPosition = computed(() => {
                 <!-- My Score Float -->
                 <div v-if="myPlayer.roundScore !== 0 && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)"
                     class="score-float" :class="myPlayer.roundScore > 0 ? 'win' : 'lose'">
-                    <SpriteNumber
-                        :value="(myPlayer.roundScore > 0 ? '+' : '') + formatCoins(myPlayer.roundScore)"
-                        :type="myPlayer.roundScore > 0 ? 'red' : 'white'"
-                        :height="24"
-                    />
+                    <SpriteNumber :value="(myPlayer.roundScore > 0 ? '+' : '') + formatCoins(myPlayer.roundScore)"
+                        :type="myPlayer.roundScore > 0 ? 'red' : 'white'" :height="16" />
                 </div>
             </div>
 

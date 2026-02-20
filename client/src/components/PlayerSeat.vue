@@ -339,6 +339,33 @@ const slideTransitionName = computed(() => {
     return 'pop-up';
 });
 
+// Shake Animation Logic
+const isShaking = ref(false);
+let shakeTimer = null;
+
+const triggerShake = () => {
+    isShaking.value = false;
+    nextTick(() => {
+        isShaking.value = true;
+        if (shakeTimer) clearTimeout(shakeTimer);
+        shakeTimer = setTimeout(() => {
+            isShaking.value = false;
+        }, 400);
+    });
+};
+
+watch(() => props.player?.robMultiplier, (newVal, oldVal) => {
+    if (newVal > -1 && oldVal === -1) {
+        triggerShake();
+    }
+});
+
+watch(() => props.player?.betMultiplier, (newVal, oldVal) => {
+    if (newVal > 0 && oldVal === 0) {
+        triggerShake();
+    }
+});
+
 const displayName = computed(() => {
     const name = props.player.name || '';
     if (props.isMe) {
@@ -378,7 +405,8 @@ const shouldMoveStatusFloat = computed(() => {
         <!-- ... (keep avatar area) -->
         <div class="avatar-area">
             <div class="avatar-wrapper" :class="{
-                'banker-confirm-anim': triggerBankerAnimation
+                'banker-confirm-anim': triggerBankerAnimation,
+                'avatar-shake-anim': isShaking
             }">
                 <div class="avatar-frame" :class="{
                     'banker-candidate-highlight': isAnimatingHighlight,
@@ -687,6 +715,18 @@ const shouldMoveStatusFloat = computed(() => {
     position: relative;
     z-index: 50;
     animation: bankerConfirmPop 1.2s ease-out forwards;
+}
+
+.avatar-shake-anim {
+    animation: avatarShake 0.4s ease-in-out;
+}
+
+@keyframes avatarShake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-4px) rotate(-3deg); }
+    40% { transform: translateX(4px) rotate(3deg); }
+    60% { transform: translateX(-4px) rotate(-3deg); }
+    80% { transform: translateX(4px) rotate(3deg); }
 }
 
 @keyframes bankerConfirmPop {

@@ -3780,7 +3780,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
 .hosting-btn {
     position: absolute;
-    right: 0;
+    right: -6px;
     top: 76%;
     transform: translateY(-50%);
 
@@ -3845,7 +3845,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 }
 
 .tuoguan-neon-border path {
-    stroke-width: 1.2px;
+    stroke-width: 2.2px;
     stroke-linecap: round;
 }
 

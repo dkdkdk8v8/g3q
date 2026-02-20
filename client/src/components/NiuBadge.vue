@@ -133,7 +133,7 @@ watch(normalizedType, () => {
 }
 
 .static-img {
-    height: 30px;
+    height: 100%;
     width: auto;
     object-fit: contain;
 }
@@ -174,7 +174,7 @@ watch(normalizedType, () => {
 }
 
 .char-anim {
-    height: 90%;
+    height: 78%;
     width: auto;
     position: relative;
 }

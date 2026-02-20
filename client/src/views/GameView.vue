@@ -1497,7 +1497,7 @@ const getBadgeStyle = (handResult) => {
         return { height: '75px' };
     }
     if (['NO_BULL', 'BULL_1', 'BULL_2', 'BULL_3', 'BULL_4', 'BULL_5', 'BULL_6'].includes(type)) {
-        return { height: '68px' };
+        return { height: '43px' };
     }
     return {};
 };

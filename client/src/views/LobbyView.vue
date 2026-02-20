@@ -112,8 +112,8 @@ const playBtnSound = () => {
 const userInfo = computed(() => {
     const rawName = userStore.userInfo.nick_name || userStore.userInfo.user_id || '---';
     let displayName = rawName;
-    if (rawName.length > 20) {
-        displayName = rawName.substring(0, 3) + '...' + rawName.substring(rawName.length - 3);
+    if (rawName.length > 11) {
+        displayName = rawName.substring(0, 4) + '...' + rawName.substring(rawName.length - 4);
     }
 
     return {

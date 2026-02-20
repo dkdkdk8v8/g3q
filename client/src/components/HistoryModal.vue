@@ -345,7 +345,7 @@ watch(() => props.visible, (val) => {
                             <div class="hc-bet-amt">
                                 投注: <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{
                                     formatCoins(item.bet)
-                                    }}</span>
+                                }}</span>
                             </div>
                         </div>
                     </div>
@@ -649,8 +649,9 @@ watch(() => props.visible, (val) => {
 }
 
 .coin-icon-text {
-    width: 12px;
+    width: auto;
     height: 12px;
+    margin-top: -2px;
 }
 
 .coin-amount-text {

@@ -6,9 +6,19 @@ function processAssets(files) {
     const assets = {}; // Use object map or array. Array is fine since 0-9.
     for (const path in files) {
         // Expected path format ends with /w_0.png or /y_0.png
-        const match = path.match(/_(\d)\.png$/);
-        if (match) {
-            assets[match[1]] = files[path];
+        const digitMatch = path.match(/_(\d)\.png$/);
+        if (digitMatch) {
+            assets[digitMatch[1]] = files[path];
+            continue;
+        }
+
+        // Handle special characters
+        if (path.endsWith('point.png')) {
+            assets['.'] = files[path];
+        } else if (path.endsWith('minus.png')) {
+            assets['-'] = files[path];
+        } else if (path.endsWith('plus.png')) {
+            assets['+'] = files[path];
         }
     }
     return assets;

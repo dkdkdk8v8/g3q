@@ -1,7 +1,7 @@
 <template>
     <div class="sprite-number" :style="{ gap: gap + 'px' }">
         <template v-for="(char, index) in displayChars" :key="index">
-            <img v-if="/[0-9]/.test(char)" :src="getAsset(char)" :style="{ height: height + 'px' }" class="digit-img"
+            <img v-if="getAsset(char)" :src="getAsset(char)" :style="{ height: height + 'px' }" class="digit-img"
                 :class="type" />
             <span v-else class="text-char" :class="type" :style="{ fontSize: height * 0.8 + 'px' }">{{ char }}</span>
         </template>
@@ -37,13 +37,9 @@ const displayChars = computed(() => {
 });
 
 const getAsset = (char) => {
-    // Only map digits, ignore other chars or return null
-    if (/[0-9]/.test(char)) {
-        // For red, we use yellow images as base and apply CSS filter
-        const baseType = props.type === 'red' ? 'yellow' : props.type;
-        return getNumberAsset(char, baseType);
-    }
-    return null; // Or placeholder
+    // For red, we use yellow images as base and apply CSS filter
+    const baseType = props.type === 'red' ? 'yellow' : props.type;
+    return getNumberAsset(char, baseType);
 };
 </script>
 

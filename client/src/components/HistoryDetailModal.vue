@@ -4,6 +4,7 @@ import { useUserStore } from '../stores/user.js';
 import { formatCoins } from '../utils/format.js';
 import { transformServerCard, calculateHandType } from '../utils/bullfight.js';
 import HistoryPokerCard from './HistoryPokerCard.vue';
+import SpriteNumber from './SpriteNumber.vue';
 import bankerIcon from '@/assets/common/zhuang.png';
 import { showToast } from 'vant';
 

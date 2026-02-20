@@ -1935,10 +1935,6 @@ const shouldMoveStatusToHighPosition = computed(() => {
                     <svg v-if="isHosting" class="tuoguan-neon-border" viewBox="0 0 88 36"
                         xmlns="http://www.w3.org/2000/svg">
                         <path class="neon-base" d="M 18 1 L 87 1 L 87 35 L 18 35 A 17 17 0 0 1 18 1 Z" fill="none" />
-                        <path class="neon-layer-5" d="M 18 1 L 87 1 L 87 35 L 18 35 A 17 17 0 0 1 18 1 Z" fill="none" />
-                        <path class="neon-layer-4" d="M 18 1 L 87 1 L 87 35 L 18 35 A 17 17 0 0 1 18 1 Z" fill="none" />
-                        <path class="neon-layer-3" d="M 18 1 L 87 1 L 87 35 L 18 35 A 17 17 0 0 1 18 1 Z" fill="none" />
-                        <path class="neon-layer-2" d="M 18 1 L 87 1 L 87 35 L 18 35 A 17 17 0 0 1 18 1 Z" fill="none" />
                         <path class="neon-layer-1" d="M 18 1 L 87 1 L 87 35 L 18 35 A 17 17 0 0 1 18 1 Z" fill="none" />
                     </svg>
 

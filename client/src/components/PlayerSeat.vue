@@ -433,8 +433,11 @@ const shouldMoveStatusFloat = computed(() => {
         <!-- ... (keep score float) -->
         <div v-if="player.roundScore !== 0 && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)"
             class="score-float" :class="player.roundScore > 0 ? 'win' : 'lose'">
-            {{ player.roundScore > 0 ? '+' : '' }}{{
-                formatCoins(player.roundScore) }}
+            <SpriteNumber
+                :value="(player.roundScore > 0 ? '+' : '') + formatCoins(player.roundScore)"
+                :type="player.roundScore > 0 ? 'red' : 'white'"
+                :height="24"
+            />
         </div>
 
         <!-- 手牌区域 (始终渲染以占位) -->

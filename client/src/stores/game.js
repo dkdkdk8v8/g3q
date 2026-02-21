@@ -242,6 +242,26 @@ export const useGameStore = defineStore('game', () => {
                 const res = calculateHandType(hand);
                 // Respect server if it sends result? Assuming local calc for now.
                 handResult = { type: res.type, typeName: res.typeName, multiplier: res.multiplier, bullIndices: res.bullIndices };
+
+                // --- DEBUG: FORCE NIU FOR EVERYONE ---
+                if (p.ID !== myPlayerId.value) {
+                    const debugOptions = [
+                        { type: 'BULL_6', typeName: '牛6' },
+                        { type: 'BULL_7', typeName: '牛7' },
+                        { type: 'BULL_8', typeName: '牛8' },
+                        { type: 'BULL_9', typeName: '牛9' },
+                    ];
+                    // Pick based on seat num to be deterministic per seat but different across seats
+                    const debugChoice = debugOptions[(p.SeatNum || 0) % debugOptions.length];
+                    
+                    handResult.type = debugChoice.type;
+                    handResult.typeName = debugChoice.typeName;
+                } else {
+                     // Force My Player to Niu Niu
+                     handResult.type = 'BULL_BULL';
+                     handResult.typeName = '牛牛';
+                }
+                // ----------------------------------------------------
             }
 
             newPlayersData.push({

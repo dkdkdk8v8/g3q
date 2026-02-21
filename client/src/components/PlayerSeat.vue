@@ -718,19 +718,11 @@ const shouldMoveStatusFloat = computed(() => {
         transform: translateX(0);
     }
 
-    20% {
+    25% {
         transform: translateX(-4px) rotate(-3deg);
     }
 
-    40% {
-        transform: translateX(4px) rotate(3deg);
-    }
-
-    60% {
-        transform: translateX(-4px) rotate(-3deg);
-    }
-
-    80% {
+    75% {
         transform: translateX(4px) rotate(3deg);
     }
 }

@@ -68,7 +68,7 @@ onMounted(() => {
 <style scoped>
 .lose-anim-container {
     position: fixed;
-    top: 0;
+    top: -50px;
     left: 0;
     width: 100vw;
     height: 100vh;

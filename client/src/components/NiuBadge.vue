@@ -26,6 +26,8 @@ import n8CharImg from '@/assets/ani_niu/niu_8.png';
 import n9CharImg from '@/assets/ani_niu/niu_9.png';
 import iconLeftImg from '@/assets/ani_niu/niu_icon_left.png';
 import iconRightImg from '@/assets/ani_niu/niu_icon_right.png';
+import leftJiaoImg from '@/assets/ani_niu/niu_left_jiao.png';
+import rightJiaoImg from '@/assets/ani_niu/niu_right_jiao.png';
 
 const props = defineProps({
     type: String, // e.g. "牛7", "牛牛", "没牛"
@@ -108,8 +110,14 @@ watch(normalizedType, () => {
 
             <!-- Phase 2: Text -->
             <div v-else class="anim-content full-center">
-                <img :src="niuCharImg" class="char-zoom-in delay-1" />
-                <img :src="niuCharImg" class="char-zoom-in delay-2" />
+                <div class="char-wrapper delay-1">
+                    <img :src="leftJiaoImg" class="jiao-img left-jiao jiao-anim-1" />
+                    <img :src="niuCharImg" class="char-img" />
+                </div>
+                <div class="char-wrapper delay-2">
+                    <img :src="rightJiaoImg" class="jiao-img right-jiao jiao-anim-2" />
+                    <img :src="niuCharImg" class="char-img" />
+                </div>
             </div>
         </div>
 
@@ -269,11 +277,61 @@ watch(normalizedType, () => {
     gap: 2px;
 }
 
-.char-zoom-in {
+.char-wrapper {
+    position: relative;
     height: 80%;
-    width: auto;
+    display: inline-block;
     animation: zoomIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
     opacity: 0;
+}
+
+.char-img {
+    height: 100%;
+    width: auto;
+    display: block;
+}
+
+.jiao-img {
+    position: absolute;
+    width: 35%;
+    height: auto;
+    opacity: 0;
+    z-index: 2;
+}
+
+.left-jiao {
+    top: -10%;
+    left: -15%;
+}
+
+.right-jiao {
+    top: -10%;
+    right: -15%;
+}
+
+.jiao-anim-1 {
+    animation: jiaoPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.35s forwards;
+}
+
+.jiao-anim-2 {
+    animation: jiaoPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.5s forwards;
+}
+
+@keyframes jiaoPop {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+
+    80% {
+        transform: scale(1.3);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
 }
 
 .delay-1 {

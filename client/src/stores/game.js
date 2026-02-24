@@ -243,7 +243,7 @@ export const useGameStore = defineStore('game', () => {
                 // Respect server if it sends result? Assuming local calc for now.
                 handResult = { type: res.type, typeName: res.typeName, multiplier: res.multiplier, bullIndices: res.bullIndices };
 
-                // --- DEBUG: FORCE NIU FOR EVERYONE ---
+                // --- 测试手牌  DEBUG: FORCE NIU FOR EVERYONE ---
                 // if (p.ID !== myPlayerId.value) {
                 //     const debugOptions = [
                 //         { type: 'BULL_6', typeName: '牛6' },

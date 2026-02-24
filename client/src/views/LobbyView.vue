@@ -219,8 +219,21 @@ const currentRoomNameBg = computed(() => {
     }
 });
 
-const enterGame = debounce(async (level) => {
+const clickedRoomLevel = ref(null);
+
+const handleEnterRoomClick = (level) => {
+    if (clickedRoomLevel.value === level) return;
     playBtnSound();
+    clickedRoomLevel.value = level;
+    
+    // Play animation then send protocol
+    setTimeout(() => {
+        clickedRoomLevel.value = null;
+        executeEnterGame(level);
+    }, 150); // 150ms animation duration
+};
+
+const executeEnterGame = debounce(async (level) => {
     try {
         gameStore.gameMode = currentMode.value;
         await gameStore.joinRoom(level, currentMode.value);
@@ -394,10 +407,11 @@ const goBack = () => {
             <div class="room-list-container">
                 <TransitionGroup name="list" tag="div" class="room-list" :key="currentMode">
                     <div v-for="(room, index) in rooms" :key="room.level" class="room-row"
+                        :class="{ 'room-clicked': clickedRoomLevel === room.level }"
                         :style="{ '--i': index, animationDelay: `${index * 0.1}s` }">
                         <!-- Left: Room Info (70%) -->
                         <div class="room-info" :style="{ backgroundImage: `url(${eachRoomBg})` }"
-                            @click="enterGame(room.level)">
+                            @click="handleEnterRoomClick(room.level)">
                             <div class="room-info-content">
                                 <!-- Room Name with specific bg -->
                                 <div class="room-name-container"
@@ -420,7 +434,7 @@ const goBack = () => {
                         </div>
 
                         <!-- Right: Enter Button -->
-                        <div class="room-enter-btn" @click="enterGame(room.level)">
+                        <div class="room-enter-btn" @click="handleEnterRoomClick(room.level)">
                             <div class="enter-btn-wrapper">
                                 <img :src="eachRoomEnterBtn" class="enter-btn-bg-img" />
                                 <div class="particles-container">
@@ -715,6 +729,11 @@ const goBack = () => {
     opacity: 0;
     transform: translateX(30px);
     animation: slideIn 0.5s ease forwards;
+    transition: transform 0.1s ease;
+}
+
+.room-row.room-clicked {
+    transform: scale(0.96) !important;
 }
 
 @keyframes slideIn {
@@ -809,6 +828,11 @@ const goBack = () => {
     display: flex;
     justify-content: center;
     align-items: center;
+    transition: filter 0.1s ease;
+}
+
+.enter-btn-wrapper.btn-clicked {
+    filter: brightness(0.7);
 }
 
 .enter-btn-bg-img {

@@ -1,11 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 
-// Backgrounds
-import bg0 from '@/assets/common/game_bg.jpg';
-import bg1 from '@/assets/common/game_bg_san.jpg';
-import bg2 from '@/assets/common/game_bg_zise.jpg';
-
 // Assets
 import defaultAvatar from '@/assets/common/default_avatar.png';
 import cardBack from '@/assets/common/card_back.png';
@@ -22,12 +17,6 @@ const props = defineProps({
         type: Number,
         default: 0
     }
-});
-
-const currentBg = computed(() => {
-    if (props.mode === 1) return bg1;
-    if (props.mode === 2) return bg2;
-    return bg0;
 });
 
 const players = ref([]);
@@ -112,7 +101,7 @@ onUnmounted(() => {
 
 <template>
     <div class="lobby-anim-wrapper">
-        <div class="bg-container" :style="{ backgroundImage: `url(${currentBg})` }">
+        <div class="bg-container">
             <div class="players-container">
                 <!-- A subtle central 'dealer' or pot area implied by animation start point -->
                 <div class="dealer-pos"></div>
@@ -145,19 +134,18 @@ onUnmounted(() => {
 
 <style scoped>
 .lobby-anim-wrapper {
+    /* background-color: #ff0; */
     position: absolute;
     bottom: 20px;
     /* Slight offset from bottom */
-    left: 50%;
+    left: 55%;
     transform: translateX(-50%);
-    width: 50vw;
-    height: 35vh;
+    width: 70vw;
+    height: 15vh;
     /* Standard fixed height to not stretch */
     border-radius: 15px;
     overflow: hidden;
     z-index: 0;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-    border: 2px solid rgba(255, 255, 255, 0.1);
 }
 
 .bg-container {
@@ -168,7 +156,7 @@ onUnmounted(() => {
     height: 100%;
     /* Use background-size: cover so it fills the landscape container, centered on the middle of the table image */
     background-size: contain;
-    background-position: center 30%;
+    background-position: center;
     /* Focus more on the top-middle where the table usually is */
     background-repeat: no-repeat;
 }

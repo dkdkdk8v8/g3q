@@ -127,6 +127,7 @@ const userInfo = computed(() => {
 
 const currentMode = ref(userStore.lastSelectedMode || 0); // 0: Bukan, 1: San, 2: Si
 
+/* Temporarily disabled bottom tab logic
 const setMode = (mode) => {
     if (currentMode.value === mode) return;
     playBtnSound();
@@ -193,6 +194,7 @@ watch(currentMode, (newVal) => {
         }, 160);
     }
 }, { immediate: true });
+*/
 
 // const bkpAnimImg = ref(tabBkpStart);
 // let bkpAnimTimer = null;
@@ -449,26 +451,22 @@ const goBack = () => {
             </div>
         </div>
 
-        <!-- Bottom Tabs Area -->
+        <!-- Bottom Tabs Area (Temporarily Disabled) -->
+        <!--
         <div class="bottom-area-container">
-            <!-- Tabs -->
             <div class="bottom-tabs">
-                <!-- Mode 0: Bukan (No Look) -->
                 <div class="tab-item" @click="setMode(0)"
                     :style="{ backgroundImage: `url(${currentMode === 0 ? tabBukanSelBg : tabBukanBg})` }">
                     <img :src="currentMode === 0 ? bukanSelIconDisplay : tabBukanIcon" class="tab-icon-left" />
-                    <!-- <img v-if="currentMode === 0" :src="bkpAnimImg" class="tab-anim-icon" /> -->
                     <img :src="currentMode === 0 ? tabBukanSel : tabBukan"
                         :class="currentMode === 0 ? 'tab-bukan-sel-img' : 'tab-bukan-img'" />
                 </div>
-                <!-- Mode 1: San (3 cards) -->
                 <div class="tab-item2" @click="setMode(1)"
                     :style="{ backgroundImage: `url(${currentMode === 1 ? tabSansiSelBg : tabSansiBg})` }">
                     <img :src="currentMode === 1 ? sanSelIconDisplay : tabSanIcon" class="tab-icon-left" />
                     <img :src="currentMode === 1 ? tabSanSel : tabSan"
                         :class="currentMode === 1 ? 'tab-san-sel-img' : 'tab-san-img'" />
                 </div>
-                <!-- Mode 2: Si (4 cards) -->
                 <div class="tab-item3" @click="setMode(2)"
                     :style="{ backgroundImage: `url(${currentMode === 2 ? tabSansiSelBg : tabSansiBg})` }">
                     <img :src="currentMode === 2 ? siSelIconDisplay : tabSiIcon" class="tab-icon-left" />
@@ -476,9 +474,9 @@ const goBack = () => {
                         :class="currentMode === 2 ? 'tab-si-sel-img' : 'tab-si-img'" />
                 </div>
             </div>
-            <!-- Bottom Decoration Bar -->
             <div class="bottom-bar-bg" :style="{ backgroundImage: `url(${tabBgImg})` }"></div>
         </div>
+        -->
 
         <!-- Modals -->
         <HistoryModal v-model:visible="showHistory" />

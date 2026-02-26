@@ -490,7 +490,7 @@ const positionedPlayers = computed(() => {
 .detail-content {
     background: #1a1d26;
     width: 100%;
-    height: 60vh;
+    height: 63vh;
     border-radius: 20px 20px 0 0;
     display: flex;
     flex-direction: column;

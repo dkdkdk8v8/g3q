@@ -16,6 +16,7 @@ declare module 'vue' {
     HistoryModal: typeof import('./src/components/HistoryModal.vue')['default']
     HistoryPokerCard: typeof import('./src/components/HistoryPokerCard.vue')['default']
     HostingModal: typeof import('./src/components/HostingModal.vue')['default']
+    LobbyBackgroundAnimation: typeof import('./src/components/LobbyBackgroundAnimation.vue')['default']
     LoseAnimation: typeof import('./src/components/LoseAnimation.vue')['default']
     NiuBadge: typeof import('./src/components/NiuBadge.vue')['default']
     PlayerSeat: typeof import('./src/components/PlayerSeat.vue')['default']

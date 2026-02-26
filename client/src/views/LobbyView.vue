@@ -11,6 +11,7 @@ import gameClient from '../socket.js';
 import HistoryModal from '../components/HistoryModal.vue';
 import SettingsModal from '../components/SettingsModal.vue';
 import HelpModal from '../components/HelpModal.vue';
+import LobbyBackgroundAnimation from '../components/LobbyBackgroundAnimation.vue';
 
 // Assets
 import bgImg from '@/assets/lobby/bg.jpg';
@@ -451,6 +452,11 @@ const goBack = () => {
             </div>
         </div>
 
+        <LobbyBackgroundAnimation :mode="currentMode" />
+
+        <!-- Full screen glass overlay -->
+        <div class="lobby-full-glass"></div>
+
         <!-- Bottom Tabs Area (Temporarily Disabled) -->
         <!--
         <div class="bottom-area-container">
@@ -514,6 +520,18 @@ const goBack = () => {
     pointer-events: none;
     /* Let clicks pass through */
     animation: floatBg 15s infinite ease-in-out alternate;
+}
+
+.lobby-full-glass {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    backdrop-filter: blur(6px); /* Frosted glass effect */
+    background: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.4));
+    pointer-events: none;
+    z-index: 0;
 }
 
 @keyframes floatBg {

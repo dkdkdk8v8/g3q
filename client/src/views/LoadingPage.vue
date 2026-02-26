@@ -9,6 +9,15 @@
       <div style="margin-right:0px">APP:【 {{ appId }} 】</div>
       <div>UID: 【{{ userId }}】</div>
     </div> -->
+    <div class="mode-selector">
+      <div class="mode-title">选择玩法进入对应大厅：</div>
+      <div class="mode-buttons-container">
+        <button @click="selectMode(0)" :class="['mode-btn', 'mode-0', { active: currentMode === 0 }]">不看牌</button>
+        <button @click="selectMode(1)" :class="['mode-btn', 'mode-1', { active: currentMode === 1 }]">看三张</button>
+        <button @click="selectMode(2)" :class="['mode-btn', 'mode-2', { active: currentMode === 2 }]">看四张</button>
+      </div>
+    </div>
+
     <button v-if="lastUid" @click="enterGameWithLast">继续上次用户测试 ({{ lastUid }})</button>
     <button @click="enterGameRandom" class="random-btn">新用户进入测试</button>
     <!-- <button @click="enterGameByUrl" class="url-btn">使用URL参数进入</button> -->
@@ -50,6 +59,13 @@ export default {
     const userStore = useUserStore();
     const settingsStore = useSettingsStore();
     const gameStore = useGameStore();
+
+    const currentMode = ref(userStore.lastSelectedMode || 0);
+
+    const selectMode = (mode) => {
+      currentMode.value = mode;
+      userStore.lastSelectedMode = mode;
+    };
 
     const LOCAL_STORAGE_IP_KEY = 'game_server_ip';
     const LOCAL_STORAGE_UID_KEY = 'game_user_uid';
@@ -285,6 +301,8 @@ export default {
       enterGameByUrl,
       enterGameWithLast, // Export new function
       isLoading, // Return isLoading
+      currentMode,
+      selectMode,
     };
   },
 };
@@ -343,6 +361,58 @@ h1 {
 
 .input-group input::placeholder {
   color: #bdc3c7;
+}
+
+.mode-selector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+  background-color: rgba(0, 0, 0, 0.4);
+  padding: 15px;
+  border-radius: 15px;
+}
+
+.mode-title {
+  color: #f1c40f;
+  font-size: 1.1em;
+  margin-bottom: 10px;
+  font-weight: bold;
+}
+
+.mode-buttons-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 15px;
+}
+
+.mode-btn {
+  color: white;
+  border: 2px solid transparent;
+  background-color: #7f8c8d !important; /* Gray background for unselected */
+  padding: 10px 20px;
+  border-radius: 50px;
+  cursor: pointer;
+  font-size: 1em;
+  font-weight: bold;
+  margin: 0;
+}
+
+.mode-btn.active {
+  border-color: #f1c40f;
+}
+
+.mode-0.active {
+  background-color: #2ecc71 !important;
+}
+
+.mode-1.active {
+  background-color: #3498db !important;
+}
+
+.mode-2.active {
+  background-color: #9b59b6 !important;
 }
 
 button {

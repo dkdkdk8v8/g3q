@@ -36,9 +36,9 @@ const generatePlayers = () => {
     const count = Math.floor(Math.random() * 4) + 2; // 2 to 5 players
     const newPlayers = [];
     for (let i = 0; i < count; i++) {
-        // Distribute positions roughly in a semi-circle or random bottom area
+        // Distribute positions within the visible play area (top portion of the original background)
         let x = Math.random() * 80 + 10; // 10% to 90%
-        let y = Math.random() * 50 + 30; // 30% to 80% (keep away from top edge)
+        let y = Math.random() * 50 + 10; // 10% to 60% relative to the current container height
         newPlayers.push({
             id: i + Date.now(),
             x,
@@ -58,31 +58,31 @@ const cardImages = [card0, card13, card26, card39, card10];
 
 const triggerRandomAction = () => {
     if (players.value.length === 0) return;
-    
+
     // Pick 1 or 2 random players to act
     const numActors = Math.floor(Math.random() * 2) + 1;
     for (let i = 0; i < numActors; i++) {
         const playerIndex = Math.floor(Math.random() * players.value.length);
         const player = players.value[playerIndex];
-        
+
         // Don't interrupt an ongoing action
         if (player.action) continue;
-        
+
         const actions = ['deal', 'show', 'gold'];
         const action = actions[Math.floor(Math.random() * actions.length)];
-        
+
         player.action = action;
-        
+
         if (action === 'deal') {
             player.cards = [1, 2, 3, 4, 5];
             setTimeout(() => { player.action = null; player.cards = []; }, 2000);
         } else if (action === 'show') {
             // Randomly pick 5 cards to show
-            player.cards = Array.from({length: 5}, () => cardImages[Math.floor(Math.random() * cardImages.length)]);
+            player.cards = Array.from({ length: 5 }, () => cardImages[Math.floor(Math.random() * cardImages.length)]);
             setTimeout(() => { player.action = null; player.cards = []; }, 2500);
         } else if (action === 'gold') {
             // Generate some random positions for gold
-            player.golds = Array.from({length: 6}, (_, i) => ({
+            player.golds = Array.from({ length: 6 }, (_, i) => ({
                 id: i,
                 delay: Math.random() * 0.5,
                 x: Math.random() * 2 - 1, // -1 to 1
@@ -117,22 +117,25 @@ onUnmounted(() => {
                 <!-- A subtle central 'dealer' or pot area implied by animation start point -->
                 <div class="dealer-pos"></div>
 
-                <div v-for="player in players" :key="player.id" class="player-pos" :style="{ left: player.x + '%', top: player.y + '%' }">
+                <div v-for="player in players" :key="player.id" class="player-pos"
+                    :style="{ left: player.x + '%', top: player.y + '%' }">
                     <img :src="player.avatar" class="avatar-img" />
-                    
+
                     <!-- Dealing Cards (flying from center top to player) -->
                     <div v-if="player.action === 'deal'" class="anim-deal">
-                        <img v-for="c in player.cards" :key="c" :src="cardBack" class="card-back flying-card" :style="{ animationDelay: (c * 0.1) + 's' }" />
+                        <img v-for="c in player.cards" :key="c" :src="cardBack" class="card-back flying-card"
+                            :style="{ animationDelay: (c * 0.1) + 's' }" />
                     </div>
-                    
+
                     <!-- Showing Cards (fan out near player) -->
                     <div v-if="player.action === 'show'" class="anim-show">
                         <img v-for="(card, i) in player.cards" :key="i" :src="card" class="card-front" />
                     </div>
-                    
+
                     <!-- Throwing Gold -->
                     <div v-if="player.action === 'gold'" class="anim-gold">
-                        <img v-for="g in player.golds" :key="g.id" :src="goldImg" class="flying-gold" :style="{ animationDelay: g.delay + 's', '--rand-x': g.x, '--rand-y': g.y }" />
+                        <img v-for="g in player.golds" :key="g.id" :src="goldImg" class="flying-gold"
+                            :style="{ animationDelay: g.delay + 's', '--rand-x': g.x, '--rand-y': g.y }" />
                     </div>
                 </div>
             </div>
@@ -143,15 +146,17 @@ onUnmounted(() => {
 <style scoped>
 .lobby-anim-wrapper {
     position: absolute;
-    bottom: 20px; /* Slight offset from bottom */
+    bottom: 20px;
+    /* Slight offset from bottom */
     left: 50%;
     transform: translateX(-50%);
     width: 50vw;
-    height: 30vh;
+    height: 35vh;
+    /* Standard fixed height to not stretch */
     border-radius: 15px;
     overflow: hidden;
     z-index: 0;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
     border: 2px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -161,8 +166,11 @@ onUnmounted(() => {
     left: 0;
     width: 100%;
     height: 100%;
-    background-size: cover;
-    background-position: center;
+    /* Use background-size: cover so it fills the landscape container, centered on the middle of the table image */
+    background-size: contain;
+    background-position: center 30%;
+    /* Focus more on the top-middle where the table usually is */
+    background-repeat: no-repeat;
 }
 
 .players-container {
@@ -192,7 +200,7 @@ onUnmounted(() => {
     height: 100%;
     border-radius: 50%;
     border: 2px solid #e0e0e0;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
 }
 
 /* Animations */
@@ -222,9 +230,11 @@ onUnmounted(() => {
         transform: translate(0px, -150px) scale(0.5) rotate(180deg);
         opacity: 0;
     }
+
     50% {
         opacity: 1;
     }
+
     100% {
         transform: translate(10px, 10px) scale(1) rotate(0deg);
         opacity: 1;
@@ -242,21 +252,53 @@ onUnmounted(() => {
 .card-front {
     width: 18px;
     height: auto;
-    margin-left: -12px; /* Overlap cards heavily */
+    margin-left: -12px;
+    /* Overlap cards heavily */
     opacity: 0;
     transform-origin: bottom center;
     animation: popCard 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
-.card-front:first-child { margin-left: 0; }
-.card-front:nth-child(1) { animation-delay: 0.0s; transform: rotate(-20deg); }
-.card-front:nth-child(2) { animation-delay: 0.1s; transform: rotate(-10deg); }
-.card-front:nth-child(3) { animation-delay: 0.2s; transform: rotate(0deg); }
-.card-front:nth-child(4) { animation-delay: 0.3s; transform: rotate(10deg); }
-.card-front:nth-child(5) { animation-delay: 0.4s; transform: rotate(20deg); }
+
+.card-front:first-child {
+    margin-left: 0;
+}
+
+.card-front:nth-child(1) {
+    animation-delay: 0.0s;
+    transform: rotate(-20deg);
+}
+
+.card-front:nth-child(2) {
+    animation-delay: 0.1s;
+    transform: rotate(-10deg);
+}
+
+.card-front:nth-child(3) {
+    animation-delay: 0.2s;
+    transform: rotate(0deg);
+}
+
+.card-front:nth-child(4) {
+    animation-delay: 0.3s;
+    transform: rotate(10deg);
+}
+
+.card-front:nth-child(5) {
+    animation-delay: 0.4s;
+    transform: rotate(20deg);
+}
 
 @keyframes popCard {
-    0% { transform: translateY(10px) scale(0.5) rotate(0deg); opacity: 0; }
-    100% { opacity: 1; } /* Uses base transform from nth-child */
+    0% {
+        transform: translateY(10px) scale(0.5) rotate(0deg);
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 1;
+    }
+
+    /* Uses base transform from nth-child */
 }
 
 .anim-gold {
@@ -279,6 +321,7 @@ onUnmounted(() => {
         transform: translate(0, 0) scale(0.5);
         opacity: 1;
     }
+
     100% {
         /* fly outwards based on random x/y variables */
         transform: translate(calc(var(--rand-x) * 60px), calc(var(--rand-y) * 60px - 20px)) scale(1.2);

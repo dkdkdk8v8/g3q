@@ -4,7 +4,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 // Assets
 import defaultAvatar from '@/assets/common/default_avatar.png';
 import cardBack from '@/assets/common/card_back.png';
-import goldImg from '@/assets/common/gold.png';
+import goldImg from '@/assets/common/throw_gold.png';
 // Import some card images for showing
 import card0 from '@/assets/card/card_0.png';
 import card13 from '@/assets/card/card_13.png';
@@ -63,7 +63,7 @@ const triggerRandomAction = () => {
         // Don't interrupt an ongoing action
         if (player.action) continue;
 
-        const actions = ['deal', 'show', 'gold'];
+        const actions = ['deal', 'show', 'gold', 'pay_gold'];
         const action = actions[Math.floor(Math.random() * actions.length)];
 
         player.action = action;
@@ -84,6 +84,21 @@ const triggerRandomAction = () => {
                 y: Math.random() * 2 - 1
             }));
             setTimeout(() => { player.action = null; player.golds = []; }, 1500);
+        } else if (action === 'pay_gold') {
+            // Pay gold to another random player
+            const otherPlayers = players.value.filter(p => p.id !== player.id);
+            if (otherPlayers.length > 0) {
+                const target = otherPlayers[Math.floor(Math.random() * otherPlayers.length)];
+                player.golds = Array.from({ length: 6 }, (_, i) => ({
+                    id: i,
+                    delay: Math.random() * 0.3,
+                    tx: target.x,
+                    ty: target.y
+                }));
+                setTimeout(() => { player.action = null; player.golds = []; }, 1500);
+            } else {
+                player.action = null;
+            }
         }
     }
 };
@@ -131,6 +146,12 @@ onUnmounted(() => {
                     <div v-if="player.action === 'gold'" class="anim-gold">
                         <img v-for="g in player.golds" :key="g.id" :src="goldImg" class="flying-gold"
                             :style="{ animationDelay: g.delay + 's', '--rand-x': g.x, '--rand-y': g.y }" />
+                    </div>
+
+                    <!-- Throwing Gold to another player (pay_gold) -->
+                    <div v-if="player.action === 'pay_gold'" class="anim-gold">
+                        <img v-for="g in player.golds" :key="g.id" :src="goldImg" class="flying-gold-target"
+                            :style="{ animationDelay: g.delay + 's', '--tx': g.tx, '--ty': g.ty }" />
                     </div>
                 </div>
             </div>
@@ -210,6 +231,10 @@ onUnmounted(() => {
     position: absolute;
     width: 18px;
     height: auto;
+    top: 50%;
+    left: 50%;
+    margin-left: -9px;
+    margin-top: -12px;
     opacity: 0;
     animation: flyInCard 0.4s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
 }
@@ -217,7 +242,7 @@ onUnmounted(() => {
 /* Calculate origin for flyInCard in CSS using container center (50%, 50%) offset */
 @keyframes flyInCard {
     0% {
-        transform: translate(calc((50 - var(--px, 50)) * 0.8vw), calc((25 - var(--py, 50)) * 0.2vh)) scale(0.5) rotate(180deg);
+        transform: translate(calc((50 - var(--px, 50)) * 0.8vw), calc((50 - var(--py, 50)) * 0.2vh)) scale(0.5) rotate(180deg);
         opacity: 0;
     }
 
@@ -299,12 +324,22 @@ onUnmounted(() => {
     z-index: 15;
 }
 
-.flying-gold {
+.flying-gold,
+.flying-gold-target {
     position: absolute;
     width: 16px;
     height: 16px;
+    margin-left: -8px;
+    margin-top: -8px;
     opacity: 0;
+}
+
+.flying-gold {
     animation: flyGold 0.8s ease-out forwards;
+}
+
+.flying-gold-target {
+    animation: flyGoldTarget 0.8s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
 }
 
 @keyframes flyGold {
@@ -316,6 +351,28 @@ onUnmounted(() => {
     100% {
         /* fly outwards based on random x/y variables */
         transform: translate(calc(var(--rand-x) * 60px), calc(var(--rand-y) * 60px - 20px)) scale(1.2);
+        opacity: 0;
+    }
+}
+
+@keyframes flyGoldTarget {
+    0% {
+        transform: translate(0, 0) scale(0.5);
+        opacity: 1;
+    }
+
+    20% {
+        opacity: 1;
+        transform: translate(calc((var(--tx) - var(--px)) * 0.16vw), calc((var(--ty) - var(--py)) * 0.04vh - 20px)) scale(1.2);
+    }
+
+    80% {
+        opacity: 1;
+    }
+
+    100% {
+        /* fly outwards based on target x/y variables relative to current x/y */
+        transform: translate(calc((var(--tx) - var(--px)) * 0.8vw), calc((var(--ty) - var(--py)) * 0.2vh)) scale(0.8);
         opacity: 0;
     }
 }

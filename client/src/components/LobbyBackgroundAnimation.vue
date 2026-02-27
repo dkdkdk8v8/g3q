@@ -217,7 +217,7 @@ onUnmounted(() => {
 /* Calculate origin for flyInCard in CSS using container center (50%, 50%) offset */
 @keyframes flyInCard {
     0% {
-        transform: translate(calc((50 - var(--px, 50)) * 0.8vw), calc((50 - var(--py, 50)) * 0.2vh)) scale(0.5) rotate(180deg);
+        transform: translate(calc((50 - var(--px, 50)) * 0.8vw), calc((25 - var(--py, 50)) * 0.2vh)) scale(0.5) rotate(180deg);
         opacity: 0;
     }
 

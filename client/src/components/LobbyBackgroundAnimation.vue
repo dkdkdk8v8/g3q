@@ -327,8 +327,8 @@ onUnmounted(() => {
 .flying-gold,
 .flying-gold-target {
     position: absolute;
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 1px;
     margin-left: -8px;
     margin-top: -8px;
     opacity: 0;

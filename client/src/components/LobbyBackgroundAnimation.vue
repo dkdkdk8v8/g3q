@@ -214,10 +214,10 @@ onUnmounted(() => {
     animation: flyInCard 0.4s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
 }
 
-/* Calculate origin for flyInCard in CSS using container center X and higher Y (-50%) offset */
+/* Calculate origin for flyInCard in CSS using container center (50%, 50%) offset */
 @keyframes flyInCard {
     0% {
-        transform: translate(calc((50 - var(--px, 50)) * 0.8vw), calc((-50 - var(--py, 50)) * 0.1vh)) scale(0.5) rotate(180deg);
+        transform: translate(calc((50 - var(--px, 50)) * 0.8vw), calc((50 - var(--py, 50)) * 0.2vh)) scale(0.5) rotate(180deg);
         opacity: 0;
     }
 

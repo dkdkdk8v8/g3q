@@ -21,17 +21,23 @@ const props = defineProps({
 
 const players = ref([]);
 
+const ellipsePositions = [
+    { x: 20, y: -20 }, // 顶部左上
+    { x: 80, y: -20 }, // 顶部右上
+    { x: 0, y: 30 }, // 中心最左侧
+    { x: 100, y: 30 }, // 中心最右侧
+    { x: 50, y: 58 }  // 最底部 中心一个
+];
+
 const generatePlayers = () => {
     const count = Math.floor(Math.random() * 4) + 2; // 2 to 5 players
+    const shuffledPositions = [...ellipsePositions].sort(() => 0.5 - Math.random());
     const newPlayers = [];
     for (let i = 0; i < count; i++) {
-        // Distribute positions within the visible play area (top portion of the original background)
-        let x = Math.random() * 80 + 10; // 10% to 90%
-        let y = Math.random() * 50 + 10; // 10% to 60% relative to the current container height
         newPlayers.push({
             id: i + Date.now(),
-            x,
-            y,
+            x: shuffledPositions[i].x,
+            y: shuffledPositions[i].y,
             avatar: defaultAvatar,
             action: null, // 'deal', 'show', 'gold'
             cards: [],
@@ -138,13 +144,12 @@ onUnmounted(() => {
     position: absolute;
     bottom: 20px;
     /* Slight offset from bottom */
-    left: 55%;
+    left: 50%;
     transform: translateX(-50%);
-    width: 70vw;
-    height: 15vh;
+    width: 80vw;
+    height: 20vh;
     /* Standard fixed height to not stretch */
     border-radius: 15px;
-    overflow: hidden;
     z-index: 0;
 }
 

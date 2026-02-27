@@ -25,7 +25,7 @@ const ellipsePositions = [
     { x: 20, y: -20 }, // 顶部左上
     { x: 80, y: -20 }, // 顶部右上
     { x: 0, y: 30 }, // 中心最左侧
-    { x: 100, y: 30 }, // 中心最右侧
+    { x: 98, y: 30 }, // 中心最右侧
     { x: 50, y: 58 }  // 最底部 中心一个
 ];
 
@@ -233,8 +233,9 @@ onUnmounted(() => {
 
 .anim-show {
     position: absolute;
-    top: -15px;
-    left: 20px;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
     z-index: 12;
 }

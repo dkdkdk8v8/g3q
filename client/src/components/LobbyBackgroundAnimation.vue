@@ -113,7 +113,7 @@ onUnmounted(() => {
                 <div class="dealer-pos"></div>
 
                 <div v-for="player in players" :key="player.id" class="player-pos"
-                    :style="{ left: player.x + '%', top: player.y + '%' }">
+                    :style="{ left: player.x + '%', top: player.y + '%', '--px': player.x, '--py': player.y }">
                     <img :src="player.avatar" class="avatar-img" />
 
                     <!-- Dealing Cards (flying from center top to player) -->
@@ -211,16 +211,13 @@ onUnmounted(() => {
     width: 18px;
     height: auto;
     opacity: 0;
-    /* Start position relative to player, simulating coming from top-center of container */
-    /* Because parent is .player-pos, we use a fixed transform for origin to simulate a central dealer */
-    transform: translate(calc(-1 * var(--x, 0px)), calc(-1 * var(--y, 0px))) scale(0.5);
     animation: flyInCard 0.4s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
 }
 
-/* We'll calculate a pseudo origin for flyInCard in CSS by roughly assuming dealer is at 0, -150px relative to player */
+/* Calculate origin for flyInCard in CSS using container center (50%, 50%) offset */
 @keyframes flyInCard {
     0% {
-        transform: translate(0px, -150px) scale(0.5) rotate(180deg);
+        transform: translate(calc((50 - var(--px, 50)) * 0.8vw), calc((50 - var(--py, 50)) * 0.2vh)) scale(0.5) rotate(180deg);
         opacity: 0;
     }
 

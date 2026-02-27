@@ -63,7 +63,7 @@ const triggerRandomAction = () => {
         // Don't interrupt an ongoing action
         if (player.action) continue;
 
-        const actions = ['deal', 'show', 'gold', 'pay_gold'];
+        const actions = ['show', 'deal', 'gold', 'pay_gold', 'show'];
         const action = actions[Math.floor(Math.random() * actions.length)];
 
         player.action = action;

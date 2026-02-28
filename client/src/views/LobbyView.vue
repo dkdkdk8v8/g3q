@@ -14,7 +14,9 @@ import HelpModal from '../components/HelpModal.vue';
 import LobbyBackgroundAnimation from '../components/LobbyBackgroundAnimation.vue';
 
 // Assets
-import bgImg from '@/assets/lobby/bg.jpg';
+import gameBgImg from '@/assets/lobby/bg.jpg';
+import gameBgSanImg from '@/assets/common/game_bg_san.jpg';
+import gameBgSiImg from '@/assets/common/game_bg_zise.jpg';
 import bgUpImg from '@/assets/lobby/bg_up.png';
 import topBgImg from '@/assets/lobby/top_bg.png';
 import btnExit from '@/assets/lobby/exit_btn.png';
@@ -128,6 +130,18 @@ const userInfo = computed(() => {
 
 const currentMode = ref(userStore.lastSelectedMode || 0); // 0: Bukan, 1: San, 2: Si
 
+const backgroundImageStyle = computed(() => {
+    let bgUrl = gameBgImg; // Default
+    if (currentMode.value === 1) {
+        bgUrl = gameBgSanImg;
+    } else if (currentMode.value === 2) {
+        bgUrl = gameBgSiImg;
+    }
+    return {
+        backgroundImage: `url(${bgUrl})`
+    };
+});
+
 /* Temporarily disabled bottom tab logic
 const setMode = (mode) => {
     if (currentMode.value === mode) return;
@@ -228,7 +242,7 @@ const handleEnterRoomClick = (level) => {
     if (clickedRoomLevel.value === level) return;
     playBtnSound();
     clickedRoomLevel.value = level;
-    
+
     // Play animation then send protocol
     setTimeout(() => {
         clickedRoomLevel.value = null;
@@ -362,7 +376,7 @@ const goBack = () => {
 </script>
 
 <template>
-    <div class="lobby-container" :style="{ backgroundImage: `url(${bgImg})` }">
+    <div class="lobby-container" :style="backgroundImageStyle">
         <!-- Floating Background Layer -->
         <img :src="bgUpImg" class="bg-up-anim" />
 
@@ -495,8 +509,8 @@ const goBack = () => {
 .lobby-container {
     width: 100vw;
     height: 100dvh;
-    background-size: cover;
-    background-position: center;
+    background-size: 100% 100%;
+    background-position: center center;
     background-repeat: no-repeat;
     display: flex;
     flex-direction: column;
@@ -528,8 +542,9 @@ const goBack = () => {
     left: 0;
     width: 100%;
     height: 100%;
-    backdrop-filter: blur(6px); /* Frosted glass effect */
-    background: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.4));
+    backdrop-filter: blur(6px);
+    /* Frosted glass effect */
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.4));
     pointer-events: none;
     z-index: 0;
 }

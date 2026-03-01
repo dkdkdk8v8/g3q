@@ -1,9 +1,0 @@
-{
-    "development": {
-        "allowMonitorGameList":["coinNiuNiu4","coinDDZ","coinMaJiang_nd"]
-    },
-
-    "production": {
-        "allowMonitorGameList":["coinNiuNiu4","coinDDZ","coinMaJiang_nd"]
-    } 
-}

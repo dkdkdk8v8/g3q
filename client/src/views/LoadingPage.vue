@@ -310,17 +310,36 @@ export default {
 
 <style scoped>
 .loading-page {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100dvh;
+  background-color: #222222;
   background-image: url('../assets/lobby/bg.jpg');
   background-size: cover;
   background-position: center;
+  background-repeat: no-repeat;
   color: #ecf0f1;
   font-family: Arial, sans-serif;
-  padding: 20px;
+  z-index: 1;
+}
+
+.loading-page::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  background-color: rgba(0, 0, 0, 0.3);
+  z-index: -1;
 }
 
 .lobby-logo {
@@ -390,7 +409,8 @@ h1 {
 .mode-btn {
   color: white;
   border: 2px solid transparent;
-  background-color: #7f8c8d !important; /* Gray background for unselected */
+  background-color: #7f8c8d !important;
+  /* Gray background for unselected */
   padding: 10px 20px;
   border-radius: 50px;
   cursor: pointer;

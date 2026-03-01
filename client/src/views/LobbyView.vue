@@ -14,9 +14,6 @@ import HelpModal from '../components/HelpModal.vue';
 import LobbyBackgroundAnimation from '../components/LobbyBackgroundAnimation.vue';
 
 // Assets
-import gameBgImg from '@/assets/lobby/bg.jpg';
-import gameBgSanImg from '@/assets/common/game_bg_san.jpg';
-import gameBgSiImg from '@/assets/common/game_bg_zise.jpg';
 import bgUpImg from '@/assets/lobby/bg_up.png';
 import topBgImg from '@/assets/lobby/top_bg.png';
 import btnExit from '@/assets/lobby/exit_btn.png';
@@ -364,7 +361,7 @@ const goBack = () => {
 </script>
 
 <template>
-    <div class="lobby-container" :style="{ backgroundImage: `url(${gameBgImg})` }">
+    <div class="lobby-container">
         <!-- Floating Background Layer -->
         <img :src="bgUpImg" class="bg-up-anim" />
 
@@ -497,6 +494,7 @@ const goBack = () => {
 .lobby-container {
     width: 100vw;
     height: 100dvh;
+    background-image: url('../assets/lobby/bg.jpg');
     background-size: 100% 100%;
     background-position: center center;
     background-repeat: no-repeat;

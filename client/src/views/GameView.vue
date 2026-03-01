@@ -347,7 +347,6 @@ const finishSwitchRoomAnimation = () => {
         switchRoomTimeout.value = null;
     }
 };
-
 import gameBgSound from '@/assets/sounds/game_bg.mp3';
 import gameBgImg from '@/assets/common/game_bg.jpg'; // Import default BG explicitly
 import gameBgSanImg from '@/assets/common/game_bg_san.jpg';

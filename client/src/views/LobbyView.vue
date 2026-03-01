@@ -130,18 +130,6 @@ const userInfo = computed(() => {
 
 const currentMode = ref(userStore.lastSelectedMode || 0); // 0: Bukan, 1: San, 2: Si
 
-const backgroundImageStyle = computed(() => {
-    let bgUrl = gameBgImg; // Default
-    if (currentMode.value === 1) {
-        bgUrl = gameBgSanImg;
-    } else if (currentMode.value === 2) {
-        bgUrl = gameBgSiImg;
-    }
-    return {
-        backgroundImage: `url(${bgUrl})`
-    };
-});
-
 /* Temporarily disabled bottom tab logic
 const setMode = (mode) => {
     if (currentMode.value === mode) return;
@@ -376,7 +364,7 @@ const goBack = () => {
 </script>
 
 <template>
-    <div class="lobby-container" :style="backgroundImageStyle">
+    <div class="lobby-container" :style="{ backgroundImage: `url(${gameBgImg})` }">
         <!-- Floating Background Layer -->
         <img :src="bgUpImg" class="bg-up-anim" />
 

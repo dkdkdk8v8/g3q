@@ -58,6 +58,15 @@
             "env": {}
         },
         {
+            "name": "go:server:tunnel",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/server/server/main_tunnel",
+            "cwd": "${workspaceFolder}/server/server/main_tunnel",
+            "env": {}
+        },
+        {
             "name": "go:file",
             "type": "go",
             "request": "launch",

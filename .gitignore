@@ -53,6 +53,7 @@ server/server/main_tunnel/main_tunnel
 **/*.bz2
 **/*.apk
 **/*.pid
+**/_run
 **/*.md5
 **/*.swp
 **/*.rar

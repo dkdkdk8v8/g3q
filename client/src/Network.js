@@ -169,14 +169,14 @@ export default class GameClient {
         const packet = {
             cmd: cmd,
             seq: this.seq,
-            data: encode(data)   // inner data encoded first
+            data: data
         };
 
         if (cmd !== "PingPong") {
-            console.log(`✉️[发送消息] cmd:${cmd}\n`, { cmd, seq: this.seq, data }, '\n\n');
+            console.log(`✉️[发送消息] cmd:${cmd}\n`, packet, '\n\n');
         }
 
-        this.ws.send(encode(packet));  // outer packet encoded
+        this.ws.send(encode(packet));
     }
 
     _handleMessage(msg) {

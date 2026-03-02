@@ -2,7 +2,7 @@ package mainRobot
 
 // 服务器 Host 配置
 const HOST_PROD = "127.0.0.1:8084"
-const HOST_DEV = "172.20.10.5:18084"
+const HOST_DEV = "172.20.10.8:18084"
 
 // 路径配置
 const PATH_WS = "/rpc/ws"

@@ -42,7 +42,8 @@
             ]">
               <SeatEffectLayer :scoreObj="scores[p.key]" :active="spotlightKey === p.key && revealed[p.key][4]" />
               <div class="flex items-center justify-center gap-1 mb-1 w-full px-1 z-30">
-                <span :class="['text-[12px] font-black drop-shadow-md whitespace-nowrap', p.text]">{{ p.name.replace('', '') }}</span>
+                <span :class="['text-[12px] font-black drop-shadow-md whitespace-nowrap', p.text]">{{ p.name.replace('',
+                  '') }}</span>
                 <ScoreBadge v-if="revealed[p.key][4] && scores[p.key]" :scoreObj="scores[p.key]" small />
               </div>
 
@@ -98,7 +99,7 @@
           class="absolute bottom-0 left-0 right-0 h-[3px] bg-slate-900 overflow-hidden shadow-inner">
           <div
             :class="['h-full transition-all duration-1000 linear', countdown <= 3 ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 'bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.5)]']"
-            :style="{ width: `${(countdown / (gameState === 'betting' ? 7 : 5)) * 100}%` }">
+            :style="{ width: `${(countdown / (gameState === 'betting' ? 15 : 5)) * 100}%` }">
           </div>
         </div>
       </div>
@@ -375,25 +376,25 @@ const {
 // Watch loop equivalent
 let timerObj = null;
 
-watch([gameState, countdown, totalBet], ([gState, cDown, tBet]) => {
-  if (timerObj) clearTimeout(timerObj);
-
-  if (gState === 'betting' && tBet > 0) {
-    if (cDown > 0) {
-      timerObj = setTimeout(() => { countdown.value = cDown - 1; }, 1000);
-    } else if (cDown === 0) {
-      startDeal();
+onMounted(() => {
+  timerObj = setInterval(() => {
+    if (gameState.value === 'betting' && totalBet.value > 0) {
+      if (countdown.value > 0) {
+        countdown.value--;
+      } else if (countdown.value === 0) {
+        startDeal();
+      }
+    } else if (gameState.value === 'result') {
+      if (countdown.value === null || countdown.value > 5) {
+        countdown.value = 5;
+      } else if (countdown.value > 0) {
+        countdown.value--;
+      } else if (countdown.value === 0) {
+        resetGame();
+      }
     }
-  } else if (gState === 'result') {
-    if (cDown === null || cDown > 5) {
-      countdown.value = 5;
-    } else if (cDown > 0) {
-      timerObj = setTimeout(() => { countdown.value = cDown - 1; }, 1000);
-    } else if (cDown === 0) {
-      resetGame();
-    }
-  }
-}, { immediate: true });
+  }, 1000);
+});
 
 const getChipColor = (val) => {
   const cd = CHIP_DATA.find(c => c.val === val);

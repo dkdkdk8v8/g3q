@@ -54,8 +54,6 @@ export function useGameLoop() {
     const handleBet = (e, areaId) => {
         if (gameState.value !== 'betting' || balance.value < selectedChip.value || countdown.value === 0) return;
 
-        if (totalBet.value === 0) countdown.value = 7;
-
         balance.value -= selectedChip.value;
         bets[areaId] = (bets[areaId] || 0) + selectedChip.value;
 

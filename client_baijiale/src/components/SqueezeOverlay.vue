@@ -23,7 +23,7 @@
                 :style="slideStyle">
                 <Crown v-if="CrownIcon" :size="squeezeW * 0.5" class="text-amber-400 opacity-60 relative z-20" />
                 <div
-                    class="absolute left-0 top-0 bottom-0 w-2.5 bg-gradient-to-r from-black/40 via-black/10 to-transparent">
+                    class="absolute right-0 top-0 bottom-0 w-2.5 bg-gradient-to-l from-black/40 via-black/10 to-transparent">
                 </div>
             </div>
         </div>
@@ -71,6 +71,6 @@ const slideStyle = computed(() => ({
     backgroundColor: '#1e40af',
     backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.15) 1px, transparent 1px), linear-gradient(45deg, rgba(255,255,255,0.05) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.05) 75%, rgba(255,255,255,0.05)), linear-gradient(-45deg, rgba(255,255,255,0.05) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.05) 75%, rgba(255,255,255,0.05))',
     backgroundSize: '6px 6px, 12px 12px, 12px 12px',
-    borderLeft: '1.5px solid #ffffff'
+    borderRight: '1.5px solid #ffffff'
 }));
 </script>

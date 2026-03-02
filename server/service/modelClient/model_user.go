@@ -34,7 +34,7 @@ type ModelUser struct {
 	TotalDeposit      uint64    `orm:"column(total_deposit);default(0)"`                   // 总充值金额
 	TotalWithDraw     uint64    `orm:"column(total_with_draw);default(0)"`                 // 总提现金额
 	TotalGameCount    uint64    `orm:"column(total_game_count);default(0)"`                // 总游戏次数
-	totalGameWin      uint64    `orm:"column(total_game_win);default(0)"`                  // 总游戏输赢
+	TotalGameWin      uint64    `orm:"column(total_game_win);default(0)"`                  // 总游戏输赢
 	TotalBet          uint64    `orm:"column(total_bet);default(0)"`                       // 总投注金额
 	TotalNetBalance   int64     `orm:"column(total_net_balance);default(0)"`               // 总输赢金额
 	PendingCompensate int64     `orm:"column(pending_compensate);default(0)"`              // 待补偿金额(策略用)

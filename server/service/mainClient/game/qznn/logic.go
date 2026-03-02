@@ -1388,7 +1388,7 @@ func (r *QZNNRoom) startGame() {
 			logrus.WithField(
 				"gameId", r.GameID).WithField(
 				"userId", u.UserId).WithField(
-				"changeBal", u.ChangeBalance).Error("UpdateUserSetting-Restore")
+				"changeBal", u.ChangeBalance).WithError(err).Error("UpdateUserSetting-Restore")
 		}
 		logrus.WithField("gameId", r.GameID).WithField(
 			"userIds", strings.Join(allUserIds, ",")).Error("UpdateUserSetting-Fail-Exiting")

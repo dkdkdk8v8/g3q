@@ -498,7 +498,10 @@ func (r *Robot) Run() {
 			Msg      string          `json:"Msg"`
 		}
 		var msg GenericMsg
-		err := r.Conn.ReadJSON(&msg)
+		_, rawData, err := r.Conn.ReadMessage()
+		if err == nil {
+			err = comm.DecodeMsgpackViaJSON(rawData, &msg)
+		}
 		if err != nil {
 			r.mu.Lock()
 			closing := r.isClosing
@@ -534,16 +537,22 @@ func (r *Robot) Run() {
 	}
 }
 
-// Send 发送请求
+// Send 发送 msgpack 二进制帧到主服务器。
+// Data 作为 interface{} 传入（不用 json.RawMessage），
+// MarshalMsgpack 会将其编码为 msgpack map 类型，
+// 服务端 DecodeMsgpackViaJSON 能正确还原为 JSON 对象。
 func (r *Robot) Send(cmd comm.CmdType, data interface{}) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	req := comm.Request{Cmd: cmd}
-	if data != nil {
-		b, _ := json.Marshal(data)
-		req.Data = b
+	wire := struct {
+		Cmd  comm.CmdType `json:"cmd"`
+		Data interface{}  `json:"data"`
+	}{Cmd: cmd, Data: data}
+	b, err := comm.MarshalMsgpack(wire)
+	if err != nil {
+		return err
 	}
-	return r.Conn.WriteJSON(req)
+	return r.Conn.WriteMessage(websocket.BinaryMessage, b)
 }
 
 // Close 关闭连接

@@ -60,9 +60,6 @@ func init() {
 	}()
 }
 
-// writeMsgpack 是 comm.WriteMsgPack 的包级别快捷调用。
-var writeMsgpack = comm.WriteMsgPack
-
 // WSEntry 是 WebSocket 的入口点
 func WSEntry(c *gin.Context) {
 	// 1. 升级连接
@@ -101,7 +98,7 @@ func WSEntry(c *gin.Context) {
 	wsConnectMapMutex.Unlock()
 
 	if existWsWrap != nil {
-		_ = writeMsgpack(existWsWrap, comm.PushData{Cmd: comm.ServerPush, PushType: game.PushOtherConnect})
+		_ = comm.WriteMsgPack(existWsWrap, comm.PushData{Cmd: comm.ServerPush, PushType: game.PushOtherConnect})
 		existWsWrap.CloseNormal("handler exit")
 		logrus.WithField("appId", appId).WithField("appUserId", appUserId).Info("WS-Client-KickOffOldConnect")
 	}
@@ -124,7 +121,7 @@ func handleConnection(connWrap *ws.WsConnWrap, appId, appUserId string) {
 				//更新房间他的wsWrap对象
 				room.SetWsWrap(userId, connWrap)
 				//在游戏内,默认客户端进入游戏
-				_ = writeMsgpack(connWrap, comm.PushData{
+				_ = comm.WriteMsgPack(connWrap, comm.PushData{
 					Cmd:      comm.ServerPush,
 					PushType: znet.PushRouter,
 					Data: znet.PushRouterStruct{
@@ -133,7 +130,7 @@ func handleConnection(connWrap *ws.WsConnWrap, appId, appUserId string) {
 						SelfId: userId}})
 			} else {
 				//不在游戏内,默认客户端进入lobby
-				_ = writeMsgpack(connWrap, comm.PushData{
+				_ = comm.WriteMsgPack(connWrap, comm.PushData{
 					Cmd:      comm.ServerPush,
 					PushType: znet.PushRouter,
 					Data: znet.PushRouterStruct{
@@ -239,7 +236,7 @@ func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, userId st
 				}
 			}
 		}
-		writeMsgpack(connWrap, rsp)
+		_ = comm.WriteMsgPack(connWrap, rsp)
 	}()
 
 	switch msg.Cmd {

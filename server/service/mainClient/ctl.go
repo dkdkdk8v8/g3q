@@ -141,7 +141,7 @@ func handleConnection(connWrap *ws.WsConnWrap, appId, appUserId string) {
 				//更新房间他的wsWrap对象
 				room.SetWsWrap(userId, connWrap)
 				//在游戏内,默认客户端进入游戏
-				writeMsgpack(connWrap, comm.PushData{
+				_ = writeMsgpack(connWrap, comm.PushData{
 					Cmd:      comm.ServerPush,
 					PushType: znet.PushRouter,
 					Data: znet.PushRouterStruct{
@@ -150,7 +150,7 @@ func handleConnection(connWrap *ws.WsConnWrap, appId, appUserId string) {
 						SelfId: userId}})
 			} else {
 				//不在游戏内,默认客户端进入lobby
-				writeMsgpack(connWrap, comm.PushData{
+				_ = writeMsgpack(connWrap, comm.PushData{
 					Cmd:      comm.ServerPush,
 					PushType: znet.PushRouter,
 					Data: znet.PushRouterStruct{

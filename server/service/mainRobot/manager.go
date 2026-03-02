@@ -488,15 +488,17 @@ func (r *Robot) Run() {
 		}
 	}()
 
+	// GenericMsg 类型定义用于解析服务器消息
+	type GenericMsg struct {
+		Cmd      comm.CmdType    `json:"Cmd"`
+		PushType comm.PushType   `json:"PushType"`
+		Data     json.RawMessage `json:"Data"`
+		Code     int             `json:"Code"`
+		Msg      string          `json:"Msg"`
+	}
+
 	// 消息接收循环
 	for {
-		type GenericMsg struct {
-			Cmd      comm.CmdType    `json:"Cmd"`
-			PushType comm.PushType   `json:"PushType"`
-			Data     json.RawMessage `json:"Data"`
-			Code     int             `json:"Code"`
-			Msg      string          `json:"Msg"`
-		}
 		var msg GenericMsg
 		_, rawData, err := r.Conn.ReadMessage()
 		if err == nil {

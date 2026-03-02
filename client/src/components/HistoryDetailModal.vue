@@ -407,8 +407,10 @@ const positionedPlayers = computed(() => {
                                 <img v-if="getBetStatusImageUrl(p.BetMulti)" :src="getBetStatusImageUrl(p.BetMulti)"
                                     class="status-img-small" />
 
-                                <span class="score-text" :class="(p.BalanceChange || 0) >= 0 ? 'win' : 'lose'">
-                                    ({{ (p.BalanceChange || 0) > 0 ? '+' : '' }}{{ formatCoins(p.BalanceChange || 0) }})
+                                <span v-if="p.Score !== undefined || p.BalanceChange !== undefined" class="score-text"
+                                    :class="(parseFloat(p.Score ?? p.BalanceChange ?? 0)) >= 0 ? 'win' : 'lose'">
+                                    ({{ (parseFloat(p.Score ?? p.BalanceChange ?? 0)) > 0 ? '+' : '' }}{{
+                                        formatCoins(p.Score ?? p.BalanceChange ?? 0) }})
                                 </span>
 
                             </div>
@@ -457,7 +459,7 @@ const positionedPlayers = computed(() => {
 
                             <div class="cards-row" style="align-items: center; justify-content: center;">
                                 <div class="empty-seat-msg">
-                                    <div>空座</div>
+                                    <div>暂无用户加入</div>
                                 </div>
                             </div>
                         </template>
@@ -657,7 +659,7 @@ const positionedPlayers = computed(() => {
 }
 
 .status-img-small {
-    height: 15px;
+    height: 14px;
     width: auto;
     object-fit: contain;
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
@@ -765,9 +767,8 @@ const positionedPlayers = computed(() => {
     font-size: 10px;
     text-align: center;
     background: rgba(0, 0, 0, 0.4);
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
+    border-radius: 4px;
+    padding: 6px 10px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -777,8 +778,8 @@ const positionedPlayers = computed(() => {
 
 /* Specific adjustment for Pos 0 (Me) - make it slightly larger? */
 .pos-0 .mini-card {
-    width: 36px !important;
-    height: 50px !important;
+    width: 42px !important;
+    height: 58px !important;
 }
 
 .game-id-row {

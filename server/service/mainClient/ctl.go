@@ -4,7 +4,6 @@ import (
 	"compoment/alert"
 	"compoment/ws"
 	"context"
-	"encoding/json"
 	"errors"
 	"service/comm"
 	"service/initMain"
@@ -16,6 +15,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	cws "github.com/coder/websocket"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
@@ -61,6 +61,25 @@ func init() {
 	}()
 }
 
+// writeMsgpack 线程安全地将 v 序列化为 msgpack 并通过二进制帧发送。
+// 直接访问 connWrap.WsConn（compoment/ws.WSConn，内嵌 *coder/websocket.Conn）写 MessageBinary，
+// 绕过 compoment/ws 子模块的 WriteJSON。
+func writeMsgpack(connWrap *ws.WsConnWrap, v interface{}) error {
+	b, err := comm.MarshalMsgpack(v)
+	if err != nil {
+		return err
+	}
+	connWrap.Mu.RLock()
+	wsConn := connWrap.WsConn
+	connWrap.Mu.RUnlock()
+	if wsConn == nil {
+		return errors.New("ws conn is nil")
+	}
+	ctx, cancel := context.WithTimeout(wsConn.Ctx, time.Second*5)
+	defer cancel()
+	return wsConn.Write(ctx, cws.MessageBinary, b)
+}
+
 // WSEntry 是 WebSocket 的入口点
 func WSEntry(c *gin.Context) {
 	// 1. 升级连接
@@ -99,7 +118,7 @@ func WSEntry(c *gin.Context) {
 	wsConnectMapMutex.Unlock()
 
 	if existWsWrap != nil {
-		_ = existWsWrap.WriteJSON(comm.PushData{Cmd: comm.ServerPush, PushType: game.PushOtherConnect})
+		_ = writeMsgpack(existWsWrap, comm.PushData{Cmd: comm.ServerPush, PushType: game.PushOtherConnect})
 		existWsWrap.CloseNormal("handler exit")
 		logrus.WithField("appId", appId).WithField("appUserId", appUserId).Info("WS-Client-KickOffOldConnect")
 	}
@@ -122,7 +141,7 @@ func handleConnection(connWrap *ws.WsConnWrap, appId, appUserId string) {
 				//更新房间他的wsWrap对象
 				room.SetWsWrap(userId, connWrap)
 				//在游戏内,默认客户端进入游戏
-				connWrap.WriteJSON(comm.PushData{
+				writeMsgpack(connWrap, comm.PushData{
 					Cmd:      comm.ServerPush,
 					PushType: znet.PushRouter,
 					Data: znet.PushRouterStruct{
@@ -131,7 +150,7 @@ func handleConnection(connWrap *ws.WsConnWrap, appId, appUserId string) {
 						SelfId: userId}})
 			} else {
 				//不在游戏内,默认客户端进入lobby
-				connWrap.WriteJSON(comm.PushData{
+				writeMsgpack(connWrap, comm.PushData{
 					Cmd:      comm.ServerPush,
 					PushType: znet.PushRouter,
 					Data: znet.PushRouterStruct{
@@ -163,9 +182,9 @@ func handleConnection(connWrap *ws.WsConnWrap, appId, appUserId string) {
 			logWSCloseErr(userId, err1)
 			break
 		}
-		err = json.Unmarshal(buffer, &msg)
+		err = comm.DecodeMsgpackViaJSON(buffer, &msg)
 		if err != nil {
-			logrus.WithField("!", alert.Limit10Hit10M).WithField("uid", userId).WithField("buffer", string(buffer)).WithError(err).Info("WS-Client-JsonInvalid")
+			logrus.WithField("!", alert.Limit10Hit10M).WithField("uid", userId).WithField("bufLen", len(buffer)).WithError(err).Info("WS-Client-MsgpackInvalid")
 			continue
 		}
 		// 频率限制：同一用户同一Cmd 100ms内只能请求一次
@@ -237,7 +256,7 @@ func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, userId st
 				}
 			}
 		}
-		connWrap.WriteJSON(rsp)
+		writeMsgpack(connWrap, rsp)
 	}()
 
 	switch msg.Cmd {

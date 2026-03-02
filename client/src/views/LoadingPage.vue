@@ -1,14 +1,14 @@
 <template>
   <div class="loading-page">
     <!-- <img src="../assets/lobby/logo.png" alt="抢庄牛牛" class="lobby-logo" /> -->
-    <!-- <div class="input-group">
+    <div class="input-group">
       <label for="ip-address">服务器IP</label>
       <input type="text" id="ip-address" v-model="ipAddress" placeholder="请输入服务器 IP 地址" />
     </div>
     <div v-if="appId" style="color:grey;display:flex;flex-direction:row;align-items:center;margin-bottom:10px;">
       <div style="margin-right:0px">APP:【 {{ appId }} 】</div>
       <div>UID: 【{{ userId }}】</div>
-    </div> -->
+    </div>
     <div class="mode-selector">
       <div class="mode-title">选择玩法进入对应大厅：</div>
       <div class="mode-buttons-container">

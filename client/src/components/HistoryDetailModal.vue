@@ -657,7 +657,7 @@ const positionedPlayers = computed(() => {
 }
 
 .status-img-small {
-    height: 15px;
+    height: 14px;
     width: auto;
     object-fit: contain;
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));

@@ -21,6 +21,14 @@ var (
 	stressUsersMu sync.Mutex
 )
 
+type GenericMsg struct {
+	Cmd      comm.CmdType    `json:"Cmd"`
+	PushType comm.PushType   `json:"PushType"`
+	Data     json.RawMessage `json:"Data"`
+	Code     int             `json:"Code"`
+	Msg      string          `json:"Msg"`
+}
+
 const STRESS_COUNT = 10 //压力测试用户数量
 
 func StartStress() {
@@ -84,7 +92,11 @@ func runStressUser(user *modelClient.ModelUser) {
 			hb := struct {
 				Cmd comm.CmdType `json:"cmd"`
 			}{Cmd: game.CmdPingPong}
-			hbBytes, _ := comm.MarshalMsgpack(hb)
+			hbBytes, err := comm.MarshalMsgpack(hb)
+			if err != nil {
+				logrus.WithField("uid", user.UserId).Errorf("Stress test: failed to marshal heartbeat: %v", err)
+				return
+			}
 			if err := conn.WriteMessage(websocket.BinaryMessage, hbBytes); err != nil {
 				return
 			}
@@ -93,13 +105,6 @@ func runStressUser(user *modelClient.ModelUser) {
 
 	// 消息接收循环
 	for {
-		type GenericMsg struct {
-			Cmd      comm.CmdType    `json:"Cmd"`
-			PushType comm.PushType   `json:"PushType"`
-			Data     json.RawMessage `json:"Data"`
-			Code     int             `json:"Code"`
-			Msg      string          `json:"Msg"`
-		}
 		var msg GenericMsg
 		_, rawData, readErr := conn.ReadMessage()
 		if readErr != nil {
@@ -127,7 +132,11 @@ func runStressUser(user *modelClient.ModelUser) {
 					Cmd  comm.CmdType `json:"cmd"`
 					Data interface{}  `json:"data"`
 				}{Cmd: qznn.CmdPlayerJoin, Data: joinReq}
-				wireBytes, _ := comm.MarshalMsgpack(wire)
+				wireBytes, err := comm.MarshalMsgpack(wire)
+				if err != nil {
+					logrus.WithField("uid", user.UserId).Errorf("Stress test: failed to marshal join request: %v", err)
+					return
+				}
 				if err := conn.WriteMessage(websocket.BinaryMessage, wireBytes); err != nil {
 					logrus.WithField("uid", user.UserId).Errorf("Stress test user failed to send join room request: %v", err)
 					return

@@ -81,8 +81,11 @@ func runStressUser(user *modelClient.ModelUser) {
 		ticker := time.NewTicker(time.Second * 5)
 		defer ticker.Stop()
 		for range ticker.C {
-			req := comm.Request{Cmd: game.CmdPingPong}
-			if err := conn.WriteJSON(req); err != nil {
+			hb := struct {
+				Cmd comm.CmdType `json:"cmd"`
+			}{Cmd: game.CmdPingPong}
+			hbBytes, _ := comm.MarshalMsgpack(hb)
+			if err := conn.WriteMessage(websocket.BinaryMessage, hbBytes); err != nil {
 				return
 			}
 		}
@@ -98,8 +101,12 @@ func runStressUser(user *modelClient.ModelUser) {
 			Msg      string          `json:"Msg"`
 		}
 		var msg GenericMsg
-		if err := conn.ReadJSON(&msg); err != nil {
+		_, rawData, readErr := conn.ReadMessage()
+		if readErr != nil {
 			return
+		}
+		if err := comm.DecodeMsgpackViaJSON(rawData, &msg); err != nil {
+			continue
 		}
 
 		if msg.Code != 0 {
@@ -116,12 +123,12 @@ func runStressUser(user *modelClient.ModelUser) {
 					"Level":      ALLOWED_LEVELS[rand.Intn(len(ALLOWED_LEVELS))],
 					"BankerType": ALLOWED_BANKER_TYPES[rand.Intn(len(ALLOWED_BANKER_TYPES))],
 				}
-				reqData, _ := json.Marshal(joinReq)
-				req := comm.Request{
-					Cmd:  qznn.CmdPlayerJoin,
-					Data: reqData,
-				}
-				if err := conn.WriteJSON(req); err != nil {
+				wire := struct {
+					Cmd  comm.CmdType `json:"cmd"`
+					Data interface{}  `json:"data"`
+				}{Cmd: qznn.CmdPlayerJoin, Data: joinReq}
+				wireBytes, _ := comm.MarshalMsgpack(wire)
+				if err := conn.WriteMessage(websocket.BinaryMessage, wireBytes); err != nil {
 					logrus.WithField("uid", user.UserId).Errorf("Stress test user failed to send join room request: %v", err)
 					return
 				}

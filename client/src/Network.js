@@ -1,3 +1,5 @@
+import { encode, decode } from '@msgpack/msgpack';
+
 /**
  * Network.js
  * 游戏客户端网络层封装
@@ -60,6 +62,7 @@ export default class GameClient {
 
         console.log(`[Network] Connecting to ${this.url}...`);
         this.ws = new WebSocket(this.url);
+        this.ws.binaryType = 'arraybuffer';
 
         this.ws.onopen = () => {
             console.log("[Network] Connected");
@@ -76,10 +79,10 @@ export default class GameClient {
 
         this.ws.onmessage = (event) => {
             try {
-                const msg = JSON.parse(event.data);
+                const msg = decode(new Uint8Array(event.data));
                 this._handleMessage(msg);
             } catch (e) {
-                console.error("[Network] JSON Parse Error:", e);
+                console.error("[Network] MsgPack Decode Error:", e);
             }
         };
 
@@ -166,15 +169,14 @@ export default class GameClient {
         const packet = {
             cmd: cmd,
             seq: this.seq,
-            data: data
+            data: encode(data)   // inner data encoded first
         };
 
         if (cmd !== "PingPong") {
-
-            console.log(`✉️[发送消息] cmd:${cmd}\n`, packet, '\n\n');
+            console.log(`✉️[发送消息] cmd:${cmd}\n`, { cmd, seq: this.seq, data }, '\n\n');
         }
 
-        this.ws.send(JSON.stringify(packet));
+        this.ws.send(encode(packet));  // outer packet encoded
     }
 
     _handleMessage(msg) {

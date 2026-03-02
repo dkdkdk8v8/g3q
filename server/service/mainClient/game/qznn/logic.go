@@ -530,10 +530,10 @@ func (r *QZNNRoom) PushPlayer(p *Player, msg any) {
 	conn := p.ConnWrap
 	p.Mu.RUnlock()
 
-	// 使用线程安全的 WriteJSON 方法
+	// 使用线程安全的 WriteMsgPack 方法
 	if conn != nil && conn.IsConnected() {
 		go func(c *ws.WsConnWrap, m any) {
-			_ = c.WriteJSON(m)
+			_ = comm.WriteMsgPack(c, m)
 		}(conn, msg)
 	}
 }
@@ -552,7 +552,7 @@ func (r *QZNNRoom) BroadcastWithPlayer(getMsg func(*Player) any) {
 
 		if conn != nil && conn.IsConnected() {
 			go func(c *ws.WsConnWrap, m any) {
-				_ = c.WriteJSON(m)
+				_ = comm.WriteMsgPack(c, m)
 			}(conn, msg)
 		}
 	}
@@ -570,7 +570,7 @@ func (r *QZNNRoom) broadcastWithPlayer(getMsg func(*Player) any) {
 		p.Mu.RUnlock()
 		if conn != nil && conn.IsConnected() {
 			go func(c *ws.WsConnWrap, m any) {
-				_ = c.WriteJSON(m)
+				_ = comm.WriteMsgPack(c, m)
 			}(conn, msg)
 		}
 	}

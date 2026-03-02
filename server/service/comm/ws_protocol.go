@@ -53,6 +53,10 @@ func MarshalMsgpack(v interface{}) ([]byte, error) {
 // 路径：msgpack → interface{} → json.Marshal → json.Unmarshal
 // 这样内部所有 json.Unmarshal 调用无需任何修改，
 // 且 JSON 大小写不敏感匹配自动处理 GenericMsg 的 Cmd/PushType 字段。
+//
+// 注意：若 v 为 interface{} 或 map[string]interface{} 类型，
+// 数值字段将被解码为 float64（与 encoding/json 标准行为一致）。
+// 对于有类型的结构体目标（如 Request、Response），此问题不存在。
 func DecodeMsgpackViaJSON(data []byte, v interface{}) error {
 	dec := msgpack.NewDecoder(bytes.NewReader(data))
 	dec.SetCustomStructTag("json")

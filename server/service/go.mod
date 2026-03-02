@@ -19,11 +19,11 @@ require (
 	github.com/sasha-s/go-deadlock v0.3.6
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/viper v1.15.0
+	github.com/vmihailenco/msgpack/v5 v5.4.1
 )
 
 require (
 	github.com/petermattis/goid v0.0.0-20250813065127-a731cc31b4fe // indirect
-	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 )
 

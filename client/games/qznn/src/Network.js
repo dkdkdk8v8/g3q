@@ -12,6 +12,8 @@ client.getLoadingStore = () => useLoadingStore();
 
 // QZNN 路由处理
 client.routerHandler = (routerName) => {
+    const store = client._loadingStore();
+    if (store) store.stopAppLoading();
     if (routerName === 'lobby') {
         router.replace('/lobby');
     } else if (routerName === 'game') {

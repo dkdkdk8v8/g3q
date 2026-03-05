@@ -108,7 +108,7 @@ export class GameClient {
                 const msg = decode(new Uint8Array(event.data));
                 this._handleMessage(msg);
             } catch (e) {
-                console.error("[Network] MsgPack Decode Error:", e);
+                console.error("[Network] Message handling error:", e);
             }
         };
 

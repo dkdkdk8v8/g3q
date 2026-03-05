@@ -29,6 +29,15 @@ onUnmounted(() => {
 });
 
 onMounted(() => {
+    try {
+        _initAutoConnect();
+    } catch (e) {
+        console.error('[AutoConnect] Init error:', e);
+        loadingStore.setAppLoadingError(`初始化异常: ${e.message}`);
+    }
+});
+
+function _initAutoConnect() {
     loadingStore.startAppLoading();
 
     const params = new URLSearchParams(window.location.search);
@@ -65,10 +74,8 @@ onMounted(() => {
     const checkReady = () => {
         if (hasUserInfo && hasLobbyConfig) {
             if (targetRoute) {
-                // 三个条件都满足，立即跳转
                 doNavigate(targetRoute);
             } else if (!fallbackTimer) {
-                // 数据已就绪但 PushRouter 还没来，等 500ms 后兜底进大厅
                 fallbackTimer = setTimeout(() => {
                     doNavigate(`/lobby?mode=${mode}`);
                 }, 500);
@@ -90,33 +97,43 @@ onMounted(() => {
     };
 
     gameClient.on('UserInfo', (msg) => {
-        if (msg.code === 0 && msg.data) {
-            userStore.updateUserInfo({
-                user_id: msg.data.UserId,
-                balance: msg.data.Balance,
-                nick_name: msg.data.NickName,
-                avatar: msg.data.Avatar
-            });
-            settingsStore.updateFromServer(msg.data);
-            hasUserInfo = true;
-            checkReady();
-        } else {
-            loadingStore.setAppLoadingError(`获取用户数据失败: ${msg.msg}`);
+        try {
+            if (msg.code === 0 && msg.data) {
+                userStore.updateUserInfo({
+                    user_id: msg.data.UserId,
+                    balance: msg.data.Balance,
+                    nick_name: msg.data.NickName,
+                    avatar: msg.data.Avatar
+                });
+                settingsStore.updateFromServer(msg.data);
+                hasUserInfo = true;
+                checkReady();
+            } else {
+                loadingStore.setAppLoadingError(`获取用户数据失败: ${msg.msg}`);
+            }
+        } catch (e) {
+            console.error('[AutoConnect] UserInfo handler error:', e);
+            loadingStore.setAppLoadingError(`UserInfo处理异常: ${e.message}`);
         }
     });
 
     gameClient.on('QZNN.LobbyConfig', (msg) => {
-        if (msg.code === 0 && msg.data?.LobbyConfigs) {
-            userStore.updateRoomConfigs(msg.data.LobbyConfigs.map(cfg => ({
-                level: cfg.Level,
-                name: cfg.Name,
-                base_bet: cfg.BaseBet,
-                min_balance: cfg.MinBalance
-            })));
-            hasLobbyConfig = true;
-            checkReady();
-        } else {
-            loadingStore.setAppLoadingError(`获取大厅配置失败: ${msg.msg}`);
+        try {
+            if (msg.code === 0 && msg.data?.LobbyConfigs) {
+                userStore.updateRoomConfigs(msg.data.LobbyConfigs.map(cfg => ({
+                    level: cfg.Level,
+                    name: cfg.Name,
+                    base_bet: cfg.BaseBet,
+                    min_balance: cfg.MinBalance
+                })));
+                hasLobbyConfig = true;
+                checkReady();
+            } else {
+                loadingStore.setAppLoadingError(`获取大厅配置失败: ${msg.msg}`);
+            }
+        } catch (e) {
+            console.error('[AutoConnect] LobbyConfig handler error:', e);
+            loadingStore.setAppLoadingError(`LobbyConfig处理异常: ${e.message}`);
         }
     });
 
@@ -127,7 +144,6 @@ onMounted(() => {
             } else if (data.Router === 'game') {
                 targetRoute = '/game?autoJoin=true';
             }
-            // 如果数据已就绪，直接跳转（取消兜底定时器）
             if (hasUserInfo && hasLobbyConfig && targetRoute) {
                 doNavigate(targetRoute);
             }
@@ -135,7 +151,7 @@ onMounted(() => {
     });
 
     gameClient.connect(host, app, uid, token);
-});
+}
 </script>
 
 <template>

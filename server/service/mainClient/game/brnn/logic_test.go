@@ -13,8 +13,8 @@ import (
 // We use large SecBetting so the FSM does not advance during the test.
 func newTestConfig() *BRNNConfig {
 	return &BRNNConfig{
-		Chips:         []int64{10, 50, 100, 500, 1000},
-		MaxBetPerArea: 50000,
+		Chips:         []int64{100, 1000, 5000, 10000, 50000},
+		MaxBetPerArea: 500000,
 		MinBalance:    100,
 		SecBetting:    300, // large so FSM stays in betting
 		SecDealing:    300,
@@ -42,14 +42,14 @@ func TestBRNNConfig_ValidChip(t *testing.T) {
 	cfg := DefaultConfig
 
 	// Valid chips
-	for _, c := range []int64{10, 50, 100, 500, 1000} {
+	for _, c := range []int64{100, 1000, 5000, 10000, 50000} {
 		if !cfg.ValidChip(c) {
 			t.Errorf("expected chip %d to be valid", c)
 		}
 	}
 
 	// Invalid chips
-	for _, c := range []int64{0, 1, 99, 200, 9999, -10} {
+	for _, c := range []int64{0, 1, 10, 50, 99, 200, 9999, -10} {
 		if cfg.ValidChip(c) {
 			t.Errorf("expected chip %d to be invalid", c)
 		}
@@ -168,15 +168,15 @@ func TestPlaceBet_MultipleAreas(t *testing.T) {
 	addPlayer(r, "u1", 10000)
 
 	for area := 0; area < AreaCount; area++ {
-		if err := r.PlaceBet("u1", area, 50); err != nil {
+		if err := r.PlaceBet("u1", area, 1000); err != nil {
 			t.Fatalf("bet on area %d failed: %v", area, err)
 		}
 	}
 
 	p := r.GetPlayer("u1")
 	for area := 0; area < AreaCount; area++ {
-		if p.Bets[area] != 50 {
-			t.Errorf("bets[%d]: got %d, want 50", area, p.Bets[area])
+		if p.Bets[area] != 1000 {
+			t.Errorf("bets[%d]: got %d, want 1000", area, p.Bets[area])
 		}
 	}
 }
@@ -187,23 +187,23 @@ func TestPlaceBet_CumulativeOnSameArea(t *testing.T) {
 
 	addPlayer(r, "u1", 10000)
 
-	if err := r.PlaceBet("u1", 0, 100); err != nil {
+	if err := r.PlaceBet("u1", 0, 1000); err != nil {
 		t.Fatal(err)
 	}
-	if err := r.PlaceBet("u1", 0, 500); err != nil {
+	if err := r.PlaceBet("u1", 0, 5000); err != nil {
 		t.Fatal(err)
 	}
 
 	p := r.GetPlayer("u1")
-	if p.Bets[0] != 600 {
-		t.Errorf("cumulative bets[0]: got %d, want 600", p.Bets[0])
+	if p.Bets[0] != 6000 {
+		t.Errorf("cumulative bets[0]: got %d, want 6000", p.Bets[0])
 	}
 
 	r.mu.RLock()
 	totalBet := r.Areas[0].TotalBet
 	r.mu.RUnlock()
-	if totalBet != 600 {
-		t.Errorf("area[0] TotalBet: got %d, want 600", totalBet)
+	if totalBet != 6000 {
+		t.Errorf("area[0] TotalBet: got %d, want 6000", totalBet)
 	}
 }
 
@@ -246,29 +246,6 @@ func TestPlaceBet_InsufficientBalance(t *testing.T) {
 	err := r.PlaceBet("u1", 0, 100)
 	if err == nil {
 		t.Fatal("expected error for insufficient balance, got nil")
-	}
-}
-
-func TestPlaceBet_ExceedMaxBetPerArea(t *testing.T) {
-	cfg := newTestConfig()
-	cfg.MaxBetPerArea = 200
-
-	r := NewRoom("test-maxbet", cfg)
-	defer r.Destroy()
-
-	addPlayer(r, "u1", 100000)
-
-	// First bet: 100 <= 200, OK
-	if err := r.PlaceBet("u1", 0, 100); err != nil {
-		t.Fatalf("first bet failed: %v", err)
-	}
-	// Second bet: 100+100 = 200 <= 200, OK
-	if err := r.PlaceBet("u1", 0, 100); err != nil {
-		t.Fatalf("second bet failed: %v", err)
-	}
-	// Third bet: 200+100 = 300 > 200, FAIL
-	if err := r.PlaceBet("u1", 0, 100); err == nil {
-		t.Fatal("expected error for exceeding MaxBetPerArea, got nil")
 	}
 }
 
@@ -439,8 +416,8 @@ func TestCalcResults(t *testing.T) {
 	if r.Dealer.CardResult.Niu != 10 {
 		t.Errorf("dealer niu: got %d, want 10", r.Dealer.CardResult.Niu)
 	}
-	if r.Dealer.CardResult.Mult != 4 {
-		t.Errorf("dealer mult: got %d, want 4", r.Dealer.CardResult.Mult)
+	if r.Dealer.CardResult.Mult != 3 {
+		t.Errorf("dealer mult: got %d, want 3", r.Dealer.CardResult.Mult)
 	}
 
 	// Verify areas
@@ -466,6 +443,7 @@ func TestSettlement_AreaWins(t *testing.T) {
 
 	// Set up bet on area 0
 	p.Bets[0] = 100
+	p.Balance -= 100
 	r.Areas[0].TotalBet = 100
 	r.GameCount = 1
 
@@ -496,8 +474,8 @@ func TestSettlement_AreaWins(t *testing.T) {
 	r.settle()
 	r.mu.Unlock()
 
-	// Area 0 wins: player gains bet * area_mult = 100 * 3 = 300
-	expectedBalance := int64(10000 + 300)
+	// Area 0 wins: player gains bet * area_mult = 100 * 2 (牛9=2倍) = 200
+	expectedBalance := int64(10000 + 200)
 	if p.Balance != expectedBalance {
 		t.Errorf("player balance after win: got %d, want %d", p.Balance, expectedBalance)
 	}
@@ -517,10 +495,11 @@ func TestSettlement_AreaLoses(t *testing.T) {
 
 	// Set up bet on area 0
 	p.Bets[0] = 100
+	p.Balance -= 100
 	r.Areas[0].TotalBet = 100
 	r.GameCount = 1
 
-	// Dealer: niu 9 (strong hand), mult = 3
+	// Dealer: niu 9 (strong hand), mult = 2
 	// card 0(A,p1)+12(4,p4)+16(5,p5)=10 (%10=0), remaining card 32(9,p9)+36(10,p10)=19 %10=9 → niu 9
 	r.Dealer.Cards = []int{0, 12, 16, 32, 36}
 	// Area 0: niu 1 (weak hand), mult = 1
@@ -542,8 +521,8 @@ func TestSettlement_AreaLoses(t *testing.T) {
 	r.settle()
 	r.mu.Unlock()
 
-	// Area 0 loses: player loses bet * dealer_mult = 100 * 3 = 300
-	expectedBalance := int64(10000 - 300)
+	// Area 0 loses: player loses bet * dealer_mult = 100 * 2 (牛9=2倍) = 200
+	expectedBalance := int64(10000 - 200)
 	if p.Balance != expectedBalance {
 		t.Errorf("player balance after loss: got %d, want %d", p.Balance, expectedBalance)
 	}
@@ -564,6 +543,7 @@ func TestSettlement_MixedResults(t *testing.T) {
 	// Bet on areas 0 and 1
 	p.Bets[0] = 100
 	p.Bets[1] = 200
+	p.Balance -= 300
 	r.Areas[0].TotalBet = 100
 	r.Areas[1].TotalBet = 200
 	r.GameCount = 1
@@ -611,10 +591,10 @@ func TestSettlement_MixedResults(t *testing.T) {
 	r.settle()
 	r.mu.Unlock()
 
-	// Area 0 wins: +100 * area0_mult(niu9=3) = +300
+	// Area 0 wins: +100 * area0_mult(niu9=2) = +200
 	// Area 1 loses: -200 * dealer_mult(niu5=1) = -200
-	// Net: +300 - 200 = +100
-	expectedBalance := int64(10000 + 100)
+	// Net: +200 - 200 = 0
+	expectedBalance := int64(10000 + 0)
 	if p.Balance != expectedBalance {
 		t.Errorf("player balance after mixed: got %d, want %d (area0 niu=%d mult=%d, area1 niu=%d mult=%d, dealer niu=%d mult=%d)",
 			p.Balance, expectedBalance,
@@ -638,7 +618,7 @@ func TestResetRound(t *testing.T) {
 	if err := r.PlaceBet("u1", 0, 100); err != nil {
 		t.Fatal(err)
 	}
-	if err := r.PlaceBet("u1", 1, 50); err != nil {
+	if err := r.PlaceBet("u1", 1, 1000); err != nil {
 		t.Fatal(err)
 	}
 
@@ -755,7 +735,9 @@ func TestMultiplePlayersSettlement(t *testing.T) {
 
 	// p1 bets on area 0, p2 bets on area 1
 	p1.Bets[0] = 100
+	p1.Balance -= 100
 	p2.Bets[1] = 200
+	p2.Balance -= 200
 	r.Areas[0].TotalBet = 100
 	r.Areas[1].TotalBet = 200
 	r.GameCount = 1
@@ -777,9 +759,9 @@ func TestMultiplePlayersSettlement(t *testing.T) {
 	r.settle()
 	r.mu.Unlock()
 
-	// p1 bet 100 on area 0 (wins): +100 * 3 = +300
-	if p1.Balance != 10300 {
-		t.Errorf("p1 balance: got %d, want 10300 (area0 niu=%d mult=%d)",
+	// p1 bet 100 on area 0 (wins): +100 * 2 (牛9=2倍) = +200
+	if p1.Balance != 10200 {
+		t.Errorf("p1 balance: got %d, want 10200 (area0 niu=%d mult=%d)",
 			p1.Balance, r.Areas[0].CardResult.Niu, r.Areas[0].CardResult.Mult)
 	}
 

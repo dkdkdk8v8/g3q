@@ -2,46 +2,56 @@
 import { computed } from 'vue'
 
 const props = defineProps({
-  trend: Array, // Array of TrendRecord objects, e.g. [{GameCount, DealerNiu, AreaNiu, AreaWin}, ...]
+  trend: Array,
 })
 
 const AREA_NAMES = ['天', '地', '玄', '黄']
+const AREA_COLORS = ['#3b82f6', '#22c55e', '#a855f7', '#f59e0b']
+const SLOTS = 10
 
-// Show the last 20 rounds
 const displayTrend = computed(() => {
   if (!props.trend || props.trend.length === 0) return []
-  return props.trend.slice(-20)
+  return props.trend.slice(-SLOTS)
 })
 
-const hasData = computed(() => displayTrend.value.length > 0)
+// Pad to 10 slots: empty slots on the left, data on the right
+const paddedTrend = computed(() => {
+  const data = displayTrend.value
+  const empty = SLOTS - data.length
+  const result = []
+  for (let i = 0; i < empty; i++) result.push(null)
+  for (const d of data) result.push(d)
+  return result
+})
+
 </script>
 
 <template>
   <div class="trend-section">
     <div class="trend-header">
       <span class="trend-title">走势</span>
-      <span class="trend-count">最近 {{ displayTrend.length }} 局</span>
     </div>
 
-    <div v-if="hasData" class="trend-table-wrap">
-      <table class="trend-table">
-        <thead>
-          <tr>
-            <th class="col-round">#</th>
-            <th v-for="(name, i) in AREA_NAMES" :key="i" class="col-area">{{ name }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(round, rIdx) in displayTrend" :key="rIdx">
-            <td class="col-round">{{ rIdx + 1 }}</td>
-            <td v-for="(win, aIdx) in round.AreaWin" :key="aIdx" class="col-area">
-              <span class="dot" :class="win ? 'dot-win' : 'dot-lose'"></span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <div class="trend-grid">
+      <div v-for="(name, aIdx) in AREA_NAMES" :key="aIdx" class="trend-row">
+        <span class="area-label" :style="{ color: AREA_COLORS[aIdx] }">{{ name }}</span>
+        <div class="round-cells">
+          <div
+            v-for="(round, rIdx) in paddedTrend"
+            :key="rIdx"
+            class="cell-wrap"
+          >
+            <span v-if="aIdx === 0 && rIdx === SLOTS - 1 && round" class="newest-tag">最新</span>
+            <span
+              v-if="round"
+              class="cell"
+              :class="round.AreaWin[aIdx] ? 'cell-win' : 'cell-lose'"
+            >{{ round.AreaWin[aIdx] ? '赢' : '输' }}</span>
+            <span v-else class="cell cell-empty">-</span>
+          </div>
+        </div>
+      </div>
     </div>
-    <div v-else class="trend-empty">暂无走势数据</div>
   </div>
 </template>
 
@@ -53,9 +63,6 @@ const hasData = computed(() => displayTrend.value.length > 0)
 }
 
 .trend-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   margin-bottom: 6px;
 }
 
@@ -65,65 +72,72 @@ const hasData = computed(() => displayTrend.value.length > 0)
   font-weight: bold;
 }
 
-.trend-count {
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 11px;
+.trend-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.trend-table-wrap {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+.trend-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.trend-table {
+.area-label {
+  width: 18px;
+  font-size: 13px;
+  font-weight: bold;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.round-cells {
+  display: flex;
+  flex: 1;
+  gap: 0;
+}
+
+.cell-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.newest-tag {
+  position: absolute;
+  top: -14px;
+  font-size: 9px;
+  color: rgba(255, 215, 0, 0.7);
+  white-space: nowrap;
+}
+
+.cell {
   width: 100%;
-  border-collapse: collapse;
-  font-size: 11px;
-}
-
-.trend-table th {
-  color: rgba(255, 255, 255, 0.5);
-  font-weight: normal;
-  padding: 3px 4px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  text-align: center;
-}
-
-.trend-table td {
-  padding: 3px 4px;
-  text-align: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-}
-
-.col-round {
-  width: 28px;
-  color: rgba(255, 255, 255, 0.3);
+  max-width: 28px;
+  height: 20px;
+  border-radius: 3px;
   font-size: 10px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.col-area {
-  width: 25%;
+.cell-win {
+  background: rgba(34, 197, 94, 0.25);
+  color: #22c55e;
 }
 
-.dot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
+.cell-lose {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
 }
 
-.dot-win {
-  background: #22c55e;
+.cell-empty {
+  color: rgba(255, 255, 255, 0.1);
 }
 
-.dot-lose {
-  background: #ef4444;
-}
-
-.trend-empty {
-  color: rgba(255, 255, 255, 0.3);
-  font-size: 12px;
-  text-align: center;
-  padding: 12px 0;
-}
 </style>

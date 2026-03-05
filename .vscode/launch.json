@@ -92,7 +92,7 @@
             "showLog": true
         },
         {
-            "name": "node:client",
+            "name": "node:client:qznn",
             "type": "node",
             "request": "launch",
             "runtimeExecutable": "npm",
@@ -100,7 +100,35 @@
                 "run",
                 "dev"
             ],
-            "cwd": "${workspaceFolder}/client",
+            "cwd": "${workspaceFolder}/client/games/qznn",
+            "console": "integratedTerminal",
+            "restart": true,
+            "autoAttachChildProcesses": true
+        },
+        {
+            "name": "node:client:brnn",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": [
+                "run",
+                "dev"
+            ],
+            "cwd": "${workspaceFolder}/client/games/brnn",
+            "console": "integratedTerminal",
+            "restart": true,
+            "autoAttachChildProcesses": true
+        },
+        {
+            "name": "node:client:baijiale",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": [
+                "run",
+                "dev"
+            ],
+            "cwd": "${workspaceFolder}/client/games/baijiale",
             "console": "integratedTerminal",
             "restart": true,
             "autoAttachChildProcesses": true

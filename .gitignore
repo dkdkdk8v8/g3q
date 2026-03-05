@@ -69,3 +69,4 @@ server/server/main_tunnel/main_tunnel
 
 # ============ Misc ============
 .gemini/settings.json
+.playwright-mcp/

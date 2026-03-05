@@ -57,15 +57,27 @@ export const useBrnnStore = defineStore('brnn', () => {
   const countdown = ref(0);
   const gameCount = ref(0);
   const playerCount = ref(0);
-  const chips = ref([10, 50, 100, 500, 1000]);
-  const maxBetPerArea = ref(50000);
+  const chips = ref([100, 1000, 5000, 10000, 50000]);
+  const maxBetPerArea = ref(500000);
   const minBalance = ref(0);
-  const selectedChip = ref(10);
+  const selectedChip = ref(100);
   const areas = ref(createDefaultAreas());
   const dealer = ref(createDefaultDealer());
   const lastWin = ref(0);
+  const dealerWin = ref(0);
   const trend = ref([]);
   let lastWinTimer = null;
+
+  // --- History ---
+  const history = ref([]);
+  const historyLastId = ref(0);
+  const historyLastTimestamp = ref(0);
+  const isLoadingHistory = ref(false);
+  const isHistoryEnd = ref(false);
+
+  // --- Online Players ---
+  const onlinePlayers = ref([]);
+  const isLoadingPlayers = ref(false);
 
   // --- Handlers (called by push handlers) ---
 
@@ -94,6 +106,7 @@ export const useBrnnStore = defineStore('brnn', () => {
         });
         dealer.value = createDefaultDealer();
         lastWin.value = 0;
+        dealerWin.value = 0;
       }
     }
 
@@ -135,6 +148,11 @@ export const useBrnnStore = defineStore('brnn', () => {
           areas.value[i].myBet = bet || 0;
         }
       });
+    }
+
+    // Balance
+    if (data.MyBalance !== undefined) {
+      useUserStore().userInfo.balance = data.MyBalance;
     }
 
     // Config
@@ -182,6 +200,10 @@ export const useBrnnStore = defineStore('brnn', () => {
         }
       });
     }
+
+    if (data.MyBalance !== undefined) {
+      useUserStore().userInfo.balance = data.MyBalance;
+    }
   };
 
   /**
@@ -200,6 +222,11 @@ export const useBrnnStore = defineStore('brnn', () => {
       });
     }
 
+    // Dealer win
+    if (data.DealerWin !== undefined) {
+      dealerWin.value = data.DealerWin;
+    }
+
     // Last win amount
     if (data.MyWin !== undefined) {
       lastWin.value = data.MyWin;
@@ -210,10 +237,16 @@ export const useBrnnStore = defineStore('brnn', () => {
       useUserStore().userInfo.balance = data.MyBalance;
     }
 
+    // Update trend
+    if (data.Trend && Array.isArray(data.Trend)) {
+      trend.value = data.Trend;
+    }
+
     // Auto-dismiss settlement overlay after 3 seconds
     if (lastWinTimer) clearTimeout(lastWinTimer);
     lastWinTimer = setTimeout(() => {
       lastWin.value = 0;
+      dealerWin.value = 0;
       lastWinTimer = null;
     }, 3000);
   };
@@ -252,6 +285,59 @@ export const useBrnnStore = defineStore('brnn', () => {
     selectedChip.value = chipValue;
   };
 
+  const fetchHistory = ({ reset = false } = {}) => {
+    if (isLoadingHistory.value) return;
+    if (!reset && isHistoryEnd.value) return;
+
+    if (reset) {
+      history.value = [];
+      historyLastId.value = 0;
+      historyLastTimestamp.value = 0;
+      isHistoryEnd.value = false;
+    }
+
+    isLoadingHistory.value = true;
+    gameClient.send('GameRecord', {
+      Limit: 20,
+      LastId: historyLastId.value,
+      LastTimestamp: historyLastTimestamp.value,
+      Date: '',
+    });
+  };
+
+  const handleGameRecord = (msg) => {
+    isLoadingHistory.value = false;
+    if (msg.code !== 0 || !msg.data) return;
+
+    const data = msg.data;
+    if (data.LastId) historyLastId.value = data.LastId;
+    if (data.LastTimestamp) historyLastTimestamp.value = data.LastTimestamp;
+
+    const list = data.List || [];
+    if (list.length < 20) isHistoryEnd.value = true;
+
+    for (const item of list) {
+      if (item.Type === 1 && item.GameData) {
+        try { item.GameDataObj = JSON.parse(item.GameData); } catch (_) {}
+      }
+      history.value.push(item);
+    }
+  };
+
+  // --- Online Players ---
+
+  const fetchOnlinePlayers = () => {
+    if (isLoadingPlayers.value) return;
+    isLoadingPlayers.value = true;
+    gameClient.send('BRNN.GetPlayers');
+  };
+
+  const handleGetPlayers = (msg) => {
+    isLoadingPlayers.value = false;
+    if (msg.code !== 0 || !msg.data) return;
+    onlinePlayers.value = msg.data.Players || [];
+  };
+
   // --- Lifecycle ---
 
   const registerPushHandlers = () => {
@@ -259,6 +345,8 @@ export const useBrnnStore = defineStore('brnn', () => {
     gameClient.onServerPush('BRNN.PushBetUpdate', handleBetUpdate);
     gameClient.onServerPush('BRNN.PushSettlement', handleSettlement);
     gameClient.onServerPush('BRNN.PushPlayerCount', handlePlayerCount);
+    gameClient.on('GameRecord', handleGameRecord);
+    gameClient.on('BRNN.GetPlayers', handleGetPlayers);
   };
 
   const unregisterPushHandlers = () => {
@@ -266,6 +354,8 @@ export const useBrnnStore = defineStore('brnn', () => {
     gameClient.offServerPush('BRNN.PushBetUpdate');
     gameClient.offServerPush('BRNN.PushSettlement');
     gameClient.offServerPush('BRNN.PushPlayerCount');
+    gameClient.off('GameRecord');
+    gameClient.off('BRNN.GetPlayers');
   };
 
   const resetState = () => {
@@ -273,13 +363,14 @@ export const useBrnnStore = defineStore('brnn', () => {
     countdown.value = 0;
     gameCount.value = 0;
     playerCount.value = 0;
-    chips.value = [10, 50, 100, 500, 1000];
-    maxBetPerArea.value = 50000;
+    chips.value = [100, 1000, 5000, 10000, 50000];
+    maxBetPerArea.value = 500000;
     minBalance.value = 0;
     selectedChip.value = chips.value[0];
     areas.value = createDefaultAreas();
     dealer.value = createDefaultDealer();
     lastWin.value = 0;
+    dealerWin.value = 0;
     trend.value = [];
     if (lastWinTimer) {
       clearTimeout(lastWinTimer);
@@ -300,6 +391,7 @@ export const useBrnnStore = defineStore('brnn', () => {
     areas,
     dealer,
     lastWin,
+    dealerWin,
     trend,
 
     // Handlers
@@ -308,11 +400,22 @@ export const useBrnnStore = defineStore('brnn', () => {
     handleSettlement,
     handlePlayerCount,
 
+    // History
+    history,
+    isLoadingHistory,
+    isHistoryEnd,
+
+    // Online Players
+    onlinePlayers,
+    isLoadingPlayers,
+
     // Actions
     joinRoom,
     leaveRoom,
     placeBet,
     selectChipValue,
+    fetchHistory,
+    fetchOnlinePlayers,
 
     // Lifecycle
     registerPushHandlers,

@@ -61,8 +61,9 @@ type BRNNRoom struct {
 	Dealer  BettingArea
 	Areas   [AreaCount]*BettingArea
 	Players map[string]*BRNNPlayer
-	Deck    []int
-	Trend   []TrendRecord
+	Deck        []int
+	Trend       []TrendRecord
+	LastAreaWin [AreaCount]bool // 上一局各区域胜负，用于 SETTLING 阶段推送
 
 	mu       sync.RWMutex
 	driverGo chan struct{}

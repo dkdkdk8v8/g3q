@@ -129,8 +129,7 @@ func handleConnection(connWrap *ws.WsConnWrap, appId, appUserId string) {
 						Router: znet.Game,
 						Room:   room,
 						SelfId: userId}})
-			} else if brnnPlayer := game.GetMgr().CheckPlayerInBRNN(userId); brnnPlayer != nil {
-				brnnRoom := game.GetMgr().GetBRNNRoom()
+			} else if brnnRoom, brnnPlayer := game.GetMgr().CheckPlayerInBRNN(userId); brnnPlayer != nil {
 				brnnRoom.SetWsWrap(userId, connWrap)
 				_ = comm.WriteMsgPack(connWrap, comm.PushData{
 					Cmd:      comm.ServerPush,
@@ -283,6 +282,8 @@ func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, userId st
 		errRsp = handleBRNNPlaceBet(userId, msg.Data)
 	case brnn.CmdLobbyConfig:
 		rsp.Data = handleBRNNLobbyConfig()
+	case brnn.CmdGetPlayers:
+		rsp.Data, errRsp = handleBRNNGetPlayers(userId)
 	default:
 		errRsp = errors.New("UnknownCmd")
 	}

@@ -115,6 +115,7 @@ export function niuLabel(niuType) {
     if (niuType === 11) return '五花牛';
     if (niuType === 12) return '炸弹牛';
     if (niuType === 13) return '五小牛';
+    if (niuType === 14) return '四花牛';
     return '';
 }
 

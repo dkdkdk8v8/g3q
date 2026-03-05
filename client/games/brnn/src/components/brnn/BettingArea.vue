@@ -25,9 +25,21 @@ const hasCards = computed(() => {
   return props.area && props.area.cards && props.area.cards.length > 0
 })
 
-const displayCards = computed(() => {
-  if (!hasCards.value || !showFace.value) return []
-  return props.area.cards.map(c => cardToDisplay(c))
+const EMPTY_CARD = { rank: '', suit: '', isRed: false }
+
+const faceCards = computed(() => {
+  if (!hasCards.value) return Array(5).fill(EMPTY_CARD)
+  const cards = props.area.cards.map(c => cardToDisplay(c))
+  while (cards.length < 5) cards.push(EMPTY_CARD)
+  return cards
+})
+
+const showBack = computed(() => {
+  return !showFace.value && (hasCards.value || props.phase === 'DEALING')
+})
+
+const showPlaceholder = computed(() => {
+  return !showFace.value && !showBack.value
 })
 
 const niuText = computed(() => {
@@ -65,11 +77,11 @@ function onAreaClick() {
       <span class="area-name">{{ area.name }}</span>
     </div>
 
-    <!-- Cards Row -->
+    <!-- Cards Row (all three states always in DOM, toggled by v-show) -->
     <div class="area-cards">
-      <template v-if="showFace && displayCards.length > 0">
+      <div v-show="showFace" class="cards-row">
         <div
-          v-for="(card, i) in displayCards"
+          v-for="(card, i) in faceCards"
           :key="i"
           class="tiny-card"
           :class="{ 'is-red': card.isRed }"
@@ -77,15 +89,15 @@ function onAreaClick() {
           <span class="tc-rank">{{ card.rank }}</span>
           <span class="tc-suit">{{ card.suit }}</span>
         </div>
-      </template>
-      <template v-else-if="hasCards || phase === 'DEALING'">
+      </div>
+      <div v-show="showBack" class="cards-row">
         <div v-for="i in 5" :key="'b-' + i" class="tiny-card tiny-back">?</div>
-      </template>
-      <div v-else class="area-cards-placeholder">-</div>
+      </div>
+      <div v-show="showPlaceholder" class="area-cards-placeholder">-</div>
     </div>
 
-    <!-- Niu Type Badge -->
-    <div v-if="niuText" class="area-niu">{{ niuText }}</div>
+    <!-- Niu Type Badge (always rendered, hidden when empty to reserve space) -->
+    <div class="area-niu" :class="{ 'niu-hidden': !niuText }">{{ niuText || '-' }}</div>
 
     <!-- Bet Info -->
     <div class="area-bets">
@@ -104,8 +116,8 @@ function onAreaClick() {
       {{ winText }}
     </div>
 
-    <!-- Clickable hint during betting -->
-    <div v-if="canBet" class="bet-hint">点击下注</div>
+    <!-- Clickable hint (always rendered, hidden when not betting to reserve space) -->
+    <div class="bet-hint" :class="{ 'hint-hidden': !canBet }">点击下注</div>
   </div>
 </template>
 
@@ -156,10 +168,15 @@ function onAreaClick() {
 
 .area-cards {
   display: flex;
-  gap: 2px;
   padding: 6px 4px 4px;
   min-height: 36px;
   align-items: center;
+  justify-content: center;
+}
+
+.cards-row {
+  display: flex;
+  gap: 2px;
   justify-content: center;
 }
 
@@ -216,6 +233,10 @@ function onAreaClick() {
   margin: 2px 0;
 }
 
+.area-niu.niu-hidden {
+  visibility: hidden;
+}
+
 .area-bets {
   width: 100%;
   padding: 2px 8px;
@@ -266,5 +287,9 @@ function onAreaClick() {
   font-size: 10px;
   color: rgba(255, 215, 0, 0.5);
   margin-top: 2px;
+}
+
+.bet-hint.hint-hidden {
+  visibility: hidden;
 }
 </style>

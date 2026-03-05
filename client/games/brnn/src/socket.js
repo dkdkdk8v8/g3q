@@ -1,5 +1,6 @@
-import GameClient from './Network.js';
-
-const gameClient = new GameClient();
+/**
+ * Re-export the singleton GameClient instance from Network.js
+ */
+import gameClient from './Network.js';
 
 export default gameClient;

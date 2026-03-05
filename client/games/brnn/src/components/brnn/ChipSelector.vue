@@ -2,23 +2,25 @@
 const props = defineProps({
   chips: Array,
   selected: Number,
+  disabled: Boolean,
 })
 
 const emit = defineEmits(['select'])
 
 function formatChip(value) {
-  if (value >= 10000) return (value / 10000) + 'w'
-  if (value >= 1000) return (value / 1000) + 'k'
-  return value.toString()
+  const yuan = value / 100
+  if (yuan >= 10000) return (yuan / 10000) + 'w'
+  return yuan % 1 === 0 ? yuan.toString() : yuan.toFixed(2)
 }
 
 function onSelect(chipValue) {
+  if (props.disabled) return
   emit('select', chipValue)
 }
 </script>
 
 <template>
-  <div class="chip-selector">
+  <div class="chip-selector" :class="{ 'chip-disabled': disabled }">
     <div class="chip-label">筹码</div>
     <div class="chip-row">
       <button
@@ -81,5 +83,10 @@ function onSelect(chipValue) {
   box-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
   background: linear-gradient(135deg, #5a5a2a, #3a3a1a);
   color: #ffd700;
+}
+
+.chip-disabled {
+  opacity: 0.3;
+  pointer-events: none;
 }
 </style>

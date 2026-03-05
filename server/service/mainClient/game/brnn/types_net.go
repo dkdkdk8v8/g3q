@@ -9,6 +9,7 @@ const (
 	CmdPlayerJoin  comm.CmdType = BRNN_Prefix + "PlayerJoin"
 	CmdPlayerLeave comm.CmdType = BRNN_Prefix + "PlayerLeave"
 	CmdPlaceBet    comm.CmdType = BRNN_Prefix + "PlaceBet"
+	CmdGetPlayers  comm.CmdType = BRNN_Prefix + "GetPlayers"
 )
 
 const (
@@ -35,6 +36,7 @@ type PushRoomStateData struct {
 	Areas       [AreaCount]AreaInfo `json:"Areas"`
 	Dealer      DealerInfo          `json:"Dealer"`
 	MyBets      [AreaCount]int64    `json:"MyBets"`
+	MyBalance   int64               `json:"MyBalance"`
 	Config      *BRNNClientConfig   `json:"Config,omitempty"`
 	Trend       []TrendRecord       `json:"Trend,omitempty"`
 }
@@ -56,19 +58,43 @@ type DealerInfo struct {
 }
 
 type PushBetUpdateData struct {
-	AreaBets [AreaCount]int64 `json:"AreaBets"`
-	MyBets   [AreaCount]int64 `json:"MyBets"`
+	AreaBets  [AreaCount]int64 `json:"AreaBets"`
+	MyBets    [AreaCount]int64 `json:"MyBets"`
+	MyBalance int64            `json:"MyBalance"`
 }
 
 type PushSettlementData struct {
 	AreaWin   [AreaCount]bool  `json:"AreaWin"`
 	AreaMult  [AreaCount]int64 `json:"AreaMult"`
+	DealerWin int64            `json:"DealerWin"`
 	MyWin     int64            `json:"MyWin"`
+	MyTax     int64            `json:"MyTax"`
 	MyBalance int64            `json:"MyBalance"`
+	Trend     []TrendRecord    `json:"Trend,omitempty"`
 }
 
 type BRNNClientConfig struct {
 	Chips         []int64 `json:"Chips"`
 	MaxBetPerArea int64   `json:"MaxBetPerArea"`
 	MinBalance    int64   `json:"MinBalance"`
+}
+
+// --- GetPlayers response ---
+
+type PlayerRankInfo struct {
+	UserId   string `json:"UserId"`
+	NickName string `json:"NickName"`
+	Avatar   string `json:"Avatar"`
+	Balance  int64  `json:"Balance"`
+	TotalBet int64  `json:"TotalBet"`
+	WinCount int    `json:"WinCount"`
+}
+
+type RespGetPlayers struct {
+	Players []PlayerRankInfo `json:"Players"`
+}
+
+// BrnnGameDataParsed 用于外部解析 GameRecord.GameData JSON。
+type BrnnGameDataParsed struct {
+	PlayerBets []BrnnPlayerBet `json:"PlayerBets"`
 }

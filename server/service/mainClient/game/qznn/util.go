@@ -16,7 +16,27 @@ const (
 	NiuFace      = 11 // 五花牛
 	NiuBomb      = 12 // 炸弹牛
 	NiuFiveSmall = 13 // 五小牛
+	NiuFourFace  = 14 // 四花牛 (4张JQK + 1张10)
 )
+
+// niuRanking 牌型排名（用于比较大小，值越大越强）
+var niuRanking = map[int64]int{
+	NiuNone:      0,
+	NiuOne:       1,
+	NiuTwo:       2,
+	NiuThree:     3,
+	NiuFour:      4,
+	NiuFive:      5,
+	NiuSix:       6,
+	NiuSeven:     7,
+	NiuEight:     8,
+	NiuNine:      9,
+	NiuNiu:       10,
+	NiuFourFace:  11,
+	NiuFace:      12,
+	NiuBomb:      13,
+	NiuFiveSmall: 14,
+}
 
 const (
 	BankerTypeNoLook = 0 // 无看牌抢庄
@@ -60,8 +80,21 @@ func CalcNiu(cards []int) CardResult {
 		}
 	}
 	if isFiveFlower {
-		// 使用 NiuFace (11) 代表五花牛，倍率设为 6
 		return CardResult{Niu: NiuFace, Mult: GetCardMultiplier(NiuFace), MaxCard: maxCard}
+	}
+
+	// 四花牛判断 (4张 J/Q/K + 1张 10)
+	faceCount := 0
+	hasTen := false
+	for _, r := range ranks {
+		if r >= 10 { // J, Q, K
+			faceCount++
+		} else if r == 9 { // 10
+			hasTen = true
+		}
+	}
+	if faceCount == 4 && hasTen {
+		return CardResult{Niu: NiuFourFace, Mult: GetCardMultiplier(NiuFourFace), MaxCard: maxCard}
 	}
 
 	// 五小牛判断
@@ -122,7 +155,7 @@ func CalcNiu(cards []int) CardResult {
 
 func CompareCards(a, b CardResult) bool {
 	if a.Niu != b.Niu {
-		return a.Niu > b.Niu
+		return niuRanking[a.Niu] > niuRanking[b.Niu]
 	}
 	return getCardPower(a.MaxCard) > getCardPower(b.MaxCard)
 }

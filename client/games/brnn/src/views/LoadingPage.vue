@@ -158,6 +158,7 @@ export default {
 
           gameClient.offServerPush('PushRouter');
           gameClient.off('UserInfo');
+          gameClient.off('BRNN.PlayerJoin');
 
           router.push(targetRoute);
         }
@@ -199,6 +200,15 @@ export default {
         } else {
           isLoading.value = false;
           errorMessage.value = `获取用户数据失败: ${msg.msg}`;
+        }
+      });
+
+      // Register handler for BRNN.PlayerJoin response
+      gameClient.on('BRNN.PlayerJoin', (msg) => {
+        if (msg.code !== 0) {
+          isLoading.value = false;
+          errorMessage.value = `加入房间失败: ${msg.msg}`;
+          gameClient.off('BRNN.PlayerJoin');
         }
       });
 

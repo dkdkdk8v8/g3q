@@ -19,6 +19,7 @@ import (
 // ---------------------------------------------------------------------------
 
 // NewRoom 创建百人牛牛房间，初始化各区域并启动 FSM 驱动协程。
+// 自动从 DB 加载该房间最近的走势记录。
 func NewRoom(id string, cfg *BRNNConfig) *BRNNRoom {
 	if cfg == nil {
 		cfg = DefaultConfig
@@ -35,9 +36,44 @@ func NewRoom(id string, cfg *BRNNConfig) *BRNNRoom {
 	for i := 0; i < AreaCount; i++ {
 		r.Areas[i] = &BettingArea{Index: i, Name: AreaNames[i]}
 	}
+
+	// 从 DB 加载走势
+	r.loadTrendFromDB()
+
 	r.setState(StateBetting, cfg.SecBetting)
 	go r.driverLogicTick()
 	return r
+}
+
+// loadTrendFromDB 从 game_record 表加载该房间最近的走势数据。
+func (r *BRNNRoom) loadTrendFromDB() {
+	if initMain.DefCtx == nil || initMain.DefCtx.IsTest {
+		return
+	}
+	records, err := modelClient.GetRecentGameRecordsByRoomId(r.ID, TrendMaxLen)
+	if err != nil {
+		logrus.WithField("roomId", r.ID).WithError(err).Warn("brnn.loadTrendFromDB")
+		return
+	}
+	if len(records) == 0 {
+		return
+	}
+	// records 是按 id 倒序的，需要反转为正序
+	trend := make([]TrendRecord, 0, len(records))
+	for i := len(records) - 1; i >= 0; i-- {
+		rec := records[i]
+		var gd brnnGameData
+		if err := json.Unmarshal([]byte(rec.GameData), &gd); err != nil {
+			continue
+		}
+		trend = append(trend, TrendRecord{
+			GameCount: gd.GameCount,
+			DealerNiu: gd.DealerNiu,
+			AreaNiu:   gd.AreaNiu,
+			AreaWin:   gd.AreaWin,
+		})
+	}
+	r.Trend = trend
 }
 
 // Destroy 销毁房间，关闭驱动协程。
@@ -180,11 +216,29 @@ func (r *BRNNRoom) dealCards() {
 	}
 }
 
-// calcResults 对庄家和每个区域调用 CalcNiu 计算牌型。
+// brnnMult 百人牛牛赔付倍数
+func brnnMult(niu int64) int64 {
+	switch niu {
+	case qznn.NiuFace, qznn.NiuFiveSmall:
+		return 5 // 五花牛、五小牛
+	case qznn.NiuBomb, qznn.NiuFourFace:
+		return 4 // 炸弹牛、四花牛
+	case qznn.NiuNiu:
+		return 3 // 牛牛
+	case qznn.NiuSeven, qznn.NiuEight, qznn.NiuNine:
+		return 2 // 牛七到牛九
+	default:
+		return 1 // 无牛到牛六
+	}
+}
+
+// calcResults 对庄家和每个区域调用 CalcNiu 计算牌型，并使用百人牛牛倍数。
 func (r *BRNNRoom) calcResults() {
 	r.Dealer.CardResult = qznn.CalcNiu(r.Dealer.Cards)
+	r.Dealer.CardResult.Mult = brnnMult(r.Dealer.CardResult.Niu)
 	for i := 0; i < AreaCount; i++ {
 		r.Areas[i].CardResult = qznn.CalcNiu(r.Areas[i].Cards)
+		r.Areas[i].CardResult.Mult = brnnMult(r.Areas[i].CardResult.Niu)
 	}
 }
 
@@ -207,6 +261,9 @@ func (r *BRNNRoom) settle() {
 		}
 	}
 
+	// 记录到房间，供 broadcastRoomState 在 SETTLING 阶段推送
+	r.LastAreaWin = areaWin
+
 	// 2. 记录趋势
 	tr := TrendRecord{
 		GameCount: r.GameCount,
@@ -221,16 +278,27 @@ func (r *BRNNRoom) settle() {
 		r.Trend = r.Trend[len(r.Trend)-TrendMaxLen:]
 	}
 
-	// 3. 给每个玩家计算输赢，收集推送消息
+	// 3. 复制 trend 用于推送
+	trendCopy := make([]TrendRecord, len(r.Trend))
+	copy(trendCopy, r.Trend)
+
+	// 4. 给每个玩家计算输赢，收集推送消息和持久化结果
 	type playerMsg struct {
 		conn *ws.WsConnWrap
 		msg  comm.PushData
 	}
 	var msgs []playerMsg
+	var results []settleResult
 
+	taxRate := r.Config.TaxRate
+	var dealerWin int64 // 庄家总输赢 = 所有玩家输赢的负值
 	for _, p := range r.Players {
 		if p == nil {
 			continue
+		}
+		// 归还下注阶段扣减的余额，再按原逻辑计算输赢
+		for i := 0; i < AreaCount; i++ {
+			p.Balance += p.Bets[i]
 		}
 		var myWin int64
 		for i := 0; i < AreaCount; i++ {
@@ -239,14 +307,26 @@ func (r *BRNNRoom) settle() {
 				continue
 			}
 			if areaWin[i] {
-				// 区域赢：玩家获得 bet * 区域牌型倍数
 				myWin += bet * areaMult[i]
 			} else {
-				// 区域输：玩家扣除 bet * 庄家牌型倍数
 				myWin -= bet * areaMult[i]
 			}
 		}
-		p.Balance += myWin
+		// 单局输赢上限：最多赢/输本金
+		if myWin > p.Balance {
+			myWin = p.Balance
+		} else if myWin < -p.Balance {
+			myWin = -p.Balance
+		}
+		dealerWin -= myWin
+
+		// 赢家税收
+		var tax int64
+		if myWin > 0 && taxRate > 0 {
+			tax = myWin * taxRate / 100
+		}
+		netWin := myWin - tax
+		p.Balance += netWin
 
 		if p.ConnWrap != nil && p.ConnWrap.IsConnected() {
 			msgs = append(msgs, playerMsg{
@@ -257,46 +337,31 @@ func (r *BRNNRoom) settle() {
 					Data: PushSettlementData{
 						AreaWin:   areaWin,
 						AreaMult:  areaMult,
-						MyWin:     myWin,
+						DealerWin: dealerWin,
+						MyWin:     netWin,
+						MyTax:     tax,
 						MyBalance: p.Balance,
+						Trend:     trendCopy,
 					},
 				},
 			})
 		}
-	}
 
-	// 4. 收集有下注的玩家结算结果用于持久化
-	var results []settleResult
-	for _, p := range r.Players {
-		if p == nil {
-			continue
-		}
+		// 收集有下注的玩家用于持久化
 		var totalBet int64
 		for i := 0; i < AreaCount; i++ {
 			totalBet += p.Bets[i]
 		}
-		if totalBet <= 0 {
-			continue
+		if totalBet > 0 {
+			results = append(results, settleResult{
+				userId:   p.ID,
+				myWin:    myWin,
+				tax:      tax,
+				validBet: totalBet,
+				balance:  p.Balance,
+				bets:     p.Bets,
+			})
 		}
-		// 重新计算该玩家的 myWin
-		var myWin int64
-		for i := 0; i < AreaCount; i++ {
-			bet := p.Bets[i]
-			if bet <= 0 {
-				continue
-			}
-			if areaWin[i] {
-				myWin += bet * areaMult[i]
-			} else {
-				myWin -= bet * areaMult[i]
-			}
-		}
-		results = append(results, settleResult{
-			userId:   p.ID,
-			myWin:    myWin,
-			validBet: totalBet,
-			balance:  p.Balance,
-		})
 	}
 
 	// 5. 锁外批量发送 + 异步持久化
@@ -304,6 +369,16 @@ func (r *BRNNRoom) settle() {
 	roomID := r.ID
 	gameCount := r.GameCount
 	dealerNiu := r.Dealer.CardResult.Niu
+	dealerMult := r.Dealer.CardResult.Mult
+	dealerCards := make([]int, len(r.Dealer.Cards))
+	copy(dealerCards, r.Dealer.Cards)
+	var areaNiu [AreaCount]int64
+	var areaCards [AreaCount][]int
+	for i := 0; i < AreaCount; i++ {
+		areaNiu[i] = r.Areas[i].CardResult.Niu
+		areaCards[i] = make([]int, len(r.Areas[i].Cards))
+		copy(areaCards[i], r.Areas[i].Cards)
+	}
 
 	if len(msgs) > 0 {
 		go func() {
@@ -314,7 +389,7 @@ func (r *BRNNRoom) settle() {
 	}
 
 	if len(results) > 0 {
-		go r.persistSettlement(roomID, gameID, gameCount, dealerNiu, areaWin, areaMult, results)
+		go r.persistSettlement(roomID, gameID, gameCount, dealerNiu, dealerMult, dealerCards, areaWin, areaMult, areaNiu, areaCards, results)
 	}
 }
 
@@ -324,38 +399,69 @@ func (r *BRNNRoom) settle() {
 
 type settleResult struct {
 	userId   string
-	myWin    int64
+	myWin    int64 // 原始输赢（税前）
+	tax      int64 // 税收
 	validBet int64
 	balance  int64
+	bets     [AreaCount]int64
+}
+
+// BrnnPlayerBet 记录单个玩家的下注详情，用于 GameData 持久化和外部解析。
+type BrnnPlayerBet struct {
+	UserId string           `json:"UserId"`
+	Bets   [AreaCount]int64 `json:"Bets"`
+	Win    int64            `json:"Win"` // 原始输赢（税前）
+	Tax    int64            `json:"Tax"` // 税收
 }
 
 // brnnGameData 序列化到 GameRecord.GameData
 type brnnGameData struct {
-	GameCount int64            `json:"GameCount"`
-	DealerNiu int64            `json:"DealerNiu"`
-	AreaWin   [AreaCount]bool  `json:"AreaWin"`
-	AreaMult  [AreaCount]int64 `json:"AreaMult"`
+	GameCount   int64              `json:"GameCount"`
+	DealerNiu   int64              `json:"DealerNiu"`
+	DealerMult  int64              `json:"DealerMult"`
+	DealerCards []int              `json:"DealerCards,omitempty"`
+	AreaWin     [AreaCount]bool    `json:"AreaWin"`
+	AreaMult    [AreaCount]int64   `json:"AreaMult"`
+	AreaNiu     [AreaCount]int64   `json:"AreaNiu"`
+	AreaCards   [AreaCount][]int   `json:"AreaCards"`
+	PlayerBets  []BrnnPlayerBet    `json:"PlayerBets,omitempty"`
 }
 
 // persistSettlement 异步写入 game_record + user_record，然后回写 DB 余额到内存。
-func (r *BRNNRoom) persistSettlement(roomID, gameID string, gameCount, dealerNiu int64,
-	areaWin [AreaCount]bool, areaMult [AreaCount]int64, results []settleResult) {
+func (r *BRNNRoom) persistSettlement(roomID, gameID string, gameCount, dealerNiu, dealerMult int64,
+	dealerCards []int, areaWin [AreaCount]bool, areaMult, areaNiu [AreaCount]int64,
+	areaCards [AreaCount][]int, results []settleResult) {
 
 	if initMain.DefCtx == nil || initMain.DefCtx.IsTest {
 		return
 	}
 
 	// 1. InsertGameRecord
+	playerBets := make([]BrnnPlayerBet, len(results))
+	for i, res := range results {
+		playerBets[i] = BrnnPlayerBet{
+			UserId: res.userId,
+			Bets:   res.bets,
+			Win:    res.myWin,
+			Tax:    res.tax,
+		}
+	}
 	gameData := brnnGameData{
-		GameCount: gameCount,
-		DealerNiu: dealerNiu,
-		AreaWin:   areaWin,
-		AreaMult:  areaMult,
+		GameCount:   gameCount,
+		DealerNiu:   dealerNiu,
+		DealerMult:  dealerMult,
+		DealerCards:  dealerCards,
+		AreaWin:      areaWin,
+		AreaMult:     areaMult,
+		AreaNiu:      areaNiu,
+		AreaCards:     areaCards,
+		PlayerBets:   playerBets,
 	}
 	gameDataBytes, _ := json.Marshal(gameData)
 	recordId, err := modelClient.InsertGameRecord(&modelClient.ModelGameRecord{
 		GameId:   gameID,
 		GameName: GameName,
+		RoomId:   roomID,
 		GameData: string(gameDataBytes),
 	})
 	if err != nil {
@@ -374,7 +480,7 @@ func (r *BRNNRoom) persistSettlement(roomID, gameID string, gameCount, dealerNiu
 		settle.Players = append(settle.Players, modelClient.UserSettingStruct{
 			UserId:               res.userId,
 			PlayerBalance:        res.balance,
-			ChangeBalance:        res.myWin,
+			ChangeBalance:        res.myWin - res.tax, // 实际余额变化 = 输赢 - 税收
 			ValidBet:             res.validBet,
 			UserGameRecordInsert: true,
 		})
@@ -387,11 +493,15 @@ func (r *BRNNRoom) persistSettlement(roomID, gameID string, gameCount, dealerNiu
 		return
 	}
 
-	// 4. 回写 DB 余额到内存
+	// 4. 回写 DB 余额到内存（需扣除新一局已下注的金额，避免覆盖下注扣减）
 	r.mu.Lock()
 	for _, mu := range modelUsers {
 		if p := r.Players[mu.UserId]; p != nil {
-			p.Balance = mu.BalanceLock
+			var currentBets int64
+			for i := 0; i < AreaCount; i++ {
+				currentBets += p.Bets[i]
+			}
+			p.Balance = mu.BalanceLock - currentBets
 		}
 	}
 	r.mu.Unlock()
@@ -404,6 +514,7 @@ func (r *BRNNRoom) persistSettlement(roomID, gameID string, gameCount, dealerNiu
 // resetRound 清除本局临时数据，为下一局做准备。
 func (r *BRNNRoom) resetRound() {
 	r.Deck = nil
+	r.LastAreaWin = [AreaCount]bool{}
 	r.Dealer.Cards = nil
 	r.Dealer.CardResult = qznn.CardResult{}
 	r.Dealer.TotalBet = 0
@@ -518,21 +629,14 @@ func (r *BRNNRoom) placeBetLocked(userId string, area int, chip int64) error {
 	if p == nil {
 		return comm.NewMyError("玩家不存在")
 	}
-	// 5. 验证单区域上限
-	if p.Bets[area]+chip > r.Config.MaxBetPerArea {
-		return comm.NewMyError("超过单区域下注上限")
-	}
-	// 6. 验证余额（所有区域下注总和 + 本次筹码 <= 余额）
-	var totalBets int64
-	for i := 0; i < AreaCount; i++ {
-		totalBets += p.Bets[i]
-	}
-	if totalBets+chip > p.Balance {
+	// 5. 验证余额
+	if chip > p.Balance {
 		return comm.NewMyError("余额不足")
 	}
 
-	// 7. 更新下注
+	// 7. 更新下注并扣减余额
 	p.Bets[area] += chip
+	p.Balance -= chip
 	r.Areas[area].TotalBet += chip
 
 	return nil
@@ -572,8 +676,9 @@ func (r *BRNNRoom) PlaceBetAndBroadcast(userId string, area int, chip int64) err
 					Cmd:      comm.ServerPush,
 					PushType: PushBetUpdate,
 					Data: PushBetUpdateData{
-						AreaBets: areaBets,
-						MyBets:   p.Bets,
+						AreaBets:  areaBets,
+						MyBets:    p.Bets,
+						MyBalance: p.Balance,
 					},
 				},
 			})
@@ -650,6 +755,10 @@ func (r *BRNNRoom) buildRoomStateData(p *BRNNPlayer) PushRoomStateData {
 			ai.NiuType = a.CardResult.Niu
 			ai.NiuMult = a.CardResult.Mult
 		}
+		if r.State == StateSettling {
+			win := r.LastAreaWin[i]
+			ai.Win = &win
+		}
 		areas[i] = ai
 	}
 
@@ -663,8 +772,10 @@ func (r *BRNNRoom) buildRoomStateData(p *BRNNPlayer) PushRoomStateData {
 	}
 
 	var myBets [AreaCount]int64
+	var myBalance int64
 	if p != nil {
 		myBets = p.Bets
+		myBalance = p.Balance
 	}
 
 	return PushRoomStateData{
@@ -675,6 +786,7 @@ func (r *BRNNRoom) buildRoomStateData(p *BRNNPlayer) PushRoomStateData {
 		Areas:       areas,
 		Dealer:      dealer,
 		MyBets:      myBets,
+		MyBalance:   myBalance,
 	}
 }
 
@@ -750,6 +862,26 @@ func (r *BRNNRoom) pushPlayer(p *BRNNPlayer, msg interface{}) {
 // ---------------------------------------------------------------------------
 // 外部查询（用于玩家加入时推送完整状态）
 // ---------------------------------------------------------------------------
+
+// GetOnlinePlayers 返回在线玩家基本信息列表（线程安全）。
+func (r *BRNNRoom) GetOnlinePlayers() []PlayerRankInfo {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	players := make([]PlayerRankInfo, 0, len(r.Players))
+	for _, p := range r.Players {
+		if p == nil {
+			continue
+		}
+		players = append(players, PlayerRankInfo{
+			UserId:   p.ID,
+			NickName: p.NickName,
+			Avatar:   p.Avatar,
+			Balance:  p.Balance,
+		})
+	}
+	return players
+}
 
 // GetRoomStateForPlayer 返回完整的房间状态（包含 Config 和 Trend），用于玩家加入时。
 func (r *BRNNRoom) GetRoomStateForPlayer(userId string) PushRoomStateData {

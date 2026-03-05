@@ -16,9 +16,10 @@ import (
 
 // managerState holds the internal state of the RoomManager
 type managerState struct {
-	rooms      map[string]*qznn.QZNNRoom
-	brnnRoom   *brnn.BRNNRoom
-	isDraining bool
+	rooms       map[string]*qznn.QZNNRoom
+	brnnRooms   map[string]*brnn.BRNNRoom // 多房间百人牛牛
+	brnnCounter int                       // 房间编号计数器
+	isDraining  bool
 }
 
 type RoomManager struct {
@@ -45,6 +46,7 @@ func GetMgr() *RoomManager {
 func (rm *RoomManager) backend() {
 	state := &managerState{
 		rooms:      make(map[string]*qznn.QZNNRoom),
+		brnnRooms:  make(map[string]*brnn.BRNNRoom),
 		isDraining: false,
 	}
 
@@ -183,21 +185,42 @@ func (rm *RoomManager) cleanupLoop() {
 	for {
 		time.Sleep(time.Second * 10)
 
-		roomsToDestroy := syncOp(rm, func(s *managerState) []*qznn.QZNNRoom {
-			var roomsToDestroy []*qznn.QZNNRoom
+		type cleanupResult struct {
+			qznnRooms []*qznn.QZNNRoom
+			brnnRooms []*brnn.BRNNRoom
+		}
+
+		result := syncOp(rm, func(s *managerState) cleanupResult {
+			var res cleanupResult
+
+			// QZNN 房间清理
 			for id, r := range s.rooms {
 				if r.GetPlayerCount() == 0 && time.Since(r.CreateAt) > time.Minute {
 					delete(s.rooms, id)
-					roomsToDestroy = append(roomsToDestroy, r)
+					res.qznnRooms = append(res.qznnRooms, r)
 					logrus.WithField("roomId", id).Info("RoomManager-ReleaseRoom")
 				}
 			}
-			return roomsToDestroy
+
+			// BRNN 房间清理：空房间且非唯一房间则销毁
+			if len(s.brnnRooms) > 1 {
+				for id, r := range s.brnnRooms {
+					if r.GetPlayerCount() == 0 && len(s.brnnRooms) > 1 {
+						delete(s.brnnRooms, id)
+						res.brnnRooms = append(res.brnnRooms, r)
+						logrus.WithField("roomId", id).Info("RoomManager-ReleaseBRNNRoom")
+					}
+				}
+			}
+
+			return res
 		})
 
-		// Destroy outside the monitor loop to avoid blocking it
-		for _, r := range roomsToDestroy {
+		for _, r := range result.qznnRooms {
 			r.Destory()
+		}
+		for _, r := range result.brnnRooms {
+			r.Destroy()
 		}
 	}
 }
@@ -217,23 +240,56 @@ func (rm *RoomManager) GetAllRooms() string {
 	return string(allRooms)
 }
 
-// GetBRNNRoom returns the singleton BRNN room, creating it if needed
-func (rm *RoomManager) GetBRNNRoom() *brnn.BRNNRoom {
-	return syncOp(rm, func(s *managerState) *brnn.BRNNRoom {
-		if s.brnnRoom == nil {
-			s.brnnRoom = brnn.NewRoom("brnn_main", brnn.DefaultConfig)
+// CheckPlayerInBRNN 遍历所有 BRNN 房间，查找玩家所在房间
+func (rm *RoomManager) CheckPlayerInBRNN(userId string) (*brnn.BRNNRoom, *brnn.BRNNPlayer) {
+	type result struct {
+		room   *brnn.BRNNRoom
+		player *brnn.BRNNPlayer
+	}
+	res := syncOp(rm, func(s *managerState) result {
+		for _, room := range s.brnnRooms {
+			if p := room.GetPlayer(userId); p != nil {
+				return result{room: room, player: p}
+			}
 		}
-		return s.brnnRoom
+		return result{}
+	})
+	return res.room, res.player
+}
+
+// GetAllBRNNRooms 返回所有 BRNN 房间的切片（线程安全）。
+func (rm *RoomManager) GetAllBRNNRooms() []*brnn.BRNNRoom {
+	return syncOp(rm, func(s *managerState) []*brnn.BRNNRoom {
+		rooms := make([]*brnn.BRNNRoom, 0, len(s.brnnRooms))
+		for _, r := range s.brnnRooms {
+			rooms = append(rooms, r)
+		}
+		return rooms
 	})
 }
 
-// CheckPlayerInBRNN checks if player is in the BRNN room
-func (rm *RoomManager) CheckPlayerInBRNN(userId string) *brnn.BRNNPlayer {
-	return syncOp(rm, func(s *managerState) *brnn.BRNNPlayer {
-		if s.brnnRoom == nil {
-			return nil
+// AssignPlayerToBRNN 原子地为玩家分配房间并加入，避免并发超员。
+func (rm *RoomManager) AssignPlayerToBRNN(p *brnn.BRNNPlayer) *brnn.BRNNRoom {
+	return syncOp(rm, func(s *managerState) *brnn.BRNNRoom {
+		cfg := brnn.DefaultConfig
+		// 找一个人数 < MaxPlayers 的房间（排除已含该玩家的房间）
+		var room *brnn.BRNNRoom
+		for _, r := range s.brnnRooms {
+			if r.GetPlayerCount() < cfg.MaxPlayers && r.GetPlayer(p.ID) == nil {
+				room = r
+				break
+			}
 		}
-		return s.brnnRoom.GetPlayer(userId)
+		// 无可用房间，创建新房间
+		if room == nil {
+			s.brnnCounter++
+			id := fmt.Sprintf("brnn_%d", s.brnnCounter)
+			room = brnn.NewRoom(id, cfg)
+			s.brnnRooms[id] = room
+			logrus.WithField("roomId", id).Info("RoomManager-CreateBRNNRoom")
+		}
+		room.AddPlayer(p)
+		return room
 	})
 }
 

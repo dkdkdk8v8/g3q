@@ -813,3 +813,94 @@ func TestAreaCount(t *testing.T) {
 		t.Errorf("AreaCount: got %d, want 4", AreaCount)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// CanLeave
+// ---------------------------------------------------------------------------
+
+func TestCanLeave_NoBets(t *testing.T) {
+	r := newTestRoom()
+	defer r.Destroy()
+
+	addPlayer(r, "u1", 10000)
+
+	// During betting, no bets — can leave
+	ok, err := r.CanLeave("u1")
+	if err != nil || !ok {
+		t.Errorf("expected CanLeave=true during betting with no bets, got %v, %v", ok, err)
+	}
+
+	// Switch to dealing, no bets — can leave
+	r.mu.Lock()
+	r.State = StateDealing
+	r.mu.Unlock()
+
+	ok, err = r.CanLeave("u1")
+	if err != nil || !ok {
+		t.Errorf("expected CanLeave=true during dealing with no bets, got %v, %v", ok, err)
+	}
+}
+
+func TestCanLeave_WithBetsDuringDealing(t *testing.T) {
+	r := newTestRoom()
+	defer r.Destroy()
+
+	p := addPlayer(r, "u1", 10000)
+
+	// Place bet then switch to dealing
+	r.mu.Lock()
+	p.Bets[0] = 100
+	r.State = StateDealing
+	r.mu.Unlock()
+
+	ok, err := r.CanLeave("u1")
+	if ok || err == nil {
+		t.Errorf("expected CanLeave=false during dealing with bets, got %v, %v", ok, err)
+	}
+
+	// Switch to settling — should be able to leave even with bets
+	r.mu.Lock()
+	r.State = StateSettling
+	r.mu.Unlock()
+
+	ok, err = r.CanLeave("u1")
+	if err != nil || !ok {
+		t.Errorf("expected CanLeave=true during settling, got %v, %v", ok, err)
+	}
+}
+
+func TestCanLeave_PlayerNotExist(t *testing.T) {
+	r := newTestRoom()
+	defer r.Destroy()
+
+	_, err := r.CanLeave("ghost")
+	if err == nil {
+		t.Error("expected error for nonexistent player")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// GameID generation
+// ---------------------------------------------------------------------------
+
+func TestGameIDGenerated(t *testing.T) {
+	r := newTestRoom()
+	defer r.Destroy()
+
+	if r.GameID != "" {
+		t.Error("GameID should be empty initially")
+	}
+
+	r.mu.Lock()
+	r.onBettingEnd()
+	gameID := r.GameID
+	r.mu.Unlock()
+
+	if gameID == "" {
+		t.Error("GameID should be set after onBettingEnd")
+	}
+	// Should contain the room ID
+	if len(gameID) == 0 {
+		t.Error("GameID should not be empty")
+	}
+}

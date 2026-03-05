@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import gameClient from '../socket.js'
+import { useUserStore } from './user.js'
 
 /**
  * BRNN (百人牛牛) Pinia Store
@@ -64,6 +65,7 @@ export const useBrnnStore = defineStore('brnn', () => {
   const dealer = ref(createDefaultDealer());
   const lastWin = ref(0);
   const trend = ref([]);
+  let lastWinTimer = null;
 
   // --- Handlers (called by push handlers) ---
 
@@ -81,6 +83,18 @@ export const useBrnnStore = defineStore('brnn', () => {
     const phase = mapServerState(data.State);
     if (phase) {
       currentPhase.value = phase;
+
+      // New round: clear previous round's visual state
+      if (phase === 'BETTING') {
+        areas.value.forEach(area => {
+          area.win = null;
+          area.cards = [];
+          area.niuType = '';
+          area.niuMult = 0;
+        });
+        dealer.value = createDefaultDealer();
+        lastWin.value = 0;
+      }
     }
 
     // Countdown
@@ -191,10 +205,17 @@ export const useBrnnStore = defineStore('brnn', () => {
       lastWin.value = data.MyWin;
     }
 
-    // Append to trend (area win results for this round)
-    if (data.AreaWin) {
-      trend.value.push(data.AreaWin);
+    // Update user balance
+    if (data.MyBalance !== undefined) {
+      useUserStore().userInfo.balance = data.MyBalance;
     }
+
+    // Auto-dismiss settlement overlay after 3 seconds
+    if (lastWinTimer) clearTimeout(lastWinTimer);
+    lastWinTimer = setTimeout(() => {
+      lastWin.value = 0;
+      lastWinTimer = null;
+    }, 3000);
   };
 
   /**
@@ -260,6 +281,10 @@ export const useBrnnStore = defineStore('brnn', () => {
     dealer.value = createDefaultDealer();
     lastWin.value = 0;
     trend.value = [];
+    if (lastWinTimer) {
+      clearTimeout(lastWinTimer);
+      lastWinTimer = null;
+    }
   };
 
   return {

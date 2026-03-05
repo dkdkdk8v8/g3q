@@ -2,9 +2,13 @@ package brnn
 
 import (
 	"compoment/ws"
+	"encoding/json"
+	"fmt"
 	"math/rand"
 	"service/comm"
+	"service/initMain"
 	"service/mainClient/game/qznn"
+	"service/modelClient"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -127,6 +131,7 @@ func (r *BRNNRoom) logicTick() {
 
 func (r *BRNNRoom) onBettingEnd() {
 	r.GameCount++
+	r.GameID = fmt.Sprintf("%d_%s", time.Now().Unix(), r.ID)
 	r.dealCards()
 	r.setState(StateDealing, r.Config.SecDealing)
 }
@@ -216,7 +221,13 @@ func (r *BRNNRoom) settle() {
 		r.Trend = r.Trend[len(r.Trend)-TrendMaxLen:]
 	}
 
-	// 3. 给每个玩家单独推送结算（包含个人 MyWin / MyBalance）
+	// 3. 给每个玩家计算输赢，收集推送消息
+	type playerMsg struct {
+		conn *ws.WsConnWrap
+		msg  comm.PushData
+	}
+	var msgs []playerMsg
+
 	for _, p := range r.Players {
 		if p == nil {
 			continue
@@ -237,18 +248,153 @@ func (r *BRNNRoom) settle() {
 		}
 		p.Balance += myWin
 
-		msg := comm.PushData{
-			Cmd:      comm.ServerPush,
-			PushType: PushSettlement,
-			Data: PushSettlementData{
-				AreaWin:   areaWin,
-				AreaMult:  areaMult,
-				MyWin:     myWin,
-				MyBalance: p.Balance,
-			},
+		if p.ConnWrap != nil && p.ConnWrap.IsConnected() {
+			msgs = append(msgs, playerMsg{
+				conn: p.ConnWrap,
+				msg: comm.PushData{
+					Cmd:      comm.ServerPush,
+					PushType: PushSettlement,
+					Data: PushSettlementData{
+						AreaWin:   areaWin,
+						AreaMult:  areaMult,
+						MyWin:     myWin,
+						MyBalance: p.Balance,
+					},
+				},
+			})
 		}
-		r.pushPlayer(p, msg)
 	}
+
+	// 4. 收集有下注的玩家结算结果用于持久化
+	var results []settleResult
+	for _, p := range r.Players {
+		if p == nil {
+			continue
+		}
+		var totalBet int64
+		for i := 0; i < AreaCount; i++ {
+			totalBet += p.Bets[i]
+		}
+		if totalBet <= 0 {
+			continue
+		}
+		// 重新计算该玩家的 myWin
+		var myWin int64
+		for i := 0; i < AreaCount; i++ {
+			bet := p.Bets[i]
+			if bet <= 0 {
+				continue
+			}
+			if areaWin[i] {
+				myWin += bet * areaMult[i]
+			} else {
+				myWin -= bet * areaMult[i]
+			}
+		}
+		results = append(results, settleResult{
+			userId:   p.ID,
+			myWin:    myWin,
+			validBet: totalBet,
+			balance:  p.Balance,
+		})
+	}
+
+	// 5. 锁外批量发送 + 异步持久化
+	gameID := r.GameID
+	roomID := r.ID
+	gameCount := r.GameCount
+	dealerNiu := r.Dealer.CardResult.Niu
+
+	if len(msgs) > 0 {
+		go func() {
+			for _, m := range msgs {
+				_ = comm.WriteMsgPack(m.conn, m.msg)
+			}
+		}()
+	}
+
+	if len(results) > 0 {
+		go r.persistSettlement(roomID, gameID, gameCount, dealerNiu, areaWin, areaMult, results)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// 持久化（异步调用，不持有锁）
+// ---------------------------------------------------------------------------
+
+type settleResult struct {
+	userId   string
+	myWin    int64
+	validBet int64
+	balance  int64
+}
+
+// brnnGameData 序列化到 GameRecord.GameData
+type brnnGameData struct {
+	GameCount int64            `json:"GameCount"`
+	DealerNiu int64            `json:"DealerNiu"`
+	AreaWin   [AreaCount]bool  `json:"AreaWin"`
+	AreaMult  [AreaCount]int64 `json:"AreaMult"`
+}
+
+// persistSettlement 异步写入 game_record + user_record，然后回写 DB 余额到内存。
+func (r *BRNNRoom) persistSettlement(roomID, gameID string, gameCount, dealerNiu int64,
+	areaWin [AreaCount]bool, areaMult [AreaCount]int64, results []settleResult) {
+
+	if initMain.DefCtx == nil || initMain.DefCtx.IsTest {
+		return
+	}
+
+	// 1. InsertGameRecord
+	gameData := brnnGameData{
+		GameCount: gameCount,
+		DealerNiu: dealerNiu,
+		AreaWin:   areaWin,
+		AreaMult:  areaMult,
+	}
+	gameDataBytes, _ := json.Marshal(gameData)
+	recordId, err := modelClient.InsertGameRecord(&modelClient.ModelGameRecord{
+		GameId:   gameID,
+		GameName: GameName,
+		GameData: string(gameDataBytes),
+	})
+	if err != nil {
+		logrus.WithField("gameId", gameID).WithError(err).Error("brnn.InsertGameRecord")
+		return
+	}
+
+	// 2. 构建 GameSettletruct
+	settle := modelClient.GameSettletruct{
+		RoomId:       roomID,
+		GameId:       gameID,
+		GameRecordId: uint64(recordId),
+		GameName:     GameName,
+	}
+	for _, res := range results {
+		settle.Players = append(settle.Players, modelClient.UserSettingStruct{
+			UserId:               res.userId,
+			PlayerBalance:        res.balance,
+			ChangeBalance:        res.myWin,
+			ValidBet:             res.validBet,
+			UserGameRecordInsert: true,
+		})
+	}
+
+	// 3. UpdateUserSetting — 事务更新 BalanceLock + 插入 UserRecord
+	modelUsers, err := modelClient.UpdateUserSetting(&settle)
+	if err != nil {
+		logrus.WithField("gameId", gameID).WithError(err).Error("brnn.UpdateUserSetting")
+		return
+	}
+
+	// 4. 回写 DB 余额到内存
+	r.mu.Lock()
+	for _, mu := range modelUsers {
+		if p := r.Players[mu.UserId]; p != nil {
+			p.Balance = mu.BalanceLock
+		}
+	}
+	r.mu.Unlock()
 }
 
 // ---------------------------------------------------------------------------
@@ -300,6 +446,17 @@ func (r *BRNNRoom) GetPlayer(userId string) *BRNNPlayer {
 	return r.Players[userId]
 }
 
+// GetPlayerConnWrap 返回玩家的 WebSocket 连接（线程安全）。
+func (r *BRNNRoom) GetPlayerConnWrap(userId string) *ws.WsConnWrap {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	p := r.Players[userId]
+	if p == nil {
+		return nil
+	}
+	return p.ConnWrap
+}
+
 // GetPlayerCount 返回当前房间人数（线程安全）。
 func (r *BRNNRoom) GetPlayerCount() int {
 	r.mu.RLock()
@@ -318,15 +475,32 @@ func (r *BRNNRoom) SetWsWrap(userId string, connWrap *ws.WsConnWrap) {
 	p.ConnWrap = connWrap
 }
 
+// CanLeave 检查玩家是否可以离开（在发牌/开牌阶段有下注则不可离开）。
+func (r *BRNNRoom) CanLeave(userId string) (bool, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	p := r.Players[userId]
+	if p == nil {
+		return false, comm.NewMyError("玩家不在房间")
+	}
+
+	if r.State != StateBetting && r.State != StateSettling {
+		for i := 0; i < AreaCount; i++ {
+			if p.Bets[i] > 0 {
+				return false, comm.NewMyError("本局有下注，请等待结算后再离开")
+			}
+		}
+	}
+	return true, nil
+}
+
 // ---------------------------------------------------------------------------
 // 下注
 // ---------------------------------------------------------------------------
 
-// PlaceBet 玩家下注到指定区域。
-func (r *BRNNRoom) PlaceBet(userId string, area int, chip int64) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
+// placeBetLocked 在已持有 r.mu 写锁的情况下执行下注逻辑。
+func (r *BRNNRoom) placeBetLocked(userId string, area int, chip int64) error {
 	// 1. 验证状态
 	if r.State != StateBetting {
 		return comm.NewMyError("当前不在下注阶段")
@@ -364,24 +538,95 @@ func (r *BRNNRoom) PlaceBet(userId string, area int, chip int64) error {
 	return nil
 }
 
+// PlaceBet 玩家下注到指定区域（用于测试和外部调用）。
+func (r *BRNNRoom) PlaceBet(userId string, area int, chip int64) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.placeBetLocked(userId, area, chip)
+}
+
+// PlaceBetAndBroadcast 单次加锁完成下注+收集广播数据，锁外发送。
+func (r *BRNNRoom) PlaceBetAndBroadcast(userId string, area int, chip int64) error {
+	type playerMsg struct {
+		conn *ws.WsConnWrap
+		msg  comm.PushData
+	}
+
+	var msgs []playerMsg
+
+	r.mu.Lock()
+	err := r.placeBetLocked(userId, area, chip)
+	if err == nil {
+		// 收集广播数据
+		var areaBets [AreaCount]int64
+		for i := 0; i < AreaCount; i++ {
+			areaBets[i] = r.Areas[i].TotalBet
+		}
+		for _, p := range r.Players {
+			if p == nil || p.ConnWrap == nil || !p.ConnWrap.IsConnected() {
+				continue
+			}
+			msgs = append(msgs, playerMsg{
+				conn: p.ConnWrap,
+				msg: comm.PushData{
+					Cmd:      comm.ServerPush,
+					PushType: PushBetUpdate,
+					Data: PushBetUpdateData{
+						AreaBets: areaBets,
+						MyBets:   p.Bets,
+					},
+				},
+			})
+		}
+	}
+	r.mu.Unlock()
+
+	if err != nil {
+		return err
+	}
+
+	// 锁外批量发送
+	go func() {
+		for _, m := range msgs {
+			_ = comm.WriteMsgPack(m.conn, m.msg)
+		}
+	}()
+	return nil
+}
+
 // ---------------------------------------------------------------------------
 // 广播与推送
 // ---------------------------------------------------------------------------
 
 // broadcastRoomState 向所有在线玩家推送房间状态。
 // 注意：调用者已持有 r.mu 写锁（从 setState 调用）。
+// 收集消息后用单个 goroutine 批量发送。
 func (r *BRNNRoom) broadcastRoomState() {
+	type playerMsg struct {
+		conn *ws.WsConnWrap
+		msg  comm.PushData
+	}
+	var msgs []playerMsg
 	for _, p := range r.Players {
-		if p == nil {
+		if p == nil || p.ConnWrap == nil || !p.ConnWrap.IsConnected() {
 			continue
 		}
 		data := r.buildRoomStateData(p)
-		msg := comm.PushData{
-			Cmd:      comm.ServerPush,
-			PushType: PushRoomState,
-			Data:     data,
-		}
-		r.pushPlayer(p, msg)
+		msgs = append(msgs, playerMsg{
+			conn: p.ConnWrap,
+			msg: comm.PushData{
+				Cmd:      comm.ServerPush,
+				PushType: PushRoomState,
+				Data:     data,
+			},
+		})
+	}
+	if len(msgs) > 0 {
+		go func() {
+			for _, m := range msgs {
+				_ = comm.WriteMsgPack(m.conn, m.msg)
+			}
+		}()
 	}
 }
 
@@ -460,33 +705,46 @@ func (r *BRNNRoom) BroadcastBetUpdate() {
 }
 
 // broadcastPlayerCount 向所有在线玩家推送当前人数。
+// 收集消息后用单个 goroutine 批量发送。
 func (r *BRNNRoom) broadcastPlayerCount() {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
+	type playerMsg struct {
+		conn *ws.WsConnWrap
+		msg  comm.PushData
+	}
+	var msgs []playerMsg
 
+	r.mu.RLock()
 	count := len(r.Players)
 	for _, p := range r.Players {
-		if p == nil {
+		if p == nil || p.ConnWrap == nil || !p.ConnWrap.IsConnected() {
 			continue
 		}
-		msg := comm.PushData{
-			Cmd:      comm.ServerPush,
-			PushType: PushPlayerCount,
-			Data:     count,
-		}
-		r.pushPlayer(p, msg)
+		msgs = append(msgs, playerMsg{
+			conn: p.ConnWrap,
+			msg: comm.PushData{
+				Cmd:      comm.ServerPush,
+				PushType: PushPlayerCount,
+				Data:     count,
+			},
+		})
+	}
+	r.mu.RUnlock()
+
+	if len(msgs) > 0 {
+		go func() {
+			for _, m := range msgs {
+				_ = comm.WriteMsgPack(m.conn, m.msg)
+			}
+		}()
 	}
 }
 
-// pushPlayer 向单个玩家推送消息。如果连接为空或断开则跳过。
+// pushPlayer 向单个玩家同步推送消息。如果连接为空或断开则跳过。
 func (r *BRNNRoom) pushPlayer(p *BRNNPlayer, msg interface{}) {
 	if p == nil || p.ConnWrap == nil || !p.ConnWrap.IsConnected() {
 		return
 	}
-	conn := p.ConnWrap
-	go func() {
-		_ = comm.WriteMsgPack(conn, msg)
-	}()
+	_ = comm.WriteMsgPack(p.ConnWrap, msg)
 }
 
 // ---------------------------------------------------------------------------

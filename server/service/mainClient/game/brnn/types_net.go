@@ -14,11 +14,8 @@ const (
 const (
 	PushRoomState   comm.PushType = "BRNN.PushRoomState"
 	PushBetUpdate   comm.PushType = "BRNN.PushBetUpdate"
-	PushDeal        comm.PushType = "BRNN.PushDeal"
-	PushShowCard    comm.PushType = "BRNN.PushShowCard"
 	PushSettlement  comm.PushType = "BRNN.PushSettlement"
 	PushPlayerCount comm.PushType = "BRNN.PushPlayerCount"
-	PushTrend       comm.PushType = "BRNN.PushTrend"
 )
 
 // --- Request structs ---

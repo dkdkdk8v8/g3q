@@ -1,18 +1,15 @@
 <script setup>
 import { computed } from 'vue'
+import { formatCoins } from '@shared/utils/format.js'
 
 const props = defineProps({
   win: Number, // positive = win, negative = lose, in cents
 })
 
-function formatCoin(cents) {
-  return (cents / 100).toFixed(2)
-}
-
 const isWin = computed(() => props.win > 0)
 const displayText = computed(() => {
-  if (props.win > 0) return '+' + formatCoin(props.win)
-  return formatCoin(props.win) // negative already has minus sign
+  if (props.win > 0) return '+' + formatCoins(props.win)
+  return formatCoins(props.win) // negative already has minus sign
 })
 </script>
 

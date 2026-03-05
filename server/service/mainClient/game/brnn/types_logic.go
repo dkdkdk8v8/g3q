@@ -51,6 +51,7 @@ type TrendRecord struct {
 
 type BRNNRoom struct {
 	ID            string
+	GameID        string
 	State         RoomState
 	StateDeadline time.Time
 	StateLeftSec  int

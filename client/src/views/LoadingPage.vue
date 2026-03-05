@@ -277,7 +277,7 @@ export default {
       gameClient.onServerPush('PushRouter', (data) => {
         if (data && data.Router) {
           if (data.Router === 'lobby') {
-            targetRoute = '/lobby';
+            targetRoute = `/lobby?mode=${currentMode.value}`;
           } else if (data.Router === 'game') {
             targetRoute = '/game?autoJoin=true';
           }

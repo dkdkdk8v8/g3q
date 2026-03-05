@@ -1,5 +1,5 @@
 <script setup>
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { ref, computed, watch, onMounted, onUnmounted, onActivated, onDeactivated } from 'vue';
 import { debounce } from '../utils/debounce.js';
 import { formatCoins } from '../utils/format.js';
@@ -13,7 +13,15 @@ import SettingsModal from '../components/SettingsModal.vue';
 import HelpModal from '../components/HelpModal.vue';
 import LobbyBackgroundAnimation from '../components/LobbyBackgroundAnimation.vue';
 
-// Assets
+// ====== COMMON ASSETS ======
+import defaultAvatar from '@/assets/common/default_avatar.png';
+import avatarFrameImg from '@/assets/common/avatar_circle.png';
+import lobbyBgSound from '@/assets/sounds/lobby_bg.mp3';
+import btnClickSound from '@/assets/sounds/btn_click.mp3';
+import goldImg from '@/assets/common/gold.png';
+
+// ====== DEFAULT THEME ASSETS (Mode 0: 不看牌) ======
+import defaultBg from '@/assets/lobby/bg.jpg';
 import bgUpImg from '@/assets/lobby/bg_up.png';
 import topBgImg from '@/assets/lobby/top_bg.png';
 import btnExit from '@/assets/lobby/exit_btn.png';
@@ -23,54 +31,14 @@ import btnSetting from '@/assets/lobby/sett_btn.png';
 import topBtnLine from '@/assets/lobby/top_btn_line.png';
 import topLine from '@/assets/lobby/top_line.png';
 import diamondBg from '@/assets/lobby/diamond_bg.png';
-
-// Tab Assets
-import tabBgImg from '@/assets/lobby/tab_bg.png';
-import tabBukanBg from '@/assets/lobby/tab_bukanpai_bg.png';
-import tabBukanSelBg from '@/assets/lobby/tab_bukanpai_choose_bg.png';
-import tabSansiBg from '@/assets/lobby/tab_sansi_bg.png';
-import tabSansiSelBg from '@/assets/lobby/tab_sansi_choose_bg.png';
-
-// Tab Text Images (Keep existing if they are text overlays, otherwise remove if replaced by bg)
-// Assuming previous tab images were text/icon overlays, we keep them or replace if new bgs contain text.
-// Based on filenames, these seem to be the full buttons. Let's assume the new ones are backgrounds 
-// and we might need to overlay text, OR the new ones are the complete button images including text.
-// Checking filenames: tab_bukanpai.png vs tab_bukanpai_bg.png. 
-// "bg" implies background. Let's assume we still need the text/icon on top if available, 
-// OR the new images are self-contained. 
-// User instruction says "background image". Let's check if we still have text images.
-// The previous imports were:
-import tabBukan from '@/assets/lobby/tab_bukanpai.png';
-import tabBukanSel from '@/assets/lobby/tab_bukanpai_choose.png';
-import tabSan from '@/assets/lobby/tab_kansanzhang.png';
-import tabSanSel from '@/assets/lobby/tab_kansanzhang_choose.png';
-import tabSi from '@/assets/lobby/tab_kansizhang.png';
-import tabSiSel from '@/assets/lobby/tab_kansizhang_choose.png';
-
-// New Icons
-import tabBukanIcon from '@/assets/lobby/tab_bukan_icon.png';
-import tabBukanIconSel from '@/assets/lobby/tab_bukan_icon_choose.png';
-import tabSanIcon from '@/assets/lobby/tab_sanzhang_icon.png';
-import tabSanIconSel from '@/assets/lobby/tab_sanzhang_icon_choose.png';
-import tabSiIcon from '@/assets/lobby/tab_sizhang_icon.png';
-import tabSiIconSel from '@/assets/lobby/tab_sizhang_icon_choose.png';
-
-// Tab Selection Animation Icons
-import tabBukanIconSelStart from '@/assets/lobby/tab_bukan_icon_choose_start.png';
-import tabSanIconSelStart from '@/assets/lobby/tab_sanzhang_icon_choose_start.png';
-import tabSiIconSel1 from '@/assets/lobby/tab_sizhang_icon_choose_1.png';
-import tabSiIconSel2 from '@/assets/lobby/tab_sizhang_icon_choose_2.png';
-import tabSiIconSel3 from '@/assets/lobby/tab_sizhang_icon_choose_3.png';
-import tabSiIconSel4 from '@/assets/lobby/tab_sizhang_icon_choose_4.png';
-
-// Room Assets
 import eachRoomBg from '@/assets/lobby/each_room_bg.png';
 import eachRoomEnterBtn from '@/assets/lobby/each_room_enter_btn.png';
 import eachRoomEnterBtnText from '@/assets/lobby/each_room_enter_btn_text.png';
 import roomNameBgLv from '@/assets/lobby/each_room_name_bg_lv.png';
 import roomNameBgLan from '@/assets/lobby/each_room_name_bg_lan.png';
 import roomNameBgLz from '@/assets/lobby/each_room_name_bg_zise.png';
-
+import roomIconTextDizhu from '@/assets/lobby/room_icontext_dizhu.png';
+import roomIconTextXianzhi from '@/assets/lobby/room_icontext_xianzhi.png';
 import roomTextTiyan from '@/assets/lobby/room_text_tiyan.png';
 import roomTextChuji from '@/assets/lobby/room_text_chuji.png';
 import roomTextZhongji from '@/assets/lobby/room_text_zhongji.png';
@@ -78,30 +46,150 @@ import roomTextGaoji from '@/assets/lobby/room_text_gaoji.png';
 import roomTextDashi from '@/assets/lobby/room_text_dashi.png';
 import roomTextDianfeng from '@/assets/lobby/room_text_dianfeng.png';
 
-import roomIconTextDizhu from '@/assets/lobby/room_icontext_dizhu.png';
-import roomIconTextXianzhi from '@/assets/lobby/room_icontext_xianzhi.png';
+// ====== GREEN THEME ASSETS (Mode 1: 看三张) ======
+import greenBg from '@/assets/lobby_green/bg.jpg';
+import greenTopShape from '@/assets/lobby_green/top_shape.png';
+import greenBtnExit from '@/assets/lobby_green/exit_btn.png';
+import greenBtnHelp from '@/assets/lobby_green/help_btn.png';
+import greenBtnHistory from '@/assets/lobby_green/bet_history_btn.png';
+import greenBtnSetting from '@/assets/lobby_green/sett_btn.png';
+import greenDiamondBg from '@/assets/lobby_green/diamond_bg.png';
+import greenEachRoomBg from '@/assets/lobby_green/each_room_bg.png';
+import greenEachRoomEnterBtnText from '@/assets/lobby_green/each_room_enter_btn_text.png';
+import greenRoomIconTextDizhu from '@/assets/lobby_green/room_icontext_dizhu.png';
+import greenRoomIconTextXianzhi from '@/assets/lobby_green/room_icontext_xianzhi.png';
+import greenRoomTextTiyan from '@/assets/lobby_green/room_text_tiyan.png';
+import greenRoomTextChuji from '@/assets/lobby_green/room_text_chuji.png';
+import greenRoomTextZhongji from '@/assets/lobby_green/room_text_zhongji.png';
+import greenRoomTextGaoji from '@/assets/lobby_green/room_text_gaoji.png';
+import greenRoomTextDashi from '@/assets/lobby_green/room_text_dashi.png';
+import greenRoomTextDianfeng from '@/assets/lobby_green/room_text_dianfeng.png';
 
-import defaultAvatar from '@/assets/common/default_avatar.png';
-import avatarFrameImg from '@/assets/common/avatar_circle.png';
-import lobbyBgSound from '@/assets/sounds/lobby_bg.mp3';
-import btnClickSound from '@/assets/sounds/btn_click.mp3';
-import goldImg from '@/assets/common/gold.png';
+// ====== PURPLE THEME ASSETS (Mode 2: 看四张) ======
+import purpleBg from '@/assets/lobby_purple/bg.jpg';
+import purpleTopBg from '@/assets/lobby_purple/top_bg.png';
+import purpleBtnExit from '@/assets/lobby_purple/exit_btn.png';
+import purpleBtnHelp from '@/assets/lobby_purple/help_btn.png';
+import purpleBtnHistory from '@/assets/lobby_purple/bet_history_btn.png';
+import purpleBtnSetting from '@/assets/lobby_purple/sett_btn.png';
+import purpleDiamondBg from '@/assets/lobby_purple/diamond_bg.png';
+import purpleEachRoomBg from '@/assets/lobby_purple/each_room_bg.png';
+import purpleEachRoomEnterBtnText from '@/assets/lobby_purple/each_room_enter_btn_text.png';
+import purpleRoomIconTextDizhu from '@/assets/lobby_purple/room_icontext_dizhu.png';
+import purpleRoomIconTextXianzhi from '@/assets/lobby_purple/room_icontext_xianzhi.png';
+import purpleRoomTextTiyan from '@/assets/lobby_purple/room_text_t.png';
+import purpleRoomTextChuji from '@/assets/lobby_purple/room_text_chuji.png';
+import purpleRoomTextZhongji from '@/assets/lobby_purple/room_text_zhongji.png';
+import purpleRoomTextGaoji from '@/assets/lobby_purple/room_text_gaoji.png';
+import purpleRoomTextDashi from '@/assets/lobby_purple/room_text_dashi.png';
+import purpleRoomTextDianfeng from '@/assets/lobby_purple/room_text_dianfeng.png';
+import purpleLineIconSplice from '@/assets/lobby_purple/line_icon_splice.png';
+import purpleRoomIconTiyan from '@/assets/lobby_purple/room_icon_tiyan.png';
+import purpleRoomIconChuji from '@/assets/lobby_purple/room_icon_chuji.png';
+import purpleRoomIconZhongji from '@/assets/lobby_purple/room_icon_zhongji.png';
+import purpleRoomIconGaoji from '@/assets/lobby_purple/room_icon_gaoji.png';
+import purpleRoomIconDashi from '@/assets/lobby_purple/room_icon_dashi.png';
+import purpleRoomIconDianfeng from '@/assets/lobby_purple/room_icon_dianfeng.png';
 
 const router = useRouter();
+const route = useRoute();
 const userStore = useUserStore();
 const gameStore = useGameStore();
 const settingsStore = useSettingsStore();
 
+const currentMode = ref(0);
+
+// Theme class for CSS
+const themeClass = computed(() => {
+    switch (currentMode.value) {
+        case 1: return 'theme-green';
+        case 2: return 'theme-purple';
+        default: return 'theme-default';
+    }
+});
+
+// Theme asset config
+const theme = computed(() => {
+    switch (currentMode.value) {
+        case 1: return {
+            bgImg: greenBg,
+            btnExit: greenBtnExit,
+            btnHelp: greenBtnHelp,
+            btnHistory: greenBtnHistory,
+            btnSetting: greenBtnSetting,
+            diamondBg: greenDiamondBg,
+            eachRoomBg: greenEachRoomBg,
+            eachRoomEnterBtnText: greenEachRoomEnterBtnText,
+            roomIconTextDizhu: greenRoomIconTextDizhu,
+            roomIconTextXianzhi: greenRoomIconTextXianzhi,
+        };
+        case 2: return {
+            bgImg: purpleBg,
+            topBg: purpleTopBg,
+            btnExit: purpleBtnExit,
+            btnHelp: purpleBtnHelp,
+            btnHistory: purpleBtnHistory,
+            btnSetting: purpleBtnSetting,
+            diamondBg: purpleDiamondBg,
+            eachRoomBg: purpleEachRoomBg,
+            eachRoomEnterBtnText: purpleEachRoomEnterBtnText,
+            roomIconTextDizhu: purpleRoomIconTextDizhu,
+            roomIconTextXianzhi: purpleRoomIconTextXianzhi,
+        };
+        default: return {
+            bgImg: defaultBg,
+            topBg: topBgImg,
+            btnExit: btnExit,
+            btnHelp: btnHelp,
+            btnHistory: btnHistory,
+            btnSetting: btnSetting,
+            diamondBg: diamondBg,
+            eachRoomBg: eachRoomBg,
+            eachRoomEnterBtnText: eachRoomEnterBtnText,
+            roomIconTextDizhu: roomIconTextDizhu,
+            roomIconTextXianzhi: roomIconTextXianzhi,
+        };
+    }
+});
+
+// Room text images per theme
 const getRoomTextImage = (roomName) => {
     if (!roomName) return null;
-    if (roomName.includes('体验')) return roomTextTiyan;
-    if (roomName.includes('初级')) return roomTextChuji;
-    if (roomName.includes('中级')) return roomTextZhongji;
-    if (roomName.includes('高级')) return roomTextGaoji;
-    if (roomName.includes('大师')) return roomTextDashi;
-    if (roomName.includes('巅峰')) return roomTextDianfeng;
+    const texts = currentMode.value === 1
+        ? { tiyan: greenRoomTextTiyan, chuji: greenRoomTextChuji, zhongji: greenRoomTextZhongji, gaoji: greenRoomTextGaoji, dashi: greenRoomTextDashi, dianfeng: greenRoomTextDianfeng }
+        : currentMode.value === 2
+        ? { tiyan: purpleRoomTextTiyan, chuji: purpleRoomTextChuji, zhongji: purpleRoomTextZhongji, gaoji: purpleRoomTextGaoji, dashi: purpleRoomTextDashi, dianfeng: purpleRoomTextDianfeng }
+        : { tiyan: roomTextTiyan, chuji: roomTextChuji, zhongji: roomTextZhongji, gaoji: roomTextGaoji, dashi: roomTextDashi, dianfeng: roomTextDianfeng };
+    if (roomName.includes('体验')) return texts.tiyan;
+    if (roomName.includes('初级')) return texts.chuji;
+    if (roomName.includes('中级')) return texts.zhongji;
+    if (roomName.includes('高级')) return texts.gaoji;
+    if (roomName.includes('大师')) return texts.dashi;
+    if (roomName.includes('巅峰')) return texts.dianfeng;
     return null;
 };
+
+// Purple room card icons
+const getRoomIconImage = (roomName) => {
+    if (!roomName) return null;
+    if (roomName.includes('体验')) return purpleRoomIconTiyan;
+    if (roomName.includes('初级')) return purpleRoomIconChuji;
+    if (roomName.includes('中级')) return purpleRoomIconZhongji;
+    if (roomName.includes('高级')) return purpleRoomIconGaoji;
+    if (roomName.includes('大师')) return purpleRoomIconDashi;
+    if (roomName.includes('巅峰')) return purpleRoomIconDianfeng;
+    return null;
+};
+
+// Room name bg (default theme only)
+const currentRoomNameBg = computed(() => {
+    switch (currentMode.value) {
+        case 0: return roomNameBgLv;
+        case 1: return roomNameBgLan;
+        case 2: return roomNameBgLz;
+        default: return roomNameBgLv;
+    }
+});
 
 const playBtnSound = () => {
     if (settingsStore.soundEnabled) {
@@ -115,7 +203,6 @@ const userInfo = computed(() => {
     if (rawName.length > 11) {
         displayName = rawName.substring(0, 4) + '...' + rawName.substring(rawName.length - 4);
     }
-
     return {
         name: rawName,
         displayName: displayName,
@@ -125,114 +212,16 @@ const userInfo = computed(() => {
     };
 });
 
-const currentMode = ref(userStore.lastSelectedMode || 0); // 0: Bukan, 1: San, 2: Si
-
-/* Temporarily disabled bottom tab logic
-const setMode = (mode) => {
-    if (currentMode.value === mode) return;
-    playBtnSound();
-    currentMode.value = mode;
-    userStore.lastSelectedMode = mode;
-    // Potentially re-fetch or filter rooms here if the server API supports it
-};
-
-// Tab Icon Animation Logic
-const bukanSelIconDisplay = ref(tabBukanIconSel);
-const sanSelIconDisplay = ref(tabSanIconSel);
-const siSelIconDisplay = ref(tabSiIconSel);
-let iconAnimTimer = null;
-
-watch(currentMode, (newVal) => {
-    // Clear any existing timer
-    if (iconAnimTimer) {
-        clearTimeout(iconAnimTimer);
-        iconAnimTimer = null;
-    }
-
-    // Reset to default final state immediately so inactive tabs are correct
-    bukanSelIconDisplay.value = tabBukanIconSel;
-    sanSelIconDisplay.value = tabSanIconSel;
-    siSelIconDisplay.value = tabSiIconSel;
-
-    if (newVal === 0) {
-        // Bukan Mode Animation
-        bukanSelIconDisplay.value = tabBukanIconSelStart;
-        iconAnimTimer = setTimeout(() => {
-            bukanSelIconDisplay.value = tabBukanIconSel;
-        }, 500);
-    } else if (newVal === 1) {
-        // Sanzhang Mode Animation
-        sanSelIconDisplay.value = tabSanIconSelStart;
-        iconAnimTimer = setTimeout(() => {
-            sanSelIconDisplay.value = tabSanIconSel;
-        }, 300);
-    } else if (newVal === 2) {
-        // Sizhang Mode Animation (4 steps: 0.2s each, then hold final step for 0.5s before resting on default selected icon)
-        // Sequence: 1 -> 2 -> 3 -> 4 (hold 0.5s) -> Final
-
-        // Step 1: Start
-        siSelIconDisplay.value = tabSiIconSel1;
-
-        // Step 2: 0.2s
-        iconAnimTimer = setTimeout(() => {
-            siSelIconDisplay.value = tabSiIconSel2;
-
-            // Step 3: 0.4s
-            iconAnimTimer = setTimeout(() => {
-                siSelIconDisplay.value = tabSiIconSel3;
-
-                // Step 4: 0.6s
-                iconAnimTimer = setTimeout(() => {
-                    siSelIconDisplay.value = tabSiIconSel4;
-
-                    // Final: 1.1s (0.6 + 0.5s) -> Revert to standard selected icon
-                    iconAnimTimer = setTimeout(() => {
-                        siSelIconDisplay.value = tabSiIconSel;
-                    }, 300);
-                }, 160);
-            }, 160);
-        }, 160);
-    }
-}, { immediate: true });
-*/
-
-// const bkpAnimImg = ref(tabBkpStart);
-// let bkpAnimTimer = null;
-
-// watch(currentMode, (newVal) => {
-//     if (newVal === 0) {
-//         if (bkpAnimTimer) clearTimeout(bkpAnimTimer);
-//         bkpAnimImg.value = tabBkpStart;
-//         bkpAnimTimer = setTimeout(() => {
-//             bkpAnimImg.value = tabBkpEnd;
-//         }, 500);
-//     } else {
-//         if (bkpAnimTimer) clearTimeout(bkpAnimTimer);
-//     }
-// }, { immediate: true });
-
-// Get appropriate room name background based on current mode
-const currentRoomNameBg = computed(() => {
-    switch (currentMode.value) {
-        case 0: return roomNameBgLv;  // No look (Greenish/Lv)
-        case 1: return roomNameBgLan; // Look 3 (Blueish/Lan)
-        case 2: return roomNameBgLz;  // Look 4 (Purpleish/Lz)
-        default: return roomNameBgLv;
-    }
-});
-
 const clickedRoomLevel = ref(null);
 
 const handleEnterRoomClick = (level) => {
     if (clickedRoomLevel.value === level) return;
     playBtnSound();
     clickedRoomLevel.value = level;
-
-    // Play animation then send protocol
     setTimeout(() => {
         clickedRoomLevel.value = null;
         executeEnterGame(level);
-    }, 150); // 150ms animation duration
+    }, 150);
 };
 
 const executeEnterGame = debounce(async (level) => {
@@ -245,13 +234,12 @@ const executeEnterGame = debounce(async (level) => {
     }
 }, 500);
 
-// Helper to generate random particles
 const generateParticles = () => {
     return Array.from({ length: 6 }, () => {
-        const left = Math.random() * 80 + 10; // 10% - 90%
-        const duration = Math.random() * 2 + 3; // 3s - 5s (slower)
-        const delay = Math.random() * 4; // 0s - 4s (spread out)
-        const size = Math.random() * 2 + 1; // 1px - 3px (smaller)
+        const left = Math.random() * 80 + 10;
+        const duration = Math.random() * 2 + 3;
+        const delay = Math.random() * 4;
+        const size = Math.random() * 2 + 1;
         return {
             left: `${left}%`,
             animationDuration: `${duration}s`,
@@ -264,15 +252,13 @@ const generateParticles = () => {
 
 const rooms = computed(() => {
     const configs = userStore.roomConfigs || [];
-    return configs.map((cfg) => {
-        return {
-            level: cfg.level,
-            name: cfg.name,
-            baseBet: (cfg.base_bet || 0) / 100,
-            minBalance: (cfg.min_balance || 0) / 100,
-            particles: generateParticles()
-        };
-    });
+    return configs.map((cfg) => ({
+        level: cfg.level,
+        name: cfg.name,
+        baseBet: (cfg.base_bet || 0) / 100,
+        minBalance: (cfg.min_balance || 0) / 100,
+        particles: generateParticles()
+    }));
 });
 
 // --- History, Settings, Help Logic ---
@@ -310,14 +296,19 @@ const stopMusic = () => {
 };
 
 watch(() => settingsStore.musicEnabled, (val) => {
-    if (val) {
-        playMusic();
-    } else {
-        stopMusic();
-    }
+    if (val) playMusic();
+    else stopMusic();
 });
 
 onMounted(() => {
+    // Read mode from route query
+    if (route.query.mode !== undefined) {
+        currentMode.value = Number(route.query.mode);
+        userStore.lastSelectedMode = currentMode.value;
+    } else {
+        currentMode.value = userStore.lastSelectedMode || 0;
+    }
+
     gameClient.on('QZNN.UserInfo', (msg) => {
         userStore.updateUserInfo({
             avatar: msg.data.Avatar,
@@ -344,49 +335,47 @@ onMounted(() => {
 });
 
 onActivated(() => {
+    if (route.query.mode !== undefined) {
+        currentMode.value = Number(route.query.mode);
+        userStore.lastSelectedMode = currentMode.value;
+    }
     fetchData();
     playMusic();
 });
 
 onDeactivated(stopMusic);
-onUnmounted(() => {
-    stopMusic();
-});
+onUnmounted(() => { stopMusic(); });
 
 const goBack = () => {
     playBtnSound();
     console.log("Exit clicked");
-    // router.push('/'); // Uncomment if needed
 };
 </script>
 
 <template>
-    <div class="lobby-container">
-        <!-- Floating Background Layer -->
-        <img :src="bgUpImg" class="bg-up-anim" />
+    <div class="lobby-container" :class="themeClass"
+        :style="{ backgroundImage: `url(${theme.bgImg})` }">
 
-        <!-- Top Area -->
-        <div class="top-area" :style="{ backgroundImage: `url(${topBgImg})` }">
-            <!-- Row 1: Exit + Buttons -->
+        <!-- ====== Floating Background (Default only) ====== -->
+        <img v-if="currentMode === 0" :src="bgUpImg" class="bg-up-anim" />
+
+        <!-- ====== TOP AREA: DEFAULT (Mode 0) ====== -->
+        <div v-if="currentMode === 0" class="top-area" :style="{ backgroundImage: `url(${theme.topBg})` }">
             <div class="top-row-1">
                 <div class="top-left">
-                    <img :src="btnExit" class="btn-exit" @click="goBack" alt="Exit" />
+                    <img :src="theme.btnExit" class="btn-exit" @click="goBack" alt="Exit" />
                 </div>
                 <div class="top-right">
-                    <img :src="btnHistory" class="top-icon-btn" @click="openHistoryDebounced" alt="History" />
+                    <img :src="theme.btnHistory" class="top-icon-btn" @click="openHistoryDebounced" alt="History" />
                     <img :src="topBtnLine" class="top-separator" />
-                    <img :src="btnHelp" class="top-icon-btn" @click="openHelpDebounced" alt="Help" />
+                    <img :src="theme.btnHelp" class="top-icon-btn" @click="openHelpDebounced" alt="Help" />
                     <img :src="topBtnLine" class="top-separator" />
-                    <img :src="btnSetting" class="top-icon-btn" @click="openSettingsDebounced" alt="Settings" />
+                    <img :src="theme.btnSetting" class="top-icon-btn" @click="openSettingsDebounced" alt="Settings" />
                 </div>
             </div>
-
-            <!-- Separator Line -->
             <div class="top-line-container">
                 <img :src="topLine" class="top-line-img" />
             </div>
-
-            <!-- Row 2: User Info -->
             <div class="top-row-2">
                 <div class="user-info-container">
                     <div class="avatar-wrapper">
@@ -395,7 +384,7 @@ const goBack = () => {
                     </div>
                     <div class="user-details">
                         <span class="user-nickname">{{ userInfo.displayName }}</span>
-                        <div class="coins-display" :style="{ backgroundImage: `url(${diamondBg})` }">
+                        <div class="coins-display" :style="{ backgroundImage: `url(${theme.diamondBg})` }">
                             <img :src="goldImg" class="coin-icon" />
                             <span class="coin-val">{{ userInfo.coins }}</span>
                         </div>
@@ -404,46 +393,124 @@ const goBack = () => {
             </div>
         </div>
 
-        <!-- Main Content: Room List (Full Width) -->
+        <!-- ====== TOP AREA: GREEN (Mode 1) ====== -->
+        <div v-else-if="currentMode === 1" class="top-area-green">
+            <div class="green-top-shape-wrapper">
+                <img :src="greenTopShape" class="green-top-shape-img" />
+                <div class="green-top-shape-overlay">
+                    <div class="top-left">
+                        <img :src="theme.btnExit" class="btn-exit" @click="goBack" alt="Exit" />
+                    </div>
+                    <div class="top-right">
+                        <img :src="theme.btnHistory" class="top-icon-btn" @click="openHistoryDebounced"
+                            alt="History" />
+                        <img :src="theme.btnHelp" class="top-icon-btn" @click="openHelpDebounced" alt="Help" />
+                        <img :src="theme.btnSetting" class="top-icon-btn" @click="openSettingsDebounced"
+                            alt="Settings" />
+                    </div>
+                </div>
+            </div>
+            <div class="green-user-row">
+                <div class="user-info-container">
+                    <div class="avatar-wrapper">
+                        <img :src="userInfo.avatar" class="user-avatar" alt="" />
+                        <img :src="avatarFrameImg" class="avatar-border-overlay" />
+                    </div>
+                    <div class="user-details">
+                        <span class="user-nickname">{{ userInfo.displayName }}</span>
+                        <div class="coins-display" :style="{ backgroundImage: `url(${theme.diamondBg})` }">
+                            <img :src="goldImg" class="coin-icon" />
+                            <span class="coin-val">{{ userInfo.coins }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ====== TOP AREA: PURPLE (Mode 2) ====== -->
+        <div v-else class="top-area-purple" :style="{ backgroundImage: `url(${theme.topBg})` }">
+            <div class="purple-top-row">
+                <img :src="theme.btnExit" class="btn-exit" @click="goBack" alt="Exit" />
+                <div class="user-info-container">
+                    <div class="avatar-wrapper avatar-wrapper-lg">
+                        <img :src="userInfo.avatar" class="user-avatar" alt="" />
+                        <img :src="avatarFrameImg" class="avatar-border-overlay" />
+                    </div>
+                    <div class="user-details">
+                        <span class="user-nickname">{{ userInfo.displayName }}</span>
+                        <div class="coins-display" :style="{ backgroundImage: `url(${theme.diamondBg})` }">
+                            <img :src="goldImg" class="coin-icon" />
+                            <span class="coin-val">{{ userInfo.coins }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="top-right">
+                    <img :src="theme.btnHistory" class="top-icon-btn" @click="openHistoryDebounced" alt="History" />
+                    <img :src="theme.btnHelp" class="top-icon-btn" @click="openHelpDebounced" alt="Help" />
+                    <img :src="theme.btnSetting" class="top-icon-btn" @click="openSettingsDebounced" alt="Settings" />
+                </div>
+            </div>
+        </div>
+
+        <!-- ====== ROOM LIST (All Themes) ====== -->
         <div class="main-content">
             <div class="room-list-container">
                 <TransitionGroup name="list" tag="div" class="room-list" :key="currentMode">
                     <div v-for="(room, index) in rooms" :key="room.level" class="room-row"
                         :class="{ 'room-clicked': clickedRoomLevel === room.level }"
-                        :style="{ '--i': index, animationDelay: `${index * 0.1}s` }">
-                        <!-- Left: Room Info (70%) -->
-                        <div class="room-info" :style="{ backgroundImage: `url(${eachRoomBg})` }"
+                        :style="{ animationDelay: `${index * 0.1}s` }">
+
+                        <!-- Room Info Card -->
+                        <div class="room-info" :style="{ backgroundImage: `url(${theme.eachRoomBg})` }"
                             @click="handleEnterRoomClick(room.level)">
-                            <div class="room-info-content">
-                                <!-- Room Name with specific bg -->
-                                <div class="room-name-container"
+                            <div class="room-info-content"
+                                :class="{ 'room-info-content-purple': currentMode === 2 }">
+
+                                <!-- Purple: Card Fan Icon -->
+                                <img v-if="currentMode === 2 && getRoomIconImage(room.name)"
+                                    :src="getRoomIconImage(room.name)" class="room-card-icon" />
+
+                                <!-- Room Name (Default/Green: with bg label; Purple: plain) -->
+                                <div v-if="currentMode !== 2" class="room-name-container"
                                     :style="{ backgroundImage: `url(${currentRoomNameBg})` }">
                                     <img v-if="getRoomTextImage(room.name)" :src="getRoomTextImage(room.name)"
                                         class="room-name-img" />
                                     <span v-else class="room-name-text">{{ room.name }}</span>
                                 </div>
-                                <!-- Base Score -->
+                                <div v-else class="room-name-purple">
+                                    <img v-if="getRoomTextImage(room.name)" :src="getRoomTextImage(room.name)"
+                                        class="room-name-img-purple" />
+                                    <span v-else class="room-name-text">{{ room.name }}</span>
+                                </div>
+
+                                <!-- Stats -->
                                 <div class="room-stat">
-                                    <img :src="roomIconTextDizhu" class="stat-label-img" />
+                                    <img :src="theme.roomIconTextDizhu" class="stat-label-img" />
                                     <SpriteNumber :value="room.baseBet" type="yellow" :height="14" />
                                 </div>
-                                <!-- Entry Limit -->
                                 <div class="room-stat">
-                                    <img :src="roomIconTextXianzhi" class="stat-label-img" />
+                                    <img :src="theme.roomIconTextXianzhi" class="stat-label-img" />
                                     <SpriteNumber :value="room.minBalance" type="white" :height="14" />
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Right: Enter Button -->
+                        <!-- Enter Button -->
                         <div class="room-enter-btn" @click="handleEnterRoomClick(room.level)">
                             <div class="enter-btn-wrapper">
-                                <img :src="eachRoomEnterBtn" class="enter-btn-bg-img" />
-                                <div class="particles-container">
-                                    <i v-for="(style, i) in room.particles" :key="i" class="star-particle"
-                                        :style="style"></i>
-                                </div>
-                                <img :src="eachRoomEnterBtnText" class="enter-btn-text-img" />
+                                <!-- Default: image bg + particles + text overlay -->
+                                <template v-if="currentMode === 0">
+                                    <img :src="eachRoomEnterBtn" class="enter-btn-bg-img" />
+                                    <div class="particles-container">
+                                        <i v-for="(style, i) in room.particles" :key="i" class="star-particle"
+                                            :style="style"></i>
+                                    </div>
+                                    <img :src="theme.eachRoomEnterBtnText" class="enter-btn-text-img" />
+                                </template>
+                                <!-- Green/Purple: standalone button image -->
+                                <template v-else>
+                                    <img :src="theme.eachRoomEnterBtnText" class="enter-btn-standalone" />
+                                </template>
                             </div>
                         </div>
                     </div>
@@ -451,37 +518,11 @@ const goBack = () => {
             </div>
         </div>
 
-        <LobbyBackgroundAnimation :mode="currentMode" />
+        <!-- Background Animation (Default only) -->
+        <LobbyBackgroundAnimation v-if="currentMode === 0" :mode="currentMode" />
 
-        <!-- Full screen glass overlay -->
-        <div class="lobby-full-glass"></div>
-
-        <!-- Bottom Tabs Area (Temporarily Disabled) -->
-        <!--
-        <div class="bottom-area-container">
-            <div class="bottom-tabs">
-                <div class="tab-item" @click="setMode(0)"
-                    :style="{ backgroundImage: `url(${currentMode === 0 ? tabBukanSelBg : tabBukanBg})` }">
-                    <img :src="currentMode === 0 ? bukanSelIconDisplay : tabBukanIcon" class="tab-icon-left" />
-                    <img :src="currentMode === 0 ? tabBukanSel : tabBukan"
-                        :class="currentMode === 0 ? 'tab-bukan-sel-img' : 'tab-bukan-img'" />
-                </div>
-                <div class="tab-item2" @click="setMode(1)"
-                    :style="{ backgroundImage: `url(${currentMode === 1 ? tabSansiSelBg : tabSansiBg})` }">
-                    <img :src="currentMode === 1 ? sanSelIconDisplay : tabSanIcon" class="tab-icon-left" />
-                    <img :src="currentMode === 1 ? tabSanSel : tabSan"
-                        :class="currentMode === 1 ? 'tab-san-sel-img' : 'tab-san-img'" />
-                </div>
-                <div class="tab-item3" @click="setMode(2)"
-                    :style="{ backgroundImage: `url(${currentMode === 2 ? tabSansiSelBg : tabSansiBg})` }">
-                    <img :src="currentMode === 2 ? siSelIconDisplay : tabSiIcon" class="tab-icon-left" />
-                    <img :src="currentMode === 2 ? tabSiSel : tabSi"
-                        :class="currentMode === 2 ? 'tab-si-sel-img' : 'tab-si-img'" />
-                </div>
-            </div>
-            <div class="bottom-bar-bg" :style="{ backgroundImage: `url(${tabBgImg})` }"></div>
-        </div>
-        -->
+        <!-- Glass Overlay (Default only) -->
+        <div v-if="currentMode === 0" class="lobby-full-glass"></div>
 
         <!-- Modals -->
         <HistoryModal v-model:visible="showHistory" />
@@ -491,10 +532,10 @@ const goBack = () => {
 </template>
 
 <style scoped>
+/* ====== BASE CONTAINER ====== */
 .lobby-container {
     width: 100vw;
     height: 100dvh;
-    background-image: url('../assets/lobby/bg.jpg');
     background-size: 100% 100%;
     background-position: center center;
     background-repeat: no-repeat;
@@ -503,22 +544,17 @@ const goBack = () => {
     overflow: hidden;
     font-family: "Microsoft YaHei", Arial, sans-serif;
     position: relative;
-    /* Ensure relative positioning context for children */
 }
 
-/* Floating Background */
+/* ====== FLOATING BACKGROUND (Default) ====== */
 .bg-up-anim {
     position: absolute;
     width: 100%;
-    /* Start position */
     left: -20%;
     top: 0%;
     z-index: 0;
-    /* Above main bg, below content */
     opacity: 0.8;
-    /* Optional: adjust opacity if needed to blend */
     pointer-events: none;
-    /* Let clicks pass through */
     animation: floatBg 15s infinite ease-in-out alternate;
 }
 
@@ -529,37 +565,20 @@ const goBack = () => {
     width: 100%;
     height: 100%;
     backdrop-filter: blur(6px);
-    /* Frosted glass effect */
     background: linear-gradient(to bottom, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.4));
     pointer-events: none;
     z-index: 0;
 }
 
 @keyframes floatBg {
-    0% {
-        transform: translate(0, 0) scale(1);
-    }
-
-    25% {
-        transform: translate(25%, 30%) scale(1.02);
-    }
-
-    50% {
-        transform: translate(25%, 60%) scale(1.05);
-        /* Close to 40% top total */
-    }
-
-    75% {
-        transform: translate(50%, 55%) scale(1.02);
-    }
-
-    100% {
-        transform: translate(80%, 50%) scale(1);
-        /* Close to 50% top total */
-    }
+    0% { transform: translate(0, 0) scale(1); }
+    25% { transform: translate(25%, 30%) scale(1.02); }
+    50% { transform: translate(25%, 60%) scale(1.05); }
+    75% { transform: translate(50%, 55%) scale(1.02); }
+    100% { transform: translate(80%, 50%) scale(1); }
 }
 
-/* --- Top Area --- */
+/* ====== DEFAULT TOP AREA (Mode 0) ====== */
 .top-area {
     width: 100%;
     flex-shrink: 0;
@@ -569,10 +588,8 @@ const goBack = () => {
     padding-bottom: 5px;
     position: relative;
     z-index: 1;
-    /* Ensure content is above floating bg */
 }
 
-/* Row 1 */
 .top-row-1 {
     display: flex;
     justify-content: space-between;
@@ -602,7 +619,6 @@ const goBack = () => {
     margin: 0 5px;
 }
 
-/* Separator Line */
 .top-line-container {
     width: 100%;
     padding: 0 10px;
@@ -617,7 +633,6 @@ const goBack = () => {
     height: 2px;
 }
 
-/* Row 2 */
 .top-row-2 {
     display: flex;
     justify-content: flex-start;
@@ -625,6 +640,78 @@ const goBack = () => {
     padding: 10px 15px 15px 15px;
 }
 
+/* ====== GREEN TOP AREA (Mode 1) ====== */
+.top-area-green {
+    width: 100%;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    z-index: 1;
+}
+
+.green-top-shape-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.green-top-shape-img {
+    width: 100%;
+    display: block;
+}
+
+.green-top-shape-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 15px 10px 15px;
+}
+
+.green-user-row {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    padding: 8px 15px 10px 15px;
+}
+
+/* ====== PURPLE TOP AREA (Mode 2) ====== */
+.top-area-purple {
+    width: 100%;
+    flex-shrink: 0;
+    background-size: 100% 100%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    z-index: 1;
+    padding: 15px 15px 10px 15px;
+}
+
+.purple-top-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.purple-top-row .btn-exit {
+    height: 21px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.purple-top-row .user-info-container {
+    flex: 1;
+}
+
+.purple-top-row .top-right {
+    flex-shrink: 0;
+}
+
+/* ====== SHARED USER INFO ====== */
 .user-info-container {
     display: flex;
     align-items: center;
@@ -637,11 +724,15 @@ const goBack = () => {
     height: 43px;
 }
 
+.avatar-wrapper-lg {
+    width: 50px;
+    height: 50px;
+}
+
 .user-avatar {
     width: 100%;
     height: 100%;
     border-radius: 50%;
-    /* border: 2px solid #e0e0e0; */
     object-fit: cover;
 }
 
@@ -697,20 +788,7 @@ const goBack = () => {
     line-height: 1;
 }
 
-.add-btn {
-    background: linear-gradient(to bottom, #e56f20, #fd7a00e6);
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    text-align: center;
-    line-height: 16px;
-    font-size: 14px;
-    color: white;
-    cursor: pointer;
-    font-weight: bold;
-}
-
-/* --- Main Content --- */
+/* ====== MAIN CONTENT / ROOM LIST ====== */
 .main-content {
     flex: 1;
     display: flex;
@@ -719,16 +797,17 @@ const goBack = () => {
     padding-bottom: 5px;
     position: relative;
     z-index: 1;
-    /* Ensure content is above floating bg */
 }
 
-/* Room List */
 .room-list-container {
     flex: 1;
     width: 100%;
     overflow-y: auto;
     padding: 0 15px 10px 15px;
-    /* Added side padding to center rooms if needed */
+}
+
+.room-list-container::-webkit-scrollbar {
+    display: none;
 }
 
 .room-list {
@@ -742,7 +821,6 @@ const goBack = () => {
     align-items: center;
     height: 50px;
     position: relative;
-    /* Animation */
     opacity: 0;
     transform: translateX(30px);
     animation: slideIn 0.5s ease forwards;
@@ -760,7 +838,7 @@ const goBack = () => {
     }
 }
 
-/* Room Info (Left 70%) */
+/* Room Info Card */
 .room-info {
     width: 80%;
     height: 100%;
@@ -777,7 +855,19 @@ const goBack = () => {
     width: 100%;
     justify-content: space-between;
     padding-right: 40px;
-    /* Make space for the button text not to be covered if needed */
+}
+
+/* Purple room content layout */
+.room-info-content-purple {
+    padding-right: 30px;
+    gap: 6px;
+}
+
+.room-card-icon {
+    height: 38px;
+    width: auto;
+    object-fit: contain;
+    flex-shrink: 0;
 }
 
 .room-name-container {
@@ -801,12 +891,28 @@ const goBack = () => {
     object-fit: contain;
 }
 
+.room-name-purple {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.room-name-img-purple {
+    height: 16px;
+    width: auto;
+    object-fit: contain;
+}
+
 .room-stat {
     margin-left: 18px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+}
+
+.room-info-content-purple .room-stat {
+    margin-left: 8px;
 }
 
 .stat-label-img {
@@ -817,14 +923,7 @@ const goBack = () => {
     margin-top: 0;
 }
 
-.stat-value {
-    font-size: 12px;
-    color: #FFD700;
-    font-weight: bold;
-    margin-top: 2px;
-}
-
-/* Enter Button (Right) */
+/* Enter Button */
 .room-enter-btn {
     position: absolute;
     right: 0;
@@ -848,10 +947,6 @@ const goBack = () => {
     transition: filter 0.1s ease;
 }
 
-.enter-btn-wrapper.btn-clicked {
-    filter: brightness(0.7);
-}
-
 .enter-btn-bg-img {
     height: 100%;
     width: auto;
@@ -867,6 +962,12 @@ const goBack = () => {
     width: auto;
     z-index: 2;
     pointer-events: none;
+}
+
+.enter-btn-standalone {
+    height: 70%;
+    width: auto;
+    object-fit: contain;
 }
 
 .particles-container {
@@ -893,127 +994,26 @@ const goBack = () => {
 }
 
 @keyframes particleMove {
-    0% {
-        transform: translateY(0) scale(0.5);
-        opacity: 0;
-    }
-
-    20% {
-        opacity: 1;
-    }
-
-    100% {
-        transform: translateY(-25px) scale(1);
-        opacity: 0;
-    }
+    0% { transform: translateY(0) scale(0.5); opacity: 0; }
+    20% { opacity: 1; }
+    100% { transform: translateY(-25px) scale(1); opacity: 0; }
 }
 
-/* --- Bottom Area --- */
-.bottom-area-container {
-    flex-shrink: 0;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    z-index: 1;
+/* ====== GREEN THEME OVERRIDES ====== */
+.theme-green .room-row {
+    height: 55px;
 }
 
-.bottom-bar-bg {
-    z-index: 2;
-    width: 100%;
-    height: 32px;
-    /* Adjust based on tab_bg.png height */
-    background-size: 100% 100%;
-    background-repeat: no-repeat;
+.theme-green .room-name-container {
+    padding: 15px 12px 12px 16px;
 }
 
-/* Bottom Tabs */
-.bottom-tabs {
-    width: 100%;
-    display: flex;
-    justify-content: flex-end;
-    /* Right aligned */
-    align-items: flex-end;
-    padding-right: 10px;
-    gap: 0;
-    /* No gap if backgrounds are meant to touch or overlap slightly */
-    margin-bottom: -2px;
-    /* Pull down slightly to touch the bottom bar */
+/* ====== PURPLE THEME OVERRIDES ====== */
+.theme-purple .room-row {
+    height: 58px;
 }
 
-.tab-item {
-    cursor: pointer;
-    /* transition: transform 0.1s; removed scaling transition */
-    width: 105px;
-    padding-left: 15px;
-    /* Adjusted padding */
-    height: 45px;
-    background-size: 100% 100%;
-    background-repeat: no-repeat;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: relative;
-}
-
-.tab-item2,
-.tab-item3 {
-    cursor: pointer;
-    /* transition: transform 0.1s; removed scaling transition */
-    width: 95px;
-    height: 45px;
-    padding-left: 10px;
-    /* Add some padding to center visually with the slant */
-    background-size: 100% 100%;
-    background-repeat: no-repeat;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: relative;
-}
-
-/* Ensure no scaling on active state */
-.tab-item:active,
-.tab-item2:active,
-.tab-item3:active {
-    transform: none !important;
-}
-
-
-.tab-icon-left {
-    height: 50%;
-    /* Adjust as needed */
-    width: auto;
-    object-fit: contain;
-    margin-right: 2px;
-}
-
-/* Individual Tab Image Styles */
-.tab-bukan-img,
-.tab-san-img,
-.tab-bukan-sel-img,
-.tab-san-sel-img,
-.tab-si-sel-img,
-.tab-si-img {
-    height: 40%;
-    /* Default size, can be customized individually */
-    width: auto;
-    object-fit: contain;
-}
-
-/* Example Customization:
-.tab-bukan-sel-img { height: 55%; }
-*/
-
-.tab-anim-icon {
-    height: 50%;
-    width: auto;
-    object-fit: contain;
-    margin-right: -5px;
-}
-
-/* Scrollbar hiding */
-.room-list-container::-webkit-scrollbar {
-    display: none;
+.theme-purple .room-list {
+    gap: 10px;
 }
 </style>

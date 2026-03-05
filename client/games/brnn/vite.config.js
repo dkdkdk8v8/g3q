@@ -23,7 +23,12 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
+        '@shared': path.resolve(__dirname, '../../components'),
       },
+      dedupe: ['vue', 'pinia', 'vue-router', 'vant', 'howler', '@msgpack/msgpack'],
+    },
+    optimizeDeps: {
+      include: ['howler', '@msgpack/msgpack'],
     },
     esbuild: {
       drop: mode === 'production' ? ['console', 'debugger'] : [],

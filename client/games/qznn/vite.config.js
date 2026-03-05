@@ -22,8 +22,15 @@ export default defineConfig(({ mode }) => {
     ],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, './src'), // Add this alias
+        '@': path.resolve(__dirname, './src'),
+        '@shared': path.resolve(__dirname, '../../components'),
       },
+      // 让 @shared 下的代码能从当前项目的 node_modules 解析依赖
+      dedupe: ['vue', 'pinia', 'vue-router', 'vant', 'howler', '@msgpack/msgpack'],
+    },
+    // 确保共享组件目录中的裸模块引用能找到当前项目的 node_modules
+    optimizeDeps: {
+      include: ['howler', '@msgpack/msgpack'],
     },
     esbuild: {
       drop: mode === 'production' ? ['console', 'debugger'] : [],

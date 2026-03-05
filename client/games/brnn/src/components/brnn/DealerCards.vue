@@ -1,28 +1,11 @@
 <script setup>
 import { computed } from 'vue'
+import { cardToDisplay, niuLabel } from '@shared/utils/bullfight.js'
 
 const props = defineProps({
   dealer: Object,
   phase: String,
 })
-
-function cardToDisplay(cardId) {
-  const ranks = ['A','2','3','4','5','6','7','8','9','10','J','Q','K']
-  const suits = ['♦','♣','♥','♠']
-  const rank = Math.floor(cardId / 4)
-  const suit = cardId % 4
-  return { rank: ranks[rank], suit: suits[suit], isRed: suit === 0 || suit === 2 }
-}
-
-function niuLabel(niuType) {
-  if (niuType === 0 || niuType === '') return '没牛'
-  if (niuType >= 1 && niuType <= 9) return `牛${niuType}`
-  if (niuType === 10) return '牛牛'
-  if (niuType === 11) return '五花牛'
-  if (niuType === 12) return '炸弹牛'
-  if (niuType === 13) return '五小牛'
-  return ''
-}
 
 const showFace = computed(() => {
   return props.phase === 'SHOW_CARD' || props.phase === 'SETTLEMENT'

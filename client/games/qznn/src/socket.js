@@ -1,5 +1,3 @@
-import GameClient from './Network.js';
-
-const gameClient = new GameClient();
+import gameClient from './Network.js';
 
 export default gameClient;

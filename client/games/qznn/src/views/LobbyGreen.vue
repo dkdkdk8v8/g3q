@@ -227,7 +227,7 @@ onUnmounted(stopMusic);
             rgba(100, 220, 170, 0.10) 40%,
             transparent 100%);
     animation: spotlightEntry 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards,
-               spotlightPulse 2s ease-in-out 0.9s infinite;
+               spotlightSweep 5s ease-in-out 0.9s infinite;
 }
 
 .spotlight-left {
@@ -239,7 +239,7 @@ onUnmounted(stopMusic);
             rgba(80, 200, 160, 0.06) 40%,
             transparent 100%);
     animation: spotlightEntry 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards,
-               spotlightPulse 2s ease-in-out 1.2s infinite;
+               spotlightSweepLeft 4s ease-in-out 1.2s infinite;
 }
 
 .spotlight-right {
@@ -251,7 +251,7 @@ onUnmounted(stopMusic);
             rgba(80, 200, 160, 0.06) 40%,
             transparent 100%);
     animation: spotlightEntry 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.8s forwards,
-               spotlightPulse 2s ease-in-out 1.5s infinite;
+               spotlightSweepRight 4.5s ease-in-out 1.5s infinite;
 }
 
 @keyframes spotlightEntry {
@@ -269,13 +269,20 @@ onUnmounted(stopMusic);
     }
 }
 
-@keyframes spotlightPulse {
-    0%, 100% {
-        opacity: 0.5;
-    }
-    50% {
-        opacity: 1;
-    }
+@keyframes spotlightSweep {
+    0%, 100% { transform: rotate(0deg); opacity: 1; }
+    25% { transform: rotate(8deg); opacity: 0.7; }
+    75% { transform: rotate(-8deg); opacity: 0.7; }
+}
+
+@keyframes spotlightSweepLeft {
+    0%, 100% { transform: rotate(0deg); opacity: 1; }
+    50% { transform: rotate(12deg); opacity: 0.6; }
+}
+
+@keyframes spotlightSweepRight {
+    0%, 100% { transform: rotate(0deg); opacity: 1; }
+    50% { transform: rotate(-12deg); opacity: 0.6; }
 }
 
 .user-row {

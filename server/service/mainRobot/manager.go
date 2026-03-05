@@ -56,10 +56,11 @@ type PlayerSimple struct {
 
 // RoomDataSimple 用于解析 HTTP 接口返回的房间数据
 type RoomDataSimple struct {
-	ID         string
-	Players    []*PlayerSimple
-	Config     qznn.LobbyConfig
-	BankerType int
+	ID                   string
+	Players              []*PlayerSimple
+	Config               qznn.LobbyConfig
+	BankerType           int
+	LastRealPlayerJoinAt time.Time
 }
 
 // RobotAction 机器人调度动作
@@ -166,21 +167,14 @@ func managerRound() {
 }
 
 // planActions 根据房间状态生成调度计划
+// 新模型：每个房间最多1个机器人，真人加入后延迟一段时间再派机器人
 func planActions(rooms []*RoomDataSimple) []RobotAction {
 	var actions []RobotAction
 
-	// 分类房间
-	// pureRobotRooms: [Level][BankerType] -> List of Rooms
-	pureRobotRooms := make(map[int]map[int][]*RoomDataSimple)
-	// realUserRooms: List of Rooms (Only 1 real user, 0 robots)
-	var realUserRooms []*RoomDataSimple
-	// mixedRooms: List of Rooms (Real > 0 && Robot > 0)
-	var mixedRooms []*RoomDataSimple
-
 	for _, room := range rooms {
-		hasReal := false
-		robotCount := 0
 		playerCount := 0
+		robotCount := 0
+		realCount := 0
 
 		for _, p := range room.Players {
 			if p != nil {
@@ -188,90 +182,37 @@ func planActions(rooms []*RoomDataSimple) []RobotAction {
 				if p.IsRobot {
 					robotCount++
 				} else {
-					hasReal = true
+					realCount++
 				}
 			}
 		}
 
-		if hasReal {
-			// 只有1个用户且没有机器人
-			if playerCount == 1 && robotCount == 0 {
-				realUserRooms = append(realUserRooms, room)
-			} else if robotCount > 0 {
-				// 混合房间：有真人也有机器人
-				mixedRooms = append(mixedRooms, room)
-			}
-		} else {
-			// 纯机器人房间
-			if pureRobotRooms[room.Config.Level] == nil {
-				pureRobotRooms[room.Config.Level] = make(map[int][]*RoomDataSimple)
-			}
-			pureRobotRooms[room.Config.Level][room.Config.BankerType] = append(pureRobotRooms[room.Config.Level][room.Config.BankerType], room)
+		// 跳过满员房间
+		if playerCount >= 5 {
+			continue
 		}
-	}
+		// 跳过已有机器人的房间
+		if robotCount >= MAX_ROBOTS_PER_ROOM {
+			continue
+		}
+		// 跳过没有真人的房间
+		if realCount == 0 {
+			continue
+		}
+		// 跳过 LastRealPlayerJoinAt 为零值的房间
+		if room.LastRealPlayerJoinAt.IsZero() {
+			continue
+		}
+		// 跳过延迟未到的房间
+		if time.Since(room.LastRealPlayerJoinAt) < time.Duration(ROBOT_JOIN_DELAY_SEC)*time.Second {
+			continue
+		}
 
-	// 策略1：真实用户房间 (1人0机器人) -> 进1个机器人
-	for _, room := range realUserRooms {
 		actions = append(actions, RobotAction{
 			Level:      room.Config.Level,
 			BankerType: room.Config.BankerType,
 			RoomId:     room.ID,
 		})
-	}
-
-	// 策略2：维护纯机器人房间数量
-	for _, level := range ALLOWED_LEVELS {
-		for _, bt := range ALLOWED_BANKER_TYPES {
-			existing := pureRobotRooms[level][bt]
-			count := len(existing)
-
-			if count < MIN_ROBOT_ROOMS {
-				need := MIN_ROBOT_ROOMS - count
-				for i := 0; i < need; i++ {
-					actions = append(actions, RobotAction{
-						Level:      level,
-						BankerType: bt,
-						RoomId:     "", // Create new
-					})
-				}
-			}
-
-			// 策略3：只有机器人的房间，人数不满4个 -> 50%概率进1个机器人
-			for _, room := range existing {
-				pCount := 0
-				for _, p := range room.Players {
-					if p != nil {
-						pCount++
-					}
-				}
-
-				if pCount < 4 && rand.Intn(2) == 1 {
-					actions = append(actions, RobotAction{
-						Level:      level,
-						BankerType: bt,
-						RoomId:     room.ID,
-					})
-				}
-			}
-		}
-	}
-
-	// 策略4：混合房间 (有真人也有机器人)，若有空位则派机器人进入
-	for _, room := range mixedRooms {
-		pCount := 0
-		for _, p := range room.Players {
-			if p != nil {
-				pCount++
-			}
-		}
-
-		if pCount < 5 {
-			actions = append(actions, RobotAction{
-				Level:      room.Config.Level,
-				BankerType: room.Config.BankerType,
-				RoomId:     room.ID,
-			})
-		}
 	}
 
 	return actions
@@ -829,29 +770,31 @@ func (r *Robot) checkLeave() {
 			return
 		}
 
-		// 计算当前房间人数
-		count := 0
+		// 计算真人数量（机器人是唯一的机器人，所以 realCount = totalCount - 1）
+		totalCount := 0
 		for _, p := range roomData.Players {
 			if p != nil {
-				count++
+				totalCount++
 			}
 		}
+		realCount := totalCount - 1 // 自己是唯一的机器人
 
 		// 游戏最小局数后按照概率退出房间
 		if gamesPlayed < MIN_GAMES {
 			return
 		}
 
+		// 只有1个真人时不退出，真人多时提高退出概率
 		var prob float64
-		switch count {
-		case 5:
+		switch {
+		case realCount >= 4:
 			prob = PROB_LEAVE_5_PLAYERS
-		case 4:
+		case realCount == 3:
 			prob = PROB_LEAVE_4_PLAYERS
-		case 3:
+		case realCount == 2:
 			prob = PROB_LEAVE_3_PLAYERS
 		default:
-			prob = PROB_LEAVE_2_PLAYERS
+			prob = PROB_LEAVE_2_PLAYERS // 0, 即1个真人时不退出
 		}
 
 		if prob > 0 && rand.Float64() < prob {
@@ -863,7 +806,7 @@ func (r *Robot) checkLeave() {
 			roomLeaveCooldown[roomId] = time.Now()
 			roomLeaveMu.Unlock()
 
-			logrus.WithFields(logrus.Fields{"roomId": roomId, "uid": r.Uid, "balance": balance}).Infof("Robot - Decided to leave room, current players: %d, games played: %d, probability: %.2f", count, gamesPlayed, prob)
+			logrus.WithFields(logrus.Fields{"roomId": roomId, "uid": r.Uid, "balance": balance}).Infof("Robot - Decided to leave room, real players: %d, games played: %d, probability: %.2f", realCount, gamesPlayed, prob)
 			r.Send(qznn.CmdPlayerLeave, map[string]interface{}{"RoomId": roomId})
 			r.Close()
 		}

@@ -17,6 +17,7 @@ type RouterType string
 const (
 	Lobby RouterType = "lobby"
 	Game  RouterType = "game"
+	Brnn  RouterType = "brnn"
 )
 
 type PushRouterStruct struct {

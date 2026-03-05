@@ -8,6 +8,7 @@ import (
 	"service/comm"
 	"service/initMain"
 	"service/mainClient/game"
+	"service/mainClient/game/brnn"
 	"service/mainClient/game/qznn"
 	"service/mainClient/game/znet"
 	"strings"
@@ -127,6 +128,15 @@ func handleConnection(connWrap *ws.WsConnWrap, appId, appUserId string) {
 					Data: znet.PushRouterStruct{
 						Router: znet.Game,
 						Room:   room,
+						SelfId: userId}})
+			} else if brnnPlayer := game.GetMgr().CheckPlayerInBRNN(userId); brnnPlayer != nil {
+				brnnRoom := game.GetMgr().GetBRNNRoom()
+				brnnRoom.SetWsWrap(userId, connWrap)
+				_ = comm.WriteMsgPack(connWrap, comm.PushData{
+					Cmd:      comm.ServerPush,
+					PushType: znet.PushRouter,
+					Data: znet.PushRouterStruct{
+						Router: znet.Brnn,
 						SelfId: userId}})
 			} else {
 				//不在游戏内,默认客户端进入lobby
@@ -264,6 +274,15 @@ func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, userId st
 		rsp.Data, errRsp = handlePlayerChangeRoom(connWrap, userId, msg.Data)
 	case znet.CmdSaveSetting: // 保存用户设置
 		errRsp = handleSaveSetting(userId, msg.Data)
+	// --- BRNN 百人牛牛 ---
+	case brnn.CmdPlayerJoin:
+		errRsp = handleBRNNPlayerJoin(connWrap, appId, appUserId)
+	case brnn.CmdPlayerLeave:
+		errRsp = handleBRNNPlayerLeave(userId)
+	case brnn.CmdPlaceBet:
+		errRsp = handleBRNNPlaceBet(userId, msg.Data)
+	case brnn.CmdLobbyConfig:
+		rsp.Data = handleBRNNLobbyConfig()
 	default:
 		errRsp = errors.New("UnknownCmd")
 	}

@@ -4,9 +4,8 @@ import (
 	"compoment/jsondiytag"
 	"compoment/uid"
 	"compoment/util"
-	"errors"
 	"fmt"
-	"service/comm"
+	"service/mainClient/game/brnn"
 	"service/mainClient/game/qznn"
 	"service/modelClient"
 	"sync"
@@ -18,6 +17,7 @@ import (
 // managerState holds the internal state of the RoomManager
 type managerState struct {
 	rooms      map[string]*qznn.QZNNRoom
+	brnnRoom   *brnn.BRNNRoom
 	isDraining bool
 }
 
@@ -105,8 +105,10 @@ func (rm *RoomManager) SelectRoom(user *modelClient.ModelUser,
 		type roomHolder struct {
 			Room      *qznn.QZNNRoom
 			PlayerNum int
+			HasReal   bool
 		}
-		var sortPlayerRoom []roomHolder
+		var withReal []roomHolder
+		var withoutReal []roomHolder
 
 		for _, room := range s.rooms {
 			if room.Config.BankerType == roomCfg.BankerType && room.Config.Level == roomCfg.Level {
@@ -114,23 +116,33 @@ func (rm *RoomManager) SelectRoom(user *modelClient.ModelUser,
 				if num == 0 && time.Since(room.CreateAt) > time.Minute {
 					continue
 				}
-				if realNum > 0 {
-					continue
-				}
 				if room.ID == excludeRoomId {
 					continue
 				}
+				// 只匹配等待中/准备中的房间，避免新人加入已开始的游戏
+				if room.CheckGameStart() {
+					continue
+				}
 				if num < room.GetPlayerCap() {
-					sortPlayerRoom = append(sortPlayerRoom, roomHolder{Room: room, PlayerNum: num})
+					h := roomHolder{Room: room, PlayerNum: num, HasReal: realNum > 0}
+					if realNum > 0 {
+						withReal = append(withReal, h)
+					} else {
+						withoutReal = append(withoutReal, h)
+					}
 				}
 			}
 		}
 
-		//随机选一个sortPlayerRoom元素
-		sortPlayerRoom = util.RandomPick(sortPlayerRoom, len(sortPlayerRoom))
-
-		if len(sortPlayerRoom) > 0 {
-			return sortPlayerRoom[0].Room, nil
+		// 优先选择有真人的房间
+		withReal = util.RandomPick(withReal, len(withReal))
+		if len(withReal) > 0 {
+			return withReal[0].Room, nil
+		}
+		// 没有有真人的房间，选其他的
+		withoutReal = util.RandomPick(withoutReal, len(withoutReal))
+		if len(withoutReal) > 0 {
+			return withoutReal[0].Room, nil
 		}
 		return nil, nil
 	})
@@ -141,9 +153,6 @@ func (rm *RoomManager) SelectRoom(user *modelClient.ModelUser,
 
 	if targetRoom != nil {
 		if _, err := targetRoom.AddPlayer(player); err != nil {
-			if errors.As(err, &comm.ErrRealPlayerAlreadyInRoom) {
-				logrus.WithField("!", nil).WithField("roomId", targetRoom.ID).Error("RealPlayerAlreadyInRoom")
-			}
 			return nil, err
 		}
 		return targetRoom, nil
@@ -157,9 +166,6 @@ func (rm *RoomManager) JoinQZNNRoom(joinRoom *qznn.QZNNRoom, user *modelClient.M
 
 	_, err := joinRoom.AddPlayer(player)
 	if err != nil {
-		if errors.As(err, &comm.ErrRealPlayerAlreadyInRoom) {
-			logrus.WithField("!", nil).WithField("roomId", joinRoom.ID).Error("RealPlayerAlreadyInRoom")
-		}
 		return nil, err
 	}
 	joinRoom.OnBotAction = nil //RobotForQZNNRoom
@@ -209,6 +215,26 @@ func (rm *RoomManager) GetAllRooms() string {
 
 	allRooms, _ := jsondiytag.MarshalWithCustomTag(rooms)
 	return string(allRooms)
+}
+
+// GetBRNNRoom returns the singleton BRNN room, creating it if needed
+func (rm *RoomManager) GetBRNNRoom() *brnn.BRNNRoom {
+	return syncOp(rm, func(s *managerState) *brnn.BRNNRoom {
+		if s.brnnRoom == nil {
+			s.brnnRoom = brnn.NewRoom("brnn_main", brnn.DefaultConfig)
+		}
+		return s.brnnRoom
+	})
+}
+
+// CheckPlayerInBRNN checks if player is in the BRNN room
+func (rm *RoomManager) CheckPlayerInBRNN(userId string) *brnn.BRNNPlayer {
+	return syncOp(rm, func(s *managerState) *brnn.BRNNPlayer {
+		if s.brnnRoom == nil {
+			return nil
+		}
+		return s.brnnRoom.GetPlayer(userId)
+	})
 }
 
 func syncOp[T any](rm *RoomManager, f func(s *managerState) T) T {

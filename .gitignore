@@ -1,6 +1,8 @@
 # ============ IDE & Editor ============
 .idea/
 .cursor/
+**/__debug_bin*
+**/**/__debug_bin_*
 admin_client/.vscode/
 admin/.vscode/
 client/.vscode/

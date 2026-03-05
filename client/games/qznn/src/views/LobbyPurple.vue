@@ -53,6 +53,22 @@ onUnmounted(stopMusic);
 
 <template>
     <div class="lobby-container">
+        <!-- Aurora Background -->
+        <div class="aurora">
+            <div class="aurora-layer aurora-1"></div>
+            <div class="aurora-layer aurora-2"></div>
+        </div>
+        <!-- Floating Particles -->
+        <div class="particles">
+            <span v-for="i in 15" :key="i" class="particle" :style="{
+                left: `${(i * 17 + 5) % 100}%`,
+                animationDuration: `${6 + (i % 5) * 2}s`,
+                animationDelay: `${(i * 0.7) % 5}s`,
+                width: `${2 + (i % 3)}px`,
+                height: `${2 + (i % 3)}px`,
+                opacity: 0.3 + (i % 4) * 0.15,
+            }"></span>
+        </div>
         <!-- Top Area: Combined Row -->
         <div class="top-area" :style="{ backgroundImage: `url(${topBg})` }">
             <div class="top-row-exit">
@@ -90,11 +106,12 @@ onUnmounted(stopMusic);
                         :style="{ animationDelay: `${index * 0.1}s` }">
                         <div class="room-info" :style="{ backgroundImage: `url(${eachRoomBg})` }"
                             @click="handleEnterRoomClick(room.level)">
+                            <div class="room-shimmer" :style="{ animationDelay: `${index * 1.2}s` }"></div>
                             <div class="room-info-content">
                                 <!-- Card Fan Icon + Room Name -->
                                 <div class="room-icon-name">
                                     <img v-if="getRoomIconImage(room.name)" :src="getRoomIconImage(room.name)"
-                                        class="room-card-icon" />
+                                        class="room-card-icon" :style="{ animationDelay: `${index * 0.5}s` }" />
                                     <div class="room-name-area">
                                         <img v-if="getRoomTextImage(room.name)" :src="getRoomTextImage(room.name)"
                                             class="room-name-img" />
@@ -327,6 +344,8 @@ onUnmounted(stopMusic);
     align-items: center;
     padding: 0 8px;
     cursor: pointer;
+    position: relative;
+    overflow: hidden;
 }
 
 .room-info-content {
@@ -399,5 +418,123 @@ onUnmounted(stopMusic);
     height: 35px;
     width: auto;
     object-fit: contain;
+}
+
+/* ====== 方案4: 背景极光 ====== */
+.aurora {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+}
+
+.aurora-layer {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(70px);
+}
+
+.aurora-1 {
+    width: 90vw;
+    height: 30vh;
+    left: -10%;
+    bottom: 0;
+    background: radial-gradient(ellipse, rgba(170, 70, 240, 0.55) 0%, rgba(140, 50, 200, 0.2) 35%, transparent 65%);
+    animation: auroraRise1 16s ease-in-out infinite;
+}
+
+.aurora-2 {
+    width: 80vw;
+    height: 28vh;
+    right: -5%;
+    bottom: 0;
+    background: radial-gradient(ellipse, rgba(220, 100, 180, 0.5) 0%, rgba(180, 70, 150, 0.18) 35%, transparent 65%);
+    animation: auroraRise2 20s ease-in-out infinite;
+}
+
+@keyframes auroraRise1 {
+    0% { transform: translateY(20%); opacity: 0; }
+    10% { opacity: 0.8; }
+    80% { opacity: 0.8; }
+    100% { transform: translateY(-120vh); opacity: 0; }
+}
+
+@keyframes auroraRise2 {
+    0% { transform: translateY(20%); opacity: 0; }
+    10% { opacity: 0.7; }
+    80% { opacity: 0.7; }
+    100% { transform: translateY(-120vh); opacity: 0; }
+}
+
+/* ====== 方案2: 浮动粒子 ====== */
+.particles {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+}
+
+.particle {
+    position: absolute;
+    bottom: -5%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(200, 160, 255, 0.9) 0%, rgba(180, 120, 220, 0) 70%);
+    animation: particleFloat linear infinite;
+}
+
+@keyframes particleFloat {
+    0% {
+        transform: translateY(0) translateX(0);
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 1;
+    }
+
+    90% {
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(-105vh) translateX(20px);
+        opacity: 0;
+    }
+}
+
+/* ====== 方案1: 卡片光泽呼吸 ====== */
+.room-shimmer {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg,
+            transparent 20%,
+            rgba(255, 220, 255, 0.06) 50%,
+            transparent 80%);
+    pointer-events: none;
+    animation: shimmerBreath 4s ease-in-out infinite;
+}
+
+@keyframes shimmerBreath {
+    0%, 100% { opacity: 0; }
+    50% { opacity: 1; }
+}
+
+/* ====== 方案3: 筹码图标发光 ====== */
+.room-card-icon {
+    animation: chipGlow 3s ease-in-out infinite;
+}
+
+@keyframes chipGlow {
+
+    0%,
+    100% {
+        filter: drop-shadow(0 0 2px rgba(255, 180, 220, 0.2));
+    }
+
+    50% {
+        filter: drop-shadow(0 0 8px rgba(255, 180, 220, 0.6)) drop-shadow(0 0 15px rgba(200, 120, 255, 0.3));
+    }
 }
 </style>

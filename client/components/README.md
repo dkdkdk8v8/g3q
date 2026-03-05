@@ -45,10 +45,10 @@ export { useLoadingStore } from '@shared/stores/loading.js';
 // src/stores/user.js
 export { useUserStore } from '@shared/stores/user.js';
 
-// src/stores/settings.js (需要传入 gameClient)
+// src/stores/settings.js (需要传入 gameClient getter)
 import { createSettingsStore } from '@shared/stores/settings.js';
 import gameClient from '../socket.js';
-export const useSettingsStore = createSettingsStore(gameClient);
+export const useSettingsStore = createSettingsStore(() => gameClient);
 ```
 
 ## 目录结构

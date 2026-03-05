@@ -5,14 +5,14 @@ import { ref, watch } from 'vue'
  * 设置 Store 工厂
  *
  * 由于 settings 需要引用 gameClient 来发送 SaveSetting 指令，
- * 各游戏项目需调用 createSettingsStore(gameClient) 来创建。
+ * 各游戏项目需调用 createSettingsStore(() => gameClient) 来创建。
  *
  * 用法:
  *   import { createSettingsStore } from '@shared/stores/settings.js';
  *   import gameClient from '../socket.js';
- *   export const useSettingsStore = createSettingsStore(gameClient);
+ *   export const useSettingsStore = createSettingsStore(() => gameClient);
  */
-export function createSettingsStore(gameClient) {
+export function createSettingsStore(getGameClient) {
     return defineStore('settings', () => {
         const musicEnabled = ref(true);
         const soundEnabled = ref(true);
@@ -35,7 +35,7 @@ export function createSettingsStore(gameClient) {
 
         const sendSettingsToServer = () => {
             if (isSyncingFromServer) return;
-            gameClient.send("SaveSetting", {
+            getGameClient().send("SaveSetting", {
                 Music: musicEnabled.value,
                 Effect: soundEnabled.value,
             });

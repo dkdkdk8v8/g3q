@@ -170,7 +170,6 @@ onUnmounted(stopMusic);
 }
 
 .btn-exit {
-    margin-left: 5px;
     margin-top: 10px;
     margin-bottom: 10px;
     height: 23px;
@@ -178,7 +177,6 @@ onUnmounted(stopMusic);
 }
 
 .user-info-container {
-    margin-left: 5px;
     display: flex;
     align-items: center;
     gap: 10px;

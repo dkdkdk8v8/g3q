@@ -242,7 +242,7 @@ onUnmounted(stopMusic);
 .coin-val { color: #FFD700; font-weight: bold; font-size: 14px; line-height: 1; }
 
 /* Main Content */
-.main-content { flex: 1; display: flex; overflow: hidden; padding-top: 10px; padding-bottom: 5px; position: relative; z-index: 1; }
+.main-content { flex: 1; display: flex; overflow: hidden; padding-top: 10px; padding-bottom: 5px; position: relative; z-index: 1; min-height: 0; }
 .room-list-container { flex: 1; width: 100%; overflow-y: auto; padding: 0 15px 10px 15px; }
 .room-list-container::-webkit-scrollbar { display: none; }
 .room-list { display: flex; flex-direction: column; gap: 13px; }

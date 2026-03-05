@@ -155,6 +155,7 @@ onUnmounted(stopMusic);
 .top-shape-img {
     width: 100%;
     display: block;
+    aspect-ratio: 1125 / 350;
 }
 
 .top-shape-overlay {
@@ -227,8 +228,8 @@ onUnmounted(stopMusic);
             rgba(140, 255, 200, 0.25) 0%,
             rgba(100, 220, 170, 0.10) 40%,
             transparent 100%);
-    animation: spotlightEntry 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards,
-        spotlightSweep 5s ease-in-out 0.9s infinite;
+    animation: spotlightEntry 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards,
+        spotlightSweep 5s ease-in-out 1.2s infinite;
 }
 
 .spotlight-left {
@@ -239,8 +240,8 @@ onUnmounted(stopMusic);
             rgba(120, 240, 190, 0.18) 0%,
             rgba(80, 200, 160, 0.06) 40%,
             transparent 100%);
-    animation: spotlightEntry 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards,
-        spotlightSweepLeft 4s ease-in-out 1.2s infinite;
+    animation: spotlightEntry 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.9s forwards,
+        spotlightSweepLeft 4s ease-in-out 1.6s infinite;
 }
 
 .spotlight-right {
@@ -251,8 +252,8 @@ onUnmounted(stopMusic);
             rgba(120, 240, 190, 0.18) 0%,
             rgba(80, 200, 160, 0.06) 40%,
             transparent 100%);
-    animation: spotlightEntry 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.8s forwards,
-        spotlightSweepRight 4.5s ease-in-out 1.5s infinite;
+    animation: spotlightEntry 0.7s cubic-bezier(0.16, 1, 0.3, 1) 1.3s forwards,
+        spotlightSweepRight 4.5s ease-in-out 2.0s infinite;
 }
 
 @keyframes spotlightEntry {
@@ -407,6 +408,7 @@ onUnmounted(stopMusic);
     padding-bottom: 5px;
     position: relative;
     z-index: 1;
+    min-height: 0;
 }
 
 .room-list-container {

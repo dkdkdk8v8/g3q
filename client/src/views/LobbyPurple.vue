@@ -153,13 +153,16 @@ onUnmounted(stopMusic);
     position: relative;
     z-index: 1;
     padding: 15px 15px 10px 15px;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 .top-row {
-    justify-content: space-around;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 12px;
+    width: 100%;
 }
 
 .top-row-exit {

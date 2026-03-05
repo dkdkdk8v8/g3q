@@ -9,17 +9,11 @@
       <div>UID: 【{{ userId }}】</div>
     </div>
     <div class="mode-selector">
-      <div class="mode-title">选择玩法：</div>
-      <div class="mode-buttons-container">
-        <button @click="selectMode(0)" :class="['mode-btn', 'mode-0', { active: currentMode === 0 }]">不看牌</button>
-        <button @click="selectMode(1)" :class="['mode-btn', 'mode-1', { active: currentMode === 1 }]">看三张</button>
-        <button @click="selectMode(2)" :class="['mode-btn', 'mode-2', { active: currentMode === 2 }]">看四张</button>
-      </div>
+      <div class="mode-title" style="color: #e74c3c;">百人牛牛 · 系统坐庄 · 天地玄黄</div>
     </div>
 
     <button v-if="lastUid" @click="enterGameWithLast">继续上次用户测试 ({{ lastUid }})</button>
     <button @click="enterGameRandom" class="random-btn">新用户进入测试</button>
-    <!-- <button @click="enterGameByUrl" class="url-btn">使用URL参数进入</button> -->
     <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
 
     <!-- Loading Overlay -->
@@ -34,10 +28,9 @@
 <script>
 import { ref, onMounted, watch, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
-import gameClient from '../socket.js'; // Use singleton
+import gameClient from '../socket.js';
 import { useUserStore } from '../stores/user.js';
 import { useSettingsStore } from '../stores/settings.js';
-import { useGameStore } from '../stores/game.js';
 import { showToast } from 'vant';
 
 export default {
@@ -52,19 +45,11 @@ export default {
     const userId = ref('');
     const lastAppId = ref('');
     const lastUid = ref('');
-    const errorMessage = ref(''); // Use errorMessage for persistent error messages
-    const isLoading = ref(false); // New loading state
+    const errorMessage = ref('');
+    const isLoading = ref(false);
     const router = useRouter();
     const userStore = useUserStore();
     const settingsStore = useSettingsStore();
-    const gameStore = useGameStore();
-
-    const currentMode = ref(userStore.lastSelectedMode || 0);
-
-    const selectMode = (mode) => {
-      currentMode.value = mode;
-      userStore.lastSelectedMode = mode;
-    };
 
     const LOCAL_STORAGE_IP_KEY = 'game_server_ip';
     const LOCAL_STORAGE_UID_KEY = 'game_user_uid';
@@ -75,14 +60,12 @@ export default {
       let urlAppId = urlParams.get('app');
       let urlUserId = urlParams.get('uid');
 
-      // Load stored values
       const storedAppId = localStorage.getItem(LOCAL_STORAGE_APP_KEY) || '';
       const storedUid = localStorage.getItem(LOCAL_STORAGE_UID_KEY) || '';
 
       lastAppId.value = storedAppId;
       lastUid.value = storedUid;
 
-      // Initialize inputs: Priority URL -> Stored -> Default
       if (urlAppId) {
         appId.value = urlAppId;
       } else if (storedAppId) {
@@ -103,11 +86,10 @@ export default {
       if (savedIp) {
         ipAddress.value = savedIp;
       } else {
-        ipAddress.value = '43.198.8.247:8082'; // Set default IP
+        ipAddress.value = '43.198.8.247:8082';
       }
     });
 
-    // Watch for IP Address changes
     watch(ipAddress, (newValue) => {
       if (newValue) {
         localStorage.setItem(LOCAL_STORAGE_IP_KEY, newValue);
@@ -118,7 +100,7 @@ export default {
 
     const enterGameRandom = () => {
       const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-      const length = Math.floor(Math.random() * 6) + 5; // 5-10
+      const length = Math.floor(Math.random() * 6) + 5;
       let result = '';
       for (let i = 0; i < length; i++) {
         result += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -126,38 +108,11 @@ export default {
       appId.value = 'test';
       userId.value = result;
 
-      // Save immediately
       localStorage.setItem(LOCAL_STORAGE_APP_KEY, appId.value);
       localStorage.setItem(LOCAL_STORAGE_UID_KEY, userId.value);
       lastAppId.value = appId.value;
       lastUid.value = userId.value;
 
-      // Use setTimeout to allow UI to update model binding before entering
-      setTimeout(() => {
-        enterGame();
-      }, 0);
-    };
-
-    const enterGameByUrl = () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const urlAppId = urlParams.get('app');
-      const urlUserId = urlParams.get('uid');
-
-      if (!urlAppId || !urlUserId) {
-        showToast('URL参数缺失: 需同时包含 app 和 uid');
-        return;
-      }
-
-      appId.value = urlAppId;
-      userId.value = urlUserId;
-
-      // Save immediately
-      localStorage.setItem(LOCAL_STORAGE_APP_KEY, urlAppId);
-      localStorage.setItem(LOCAL_STORAGE_UID_KEY, urlUserId);
-      lastAppId.value = urlAppId;
-      lastUid.value = urlUserId;
-
-      // Use setTimeout to allow UI to update model binding before entering
       setTimeout(() => {
         enterGame();
       }, 0);
@@ -170,7 +125,7 @@ export default {
     };
 
     const enterGame = () => {
-      errorMessage.value = ''; // Clear previous errors
+      errorMessage.value = '';
       if (!ipAddress.value) {
         errorMessage.value = '请输入服务器 IP 地址！';
         return;
@@ -186,27 +141,23 @@ export default {
         return;
       }
 
-      // Save UID and AppID for future sessions
       localStorage.setItem(LOCAL_STORAGE_UID_KEY, userId.value);
       localStorage.setItem(LOCAL_STORAGE_APP_KEY, appId.value);
-      // Update refs to reflect current successful login attempt
       lastUid.value = userId.value;
       lastAppId.value = appId.value;
 
-      isLoading.value = true; // Start loading
+      isLoading.value = true;
 
       let hasUserInfo = false;
-      let hasLobbyConfig = false;
+      let hasLobbyConfig = true; // BRNN does not need LobbyConfig
       let targetRoute = '';
 
       const checkReady = () => {
         if (hasUserInfo && hasLobbyConfig && targetRoute) {
-          isLoading.value = false; // Stop loading
+          isLoading.value = false;
 
-          // Explicitly remove listeners to prevent ghost callbacks
           gameClient.offServerPush('PushRouter');
           gameClient.off('UserInfo');
-          gameClient.off('QZNN.LobbyConfig');
 
           router.push(targetRoute);
         }
@@ -216,20 +167,20 @@ export default {
       gameClient.onConnect = () => {
         console.log("[LoadingPage] WebSocket connected!");
         gameClient.send("UserInfo");
-        gameClient.send("QZNN.LobbyConfig");
+        gameClient.send("BRNN.PlayerJoin");
       };
 
       gameClient.onClose = (event) => {
         console.error("[LoadingPage] WebSocket closed:", event);
-        isLoading.value = false; // Stop loading on close
-        if (!gameClient.isManualClose) { // Only show error if not manually closed
+        isLoading.value = false;
+        if (!gameClient.isManualClose) {
           errorMessage.value = `连接断开，请检查 IP 地址或服务器状态。`;
         }
       };
 
       gameClient.onError = (error) => {
         console.error("[LoadingPage] WebSocket error:", error);
-        isLoading.value = false; // Stop loading on error
+        isLoading.value = false;
         errorMessage.value = `连接错误，请检查 IP 地址或服务器状态。`;
       };
 
@@ -246,59 +197,35 @@ export default {
           hasUserInfo = true;
           checkReady();
         } else {
-          isLoading.value = false; // Stop loading on user info fetch error
+          isLoading.value = false;
           errorMessage.value = `获取用户数据失败: ${msg.msg}`;
-        }
-      });
-
-      // Register handler for QZNN.LobbyConfig
-      gameClient.on('QZNN.LobbyConfig', (msg) => {
-        if (msg.code === 0 && msg.data && msg.data.LobbyConfigs) {
-          // Map lobby_configs from server to store
-          const mappedConfigs = msg.data.LobbyConfigs.map(cfg => ({
-            level: cfg.Level,
-            name: cfg.Name,
-            base_bet: cfg.BaseBet,
-            min_balance: cfg.MinBalance
-          }));
-          userStore.updateRoomConfigs(mappedConfigs);
-          hasLobbyConfig = true;
-          checkReady();
-        } else {
-          isLoading.value = false; // Stop loading on lobby config fetch error
-          errorMessage.value = `获取大厅配置失败: ${msg.msg}`;
         }
       });
 
       // Register PushRouter handler
       gameClient.onServerPush('PushRouter', (data) => {
         if (data && data.Router) {
-          if (data.Router === 'lobby') {
-            targetRoute = `/lobby?mode=${currentMode.value}`;
-          } else if (data.Router === 'game') {
-            targetRoute = '/game?autoJoin=true';
+          if (data.Router === 'brnn') {
+            targetRoute = '/brnn';
           }
           checkReady();
         }
       });
 
-      // Connect to the WebSocket server using the entered IP, app, and uid
+      // Connect to the WebSocket server
       gameClient.connect(ipAddress.value, appId.value, userId.value, 'dummy_auth_token');
     };
 
     return {
       ipAddress,
-      errorMessage, // Renamed message to errorMessage
+      errorMessage,
       appId,
       userId,
-      lastUid, // Export for template
+      lastUid,
       enterGame,
       enterGameRandom,
-      enterGameByUrl,
-      enterGameWithLast, // Export new function
-      isLoading, // Return isLoading
-      currentMode,
-      selectMode,
+      enterGameWithLast,
+      isLoading,
     };
   },
 };
@@ -315,39 +242,10 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background-color: #222222;
-  background-image: url('../assets/lobby/bg.jpg');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  background-color: #1a1a2e;
   color: #ecf0f1;
   font-family: Arial, sans-serif;
   z-index: 1;
-}
-
-.loading-page::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  background-color: rgba(0, 0, 0, 0.3);
-  z-index: -1;
-}
-
-.lobby-logo {
-  width: 200px;
-  /* Adjust as needed */
-  height: auto;
-  margin-bottom: 30px;
-}
-
-h1 {
-  margin-bottom: 30px;
-  color: #42b983;
 }
 
 .input-group {
@@ -370,7 +268,7 @@ h1 {
   border: none;
   border-radius: 5px;
   font-size: 1em;
-  background-color: #4c354e;
+  background-color: #2a2a4a;
   color: #ecf0f1;
 }
 
@@ -395,44 +293,8 @@ h1 {
   font-weight: bold;
 }
 
-.mode-buttons-container {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  gap: 15px;
-}
-
-.mode-btn {
-  color: white;
-  border: 2px solid transparent;
-  background-color: #7f8c8d !important;
-  /* Gray background for unselected */
-  padding: 10px 20px;
-  border-radius: 50px;
-  cursor: pointer;
-  font-size: 1em;
-  font-weight: bold;
-  margin: 0;
-}
-
-.mode-btn.active {
-  border-color: #f1c40f;
-}
-
-.mode-0.active {
-  background-color: #2ecc71 !important;
-}
-
-.mode-1.active {
-  background-color: #3498db !important;
-}
-
-.mode-2.active {
-  background-color: #9b59b6 !important;
-}
-
 button {
-  background-color: #42b983;
+  background-color: #e74c3c;
   color: white;
   border: none;
   padding: 10px 20px;
@@ -444,7 +306,7 @@ button {
 }
 
 button:hover {
-  background-color: #368a68;
+  background-color: #c0392b;
 }
 
 .random-btn {
@@ -455,16 +317,7 @@ button:hover {
   background-color: #2980b9;
 }
 
-.url-btn {
-  background-color: #9b59b6;
-}
-
-.url-btn:hover {
-  background-color: #8e44ad;
-}
-
 .error-message {
-  /* Style for error messages */
   margin-top: 20px;
   font-size: 0.9em;
   color: #f1c40f;
@@ -472,7 +325,6 @@ button:hover {
   max-width: 80%;
 }
 
-/* New styles for loading overlay */
 .loading-overlay {
   position: fixed;
   top: 0;
@@ -480,30 +332,21 @@ button:hover {
   width: 100%;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.7);
-  /* Black transparent background */
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
   backdrop-filter: blur(3px);
-  /* Subtle blur effect */
 }
 
 .loading-text-container {
-  /* Dark blue-grey, similar to game modals */
   color: white;
-  /* Consistent border radius */
   font-size: 1.2em;
-  /* Reduced font size */
   font-weight: bold;
   text-align: center;
-  /* Gold border */
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-  /* Text shadow for depth */
   font-family: system-ui, sans-serif;
-  /* Consistent font */
   white-space: nowrap;
-  /* Prevent text wrapping */
 }
 
 .dots {
@@ -512,7 +355,6 @@ button:hover {
   vertical-align: bottom;
   animation: dots 1.5s steps(3, end) infinite;
   width: 0.8em;
-  /* Ensure space for dots */
 }
 
 @keyframes dots {

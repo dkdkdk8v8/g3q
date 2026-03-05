@@ -30,7 +30,7 @@ const phaseLabel = computed(() => {
 
 function onExit() {
   brnnStore.leaveRoom()
-  router.push('/lobby')
+  router.push('/')
 }
 
 function onBet(idx) {

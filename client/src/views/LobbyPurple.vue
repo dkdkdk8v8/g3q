@@ -105,10 +105,11 @@ onUnmounted(stopMusic);
                                     <img :src="roomIconTextXianzhi" class="stat-label-img" />
                                     <SpriteNumber :value="room.minBalance" type="white" :height="14" />
                                 </div>
+                                <!-- Enter Button -->
+                                <div class="room-enter-btn">
+                                    <img :src="eachRoomEnterBtnText" class="enter-btn-img" />
+                                </div>
                             </div>
-                        </div>
-                        <div class="room-enter-btn" @click="handleEnterRoomClick(room.level)">
-                            <img :src="eachRoomEnterBtnText" class="enter-btn-img" />
                         </div>
                     </div>
                 </TransitionGroup>
@@ -192,8 +193,8 @@ onUnmounted(stopMusic);
 @keyframes slideIn { to { opacity: 1; transform: translateX(0); } }
 
 /* Room Card */
-.room-info { width: 80%; height: 100%; background-size: 100% 100%; display: flex; align-items: center; padding: 0 8px; cursor: pointer; }
-.room-info-content { display: flex; align-items: center; width: 100%; gap: 6px; padding-right: 30px; }
+.room-info { width: 100%; height: 100%; background-size: 100% 100%; display: flex; align-items: center; padding: 0 8px; cursor: pointer; }
+.room-info-content { display: flex; align-items: center; width: 100%; gap: 6px; }
 
 .room-card-icon { height: 40px; width: auto; object-fit: contain; flex-shrink: 0; }
 
@@ -208,13 +209,15 @@ onUnmounted(stopMusic);
 .room-stat { margin-left: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .stat-label-img { height: 10px; width: auto; object-fit: contain; margin-bottom: 10px; margin-top: 0; }
 
-/* Enter Button */
+/* Enter Button (inside room card) */
 .room-enter-btn {
-    position: absolute; right: 0; top: 50%; transform: translateY(-50%);
-    height: 100%;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-left: auto;
 }
 
-.enter-btn-img { height: 70%; width: auto; object-fit: contain; }
+.enter-btn-img { height: 35px; width: auto; object-fit: contain; }
 </style>

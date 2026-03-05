@@ -49,13 +49,11 @@ onUnmounted(stopMusic);
             <div class="top-shape-wrapper">
                 <img :src="topShape" class="top-shape-img" />
                 <div class="top-shape-overlay">
-                    <div class="top-left">
-                        <img :src="btnExit" class="btn-exit" @click="goBack" />
-                    </div>
-                    <div class="top-right">
-                        <img :src="btnHistory" class="top-icon-btn" @click="openHistoryDebounced" />
-                        <img :src="btnHelp" class="top-icon-btn" @click="openHelpDebounced" />
-                        <img :src="btnSetting" class="top-icon-btn" @click="openSettingsDebounced" />
+                    <div class="top-btns-center">
+                        <img :src="btnExit" class="top-icon-btn-exit" @click="goBack" />
+                        <img :src="btnHistory" class="top-icon-btn-history" @click="openHistoryDebounced" />
+                        <img :src="btnHelp" class="top-icon-btn-help" @click="openHelpDebounced" />
+                        <img :src="btnSetting" class="top-icon-btn-setting" @click="openSettingsDebounced" />
                     </div>
                 </div>
             </div>
@@ -99,10 +97,10 @@ onUnmounted(stopMusic);
                                     <img :src="roomIconTextXianzhi" class="stat-label-img" />
                                     <SpriteNumber :value="room.minBalance" type="white" :height="14" />
                                 </div>
+                                <div class="room-enter-btn">
+                                    <img :src="eachRoomEnterBtnText" class="enter-btn-img" />
+                                </div>
                             </div>
-                        </div>
-                        <div class="room-enter-btn" @click="handleEnterRoomClick(room.level)">
-                            <img :src="eachRoomEnterBtnText" class="enter-btn-img" />
                         </div>
                     </div>
                 </TransitionGroup>
@@ -157,24 +155,38 @@ onUnmounted(stopMusic);
     right: 0;
     bottom: 0;
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
     padding: 15px 15px 10px 15px;
 }
 
-.top-left .btn-exit {
-    height: 21px;
+.top-btns-center {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 35px;
+}
+
+.top-icon-btn-exit {
+    margin-top: 10px;
+    height: 30px;
     cursor: pointer;
 }
 
-.top-right {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+.top-icon-btn-history {
+    margin-left: 8px;
+    height: 32px;
+    cursor: pointer;
 }
 
-.top-icon-btn {
-    height: 32px;
+.top-icon-btn-help {
+    height: 38px;
+    cursor: pointer;
+}
+
+.top-icon-btn-setting {
+    margin-top: 10px;
+    height: 33px;
     cursor: pointer;
 }
 
@@ -272,7 +284,7 @@ onUnmounted(stopMusic);
     flex: 1;
     width: 100%;
     overflow-y: auto;
-    padding: 0 15px 10px 15px;
+    padding: 0 10px 10px 10px;
 }
 
 .room-list-container::-webkit-scrollbar {
@@ -309,7 +321,7 @@ onUnmounted(stopMusic);
 
 /* Room Card */
 .room-info {
-    width: 80%;
+    width: 100%;
     height: 100%;
     background-size: 100% 100%;
     display: flex;
@@ -319,11 +331,11 @@ onUnmounted(stopMusic);
 }
 
 .room-info-content {
+    margin: 6px 5px 0 5px;
     display: flex;
     align-items: center;
     width: 100%;
     justify-content: space-between;
-    padding-right: 40px;
 }
 
 .room-name-area {
@@ -361,22 +373,18 @@ onUnmounted(stopMusic);
     margin-top: 0;
 }
 
-/* Enter Button */
+/* Enter Button (inside room card) */
 .room-enter-btn {
-    position: absolute;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    height: 100%;
+    margin-left: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    z-index: 10;
+    flex-shrink: 0;
 }
 
 .enter-btn-img {
-    height: 70%;
+    height: 35px;
     width: auto;
     object-fit: contain;
 }

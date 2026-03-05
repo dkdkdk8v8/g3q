@@ -67,7 +67,6 @@ onUnmounted(stopMusic);
                     <div class="user-details">
                         <span class="user-nickname">{{ userInfo.displayName }}</span>
                         <div class="coins-display" :style="{ backgroundImage: `url(${diamondBg})` }">
-                            <img :src="goldImg" class="coin-icon" />
                             <span class="coin-val">{{ userInfo.coins }}</span>
                         </div>
                     </div>
@@ -209,8 +208,9 @@ onUnmounted(stopMusic);
 }
 
 .user-nickname {
+    text-align: center;
     color: white;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: bold;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
@@ -248,6 +248,7 @@ onUnmounted(stopMusic);
     font-weight: bold;
     font-size: 14px;
     line-height: 1;
+    padding: 3px 3px 1px 15px;
 }
 
 .top-right {

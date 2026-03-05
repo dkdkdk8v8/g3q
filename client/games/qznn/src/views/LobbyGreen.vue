@@ -94,6 +94,7 @@ onUnmounted(stopMusic);
                                     <img v-if="getRoomTextImage(room.name)" :src="getRoomTextImage(room.name)"
                                         class="room-name-img" />
                                     <span v-else class="room-name-text">{{ room.name }}</span>
+                                    <div class="room-mini-light" :style="{ animationDelay: `${index * 0.6}s` }"></div>
                                 </div>
                                 <div class="room-stat">
                                     <img :src="roomIconTextDizhu" class="stat-label-img" />
@@ -227,7 +228,7 @@ onUnmounted(stopMusic);
             rgba(100, 220, 170, 0.10) 40%,
             transparent 100%);
     animation: spotlightEntry 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards,
-               spotlightSweep 5s ease-in-out 0.9s infinite;
+        spotlightSweep 5s ease-in-out 0.9s infinite;
 }
 
 .spotlight-left {
@@ -239,7 +240,7 @@ onUnmounted(stopMusic);
             rgba(80, 200, 160, 0.06) 40%,
             transparent 100%);
     animation: spotlightEntry 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards,
-               spotlightSweepLeft 4s ease-in-out 1.2s infinite;
+        spotlightSweepLeft 4s ease-in-out 1.2s infinite;
 }
 
 .spotlight-right {
@@ -251,7 +252,7 @@ onUnmounted(stopMusic);
             rgba(80, 200, 160, 0.06) 40%,
             transparent 100%);
     animation: spotlightEntry 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.8s forwards,
-               spotlightSweepRight 4.5s ease-in-out 1.5s infinite;
+        spotlightSweepRight 4.5s ease-in-out 1.5s infinite;
 }
 
 @keyframes spotlightEntry {
@@ -259,10 +260,12 @@ onUnmounted(stopMusic);
         opacity: 0;
         transform: scaleY(0);
     }
+
     60% {
         opacity: 1;
         transform: scaleY(1.08);
     }
+
     100% {
         opacity: 1;
         transform: scaleY(1);
@@ -270,19 +273,50 @@ onUnmounted(stopMusic);
 }
 
 @keyframes spotlightSweep {
-    0%, 100% { transform: rotate(0deg); opacity: 1; }
-    25% { transform: rotate(8deg); opacity: 0.7; }
-    75% { transform: rotate(-8deg); opacity: 0.7; }
+
+    0%,
+    100% {
+        transform: rotate(0deg);
+        opacity: 1;
+    }
+
+    25% {
+        transform: rotate(8deg);
+        opacity: 0.7;
+    }
+
+    75% {
+        transform: rotate(-8deg);
+        opacity: 0.7;
+    }
 }
 
 @keyframes spotlightSweepLeft {
-    0%, 100% { transform: rotate(0deg); opacity: 1; }
-    50% { transform: rotate(12deg); opacity: 0.6; }
+
+    0%,
+    100% {
+        transform: rotate(0deg);
+        opacity: 1;
+    }
+
+    50% {
+        transform: rotate(12deg);
+        opacity: 0.6;
+    }
 }
 
 @keyframes spotlightSweepRight {
-    0%, 100% { transform: rotate(0deg); opacity: 1; }
-    50% { transform: rotate(-12deg); opacity: 0.6; }
+
+    0%,
+    100% {
+        transform: rotate(0deg);
+        opacity: 1;
+    }
+
+    50% {
+        transform: rotate(-12deg);
+        opacity: 0.6;
+    }
 }
 
 .user-row {
@@ -423,6 +457,8 @@ onUnmounted(stopMusic);
     align-items: center;
     padding: 0 10px;
     cursor: pointer;
+    position: relative;
+    overflow: visible;
 }
 
 .room-info-content {
@@ -437,6 +473,7 @@ onUnmounted(stopMusic);
     display: flex;
     align-items: center;
     padding: 0 10px;
+    position: relative;
 }
 
 .room-name-text {
@@ -450,6 +487,32 @@ onUnmounted(stopMusic);
     height: 16px;
     width: auto;
     object-fit: contain;
+    position: relative;
+    z-index: 1;
+}
+
+/* Room Mini Light Beam */
+.room-mini-light {
+    position: absolute;
+    left: 50%;
+    bottom: -13px;
+    width: 45px;
+    height: 45px;
+    margin-left: -22.5px;
+    transform-origin: bottom center;
+    pointer-events: none;
+    clip-path: polygon(0% 0%, 100% 0%, 70% 100%, 30% 100%);
+    background: linear-gradient(to top,
+            rgba(140, 255, 200, 0.5) 0%,
+            rgba(120, 240, 190, 0.12) 50%,
+            transparent 100%);
+    animation: miniBeamSweep 3.5s ease-in-out infinite;
+}
+
+@keyframes miniBeamSweep {
+    0% { opacity: 0.8; }
+    50% { opacity: 0.15; }
+    100% { opacity: 0.8; }
 }
 
 .room-stat {

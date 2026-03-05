@@ -87,14 +87,15 @@ onUnmounted(stopMusic);
                         <div class="room-info" :style="{ backgroundImage: `url(${eachRoomBg})` }"
                             @click="handleEnterRoomClick(room.level)">
                             <div class="room-info-content">
-                                <!-- Card Fan Icon -->
-                                <img v-if="getRoomIconImage(room.name)" :src="getRoomIconImage(room.name)"
-                                    class="room-card-icon" />
-                                <!-- Room Name -->
-                                <div class="room-name-area">
-                                    <img v-if="getRoomTextImage(room.name)" :src="getRoomTextImage(room.name)"
-                                        class="room-name-img" />
-                                    <span v-else class="room-name-text">{{ room.name }}</span>
+                                <!-- Card Fan Icon + Room Name -->
+                                <div class="room-icon-name">
+                                    <img v-if="getRoomIconImage(room.name)" :src="getRoomIconImage(room.name)"
+                                        class="room-card-icon" />
+                                    <div class="room-name-area">
+                                        <img v-if="getRoomTextImage(room.name)" :src="getRoomTextImage(room.name)"
+                                            class="room-name-img" />
+                                        <span v-else class="room-name-text">{{ room.name }}</span>
+                                    </div>
                                 </div>
                                 <!-- Stats -->
                                 <div class="room-stat">
@@ -155,17 +156,83 @@ onUnmounted(stopMusic);
     gap: 12px;
 }
 
-.btn-exit { height: 21px; cursor: pointer; flex-shrink: 0; }
+.btn-exit {
+    height: 21px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
 
-.user-info-container { display: flex; align-items: center; gap: 10px; flex: 1; }
-.avatar-wrapper { position: relative; width: 50px; height: 50px; }
-.user-avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
-.avatar-border-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
-.user-nickname { color: white; font-size: 14px; font-weight: bold; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
-.user-details { display: flex; flex-direction: column; justify-content: center; gap: 3px; padding-left: 5px; }
-.coins-display { display: flex; justify-content: center; align-items: center; padding: 0 4px 0 10px; background-size: 100% 100%; background-repeat: no-repeat; height: 18px; position: relative; }
-.coin-icon { width: auto; height: 16px; position: absolute; left: -10px; top: 40%; transform: translateY(-50%); }
-.coin-val { color: #FFD700; font-weight: bold; font-size: 14px; line-height: 1; }
+.user-info-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+}
+
+.avatar-wrapper {
+    position: relative;
+    width: 50px;
+    height: 50px;
+}
+
+.user-avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.avatar-border-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.user-nickname {
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    padding-left: 5px;
+}
+
+.coins-display {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0 4px 0 10px;
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    height: 18px;
+    position: relative;
+}
+
+.coin-icon {
+    width: auto;
+    height: 16px;
+    position: absolute;
+    left: -10px;
+    top: 40%;
+    transform: translateY(-50%);
+}
+
+.coin-val {
+    color: #FFD700;
+    font-weight: bold;
+    font-size: 14px;
+    line-height: 1;
+}
 
 .top-right {
     display: flex;
@@ -174,29 +241,92 @@ onUnmounted(stopMusic);
     flex-shrink: 0;
 }
 
-.top-icon-btn { height: 32px; cursor: pointer; }
+.top-icon-btn {
+    height: 32px;
+    cursor: pointer;
+}
 
 /* Main Content */
-.main-content { flex: 1; display: flex; overflow: hidden; padding-top: 10px; padding-bottom: 5px; position: relative; z-index: 1; }
-.room-list-container { flex: 1; width: 100%; overflow-y: auto; padding: 0 15px 10px 15px; }
-.room-list-container::-webkit-scrollbar { display: none; }
-.room-list { display: flex; flex-direction: column; gap: 10px; }
+.main-content {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    padding-top: 10px;
+    padding-bottom: 5px;
+    position: relative;
+    z-index: 1;
+}
+
+.room-list-container {
+    flex: 1;
+    width: 100%;
+    overflow-y: auto;
+    padding: 0 15px 10px 15px;
+}
+
+.room-list-container::-webkit-scrollbar {
+    display: none;
+}
+
+.room-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
 
 .room-row {
-    display: flex; align-items: center; height: 58px; position: relative;
-    opacity: 0; transform: translateX(30px);
+    display: flex;
+    align-items: center;
+    height: 58px;
+    position: relative;
+    opacity: 0;
+    transform: translateX(30px);
     animation: slideIn 0.5s ease forwards;
     transition: transform 0.1s ease;
 }
-.room-row.room-clicked { transform: scale(0.96) !important; }
 
-@keyframes slideIn { to { opacity: 1; transform: translateX(0); } }
+.room-row.room-clicked {
+    transform: scale(0.96) !important;
+}
+
+@keyframes slideIn {
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
 
 /* Room Card */
-.room-info { width: 100%; height: 100%; background-size: 100% 100%; display: flex; align-items: center; padding: 0 8px; cursor: pointer; }
-.room-info-content { display: flex; align-items: center; width: 100%; gap: 6px; }
+.room-info {
+    width: 100%;
+    height: 100%;
+    background-size: 100% 100%;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    cursor: pointer;
+}
 
-.room-card-icon { height: 40px; width: auto; object-fit: contain; flex-shrink: 0; }
+.room-info-content {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 12px;
+}
+
+.room-icon-name {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.room-card-icon {
+    height: 40px;
+    width: auto;
+    object-fit: contain;
+    flex-shrink: 0;
+}
 
 .room-name-area {
     display: flex;
@@ -204,10 +334,34 @@ onUnmounted(stopMusic);
     flex-shrink: 0;
 }
 
-.room-name-text { color: white; font-weight: bold; font-size: 14px; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
-.room-name-img { height: 16px; width: auto; object-fit: contain; }
-.room-stat { margin-left: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.stat-label-img { height: 10px; width: auto; object-fit: contain; margin-bottom: 10px; margin-top: 0; }
+.room-name-text {
+    color: white;
+    font-weight: bold;
+    font-size: 14px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.room-name-img {
+    height: 16px;
+    width: auto;
+    object-fit: contain;
+}
+
+.room-stat {
+    margin-left: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.stat-label-img {
+    height: 10px;
+    width: auto;
+    object-fit: contain;
+    margin-bottom: 10px;
+    margin-top: 0;
+}
 
 /* Enter Button (inside room card) */
 .room-enter-btn {
@@ -219,5 +373,9 @@ onUnmounted(stopMusic);
     margin-left: auto;
 }
 
-.enter-btn-img { height: 35px; width: auto; object-fit: contain; }
+.enter-btn-img {
+    height: 35px;
+    width: auto;
+    object-fit: contain;
+}
 </style>

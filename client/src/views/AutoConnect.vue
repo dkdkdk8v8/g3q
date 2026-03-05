@@ -2,28 +2,26 @@
 /**
  * AutoConnect.vue - 生产环境自动连接入口
  *
- * URL 参数说明:
+ * URL 参数:
  *   ?app=应用ID&uid=用户ID&token=鉴权Token&mode=0|1|2&host=服务器地址:端口
  *
  * 示例:
  *   不看牌: ?app=myApp&uid=user123&token=xxx&mode=0&host=192.168.1.1:8082
  *   看三张: ?app=myApp&uid=user123&token=xxx&mode=1&host=192.168.1.1:8082
  *   看四张: ?app=myApp&uid=user123&token=xxx&mode=2&host=192.168.1.1:8082
- *
- *   mode 不传默认为 0 (不看牌)
- *   host 不传则使用默认服务器地址
  */
-import { ref, onMounted, onUnmounted } from 'vue';
+import { onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import gameClient from '../socket.js';
 import { useUserStore } from '../stores/user.js';
 import { useSettingsStore } from '../stores/settings.js';
+import { useLoadingStore } from '../stores/loading.js';
 
 const router = useRouter();
 const userStore = useUserStore();
 const settingsStore = useSettingsStore();
+const loadingStore = useLoadingStore();
 
-const errorMessage = ref('');
 const DEFAULT_HOST = '43.198.8.247:8082';
 
 onUnmounted(() => {
@@ -31,6 +29,8 @@ onUnmounted(() => {
 });
 
 onMounted(() => {
+    loadingStore.startAppLoading();
+
     const params = new URLSearchParams(window.location.search);
     const app = params.get('app');
     const uid = params.get('uid');
@@ -39,7 +39,7 @@ onMounted(() => {
     const host = params.get('host') || DEFAULT_HOST;
 
     if (!app || !uid) {
-        errorMessage.value = '缺少必要参数: app 和 uid';
+        loadingStore.setAppLoadingError('缺少必要参数: app 和 uid');
         return;
     }
 
@@ -48,13 +48,31 @@ onMounted(() => {
     let hasUserInfo = false;
     let hasLobbyConfig = false;
     let targetRoute = '';
+    let navigated = false;
+    let fallbackTimer = null;
+
+    const doNavigate = (route) => {
+        if (navigated) return;
+        navigated = true;
+        if (fallbackTimer) clearTimeout(fallbackTimer);
+        gameClient.offServerPush('PushRouter');
+        gameClient.off('UserInfo');
+        gameClient.off('QZNN.LobbyConfig');
+        loadingStore.stopAppLoading();
+        router.push(route);
+    };
 
     const checkReady = () => {
-        if (hasUserInfo && hasLobbyConfig && targetRoute) {
-            gameClient.offServerPush('PushRouter');
-            gameClient.off('UserInfo');
-            gameClient.off('QZNN.LobbyConfig');
-            router.push(targetRoute);
+        if (hasUserInfo && hasLobbyConfig) {
+            if (targetRoute) {
+                // 三个条件都满足，立即跳转
+                doNavigate(targetRoute);
+            } else if (!fallbackTimer) {
+                // 数据已就绪但 PushRouter 还没来，等 500ms 后兜底进大厅
+                fallbackTimer = setTimeout(() => {
+                    doNavigate(`/lobby?mode=${mode}`);
+                }, 500);
+            }
         }
     };
 
@@ -64,11 +82,11 @@ onMounted(() => {
     };
 
     gameClient.onClose = () => {
-        errorMessage.value = '连接断开';
+        loadingStore.setAppLoadingError('连接断开，请检查网络');
     };
 
     gameClient.onError = () => {
-        errorMessage.value = '连接错误';
+        loadingStore.setAppLoadingError('连接错误，请检查服务器地址');
     };
 
     gameClient.on('UserInfo', (msg) => {
@@ -83,7 +101,7 @@ onMounted(() => {
             hasUserInfo = true;
             checkReady();
         } else {
-            errorMessage.value = `获取用户数据失败: ${msg.msg}`;
+            loadingStore.setAppLoadingError(`获取用户数据失败: ${msg.msg}`);
         }
     });
 
@@ -98,7 +116,7 @@ onMounted(() => {
             hasLobbyConfig = true;
             checkReady();
         } else {
-            errorMessage.value = `获取大厅配置失败: ${msg.msg}`;
+            loadingStore.setAppLoadingError(`获取大厅配置失败: ${msg.msg}`);
         }
     });
 
@@ -109,7 +127,10 @@ onMounted(() => {
             } else if (data.Router === 'game') {
                 targetRoute = '/game?autoJoin=true';
             }
-            checkReady();
+            // 如果数据已就绪，直接跳转（取消兜底定时器）
+            if (hasUserInfo && hasLobbyConfig && targetRoute) {
+                doNavigate(targetRoute);
+            }
         }
     });
 
@@ -118,50 +139,6 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="auto-connect">
-        <div v-if="errorMessage" class="error">{{ errorMessage }}</div>
-        <div v-else class="loading-text">
-            连接中<span class="dots">...</span>
-        </div>
-    </div>
+    <!-- 无自身UI，加载动画由 App.vue 统一展示 -->
+    <div></div>
 </template>
-
-<style scoped>
-.auto-connect {
-    width: 100vw;
-    height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #1a1a2e;
-    color: white;
-    font-family: "Microsoft YaHei", Arial, sans-serif;
-}
-
-.error {
-    color: #f1c40f;
-    font-size: 16px;
-    text-align: center;
-    padding: 0 20px;
-}
-
-.loading-text {
-    font-size: 18px;
-    font-weight: bold;
-}
-
-.dots {
-    display: inline-block;
-    overflow: hidden;
-    vertical-align: bottom;
-    animation: dots 1.5s steps(3, end) infinite;
-    width: 0.8em;
-}
-
-@keyframes dots {
-    0% { width: 0; }
-    33% { width: 0.2em; }
-    66% { width: 0.5em; }
-    100% { width: 0.8em; }
-}
-</style>

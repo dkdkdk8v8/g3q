@@ -16,130 +16,12 @@
 </head>
 
 <body>
-  <div id="app">
-    <style>
-      .app-loading-skeleton {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background-color: #222222;
-        background-image: url("./src/assets/lobby/bg.jpg");
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        z-index: 99999;
-      }
-
-      .loading-progress-bar {
-        width: 80vw;
-        max-width: 300px;
-        height: 6px;
-        background-color: rgba(0, 0, 0, 0.5);
-        border: 2px solid rgba(255, 215, 0, 0.6);
-        border-radius: 10px;
-        overflow: hidden;
-        margin-bottom: 15px;
-        position: relative;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.8);
-      }
-
-      .loading-progress-fill {
-        height: 100%;
-        background: linear-gradient(90deg, #FFD700, #FFA500, #FFD700);
-        background-size: 200% 100%;
-        width: 0%;
-        border-radius: 3px;
-        animation: fillProgress 1.5s ease-out forwards, gradientMove 2s linear infinite;
-      }
-
-      .loading-text {
-        margin-bottom: 5px;
-        color: #ffbf58;
-        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
-        font-weight: bold;
-        font-family: "Microsoft YaHei", Arial, sans-serif;
-        font-size: 15px;
-        letter-spacing: 2px;
-        animation: pulse 1.5s ease-in-out infinite;
-      }
-
-      @keyframes fillProgress {
-        0% {
-          width: 0%;
-        }
-
-        50% {
-          width: 70%;
-        }
-
-        100% {
-          width: 95%;
-        }
-      }
-
-      @keyframes gradientMove {
-        0% {
-          background-position: 100% 0;
-        }
-
-        100% {
-          background-position: -100% 0;
-        }
-      }
-
-      @keyframes pulse {
-
-        0%,
-        100% {
-          opacity: 0.5;
-        }
-
-        50% {
-          opacity: 1;
-        }
-      }
-    </style>
-    <style>
-      .app-loading-skeleton::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.4);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        z-index: 1;
-      }
-
-      .loading-content {
-        position: relative;
-        z-index: 2;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-      }
-    </style>
-    <div class="app-loading-skeleton">
-      <div class="loading-content">
-        <div class="loading-text">正在努力加载中...</div>
-        <div class="loading-progress-bar">
-          <div class="loading-progress-fill"></div>
-        </div>
-      </div>
-    </div>
-    <script type="module" src="/src/main.js"></script>
+  <div id="app"></div>
+  <script type="module" src="/src/main.js"></script>
 </body>
 
 <script>
-  // 1. 修正拼写并拦截手势缩放
+  // 1. 拦截手势缩放
   document.addEventListener('gesturestart', function (event) {
     event.preventDefault();
   });
@@ -154,32 +36,23 @@
     lastTouchEnd = now;
   }, false);
 
-  // 3. 核心：阻止 Safari 默认的滑动行为
-  // passive: false 是必须的，否则 preventDefault 不起作用
+  // 3. 阻止 Safari 默认的滑动行为
   document.addEventListener('touchmove', function (e) {
-    //查找特定可以滚动的组件进行
     const scrollArea = e.target.closest('.history-list-new') || e.target.closest('.rooms-scroll-area') || e.target.closest('.help-content');
 
     if (scrollArea) {
-      // 如果在滚动区域内
-      // 判断当前是否在顶部或底部边缘，防止触发 Safari 的橡皮筋回弹
       const top = scrollArea.scrollTop;
       const totalScroll = scrollArea.scrollHeight;
       const currentScroll = top + scrollArea.offsetHeight;
 
       if (top === 0 && e.movementY > 0) {
-        // 已经在顶部还要往下拉，拦截
         e.preventDefault();
       } else if (currentScroll === totalScroll && e.movementY < 0) {
-        // 已经在底部还要往上拉，拦截
         e.preventDefault();
       }
-
-      // 正常滚动范围内，不做 e.preventDefault()，允许它滚
       return;
     }
 
-    // 非滚动区域（比如 top-bar, logo-row），一律禁止滑动
     if (e.cancelable) {
       e.preventDefault();
     }

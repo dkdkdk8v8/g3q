@@ -4,15 +4,16 @@ export const useLoadingStore = defineStore('loading', {
   state: () => ({
     _isLoading: false,
     _loadingText: '连接中...', // Changed default text
-    // _timeoutId: null, // Removed 10s auto-hide as per user request
-    // _minDisplayTimeoutId: null, // Removed 500ms delay as per user request
-    // _requestCount: 0, // Removed to simplify loading logic
     _showReconnectDialog: false, // New state for reconnect dialog
+    _appLoading: false, // 全局加载动画 (生产环境连接中)
+    _appLoadingError: '', // 加载错误信息
   }),
   getters: {
     isLoading: (state) => state._isLoading,
-    loadingText: (state) => state._loadingText, 
-    showReconnectDialog: (state) => state._showReconnectDialog, // Getter for dialog
+    loadingText: (state) => state._loadingText,
+    showReconnectDialog: (state) => state._showReconnectDialog,
+    appLoading: (state) => state._appLoading,
+    appLoadingError: (state) => state._appLoadingError,
   },
   actions: {
     startLoading() {
@@ -38,6 +39,16 @@ export const useLoadingStore = defineStore('loading', {
     },
     hideReconnectModal() {
       this._showReconnectDialog = false;
-    }
+    },
+    startAppLoading() {
+      this._appLoading = true;
+      this._appLoadingError = '';
+    },
+    stopAppLoading() {
+      this._appLoading = false;
+    },
+    setAppLoadingError(msg) {
+      this._appLoadingError = msg;
+    },
   },
 });

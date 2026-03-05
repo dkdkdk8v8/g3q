@@ -1,6 +1,7 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import LobbyView from '../views/LobbyView.vue'
 import GameView from '../views/GameView.vue'
+import BRNNGameView from '../views/BRNNGameView.vue'
 
 const isDev = import.meta.env.DEV;
 
@@ -14,6 +15,11 @@ const routes = [
     path: '/game',
     name: 'game',
     component: GameView
+  },
+  {
+    path: '/brnn',
+    name: 'brnn',
+    component: BRNNGameView
   }
 ];
 

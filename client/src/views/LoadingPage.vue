@@ -9,12 +9,22 @@
       <div>UID: 【{{ userId }}】</div>
     </div>
     <div class="mode-selector">
-      <div class="mode-title">选择玩法进入对应大厅：</div>
-      <div class="mode-buttons-container">
-        <button @click="selectMode(0)" :class="['mode-btn', 'mode-0', { active: currentMode === 0 }]">不看牌</button>
-        <button @click="selectMode(1)" :class="['mode-btn', 'mode-1', { active: currentMode === 1 }]">看三张</button>
-        <button @click="selectMode(2)" :class="['mode-btn', 'mode-2', { active: currentMode === 2 }]">看四张</button>
+      <div class="mode-title">选择游戏：</div>
+      <div class="mode-buttons-container" style="margin-bottom: 12px;">
+        <button @click="selectGameType('qznn')" :class="['mode-btn', { active: gameType === 'qznn' }]" style="background-color: #e67e22 !important;">抢庄牛牛</button>
+        <button @click="selectGameType('brnn')" :class="['mode-btn', { active: gameType === 'brnn' }]" style="background-color: #e74c3c !important;">百人牛牛</button>
       </div>
+      <template v-if="gameType === 'qznn'">
+        <div class="mode-title">选择玩法：</div>
+        <div class="mode-buttons-container">
+          <button @click="selectMode(0)" :class="['mode-btn', 'mode-0', { active: currentMode === 0 }]">不看牌</button>
+          <button @click="selectMode(1)" :class="['mode-btn', 'mode-1', { active: currentMode === 1 }]">看三张</button>
+          <button @click="selectMode(2)" :class="['mode-btn', 'mode-2', { active: currentMode === 2 }]">看四张</button>
+        </div>
+      </template>
+      <template v-if="gameType === 'brnn'">
+        <div class="mode-title" style="color: #e74c3c;">系统坐庄 · 天地玄黄</div>
+      </template>
     </div>
 
     <button v-if="lastUid" @click="enterGameWithLast">继续上次用户测试 ({{ lastUid }})</button>
@@ -60,6 +70,11 @@ export default {
     const gameStore = useGameStore();
 
     const currentMode = ref(userStore.lastSelectedMode || 0);
+    const gameType = ref('qznn');
+
+    const selectGameType = (type) => {
+      gameType.value = type;
+    };
 
     const selectMode = (mode) => {
       currentMode.value = mode;
@@ -207,19 +222,26 @@ export default {
           gameClient.offServerPush('PushRouter');
           gameClient.off('UserInfo');
           gameClient.off('QZNN.LobbyConfig');
+          gameClient.off('BRNN.PlayerLeave');
 
           router.push(targetRoute);
         }
       };
 
+      // BRNN does not need LobbyConfig, skip waiting for it
+      if (gameType.value === 'brnn') {
+        hasLobbyConfig = true;
+      }
+
       // Setup GameClient callbacks
       gameClient.onConnect = () => {
         console.log("[LoadingPage] WebSocket connected!");
-        // message.value = `连接成功！正在获取大厅数据...`; // Remove dynamic message
-
-        // Send requests separately
         gameClient.send("UserInfo");
-        gameClient.send("QZNN.LobbyConfig");
+        if (gameType.value === 'brnn') {
+          gameClient.send("BRNN.PlayerJoin");
+        } else {
+          gameClient.send("QZNN.LobbyConfig");
+        }
       };
 
       gameClient.onClose = (event) => {
@@ -276,11 +298,34 @@ export default {
       // Register PushRouter handler
       gameClient.onServerPush('PushRouter', (data) => {
         if (data && data.Router) {
+          // If user selected QZNN but server says BRNN (reconnect from previous session),
+          // leave BRNN first — the leave handler will send a new PushRouter: lobby
+          if (gameType.value === 'qznn' && data.Router === 'brnn') {
+            gameClient.send("BRNN.PlayerLeave");
+            return;
+          }
+          // If user selected BRNN but server says game (was in QZNN),
+          // leave QZNN first — then BRNN.PlayerJoin will succeed
+          if (gameType.value === 'brnn' && data.Router === 'game') {
+            gameClient.send("QZNN.PlayerLeave");
+            return;
+          }
           if (data.Router === 'lobby') {
             targetRoute = `/lobby?mode=${currentMode.value}`;
           } else if (data.Router === 'game') {
             targetRoute = '/game?autoJoin=true';
+          } else if (data.Router === 'brnn') {
+            targetRoute = '/brnn';
           }
+          checkReady();
+        }
+      });
+
+      // Handle BRNN.PlayerLeave error response (e.g., has active bets during dealing)
+      gameClient.on('BRNN.PlayerLeave', (msg) => {
+        if (gameType.value === 'qznn' && msg.code !== 0) {
+          // Can't leave BRNN — force route to lobby anyway since user chose QZNN
+          targetRoute = '/lobby';
           checkReady();
         }
       });
@@ -302,6 +347,8 @@ export default {
       isLoading, // Return isLoading
       currentMode,
       selectMode,
+      gameType,
+      selectGameType,
     };
   },
 };

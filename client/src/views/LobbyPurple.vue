@@ -14,6 +14,7 @@ import btnHelp from '@/assets/lobby_purple/help_btn.png';
 import btnHistory from '@/assets/lobby_purple/bet_history_btn.png';
 import btnSetting from '@/assets/lobby_purple/sett_btn.png';
 import diamondBg from '@/assets/lobby_purple/diamond_bg.png';
+import lineIconSplice from '@/assets/lobby_purple/line_icon_splice.png';
 import eachRoomBg from '@/assets/lobby_purple/each_room_bg.png';
 import eachRoomEnterBtnText from '@/assets/lobby_purple/each_room_enter_btn_text.png';
 import roomIconTextDizhu from '@/assets/lobby_purple/room_icontext_dizhu.png';
@@ -54,8 +55,10 @@ onUnmounted(stopMusic);
     <div class="lobby-container">
         <!-- Top Area: Combined Row -->
         <div class="top-area" :style="{ backgroundImage: `url(${topBg})` }">
-            <div class="top-row">
+            <div class="top-row-exit">
                 <img :src="btnExit" class="btn-exit" @click="goBack" />
+            </div>
+            <div class="top-row">
                 <div class="user-info-container">
                     <div class="avatar-wrapper">
                         <img :src="userInfo.avatar" class="user-avatar" />
@@ -71,7 +74,9 @@ onUnmounted(stopMusic);
                 </div>
                 <div class="top-right">
                     <img :src="btnHistory" class="top-icon-btn" @click="openHistoryDebounced" />
+                    <img :src="lineIconSplice" class="top-separator" />
                     <img :src="btnHelp" class="top-icon-btn" @click="openHelpDebounced" />
+                    <img :src="lineIconSplice" class="top-separator" />
                     <img :src="btnSetting" class="top-icon-btn" @click="openSettingsDebounced" />
                 </div>
             </div>
@@ -151,22 +156,32 @@ onUnmounted(stopMusic);
 }
 
 .top-row {
+    justify-content: space-around;
     display: flex;
     align-items: center;
     gap: 12px;
 }
 
+.top-row-exit {
+    padding-bottom: 5px;
+}
+
 .btn-exit {
-    height: 21px;
+    margin-left: 5px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    height: 23px;
     cursor: pointer;
-    flex-shrink: 0;
 }
 
 .user-info-container {
+    margin-left: 5px;
     display: flex;
     align-items: center;
     gap: 10px;
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .avatar-wrapper {
@@ -242,8 +257,13 @@ onUnmounted(stopMusic);
 }
 
 .top-icon-btn {
-    height: 32px;
+    height: 23px;
     cursor: pointer;
+}
+
+.top-separator {
+    height: 14px;
+    width: auto;
 }
 
 /* Main Content */

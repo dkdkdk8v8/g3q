@@ -56,6 +56,12 @@ onUnmounted(stopMusic);
                         <img :src="btnSetting" class="top-icon-btn-setting" @click="openSettingsDebounced" />
                     </div>
                 </div>
+                <!-- Stage Lights -->
+                <div class="stage-lights">
+                    <div class="spotlight spotlight-left"></div>
+                    <div class="spotlight spotlight-center"></div>
+                    <div class="spotlight spotlight-right"></div>
+                </div>
             </div>
             <!-- User Info -->
             <div class="user-row">
@@ -136,11 +142,13 @@ onUnmounted(stopMusic);
     flex-direction: column;
     position: relative;
     z-index: 1;
+    overflow: visible;
 }
 
 .top-shape-wrapper {
     position: relative;
     width: 100%;
+    overflow: visible;
 }
 
 .top-shape-img {
@@ -188,6 +196,69 @@ onUnmounted(stopMusic);
     margin-top: 10px;
     height: 33px;
     cursor: pointer;
+}
+
+/* Stage Lights */
+.stage-lights {
+    position: absolute;
+    bottom: -48vh;
+    left: 0;
+    width: 100%;
+    height: 50vh;
+    pointer-events: none;
+    z-index: -1;
+}
+
+.spotlight {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    clip-path: polygon(40% 0%, 60% 0%, 100% 100%, 0% 100%);
+    animation: spotlightPulse 2s ease-in-out infinite;
+}
+
+.spotlight-center {
+    left: 20%;
+    right: 20%;
+    background: linear-gradient(to bottom,
+            rgba(140, 255, 200, 0.25) 0%,
+            rgba(100, 220, 170, 0.10) 40%,
+            transparent 100%);
+    animation-delay: 0s;
+}
+
+.spotlight-left {
+    left: 0%;
+    width: 40%;
+    clip-path: polygon(55% 0%, 75% 0%, 100% 100%, 0% 100%);
+    background: linear-gradient(to bottom,
+            rgba(120, 240, 190, 0.18) 0%,
+            rgba(80, 200, 160, 0.06) 40%,
+            transparent 100%);
+    animation-delay: 1.3s;
+}
+
+.spotlight-right {
+    right: 0%;
+    width: 40%;
+    clip-path: polygon(25% 0%, 45% 0%, 100% 100%, 0% 100%);
+    background: linear-gradient(to bottom,
+            rgba(120, 240, 190, 0.18) 0%,
+            rgba(80, 200, 160, 0.06) 40%,
+            transparent 100%);
+    animation-delay: 2.6s;
+}
+
+@keyframes spotlightPulse {
+
+    0%,
+    100% {
+        opacity: 0.5;
+    }
+
+    50% {
+        opacity: 1;
+    }
 }
 
 .user-row {

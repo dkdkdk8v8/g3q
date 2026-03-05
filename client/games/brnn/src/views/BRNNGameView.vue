@@ -1,21 +1,16 @@
 <script setup>
 import { computed, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { useBrnnStore } from '@/stores/brnn'
 import { useUserStore } from '@/stores/user'
+import { formatCoins } from '@shared/utils/format.js'
 import DealerCards from '@/components/brnn/DealerCards.vue'
 import BettingArea from '@/components/brnn/BettingArea.vue'
 import ChipSelector from '@/components/brnn/ChipSelector.vue'
 import TrendChart from '@/components/brnn/TrendChart.vue'
 import SettlementOverlay from '@/components/brnn/SettlementOverlay.vue'
 
-const router = useRouter()
 const brnnStore = useBrnnStore()
 const userStore = useUserStore()
-
-function formatCoin(cents) {
-  return (cents / 100).toFixed(2)
-}
 
 const phaseLabel = computed(() => {
   switch (brnnStore.currentPhase) {
@@ -30,19 +25,29 @@ const phaseLabel = computed(() => {
 
 function onExit() {
   brnnStore.leaveRoom()
-  router.push('/')
 }
 
 function onBet(idx) {
   brnnStore.placeBet(idx)
 }
 
+let countdownTimer = null
+
 onMounted(() => {
   brnnStore.registerPushHandlers()
   brnnStore.joinRoom()
+  countdownTimer = setInterval(() => {
+    if (brnnStore.countdown > 0) {
+      brnnStore.countdown--
+    }
+  }, 1000)
 })
 
 onUnmounted(() => {
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+    countdownTimer = null
+  }
   brnnStore.unregisterPushHandlers()
   brnnStore.resetState()
 })
@@ -53,7 +58,7 @@ onUnmounted(() => {
     <!-- Header -->
     <div class="brnn-header">
       <button class="brnn-btn-exit" @click="onExit">退出</button>
-      <span class="header-balance">余额: {{ formatCoin(userStore.userInfo.balance) }}</span>
+      <span class="header-balance">余额: {{ formatCoins(userStore.userInfo.balance) }}</span>
       <span class="header-online">在线: {{ brnnStore.playerCount }}人</span>
     </div>
 
@@ -82,7 +87,7 @@ onUnmounted(() => {
 
     <!-- Settlement overlay -->
     <SettlementOverlay
-      v-if="brnnStore.currentPhase === 'SETTLEMENT' && brnnStore.lastWin !== 0"
+      v-if="brnnStore.lastWin !== 0"
       :win="brnnStore.lastWin"
     />
 

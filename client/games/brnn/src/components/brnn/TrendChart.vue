@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 
 const props = defineProps({
-  trend: Array, // Array of AreaWin arrays, e.g. [[true,false,true,false], ...]
+  trend: Array, // Array of TrendRecord objects, e.g. [{GameCount, DealerNiu, AreaNiu, AreaWin}, ...]
 })
 
 const AREA_NAMES = ['天', '地', '玄', '黄']
@@ -34,7 +34,7 @@ const hasData = computed(() => displayTrend.value.length > 0)
         <tbody>
           <tr v-for="(round, rIdx) in displayTrend" :key="rIdx">
             <td class="col-round">{{ rIdx + 1 }}</td>
-            <td v-for="(win, aIdx) in round" :key="aIdx" class="col-area">
+            <td v-for="(win, aIdx) in round.AreaWin" :key="aIdx" class="col-area">
               <span class="dot" :class="win ? 'dot-win' : 'dot-lose'"></span>
             </td>
           </tr>

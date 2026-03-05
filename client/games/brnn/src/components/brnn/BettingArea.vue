@@ -14,9 +14,6 @@ const emit = defineEmits(['bet'])
 
 const AREA_COLORS = ['#3b82f6', '#22c55e', '#a855f7', '#f59e0b'] // blue, green, purple, orange
 
-function formatCoin(cents) {
-  return (cents / 100).toFixed(2)
-}
 
 const headerColor = computed(() => AREA_COLORS[props.index] || '#666')
 
@@ -94,11 +91,11 @@ function onAreaClick() {
     <div class="area-bets">
       <div class="bet-row">
         <span class="bet-label">总:</span>
-        <span class="bet-value">{{ formatCoin(area.totalBet) }}</span>
+        <span class="bet-value">{{ formatCoins(area.totalBet) }}</span>
       </div>
       <div class="bet-row" :class="{ 'my-bet-active': area.myBet > 0 }">
         <span class="bet-label">我:</span>
-        <span class="bet-value">{{ formatCoin(area.myBet) }}</span>
+        <span class="bet-value">{{ formatCoins(area.myBet) }}</span>
       </div>
     </div>
 

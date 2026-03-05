@@ -8,6 +8,8 @@ import (
 	"service/mainClient/game/brnn"
 	"service/mainClient/game/znet"
 	"service/modelClient"
+
+	"github.com/sirupsen/logrus"
 )
 
 func handleBRNNPlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string) error {
@@ -29,7 +31,7 @@ func handleBRNNPlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string) erro
 	// Check if already in BRNN — reconnect
 	existing := room.GetPlayer(userId)
 	if existing != nil {
-		existing.ConnWrap = connWrap
+		room.SetWsWrap(userId, connWrap)
 		_ = comm.WriteMsgPack(connWrap, comm.PushData{
 			Cmd:      comm.ServerPush,
 			PushType: znet.PushRouter,
@@ -44,8 +46,10 @@ func handleBRNNPlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string) erro
 		return nil
 	}
 
-	// Check minimum balance
-	if user.Balance < room.Config.MinBalance {
+	// Lock balance via DB
+	modelUser, err := modelClient.GameLockUserBalance(userId, room.Config.MinBalance)
+	if err != nil {
+		logrus.WithField("userId", userId).WithError(err).Error("brnn.GameLockUserBalance")
 		return comm.NewMyError("余额不足")
 	}
 
@@ -58,7 +62,7 @@ func handleBRNNPlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string) erro
 		ID:       userId,
 		NickName: nickName,
 		Avatar:   user.Avatar,
-		Balance:  user.Balance,
+		Balance:  modelUser.BalanceLock,
 		ConnWrap: connWrap,
 	}
 
@@ -84,28 +88,18 @@ func handleBRNNPlayerJoin(connWrap *ws.WsConnWrap, appId, appUserId string) erro
 
 func handleBRNNPlayerLeave(userId string) error {
 	room := game.GetMgr().GetBRNNRoom()
-	p := room.GetPlayer(userId)
-	if p == nil {
-		return comm.NewMyError("玩家不在房间")
+
+	if _, err := room.CanLeave(userId); err != nil {
+		return err
 	}
 
-	// Don't allow leaving during dealing/showcard if player has bets
-	state := room.GetState()
-	if state != brnn.StateBetting && state != brnn.StateSettling {
-		hasBets := false
-		for i := 0; i < brnn.AreaCount; i++ {
-			if p.Bets[i] > 0 {
-				hasBets = true
-				break
-			}
-		}
-		if hasBets {
-			return comm.NewMyError("本局有下注，请等待结算后再离开")
-		}
-	}
-
-	connWrap := p.ConnWrap
+	connWrap := room.GetPlayerConnWrap(userId)
 	room.RemovePlayer(userId)
+
+	// Release locked balance back to user
+	if _, err := modelClient.GameResetUserBalance(userId); err != nil {
+		logrus.WithField("userId", userId).WithError(err).Error("brnn.GameResetUserBalance")
+	}
 
 	// Push router back to lobby
 	if connWrap != nil {
@@ -126,13 +120,7 @@ func handleBRNNPlaceBet(userId string, data []byte) error {
 	}
 
 	room := game.GetMgr().GetBRNNRoom()
-	if err := room.PlaceBet(userId, req.Area, req.Chip); err != nil {
-		return err
-	}
-
-	// Broadcast updated bet totals
-	room.BroadcastBetUpdate()
-	return nil
+	return room.PlaceBetAndBroadcast(userId, req.Area, req.Chip)
 }
 
 type BRNNLobbyConfigRsp struct {

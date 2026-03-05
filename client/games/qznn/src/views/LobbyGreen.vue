@@ -214,7 +214,9 @@ onUnmounted(stopMusic);
     top: 0;
     height: 100%;
     clip-path: polygon(40% 0%, 60% 0%, 100% 100%, 0% 100%);
-    animation: spotlightPulse 2s ease-in-out infinite;
+    transform-origin: top center;
+    opacity: 0;
+    transform: scaleY(0);
 }
 
 .spotlight-center {
@@ -224,7 +226,8 @@ onUnmounted(stopMusic);
             rgba(140, 255, 200, 0.25) 0%,
             rgba(100, 220, 170, 0.10) 40%,
             transparent 100%);
-    animation-delay: 0s;
+    animation: spotlightEntry 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards,
+               spotlightPulse 2s ease-in-out 0.9s infinite;
 }
 
 .spotlight-left {
@@ -235,7 +238,8 @@ onUnmounted(stopMusic);
             rgba(120, 240, 190, 0.18) 0%,
             rgba(80, 200, 160, 0.06) 40%,
             transparent 100%);
-    animation-delay: 1.3s;
+    animation: spotlightEntry 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards,
+               spotlightPulse 2s ease-in-out 1.2s infinite;
 }
 
 .spotlight-right {
@@ -246,16 +250,29 @@ onUnmounted(stopMusic);
             rgba(120, 240, 190, 0.18) 0%,
             rgba(80, 200, 160, 0.06) 40%,
             transparent 100%);
-    animation-delay: 2.6s;
+    animation: spotlightEntry 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.8s forwards,
+               spotlightPulse 2s ease-in-out 1.5s infinite;
+}
+
+@keyframes spotlightEntry {
+    0% {
+        opacity: 0;
+        transform: scaleY(0);
+    }
+    60% {
+        opacity: 1;
+        transform: scaleY(1.08);
+    }
+    100% {
+        opacity: 1;
+        transform: scaleY(1);
+    }
 }
 
 @keyframes spotlightPulse {
-
-    0%,
-    100% {
+    0%, 100% {
         opacity: 0.5;
     }
-
     50% {
         opacity: 1;
     }

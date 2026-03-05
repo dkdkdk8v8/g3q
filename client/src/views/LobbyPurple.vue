@@ -178,7 +178,6 @@ onUnmounted(stopMusic);
 .user-info-container {
     display: flex;
     align-items: center;
-    gap: 10px;
     flex: 1;
     min-width: 0;
     overflow: hidden;
@@ -221,6 +220,7 @@ onUnmounted(stopMusic);
     justify-content: center;
     gap: 3px;
     padding-left: 5px;
+    margin-bottom: 5px;
 }
 
 .coins-display {

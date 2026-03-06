@@ -17,4 +17,4 @@ mv "bjlnn_h5_${VERSION}.zip" "$releaseDir"
 cd ../
 
 echo "Release版本号为：$VERSION"
-echo "打包完成！"
+echo "百家乐牛牛 打包完成！"

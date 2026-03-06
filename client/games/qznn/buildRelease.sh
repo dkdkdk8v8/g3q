@@ -17,4 +17,4 @@ mv "qznn_h5_${VERSION}.zip" "$releaseDir"
 cd ../
 
 echo "Release版本号为：$VERSION"
-echo "打包完成！"
+echo "抢庄牛牛 打包完成！"

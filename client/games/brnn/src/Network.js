@@ -6,6 +6,7 @@ import { useLoadingStore } from '@shared/stores/loading.js';
 import router from './router';
 
 const client = new GameClient();
+client.apiBasePath = '/brnn/api';
 
 client.getLoadingStore = () => useLoadingStore();
 

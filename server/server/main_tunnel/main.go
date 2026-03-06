@@ -2,6 +2,7 @@ package main
 
 import (
 	"compoment/util"
+	"flag"
 	"log"
 	"os"
 	"os/signal"
@@ -26,8 +27,15 @@ type Config struct {
 }
 
 func main() {
+	debug := flag.Bool("debug", false, "use debug config (cfg/server_debug.yaml)")
+	flag.Parse()
+
 	// 读取配置文件
-	data, err := os.ReadFile("cfg/server.yaml")
+	cfgPath := "cfg/server.yaml"
+	if *debug {
+		cfgPath = "cfg/server_debug.yaml"
+	}
+	data, err := os.ReadFile(cfgPath)
 	if err != nil {
 		log.Fatalf("failed to read config file: %v", err)
 	}

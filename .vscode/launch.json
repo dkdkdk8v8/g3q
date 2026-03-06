@@ -58,6 +58,15 @@
             "env": {}
         },
         {
+            "name": "go:server:tunnel",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/server/server/main_tunnel",
+            "cwd": "${workspaceFolder}/server/server/main_tunnel",
+            "env": {}
+        },
+        {
             "name": "go:file",
             "type": "go",
             "request": "launch",
@@ -83,7 +92,7 @@
             "showLog": true
         },
         {
-            "name": "node:client",
+            "name": "node:client:qznn",
             "type": "node",
             "request": "launch",
             "runtimeExecutable": "npm",
@@ -91,7 +100,35 @@
                 "run",
                 "dev"
             ],
-            "cwd": "${workspaceFolder}/client",
+            "cwd": "${workspaceFolder}/client/games/qznn",
+            "console": "integratedTerminal",
+            "restart": true,
+            "autoAttachChildProcesses": true
+        },
+        {
+            "name": "node:client:brnn",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": [
+                "run",
+                "dev"
+            ],
+            "cwd": "${workspaceFolder}/client/games/brnn",
+            "console": "integratedTerminal",
+            "restart": true,
+            "autoAttachChildProcesses": true
+        },
+        {
+            "name": "node:client:bjlnn",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": [
+                "run",
+                "dev"
+            ],
+            "cwd": "${workspaceFolder}/client/games/bjlnn",
             "console": "integratedTerminal",
             "restart": true,
             "autoAttachChildProcesses": true

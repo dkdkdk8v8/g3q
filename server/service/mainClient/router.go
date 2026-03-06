@@ -22,6 +22,8 @@ func InitWebHandler(engine *gin.Engine) error {
 	ipLimiterGroup.GET("/api/health", comm.Health)
 	ipLimiterGroup.GET("/api-speed", comm.ApiSpeed)
 
+	startBRNNPlayerCacheLoop()
+
 	return nil
 }
 

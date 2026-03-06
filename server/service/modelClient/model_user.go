@@ -66,6 +66,7 @@ type ModelUserRecord struct {
 	RecordType    RecordType `orm:"column(record_type);default(0)"`
 	BalanceBefore int64      `orm:"column(balance_before);default(0)"`                     // 余额（分）
 	BalanceAfter  int64      `orm:"column(balance_after);default(0)"`                      // 余额（分）
+	ValidBet      int64      `orm:"column(valid_bet);default(0)"`                          // 有效投注额
 	GameRecordId  uint64     `orm:"column(game_record_id);size(64)"`                       // 游戏RecordID // join ModelGame的Id 主键
 	OrderId       *string    `orm:"column(order_id);size(128);null;default(null)"`         // 订单ID
 	OrderState    int        `orm:"column(order_state);default(0)"`                        // 订单状态

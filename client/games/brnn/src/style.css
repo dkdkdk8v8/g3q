@@ -1,0 +1,98 @@
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  overflow: hidden;
+  position: fixed;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+}
+
+/* Custom Game Theme Dialog Styles */
+.game-theme-dialog {
+  background-color: #1e293b !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5) !important;
+  color: #fff !important;
+  width: 85% !important;
+  max-width: 320px !important;
+  overflow: hidden !important;
+}
+
+.game-theme-dialog .van-dialog__header {
+  color: #ffffff !important;
+  opacity: 1 !important;
+  padding-top: 20px !important;
+  font-weight: bold !important;
+  font-size: 18px !important;
+}
+
+.game-theme-dialog .van-dialog__content {
+  color: #ffffff !important;
+  padding: 15px 24px 20px !important;
+  font-size: 15px !important;
+  line-height: 1.5 !important;
+}
+
+.game-theme-dialog .van-dialog__message {
+  color: #ffffff !important;
+}
+
+.game-theme-dialog .van-dialog__footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+  overflow: hidden !important;
+}
+
+.game-theme-dialog .van-button {
+  background-color: transparent !important;
+  border: none !important;
+  height: 48px !important;
+  font-size: 16px !important;
+}
+
+.game-theme-dialog .van-dialog__cancel {
+  color: #94a3b8 !important;
+}
+
+.game-theme-dialog .van-dialog__cancel:active {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.game-theme-dialog .van-dialog__confirm {
+  color: #facc15 !important;
+  font-weight: bold !important;
+}
+
+.game-theme-dialog .van-dialog__confirm:active {
+  background-color: rgba(250, 204, 21, 0.1) !important;
+}
+
+.game-theme-dialog .van-hairline--top::after,
+.game-theme-dialog .van-hairline--left::after {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.van-toast {
+  z-index: 12000 !important;
+}

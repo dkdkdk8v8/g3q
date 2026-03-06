@@ -4,11 +4,11 @@ import (
 	"compoment/alert"
 	"compoment/ws"
 	"context"
-	"encoding/json"
 	"errors"
 	"service/comm"
 	"service/initMain"
 	"service/mainClient/game"
+	"service/mainClient/game/brnn"
 	"service/mainClient/game/qznn"
 	"service/mainClient/game/znet"
 	"strings"
@@ -99,7 +99,7 @@ func WSEntry(c *gin.Context) {
 	wsConnectMapMutex.Unlock()
 
 	if existWsWrap != nil {
-		_ = existWsWrap.WriteJSON(comm.PushData{Cmd: comm.ServerPush, PushType: game.PushOtherConnect})
+		_ = comm.WriteMsgPack(existWsWrap, comm.PushData{Cmd: comm.ServerPush, PushType: game.PushOtherConnect})
 		existWsWrap.CloseNormal("handler exit")
 		logrus.WithField("appId", appId).WithField("appUserId", appUserId).Info("WS-Client-KickOffOldConnect")
 	}
@@ -122,16 +122,24 @@ func handleConnection(connWrap *ws.WsConnWrap, appId, appUserId string) {
 				//更新房间他的wsWrap对象
 				room.SetWsWrap(userId, connWrap)
 				//在游戏内,默认客户端进入游戏
-				connWrap.WriteJSON(comm.PushData{
+				_ = comm.WriteMsgPack(connWrap, comm.PushData{
 					Cmd:      comm.ServerPush,
 					PushType: znet.PushRouter,
 					Data: znet.PushRouterStruct{
 						Router: znet.Game,
 						Room:   room,
 						SelfId: userId}})
+			} else if brnnRoom, brnnPlayer := game.GetMgr().CheckPlayerInBRNN(userId); brnnPlayer != nil {
+				brnnRoom.SetWsWrap(userId, connWrap)
+				_ = comm.WriteMsgPack(connWrap, comm.PushData{
+					Cmd:      comm.ServerPush,
+					PushType: znet.PushRouter,
+					Data: znet.PushRouterStruct{
+						Router: znet.Brnn,
+						SelfId: userId}})
 			} else {
 				//不在游戏内,默认客户端进入lobby
-				connWrap.WriteJSON(comm.PushData{
+				_ = comm.WriteMsgPack(connWrap, comm.PushData{
 					Cmd:      comm.ServerPush,
 					PushType: znet.PushRouter,
 					Data: znet.PushRouterStruct{
@@ -163,9 +171,9 @@ func handleConnection(connWrap *ws.WsConnWrap, appId, appUserId string) {
 			logWSCloseErr(userId, err1)
 			break
 		}
-		err = json.Unmarshal(buffer, &msg)
+		err = comm.DecodeMsgpackViaJSON(buffer, &msg)
 		if err != nil {
-			logrus.WithField("!", alert.Limit10Hit10M).WithField("uid", userId).WithField("buffer", string(buffer)).WithError(err).Info("WS-Client-JsonInvalid")
+			logrus.WithField("!", alert.Limit10Hit10M).WithField("uid", userId).WithField("bufLen", len(buffer)).WithError(err).Info("WS-Client-MsgpackInvalid")
 			continue
 		}
 		// 频率限制：同一用户同一Cmd 100ms内只能请求一次
@@ -237,7 +245,7 @@ func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, userId st
 				}
 			}
 		}
-		connWrap.WriteJSON(rsp)
+		_ = comm.WriteMsgPack(connWrap, rsp)
 	}()
 
 	switch msg.Cmd {
@@ -265,6 +273,17 @@ func dispatch(connWrap *ws.WsConnWrap, appId string, appUserId string, userId st
 		rsp.Data, errRsp = handlePlayerChangeRoom(connWrap, userId, msg.Data)
 	case znet.CmdSaveSetting: // 保存用户设置
 		errRsp = handleSaveSetting(userId, msg.Data)
+	// --- BRNN 百人牛牛 ---
+	case brnn.CmdPlayerJoin:
+		errRsp = handleBRNNPlayerJoin(connWrap, appId, appUserId)
+	case brnn.CmdPlayerLeave:
+		errRsp = handleBRNNPlayerLeave(userId)
+	case brnn.CmdPlaceBet:
+		errRsp = handleBRNNPlaceBet(userId, msg.Data)
+	case brnn.CmdLobbyConfig:
+		rsp.Data = handleBRNNLobbyConfig()
+	case brnn.CmdGetPlayers:
+		rsp.Data, errRsp = handleBRNNGetPlayers(userId)
 	default:
 		errRsp = errors.New("UnknownCmd")
 	}

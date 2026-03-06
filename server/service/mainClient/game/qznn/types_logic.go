@@ -150,14 +150,15 @@ func (cfg *LobbyConfig) GetPreCard() int {
 
 // QZNNRoomData 包含房间的游戏数据，分离出来以方便拷贝且避免拷贝锁
 type QZNNRoomData struct {
-	ID           string
-	GameID       string //对局id
-	State        RoomState
-	StateLeftSec int
-	BankerID     string
-	Players      []*Player
-	Config       LobbyConfig // 房间配置
-	CreateAt     time.Time
+	ID                   string
+	GameID               string //对局id
+	State                RoomState
+	StateLeftSec         int
+	BankerID             string
+	Players              []*Player
+	Config               LobbyConfig // 房间配置
+	CreateAt             time.Time
+	LastRealPlayerJoinAt time.Time // 最后一个真人加入的时间
 }
 
 // 扩展 QZNNRoom 结构体以包含策略数据

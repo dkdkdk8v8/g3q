@@ -94,10 +94,14 @@ export class PluginCenterService {
     // 单例插件
     if (pluginInfo?.singleton) {
       const instance = new cls();
-      await instance.init(this.pluginInfos.get(key), null, this.app, {
-        cache: this.midwayCache,
-        pluginService: this.pluginService,
-      });
+      try {
+        await instance.init(this.pluginInfos.get(key), null, this.app, {
+          cache: this.midwayCache,
+          pluginService: this.pluginService,
+        });
+      } catch (e) {
+        console.warn(`[plugin] ${key} init failed, skipped:`, e.message);
+      }
       this.plugins.set(key, instance);
     } else {
       // 普通插件

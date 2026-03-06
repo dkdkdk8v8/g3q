@@ -2,7 +2,7 @@ package mainRobot
 
 // 服务器 Host 配置
 const HOST_PROD = "127.0.0.1:8084"
-const HOST_DEV = "172.20.10.5:18084"
+const HOST_DEV = "172.20.10.8:18084"
 
 // 路径配置
 const PATH_WS = "/rpc/ws"
@@ -10,6 +10,8 @@ const PATH_RPC_DATA = "/rpc/qznn-data"
 
 const MIN_ROBOT_ROOMS = 0            // 纯机器人房间最少保持数量
 const MANAGER_LOOP_INTERVAL = 3      // 机器人管理循环间隔(秒)
+const ROBOT_JOIN_DELAY_SEC = 5       // 真人加入后等待多少秒再派机器人
+const MAX_ROBOTS_PER_ROOM = 1        // 每个房间最多机器人数
 const MIN_GAMES = 20                 // 机器人至少玩几局
 const PROB_LEAVE_5_PLAYERS = 0.2     // 5人时退出概率
 const PROB_LEAVE_4_PLAYERS = 0.15    // 4人时退出概率

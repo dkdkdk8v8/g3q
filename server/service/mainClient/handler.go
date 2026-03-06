@@ -10,7 +10,6 @@ import (
 	"service/comm"
 	"service/mainClient/game"
 	"service/mainClient/game/qznn"
-	"service/modelAdmin"
 	"service/modelClient"
 	"service/modelComm"
 	"strconv"
@@ -392,16 +391,14 @@ func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) 
 				Date: userRecord.CreateAt.Format("01月02") + "周" +
 					GetChineseWeekName(int(userRecord.CreateAt.Weekday())),
 			}
-			staUser, err := modelAdmin.GetStaUser(userId, util.AddDateWithoutLock(userRecord.CreateAt, 0, 0, 0))
+			dayStart := util.AddDateWithoutLock(userRecord.CreateAt, 0, 0, 0)
+			dayEnd := dayStart.Add(24 * time.Hour)
+			totalBet, totalWin, err := modelClient.GetUserDailySummary(userId, dayStart, dayEnd)
 			if err != nil {
-				if !ormutil.IsNoRow(err) {
-					return nil, err
-				} else {
-					staUser = &modelAdmin.ModelStaUser{}
-				}
+				return nil, err
 			}
-			currentSummy.TotalBet = staUser.BetAmount
-			currentSummy.TotalWinBalance = staUser.BetWin
+			currentSummy.TotalBet = totalBet
+			currentSummy.TotalWinBalance = totalWin
 			rsp.List = append(rsp.List, currentSummy)
 		}
 		lastTime = userRecord.CreateAt

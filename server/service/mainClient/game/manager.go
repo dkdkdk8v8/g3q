@@ -4,9 +4,8 @@ import (
 	"compoment/jsondiytag"
 	"compoment/uid"
 	"compoment/util"
-	"errors"
 	"fmt"
-	"service/comm"
+	"service/mainClient/game/brnn"
 	"service/mainClient/game/qznn"
 	"service/modelClient"
 	"sync"
@@ -17,8 +16,10 @@ import (
 
 // managerState holds the internal state of the RoomManager
 type managerState struct {
-	rooms      map[string]*qznn.QZNNRoom
-	isDraining bool
+	rooms       map[string]*qznn.QZNNRoom
+	brnnRooms   map[string]*brnn.BRNNRoom // 多房间百人牛牛
+	brnnCounter int                       // 房间编号计数器
+	isDraining  bool
 }
 
 type RoomManager struct {
@@ -45,6 +46,7 @@ func GetMgr() *RoomManager {
 func (rm *RoomManager) backend() {
 	state := &managerState{
 		rooms:      make(map[string]*qznn.QZNNRoom),
+		brnnRooms:  make(map[string]*brnn.BRNNRoom),
 		isDraining: false,
 	}
 
@@ -105,8 +107,10 @@ func (rm *RoomManager) SelectRoom(user *modelClient.ModelUser,
 		type roomHolder struct {
 			Room      *qznn.QZNNRoom
 			PlayerNum int
+			HasReal   bool
 		}
-		var sortPlayerRoom []roomHolder
+		var withReal []roomHolder
+		var withoutReal []roomHolder
 
 		for _, room := range s.rooms {
 			if room.Config.BankerType == roomCfg.BankerType && room.Config.Level == roomCfg.Level {
@@ -114,23 +118,33 @@ func (rm *RoomManager) SelectRoom(user *modelClient.ModelUser,
 				if num == 0 && time.Since(room.CreateAt) > time.Minute {
 					continue
 				}
-				if realNum > 0 {
-					continue
-				}
 				if room.ID == excludeRoomId {
 					continue
 				}
+				// 只匹配等待中/准备中的房间，避免新人加入已开始的游戏
+				if room.CheckGameStart() {
+					continue
+				}
 				if num < room.GetPlayerCap() {
-					sortPlayerRoom = append(sortPlayerRoom, roomHolder{Room: room, PlayerNum: num})
+					h := roomHolder{Room: room, PlayerNum: num, HasReal: realNum > 0}
+					if realNum > 0 {
+						withReal = append(withReal, h)
+					} else {
+						withoutReal = append(withoutReal, h)
+					}
 				}
 			}
 		}
 
-		//随机选一个sortPlayerRoom元素
-		sortPlayerRoom = util.RandomPick(sortPlayerRoom, len(sortPlayerRoom))
-
-		if len(sortPlayerRoom) > 0 {
-			return sortPlayerRoom[0].Room, nil
+		// 优先选择有真人的房间
+		withReal = util.RandomPick(withReal, len(withReal))
+		if len(withReal) > 0 {
+			return withReal[0].Room, nil
+		}
+		// 没有有真人的房间，选其他的
+		withoutReal = util.RandomPick(withoutReal, len(withoutReal))
+		if len(withoutReal) > 0 {
+			return withoutReal[0].Room, nil
 		}
 		return nil, nil
 	})
@@ -141,9 +155,6 @@ func (rm *RoomManager) SelectRoom(user *modelClient.ModelUser,
 
 	if targetRoom != nil {
 		if _, err := targetRoom.AddPlayer(player); err != nil {
-			if errors.As(err, &comm.ErrRealPlayerAlreadyInRoom) {
-				logrus.WithField("!", nil).WithField("roomId", targetRoom.ID).Error("RealPlayerAlreadyInRoom")
-			}
 			return nil, err
 		}
 		return targetRoom, nil
@@ -157,9 +168,6 @@ func (rm *RoomManager) JoinQZNNRoom(joinRoom *qznn.QZNNRoom, user *modelClient.M
 
 	_, err := joinRoom.AddPlayer(player)
 	if err != nil {
-		if errors.As(err, &comm.ErrRealPlayerAlreadyInRoom) {
-			logrus.WithField("!", nil).WithField("roomId", joinRoom.ID).Error("RealPlayerAlreadyInRoom")
-		}
 		return nil, err
 	}
 	joinRoom.OnBotAction = nil //RobotForQZNNRoom
@@ -177,21 +185,42 @@ func (rm *RoomManager) cleanupLoop() {
 	for {
 		time.Sleep(time.Second * 10)
 
-		roomsToDestroy := syncOp(rm, func(s *managerState) []*qznn.QZNNRoom {
-			var roomsToDestroy []*qznn.QZNNRoom
+		type cleanupResult struct {
+			qznnRooms []*qznn.QZNNRoom
+			brnnRooms []*brnn.BRNNRoom
+		}
+
+		result := syncOp(rm, func(s *managerState) cleanupResult {
+			var res cleanupResult
+
+			// QZNN 房间清理
 			for id, r := range s.rooms {
 				if r.GetPlayerCount() == 0 && time.Since(r.CreateAt) > time.Minute {
 					delete(s.rooms, id)
-					roomsToDestroy = append(roomsToDestroy, r)
+					res.qznnRooms = append(res.qznnRooms, r)
 					logrus.WithField("roomId", id).Info("RoomManager-ReleaseRoom")
 				}
 			}
-			return roomsToDestroy
+
+			// BRNN 房间清理：空房间且非唯一房间则销毁
+			if len(s.brnnRooms) > 1 {
+				for id, r := range s.brnnRooms {
+					if r.GetPlayerCount() == 0 && len(s.brnnRooms) > 1 {
+						delete(s.brnnRooms, id)
+						res.brnnRooms = append(res.brnnRooms, r)
+						logrus.WithField("roomId", id).Info("RoomManager-ReleaseBRNNRoom")
+					}
+				}
+			}
+
+			return res
 		})
 
-		// Destroy outside the monitor loop to avoid blocking it
-		for _, r := range roomsToDestroy {
+		for _, r := range result.qznnRooms {
 			r.Destory()
+		}
+		for _, r := range result.brnnRooms {
+			r.Destroy()
 		}
 	}
 }
@@ -209,6 +238,59 @@ func (rm *RoomManager) GetAllRooms() string {
 
 	allRooms, _ := jsondiytag.MarshalWithCustomTag(rooms)
 	return string(allRooms)
+}
+
+// CheckPlayerInBRNN 遍历所有 BRNN 房间，查找玩家所在房间
+func (rm *RoomManager) CheckPlayerInBRNN(userId string) (*brnn.BRNNRoom, *brnn.BRNNPlayer) {
+	type result struct {
+		room   *brnn.BRNNRoom
+		player *brnn.BRNNPlayer
+	}
+	res := syncOp(rm, func(s *managerState) result {
+		for _, room := range s.brnnRooms {
+			if p := room.GetPlayer(userId); p != nil {
+				return result{room: room, player: p}
+			}
+		}
+		return result{}
+	})
+	return res.room, res.player
+}
+
+// GetAllBRNNRooms 返回所有 BRNN 房间的切片（线程安全）。
+func (rm *RoomManager) GetAllBRNNRooms() []*brnn.BRNNRoom {
+	return syncOp(rm, func(s *managerState) []*brnn.BRNNRoom {
+		rooms := make([]*brnn.BRNNRoom, 0, len(s.brnnRooms))
+		for _, r := range s.brnnRooms {
+			rooms = append(rooms, r)
+		}
+		return rooms
+	})
+}
+
+// AssignPlayerToBRNN 原子地为玩家分配房间并加入，避免并发超员。
+func (rm *RoomManager) AssignPlayerToBRNN(p *brnn.BRNNPlayer) *brnn.BRNNRoom {
+	return syncOp(rm, func(s *managerState) *brnn.BRNNRoom {
+		cfg := brnn.DefaultConfig
+		// 找一个人数 < MaxPlayers 的房间（排除已含该玩家的房间）
+		var room *brnn.BRNNRoom
+		for _, r := range s.brnnRooms {
+			if r.GetPlayerCount() < cfg.MaxPlayers && r.GetPlayer(p.ID) == nil {
+				room = r
+				break
+			}
+		}
+		// 无可用房间，创建新房间
+		if room == nil {
+			s.brnnCounter++
+			id := fmt.Sprintf("brnn_%d", s.brnnCounter)
+			room = brnn.NewRoom(id, cfg)
+			s.brnnRooms[id] = room
+			logrus.WithField("roomId", id).Info("RoomManager-CreateBRNNRoom")
+		}
+		room.AddPlayer(p)
+		return room
+	})
 }
 
 func syncOp[T any](rm *RoomManager, f func(s *managerState) T) T {

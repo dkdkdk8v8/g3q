@@ -268,6 +268,7 @@ func UpdateUserSetting(setting *GameSettletruct) ([]*ModelUser, error) {
 					UserId:        user.UserId,
 					BalanceBefore: oldBalanceLock,
 					BalanceAfter:  user.BalanceLock,
+					ValidBet:      player.ValidBet,
 					GameRecordId:  setting.GameRecordId,
 					RecordType:    RecordTypeGame,
 				}
@@ -341,6 +342,16 @@ type ModelUserRecordOnlyBanalce struct {
 	RecordType    RecordType `orm:"column(record_type);default(0)"`
 	BalanceBefore int64      `orm:"column(balance_before);default(0)"` // 余额（分）
 	BalanceAfter  int64      `orm:"column(balance_after);default(0)"`  // 余额（分）
+}
+
+// GetUserDailySummary 查询用户某天的投注汇总（有效投注额、净盈亏）
+func GetUserDailySummary(userId string, dayStart, dayEnd time.Time) (totalBet int64, totalWin int64, err error) {
+	ormDb := GetReadOrm()
+	sql := `SELECT COALESCE(SUM(valid_bet), 0), COALESCE(SUM(balance_after - balance_before), 0)
+	FROM g3q_user_record
+	WHERE user_id = ? AND record_type = ? AND create_at >= ? AND create_at < ?`
+	err = ormDb.Raw(sql, userId, RecordTypeGame, dayStart, dayEnd).QueryRow(&totalBet, &totalWin)
+	return
 }
 
 func GetUserGameRecords(userId string, limit int) ([]*ModelUserRecordOnlyBanalce, error) {

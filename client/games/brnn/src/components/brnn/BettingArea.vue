@@ -1,0 +1,295 @@
+<script setup>
+import { computed } from 'vue'
+import { cardToDisplay, niuLabel } from '@shared/utils/bullfight.js'
+import { formatCoins } from '@shared/utils/format.js'
+
+const props = defineProps({
+  area: Object,
+  index: Number,
+  phase: String,
+  canBet: Boolean,
+})
+
+const emit = defineEmits(['bet'])
+
+const AREA_COLORS = ['#3b82f6', '#22c55e', '#a855f7', '#f59e0b'] // blue, green, purple, orange
+
+
+const headerColor = computed(() => AREA_COLORS[props.index] || '#666')
+
+const showFace = computed(() => {
+  return props.phase === 'SHOW_CARD' || props.phase === 'SETTLEMENT'
+})
+
+const hasCards = computed(() => {
+  return props.area && props.area.cards && props.area.cards.length > 0
+})
+
+const EMPTY_CARD = { rank: '', suit: '', isRed: false }
+
+const faceCards = computed(() => {
+  if (!hasCards.value) return Array(5).fill(EMPTY_CARD)
+  const cards = props.area.cards.map(c => cardToDisplay(c))
+  while (cards.length < 5) cards.push(EMPTY_CARD)
+  return cards
+})
+
+const showBack = computed(() => {
+  return !showFace.value && (hasCards.value || props.phase === 'DEALING')
+})
+
+const showPlaceholder = computed(() => {
+  return !showFace.value && !showBack.value
+})
+
+const niuText = computed(() => {
+  if (!showFace.value || !props.area) return ''
+  return niuLabel(props.area.niuType)
+})
+
+const winClass = computed(() => {
+  if (props.area.win === true) return 'win'
+  if (props.area.win === false) return 'lose'
+  return ''
+})
+
+const winText = computed(() => {
+  if (props.area.win === true) return '赢'
+  if (props.area.win === false) return '输'
+  return ''
+})
+
+function onAreaClick() {
+  if (props.canBet) {
+    emit('bet')
+  }
+}
+</script>
+
+<template>
+  <div
+    class="betting-area"
+    :class="{ 'can-bet': canBet, [winClass]: !!winClass }"
+    @click="onAreaClick"
+  >
+    <!-- Header -->
+    <div class="area-header" :style="{ backgroundColor: headerColor }">
+      <span class="area-name">{{ area.name }}</span>
+    </div>
+
+    <!-- Cards Row (all three states always in DOM, toggled by v-show) -->
+    <div class="area-cards">
+      <div v-show="showFace" class="cards-row">
+        <div
+          v-for="(card, i) in faceCards"
+          :key="i"
+          class="tiny-card"
+          :class="{ 'is-red': card.isRed }"
+        >
+          <span class="tc-rank">{{ card.rank }}</span>
+          <span class="tc-suit">{{ card.suit }}</span>
+        </div>
+      </div>
+      <div v-show="showBack" class="cards-row">
+        <div v-for="i in 5" :key="'b-' + i" class="tiny-card tiny-back">?</div>
+      </div>
+      <div v-show="showPlaceholder" class="area-cards-placeholder">-</div>
+    </div>
+
+    <!-- Niu Type Badge (always rendered, hidden when empty to reserve space) -->
+    <div class="area-niu" :class="{ 'niu-hidden': !niuText }">{{ niuText || '-' }}</div>
+
+    <!-- Bet Info -->
+    <div class="area-bets">
+      <div class="bet-row">
+        <span class="bet-label">总:</span>
+        <span class="bet-value">{{ formatCoins(area.totalBet) }}</span>
+      </div>
+      <div class="bet-row" :class="{ 'my-bet-active': area.myBet > 0 }">
+        <span class="bet-label">我:</span>
+        <span class="bet-value">{{ formatCoins(area.myBet) }}</span>
+      </div>
+    </div>
+
+    <!-- Win/Lose Indicator -->
+    <div v-if="winText" class="win-indicator" :class="winClass">
+      {{ winText }}
+    </div>
+
+    <!-- Clickable hint (always rendered, hidden when not betting to reserve space) -->
+    <div class="bet-hint" :class="{ 'hint-hidden': !canBet }">点击下注</div>
+  </div>
+</template>
+
+<style scoped>
+.betting-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 0 0 6px 0;
+  overflow: hidden;
+  position: relative;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.betting-area.can-bet {
+  border-color: rgba(255, 215, 0, 0.4);
+  cursor: pointer;
+}
+
+.betting-area.can-bet:active {
+  background: rgba(255, 215, 0, 0.1);
+}
+
+.betting-area.win {
+  border-color: #22c55e;
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.betting-area.lose {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.area-header {
+  width: 100%;
+  text-align: center;
+  padding: 4px 0;
+}
+
+.area-name {
+  color: #fff;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.area-cards {
+  display: flex;
+  padding: 6px 4px 4px;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+}
+
+.cards-row {
+  display: flex;
+  gap: 2px;
+  justify-content: center;
+}
+
+.tiny-card {
+  width: 24px;
+  height: 33px;
+  border-radius: 3px;
+  border: 1px solid #888;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: bold;
+  color: #333;
+  line-height: 1;
+}
+
+.tiny-card.is-red {
+  color: #e53e3e;
+}
+
+.tc-rank {
+  font-size: 10px;
+}
+
+.tc-suit {
+  font-size: 8px;
+}
+
+.tiny-card.tiny-back {
+  background: #2d5a27;
+  border-color: #3a7a32;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 12px;
+}
+
+.area-cards-placeholder {
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 14px;
+  height: 33px;
+  display: flex;
+  align-items: center;
+}
+
+.area-niu {
+  color: #fbbf24;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 2px 8px;
+  background: rgba(251, 191, 36, 0.15);
+  border-radius: 10px;
+  margin: 2px 0;
+}
+
+.area-niu.niu-hidden {
+  visibility: hidden;
+}
+
+.area-bets {
+  width: 100%;
+  padding: 2px 8px;
+}
+
+.bet-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.6;
+}
+
+.bet-row.my-bet-active {
+  color: #fbbf24;
+  font-weight: bold;
+}
+
+.bet-label {
+  flex-shrink: 0;
+}
+
+.bet-value {
+  text-align: right;
+}
+
+.win-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 28px;
+  font-weight: bold;
+  opacity: 0.85;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+.win-indicator.win {
+  color: #22c55e;
+}
+
+.win-indicator.lose {
+  color: #ef4444;
+}
+
+.bet-hint {
+  font-size: 10px;
+  color: rgba(255, 215, 0, 0.5);
+  margin-top: 2px;
+}
+
+.bet-hint.hint-hidden {
+  visibility: hidden;
+}
+</style>

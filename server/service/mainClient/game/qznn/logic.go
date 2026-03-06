@@ -445,25 +445,16 @@ func (r *QZNNRoom) AddPlayer(p *Player) (int, error) {
 		}
 	}
 	if p.IsRobot {
-		// 机器人不能5个在一个房间
-		botCount := 0
+		// 每个房间最多1个机器人
 		for _, existingPlayer := range r.Players {
 			if existingPlayer != nil && existingPlayer.IsRobot {
-				botCount++
-				if botCount >= 4 {
-					r.RoomMu.Unlock()
-					return 0, comm.ErrMaxRobotInRoom
-				}
+				r.RoomMu.Unlock()
+				return 0, comm.ErrMaxRobotInRoom
 			}
 		}
 	} else {
-		// 检查是否已经有真人用户了
-		for _, existingPlayer := range r.Players {
-			if existingPlayer != nil && !existingPlayer.IsRobot {
-				r.RoomMu.Unlock()
-				return 0, comm.ErrRealPlayerAlreadyInRoom
-			}
-		}
+		// 真人加入时更新时间戳
+		r.LastRealPlayerJoinAt = time.Now()
 	}
 
 	// 使用内部方法，避免递归锁，同时复用逻辑
@@ -530,10 +521,10 @@ func (r *QZNNRoom) PushPlayer(p *Player, msg any) {
 	conn := p.ConnWrap
 	p.Mu.RUnlock()
 
-	// 使用线程安全的 WriteJSON 方法
+	// 使用线程安全的 WriteMsgPack 方法
 	if conn != nil && conn.IsConnected() {
 		go func(c *ws.WsConnWrap, m any) {
-			_ = c.WriteJSON(m)
+			_ = comm.WriteMsgPack(c, m)
 		}(conn, msg)
 	}
 }
@@ -552,7 +543,7 @@ func (r *QZNNRoom) BroadcastWithPlayer(getMsg func(*Player) any) {
 
 		if conn != nil && conn.IsConnected() {
 			go func(c *ws.WsConnWrap, m any) {
-				_ = c.WriteJSON(m)
+				_ = comm.WriteMsgPack(c, m)
 			}(conn, msg)
 		}
 	}
@@ -570,7 +561,7 @@ func (r *QZNNRoom) broadcastWithPlayer(getMsg func(*Player) any) {
 		p.Mu.RUnlock()
 		if conn != nil && conn.IsConnected() {
 			go func(c *ws.WsConnWrap, m any) {
-				_ = c.WriteJSON(m)
+				_ = comm.WriteMsgPack(c, m)
 			}(conn, msg)
 		}
 	}
@@ -1342,6 +1333,7 @@ func (r *QZNNRoom) startGame() {
 		nGameRecordId, err1 = modelClient.InsertGameRecord(&modelClient.ModelGameRecord{
 			GameId:   r.GameID,
 			GameName: GameName,
+			RoomId:   r.ID,
 			GameData: string(roomBytes),
 		})
 		if err1 != nil {
@@ -1388,7 +1380,7 @@ func (r *QZNNRoom) startGame() {
 			logrus.WithField(
 				"gameId", r.GameID).WithField(
 				"userId", u.UserId).WithField(
-				"changeBal", u.ChangeBalance).Error("UpdateUserSetting-Restore")
+				"changeBal", u.ChangeBalance).WithError(err).Error("UpdateUserSetting-Restore")
 		}
 		logrus.WithField("gameId", r.GameID).WithField(
 			"userIds", strings.Join(allUserIds, ",")).Error("UpdateUserSetting-Fail-Exiting")

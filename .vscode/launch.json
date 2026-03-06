@@ -120,7 +120,7 @@
             "autoAttachChildProcesses": true
         },
         {
-            "name": "node:client:baijiale",
+            "name": "node:client:bjlnn",
             "type": "node",
             "request": "launch",
             "runtimeExecutable": "npm",
@@ -128,7 +128,7 @@
                 "run",
                 "dev"
             ],
-            "cwd": "${workspaceFolder}/client/games/baijiale",
+            "cwd": "${workspaceFolder}/client/games/bjlnn",
             "console": "integratedTerminal",
             "restart": true,
             "autoAttachChildProcesses": true

@@ -11,7 +11,7 @@ const (
 	AreaCount     = 4
 	GameName      = "brnn"
 	PlayerCardMax = 5
-	TrendMaxLen   = 50
+	TrendMaxLen   = 10
 )
 
 type RoomState string

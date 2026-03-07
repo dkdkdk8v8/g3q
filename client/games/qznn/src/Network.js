@@ -6,6 +6,7 @@ import { useLoadingStore } from '@shared/stores/loading.js';
 import router from './router';
 
 const client = new GameClient();
+client.apiBasePath = '/qznn/api';
 
 // 注入 loadingStore 获取方式
 client.getLoadingStore = () => useLoadingStore();

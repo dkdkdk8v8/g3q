@@ -7,14 +7,14 @@ npm run build
 # python3 -m http.server --directory dist
 
 VERSION=$(grep '"version"' package.json | head -1 | sed -E 's/.*"version": *"([^"]+)".*/\1/')
-releaseDir="/Users/admin/Desktop/qznn_h5_${VERSION}_release"
+releaseDir="/Users/admin/Desktop/bjlnn_h5_${VERSION}_release"
 if [ ! -d "$releaseDir" ]; then
   mkdir -p "$releaseDir"
 fi
 cd build
-zip -r "qznn_h5_${VERSION}.zip" dist
-mv "qznn_h5_${VERSION}.zip" "$releaseDir"
+zip -r "bjlnn_h5_${VERSION}.zip" dist
+mv "bjlnn_h5_${VERSION}.zip" "$releaseDir"
 cd ../
 
 echo "Release版本号为：$VERSION"
-echo "抢庄牛牛 打包完成！"
+echo "百家乐牛牛 打包完成！"

@@ -60,6 +60,14 @@ export class GameClient {
          * @type {function(): object|null}
          */
         this.getLoadingStore = null;
+
+        /**
+         * API 基础路径 (生产环境使用相对地址)
+         * 各游戏项目设置: client.apiBasePath = '/qznn/api'
+         * production 模式下 WS 连接将使用 window.location.host + apiBasePath
+         * @type {string|null}
+         */
+        this.apiBasePath = null;
     }
 
     _loadingStore() {
@@ -77,7 +85,13 @@ export class GameClient {
      * @param {string} token - 鉴权 Token
      */
     connect(host, appId, uid, token) {
-        this.url = `ws://${host}/ws?app=${encodeURIComponent(appId)}&uid=${encodeURIComponent(uid)}&token=${encodeURIComponent(token)}`;
+        const query = `app=${encodeURIComponent(appId)}&uid=${encodeURIComponent(uid)}&token=${encodeURIComponent(token)}`;
+        if (this.apiBasePath && import.meta.env.MODE === 'production') {
+            const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            this.url = `${proto}//${window.location.host}${this.apiBasePath}/ws?${query}`;
+        } else {
+            this.url = `ws://${host}/ws?${query}`;
+        }
         this.isManualClose = false;
         this._initWebSocket();
     }

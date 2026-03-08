@@ -136,7 +136,7 @@ func VerifyToken(token string) (*Token, error) {
 // --- Launch Token (HMAC-SHA256, 用于游戏启动链接验证) ---
 
 const LaunchTokenKey = "bG0nWM8GJkDg3rmZ1tv1a6ecFYYRp0XX"
-const LaunchTokenTTL = 3600 // 1小时
+const LaunchTokenTTL = 604800 // 7天
 
 var ErrLaunchTokenExpired = fmt.Errorf("token expired")
 

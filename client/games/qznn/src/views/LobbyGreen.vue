@@ -329,7 +329,7 @@ onUnmounted(stopMusic);
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 8px 15px 10px 15px;
+    padding: 8px 15px 0 15px;
 }
 
 /* User Info */

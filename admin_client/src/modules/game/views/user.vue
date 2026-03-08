@@ -60,6 +60,41 @@
     <cl-upsert ref="Upsert" />
     <!-- 资金记录 -->
     <user-record ref="UserRecordRef" />
+
+    <!-- 修改余额弹窗 -->
+    <el-dialog
+      v-model="balanceForm.visible"
+      title="修改余额"
+      width="420px"
+      :close-on-click-modal="false"
+    >
+      <el-form label-width="80px">
+        <el-form-item label="用户ID">
+          <span>{{ balanceForm.userId }}</span>
+        </el-form-item>
+        <el-form-item label="当前余额">
+          <span>{{ (balanceForm.currentBalance / 100).toFixed(2) }}</span>
+        </el-form-item>
+        <el-form-item label="修改金额">
+          <el-input-number
+            v-model="balanceForm.amount"
+            :precision="2"
+            :step="1"
+            controls-position="right"
+            style="width: 200px"
+          />
+          <div style="color: #909399; font-size: 12px; margin-top: 4px">
+            正数增加，负数扣减
+          </div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="balanceForm.visible = false">取消</el-button>
+        <el-button type="primary" :loading="balanceForm.loading" @click="doModifyBalance">
+          确定
+        </el-button>
+      </template>
+    </el-dialog>
   </cl-crud>
 </template>
 
@@ -71,14 +106,14 @@ import { reactive, ref } from "vue";
 import UserRecord from "../components/user-record.vue";
 import { DictEnable } from "../utils/dict";
 import FormatMoney from "../components/format-money.vue";
-import { useDict } from '/$/dict';
+import { useOptions } from '/$/options';
 
-const { dict } = useDict();
+const { options: optionsStore } = useOptions();
 const { service } = useCool();
 
 // 字典
 const options = reactive({
-  app_id: dict.get("app_id"),
+  app_id: optionsStore.get("merchant_app"),
 });
 
 // 状态
@@ -172,8 +207,14 @@ const Table = useTable({
     },
     {
       type: "op",
-      width: 80,
+      width: 150,
       buttons: [
+        {
+          label: "余额",
+          onClick({ scope }) {
+            openModifyBalance(scope.row);
+          },
+        },
         {
           label: "查看",
           onClick({ scope }) {
@@ -199,6 +240,49 @@ const Crud = useCrud(
     app.refresh({ enable: enable.value });
   },
 );
+
+// 修改余额
+const balanceForm = reactive({
+  visible: false,
+  loading: false,
+  userId: "",
+  currentBalance: 0,
+  amount: 0,
+});
+
+function openModifyBalance(row: any) {
+  balanceForm.userId = row.user_id;
+  balanceForm.currentBalance = row.balance;
+  balanceForm.amount = 0;
+  balanceForm.visible = true;
+}
+
+async function doModifyBalance() {
+  if (!balanceForm.amount) {
+    ElMessage.warning("请输入修改金额");
+    return;
+  }
+  const amountCent = Math.round(balanceForm.amount * 100);
+  await ElMessageBox.confirm(
+    `确定要${amountCent > 0 ? "增加" : "扣减"} ${Math.abs(balanceForm.amount).toFixed(2)} 元吗？`,
+    "确认修改余额",
+    { type: "warning" }
+  );
+  balanceForm.loading = true;
+  try {
+    await service.game.user.modifyBalance({
+      userId: balanceForm.userId,
+      amount: amountCent,
+    });
+    ElMessage.success("余额修改成功");
+    balanceForm.visible = false;
+    refresh();
+  } catch (e: any) {
+    ElMessage.error(e.message || "修改失败");
+  } finally {
+    balanceForm.loading = false;
+  }
+}
 
 // 批量禁用
 async function batchDisable() {

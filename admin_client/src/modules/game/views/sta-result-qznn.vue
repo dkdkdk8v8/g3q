@@ -45,15 +45,15 @@
 
 <script lang="ts" setup name="sta-result-qznn">
 import { useCool } from "/@/cool";
-import { useDict } from '/$/dict';
+import { useOptions } from '/$/options';
 import { reactive, ref, onMounted, onUnmounted, nextTick, watch } from "vue";
 import dayjs from "dayjs";
 
 const { service } = useCool();
-const { dict } = useDict();
+const { options: optionsStore } = useOptions();
 
 const options = reactive({
-    app_id: dict.get("app_id"),
+    app_id: optionsStore.get("merchant_app"),
 });
 
 const date = ref(dayjs().format("YYYY-MM-DD"));

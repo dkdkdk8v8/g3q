@@ -11,10 +11,10 @@ TgNormalChatID: -4824160224
 LogLevel: "debug"
 MysqlHost: "127.0.0.1"
 MysqlPort: "13306"
-MysqlUser: "admin"
-MysqlPwd: "S40bdYFgTy8uzz6A"
+MysqlUser: "root"
+MysqlPwd: "okmnjiuhb123@AV"
 MysqlConn: 10
 MysqlIdle: 5
 RedisAddr: "127.0.0.1:16379"
-RedisPwd: "asdflkjh12321"
+RedisPwd: "asdflkjh456654"
 IsSsl: false

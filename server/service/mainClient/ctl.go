@@ -76,18 +76,25 @@ func WSEntry(c *gin.Context) {
 
 	appUserId := c.Query("uid")
 	appId := c.Query("app")
-	// 如果中间件未提取到 UserID (WebSocket 握手通常通过 URL Query 传递 Token)
-	// todo 客户端以后加token验证逻辑后，再开启注释
-	// if userId == "" {
-	// 	token := c.Query("token")
-	// 	// 使用 comm.VerifyToken 进行验证，它包含了解密、签名校验和过期检查
-	// 	if t, err := comm.VerifyToken(token); err != nil {
-	// 		logrus.WithError(err).Error("WS-Auth-Fail")
-	// 		return
-	// 	} else {
-	// 		userId = t.ID
-	// 	}
-	// }
+	token := c.Query("token")
+	if err := comm.VerifyLaunchToken(token, appId, appUserId); err != nil {
+		// 仅签名正确但过期的 token 允许重连，其他错误直接拒绝
+		if !errors.Is(err, comm.ErrLaunchTokenExpired) {
+			logrus.WithField("app", appId).WithField("uid", appUserId).WithError(err).Warn("WS-Auth-Fail")
+			return
+		}
+		// 过期 token：检查是否有历史连接或仍在游戏房间中，允许断线重连
+		userId := appId + appUserId
+		wsConnectMapMutex.RLock()
+		_, hasHistory := wsConnectMap[userId]
+		wsConnectMapMutex.RUnlock()
+		inRoom := game.GetMgr().GetPlayerRoom(userId) != nil
+		if !hasHistory && !inRoom {
+			logrus.WithField("app", appId).WithField("uid", appUserId).WithError(err).Warn("WS-Auth-Fail")
+			return
+		}
+		logrus.WithField("app", appId).WithField("uid", appUserId).Info("WS-Auth-Reconnect")
+	}
 
 	logrus.WithField("appId", appId).WithField("appUserId", appUserId).Info("WS-Client-Connected")
 

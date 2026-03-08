@@ -53,6 +53,11 @@ const options = reactive({
 			label: t('文件'),
 			value: 2,
 			type: 'info'
+		},
+		{
+			label: t('字符串数组'),
+			value: 3,
+			type: 'warning'
 		}
 	]
 });
@@ -209,6 +214,22 @@ const Upsert = useUpsert({
 			}
 		},
 		{
+			prop: 'data_3',
+			label: t('数据'),
+			hidden({ scope }) {
+				return scope.dataType != 3;
+			},
+			required: true,
+			component: {
+				name: 'el-input',
+				props: {
+					rows: 12,
+					type: 'textarea',
+					placeholder: t('每行一个值，也支持空格、英文逗号、中文逗号分隔')
+				}
+			}
+		},
+		{
 			prop: 'remark',
 			label: t('备注'),
 			component: {
@@ -232,7 +253,8 @@ const Upsert = useUpsert({
 			data: data[`data_${data.dataType}`],
 			data_0: undefined,
 			data_1: undefined,
-			data_2: undefined
+			data_2: undefined,
+			data_3: undefined
 		});
 	}
 });

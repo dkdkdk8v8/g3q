@@ -119,6 +119,30 @@ declare namespace Eps {
 		[key: string]: any;
 	}
 
+	interface MerchantApiLogEntity {
+		/**
+		 * ID
+		 */
+		id?: number;
+
+		/**
+		 * 任意键值
+		 */
+		[key: string]: any;
+	}
+
+	interface MerchantEntity {
+		/**
+		 * ID
+		 */
+		id?: number;
+
+		/**
+		 * 任意键值
+		 */
+		[key: string]: any;
+	}
+
 	interface PluginInfoEntity {
 		/**
 		 * ID
@@ -242,6 +266,16 @@ declare namespace Eps {
 	interface GameUserPageResponse {
 		pagination: PagePagination;
 		list: GameUserEntity[];
+	}
+
+	interface MerchantApiLogPageResponse {
+		pagination: PagePagination;
+		list: MerchantApiLogEntity[];
+	}
+
+	interface MerchantMerchantPageResponse {
+		pagination: PagePagination;
+		list: MerchantEntity[];
 	}
 
 	interface PluginInfoPageResponse {
@@ -1011,6 +1045,11 @@ declare namespace Eps {
 		pageUserRecords(data?: any): Promise<any>;
 
 		/**
+		 * 修改用户余额
+		 */
+		modifyBalance(data?: any): Promise<any>;
+
+		/**
 		 * 批量禁用
 		 */
 		batchDisable(data?: any): Promise<any>;
@@ -1030,6 +1069,7 @@ declare namespace Eps {
 		 */
 		permission: {
 			pageUserRecords: string;
+			modifyBalance: string;
 			batchDisable: string;
 			batchEnable: string;
 			page: string;
@@ -1040,9 +1080,101 @@ declare namespace Eps {
 		 */
 		_permission: {
 			pageUserRecords: boolean;
+			modifyBalance: boolean;
 			batchDisable: boolean;
 			batchEnable: boolean;
 			page: boolean;
+		};
+
+		request: Request;
+	}
+
+	interface MerchantApiLog {
+		/**
+		 * 分页查询
+		 */
+		page(data?: any): Promise<MerchantApiLogPageResponse>;
+
+		/**
+		 * 权限标识
+		 */
+		permission: { page: string };
+
+		/**
+		 * 权限状态
+		 */
+		_permission: { page: boolean };
+
+		request: Request;
+	}
+
+	interface MerchantMerchant {
+		/**
+		 * 测试启动游戏链接
+		 */
+		testLaunchGame(data?: any): Promise<any>;
+
+		/**
+		 * 重置密钥
+		 */
+		resetSecret(data?: any): Promise<any>;
+
+		/**
+		 * 删除
+		 */
+		delete(data?: any): Promise<any>;
+
+		/**
+		 * 修改
+		 */
+		update(data?: any): Promise<any>;
+
+		/**
+		 * 单个信息
+		 */
+		info(data?: any): Promise<MerchantEntity>;
+
+		/**
+		 * 列表查询
+		 */
+		list(data?: any): Promise<MerchantEntity[]>;
+
+		/**
+		 * 分页查询
+		 */
+		page(data?: any): Promise<MerchantMerchantPageResponse>;
+
+		/**
+		 * 新增
+		 */
+		add(data?: any): Promise<any>;
+
+		/**
+		 * 权限标识
+		 */
+		permission: {
+			testLaunchGame: string;
+			resetSecret: string;
+			delete: string;
+			update: string;
+			info: string;
+			list: string;
+			page: string;
+			add: string;
+		};
+
+		/**
+		 * 权限状态
+		 */
+		_permission: {
+			testLaunchGame: boolean;
+			resetSecret: boolean;
+			delete: boolean;
+			update: boolean;
+			info: boolean;
+			list: boolean;
+			page: boolean;
+			add: boolean;
 		};
 
 		request: Request;
@@ -1367,6 +1499,7 @@ declare namespace Eps {
 		demo: { goods: DemoGoods };
 		dict: { info: DictInfo; type: DictType };
 		game: { robot: GameRobot; room: GameRoom; staPeriod: GameStaPeriod; user: GameUser };
+		merchant: { apiLog: MerchantApiLog; merchant: MerchantMerchant };
 		plugin: { info: PluginInfo };
 		recycle: { data: RecycleData };
 		space: { info: SpaceInfo; type: SpaceType };

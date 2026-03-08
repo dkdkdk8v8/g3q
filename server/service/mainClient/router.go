@@ -32,6 +32,8 @@ func InitAdminWebHandler(engine *gin.Engine) error {
 	baseGroup := engine.Use(comm.MidOptionCors)
 	baseGroup.GET("/rpc/ws", WSEntry)
 	baseGroup.GET("/rpc/qznn-data", RpcQZNNData)
+	baseGroup.GET("/rpc/kick", comm.HandlerAdminWrap(RpcKickPlayer))
+	baseGroup.GET("/rpc/online", comm.HandlerAdminWrap(RpcOnlineStatus))
 	baseGroup.GET("/ping", comm.HandlerAdminWrap(Ping))
 	baseGroup.GET("/deposit", comm.HandlerAdminWrap(Deposit))
 	baseGroup.GET("/withdraw", comm.HandlerAdminWrap(Withdraw))

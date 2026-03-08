@@ -34,6 +34,11 @@ export class GameUserController extends BaseController {
         return this.gameUserService.batchEnable(ids);
     }
 
+    @Post('/modifyBalance', { summary: '修改用户余额' })
+    async modifyBalance(@Body() body: { userId: string; amount: number }) {
+        return this.ok(await this.gameUserService.modifyBalance(body.userId, body.amount));
+    }
+
     @Get('/pageUserRecords', { summary: '获取用户资金记录' })
     async getUserRecords(
         @Query('page') page: number,

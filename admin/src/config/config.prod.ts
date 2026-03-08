@@ -50,8 +50,8 @@ export default {
   cool: {
     // 实体与路径，跟生成代码、前端请求、swagger文档相关 注意：线上不建议开启，以免暴露敏感信息
     eps: false,
-    // 是否自动导入模块数据库
-    initDB: true,
+    // 是否自动导入模块数据库（已关闭，改用 CustomDbInitService 支持"ID已存在则跳过"）
+    initDB: false,
     // 判断是否初始化的方式
     initJudge: 'db',
     // 是否自动导入模块菜单

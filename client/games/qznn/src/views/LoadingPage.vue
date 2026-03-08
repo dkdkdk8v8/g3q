@@ -103,7 +103,7 @@ export default {
       if (savedIp) {
         ipAddress.value = savedIp;
       } else {
-        ipAddress.value = '43.198.8.247:8082'; // Set default IP
+        ipAddress.value = '127.0.0.1:18082'; // Set default IP
       }
     });
 

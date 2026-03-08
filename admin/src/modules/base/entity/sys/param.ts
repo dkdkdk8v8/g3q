@@ -17,7 +17,7 @@ export class BaseSysParamEntity extends BaseEntity {
   data: string;
 
   @Column({
-    comment: '数据类型 0-字符串 1-富文本 2-文件 ',
+    comment: '数据类型 0-字符串 1-富文本 2-文件 3-字符串数组',
     default: 0,
   })
   dataType: number;

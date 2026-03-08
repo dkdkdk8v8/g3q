@@ -40,6 +40,12 @@ export class BaseSysParamService extends BaseService {
       if (result.dataType == 2) {
         return result.data.split(',');
       }
+      if (result.dataType == 3) {
+        return result.data
+          .split(/[\n\s,，]+/)
+          .map((s: string) => s.trim())
+          .filter((s: string) => s.length > 0);
+      }
     }
     return;
   }

@@ -162,7 +162,7 @@ export function useRender() {
 				return (
 					<el-button
 						plain
-						size={style.size}
+						size="small"
 						v-show={crud.getPermission("info")}
 						onClick={(e: MouseEvent) => {
 							crud.rowInfo(scope.row);
@@ -176,7 +176,7 @@ export function useRender() {
 					<el-button
 						text
 						type="primary"
-						size={style.size}
+						size="small"
 						v-show={crud.getPermission("update")}
 						onClick={(e: MouseEvent) => {
 							crud.rowEdit(scope.row);
@@ -190,7 +190,7 @@ export function useRender() {
 					<el-button
 						text
 						type="danger"
-						size={style.size}
+						size="small"
 						v-show={crud.getPermission("delete")}
 						onClick={(e: MouseEvent) => {
 							crud.rowDelete(scope.row);
@@ -201,7 +201,10 @@ export function useRender() {
 				);
 			} else {
 				if (typeof vnode === "object") {
-					if (vnode.hidden) {
+					const isHidden = typeof vnode.hidden === "function"
+						? vnode.hidden({ scope })
+						: vnode.hidden;
+					if (isHidden) {
 						return null;
 					}
 				}
@@ -214,6 +217,7 @@ export function useRender() {
 							<el-button
 								text
 								type={vnode.type}
+								size="small"
 								{...vnode?.props}
 								onClick={(e: MouseEvent) => {
 									vnode.onClick({ scope });

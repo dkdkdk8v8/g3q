@@ -35,7 +35,7 @@
           <el-descriptions-item label="请求方式">POST（application/json）</el-descriptions-item>
           <el-descriptions-item label="字符编码">UTF-8</el-descriptions-item>
           <el-descriptions-item label="签名算法">SHA256</el-descriptions-item>
-          <el-descriptions-item label="时间戳有效期">5 分钟</el-descriptions-item>
+          <el-descriptions-item label="时间戳有效期">1 小时</el-descriptions-item>
         </el-descriptions>
 
         <h4 style="margin-top: 20px">商户凭证</h4>
@@ -621,7 +621,7 @@ echo $response;`;
 
 const commonParams = [
   { name: 'appId', type: 'string', required: '是', desc: '商户唯一标识' },
-  { name: 'timestamp', type: 'number', required: '是', desc: 'Unix 时间戳（秒），与服务器时间差不超过 5 分钟' },
+  { name: 'timestamp', type: 'number', required: '是', desc: 'Unix 时间戳（秒），与服务器时间差不超过 1 小时' },
   { name: 'sign', type: 'string', required: '是', desc: 'SHA256 签名值' },
 ];
 
@@ -631,7 +631,7 @@ const authErrorCodes = [
   { code: 1003, message: 'sign is required', desc: '请求体缺少 sign' },
   { code: 1004, message: 'merchant not found', desc: 'appId 对应的商户不存在' },
   { code: 1005, message: 'merchant is disabled', desc: '商户已被禁用' },
-  { code: 1007, message: 'timestamp expired', desc: '时间戳与服务器时间差超过 5 分钟' },
+  { code: 1007, message: 'timestamp expired', desc: '时间戳与服务器时间差超过 1 小时' },
   { code: 1008, message: 'invalid sign', desc: '签名校验不通过' },
 ];
 
@@ -699,7 +699,7 @@ const apiList = [
     notes: [
       '首次调用会自动创建玩家，初始余额为 0，需通过 transferIn 充值后才能游戏',
       '如传入 nickname 或 avatar，后续调用会更新玩家信息',
-      '返回的 URL 中 token 采用 HMAC-SHA256 签名，有效期 5 分钟，过期后需重新调用接口获取新链接',
+      '返回的 URL 中 token 采用 HMAC-SHA256 签名，有效期 1 小时，过期后需重新调用接口获取新链接',
       'mode=html 模式：返回的 HTML 内嵌 JS 会并发请求所有线路的 /api-speed 接口，最先返回 200 的线路将被自动选中并跳转；若 5 秒内均未响应，则随机选择一条线路',
     ],
   },

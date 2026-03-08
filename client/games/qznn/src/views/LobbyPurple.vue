@@ -514,6 +514,7 @@ onUnmounted(stopMusic);
             rgba(255, 220, 255, 0.06) 50%,
             transparent 80%);
     pointer-events: none;
+    opacity: 0;
     animation: shimmerBreath 4s ease-in-out infinite;
 }
 

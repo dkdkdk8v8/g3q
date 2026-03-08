@@ -7,6 +7,7 @@ import path from 'path' // Need to import path
 
 export default defineConfig(({ mode }) => {
   return {
+    base: '/qznn/',
     server: {
       host: '127.0.0.1',
       port: 5173,

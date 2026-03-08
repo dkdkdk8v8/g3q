@@ -7,6 +7,7 @@ import path from 'path'
 
 export default defineConfig(({ mode }) => {
   return {
+    base: '/brnn/',
     server: {
       host: '127.0.0.1',
       port: 5174,

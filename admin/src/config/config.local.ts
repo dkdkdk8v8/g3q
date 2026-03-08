@@ -11,8 +11,8 @@ export default {
                 type: 'mysql',
                 host: '127.0.0.1',
                 port: 13306,
-                username: 'admin',
-                password: 'S40bdYFgTy8uzz6A',
+                username: 'root',
+                password: 'okmnjiuhb123@AV',
                 database: 'g3q_admin',
                 // 自动建表 注意：线上部署的时候不要使用，有可能导致数据丢失
                 synchronize: true,
@@ -30,8 +30,8 @@ export default {
                 type: 'mysql',
                 host: '127.0.0.1',
                 port: 13306,
-                username: 'admin',
-                password: 'S40bdYFgTy8uzz6A',
+                username: 'root',
+                password: 'okmnjiuhb123@AV',
                 database: 'g3q_server',
                 // 自动建表 注意：线上部署的时候不要使用，有可能导致数据丢失
                 synchronize: false,
@@ -54,7 +54,7 @@ export default {
     cool: {
         // 实体与路径，跟生成代码、前端请求、swagger文档相关 注意：线上不建议开启，以免暴露敏感信息
         eps: true,
-        // 是否自动导入模块数据库
+        // 是否自动导入模块数据库（已关闭，改用 CustomDbInitService 支持"ID已存在则跳过"）
         initDB: true,
         // 判断是否初始化的方式
         initJudge: 'db',

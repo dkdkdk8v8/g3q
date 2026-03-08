@@ -36,13 +36,6 @@ export default {
       },
     },
   },
-  puppeteer: {
-    launchOptions: {
-      headless: true,
-      timeout: 60 * 1000,
-      userDataDir: './chrome-profile/default',
-    },
-  },
   cool: {
     file: {
       mode: MODETYPE.CLOUD,

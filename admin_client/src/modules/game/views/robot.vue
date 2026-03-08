@@ -59,14 +59,14 @@ import { useCool } from "/@/cool";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { reactive, ref } from "vue";
 import { DictEnable } from "../utils/dict";
-import { useDict } from '/$/dict';
+import { useOptions } from '/$/options';
 
-const { dict } = useDict();
+const { options: optionsStore } = useOptions();
 const { service } = useCool();
 
 // 字典
 const options = reactive({
-	app_id: dict.get("app_id"),
+	app_id: optionsStore.get("merchant_app"),
 });
 
 // 状态

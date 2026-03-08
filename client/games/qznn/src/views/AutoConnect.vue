@@ -22,7 +22,7 @@ const userStore = useUserStore();
 const settingsStore = useSettingsStore();
 const loadingStore = useLoadingStore();
 
-const DEFAULT_HOST = '43.198.8.247:8082';
+const DEFAULT_HOST = '127.0.0.1:18082';
 
 onUnmounted(() => {
     gameClient.offServerPush('PushRouter');

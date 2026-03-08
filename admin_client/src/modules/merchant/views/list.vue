@@ -67,15 +67,24 @@
 
       <template v-else-if="testResult.url || testResult.html">
         <h4 style="margin: 0 0 8px">方式一：URL 直链</h4>
-        <el-input :model-value="testResult.url" readonly>
-          <template #append>
-            <el-button @click="copyText(testResult.url)">复制</el-button>
-          </template>
-        </el-input>
+        <div style="position: relative">
+          <el-input :model-value="testResult.url" type="textarea" :rows="3" readonly />
+          <el-button
+            size="small"
+            style="position: absolute; top: 6px; right: 6px; z-index: 1"
+            @click="copyText(testResult.url)"
+          >复制</el-button>
+        </div>
 
         <h4 style="margin: 16px 0 8px">方式二：HTML 测速页面</h4>
-        <el-input :model-value="testResult.html" type="textarea" :rows="6" readonly />
-        <el-button style="margin-top: 8px" @click="copyText(testResult.html)">复制 HTML</el-button>
+        <div style="position: relative">
+          <el-input :model-value="testResult.html" type="textarea" :rows="6" readonly />
+          <el-button
+            size="small"
+            style="position: absolute; top: 6px; right: 6px; z-index: 1"
+            @click="copyText(testResult.html)"
+          >复制</el-button>
+        </div>
       </template>
 
       <template v-else-if="testResult.error">

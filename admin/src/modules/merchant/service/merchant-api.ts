@@ -98,7 +98,7 @@ export class MerchantApiService extends BaseService {
   var params="${queryStr}";
   var done=false;
   lines.forEach(function(line){
-    fetch(line+"/api-speed",{mode:"cors",cache:"no-store"}).then(function(res){
+    fetch(line+"/api/api-speed",{mode:"cors",cache:"no-store"}).then(function(res){
       if(!done&&res.status===200){done=true;window.location.href=line+params;}
     }).catch(function(){});
   });

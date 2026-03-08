@@ -4,6 +4,7 @@ import { useLobby } from '../composables/useLobby.js';
 import HistoryModal from '../components/HistoryModal.vue';
 import SettingsModal from '../components/SettingsModal.vue';
 import HelpModal from '../components/HelpModal.vue';
+import LobbyBackgroundAnimation from '../components/LobbyBackgroundAnimation.vue';
 
 // Assets
 import avatarFrameImg from '@/assets/common/avatar_circle.png';
@@ -113,6 +114,9 @@ onUnmounted(stopMusic);
                 </TransitionGroup>
             </div>
         </div>
+
+        <LobbyBackgroundAnimation :mode="1" class="green-lobby-anim" />
+        <div class="lobby-full-glass"></div>
 
         <HistoryModal v-model:visible="showHistory" />
         <SettingsModal v-model:visible="showSettings" />
@@ -512,9 +516,17 @@ onUnmounted(stopMusic);
 }
 
 @keyframes miniBeamSweep {
-    0% { opacity: 0.8; }
-    50% { opacity: 0.15; }
-    100% { opacity: 0.8; }
+    0% {
+        opacity: 0.8;
+    }
+
+    50% {
+        opacity: 0.15;
+    }
+
+    100% {
+        opacity: 0.8;
+    }
 }
 
 .room-stat {
@@ -547,5 +559,21 @@ onUnmounted(stopMusic);
     height: 35px;
     width: auto;
     object-fit: contain;
+}
+
+.green-lobby-anim {
+    bottom: 38px !important;
+}
+
+.lobby-full-glass {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    backdrop-filter: blur(6px);
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.4));
+    pointer-events: none;
+    z-index: 0;
 }
 </style>

@@ -5,6 +5,25 @@ import Components from 'unplugin-vue-components/vite'
 import { VantResolver } from 'unplugin-vue-components/resolvers'
 import path from 'path' // Need to import path
 
+// 重定向 /qznn 到 /qznn/，兼容不带尾部斜杠的访问
+function trailingSlashPlugin() {
+  return {
+    name: 'trailing-slash-redirect',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const url = req.url || ''
+        if (url === '/qznn' || url.startsWith('/qznn?') || url.startsWith('/qznn#')) {
+          const rest = url.slice('/qznn'.length)
+          res.writeHead(301, { Location: '/qznn/' + rest })
+          res.end()
+          return
+        }
+        next()
+      })
+    },
+  }
+}
+
 export default defineConfig(({ mode }) => {
   return {
     base: '/qznn/',
@@ -13,6 +32,7 @@ export default defineConfig(({ mode }) => {
       port: 5173,
     },
     plugins: [
+      trailingSlashPlugin(),
       vue(),
       AutoImport({
         resolvers: [VantResolver()],

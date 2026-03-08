@@ -262,7 +262,7 @@ export class GameClient {
                     .then(() => {
                         this.retryConnection();
                     })
-                    .catch(() => {});
+                    .catch(() => { });
                 return;
             }
 
@@ -300,7 +300,7 @@ export class GameClient {
                 if (this.routerHandler) {
                     this.routerHandler('game');
                 }
-            }).catch(() => {});
+            }).catch(() => { });
             return;
         }
 

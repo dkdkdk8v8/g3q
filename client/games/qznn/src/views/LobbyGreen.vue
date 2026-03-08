@@ -390,10 +390,10 @@ onUnmounted(stopMusic);
 
 .coin-icon {
     width: auto;
-    height: 16px;
+    height: 18px;
     position: absolute;
-    left: -10px;
-    top: 40%;
+    left: -11px;
+    top: 8px;
     transform: translateY(-50%);
 }
 

@@ -74,6 +74,7 @@ onUnmounted(stopMusic);
                     <div class="user-details">
                         <span class="user-nickname">{{ userInfo.displayName }}</span>
                         <div class="coins-display" :style="{ backgroundImage: `url(${diamondBg})` }">
+                            <img :src="goldImg" class="coin-icon" />
                             <span class="coin-val">{{ userInfo.coins }}</span>
                         </div>
                     </div>
@@ -362,7 +363,6 @@ onUnmounted(stopMusic);
 }
 
 .user-nickname {
-    margin-left: 5px;
     text-align: center;
     color: white;
     font-size: 18px;
@@ -377,13 +377,15 @@ onUnmounted(stopMusic);
 }
 
 .coins-display {
+    margin-left: 8px;
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 0 4px 0 10px;
     background-size: 100% 100%;
     background-repeat: no-repeat;
+    height: 18px;
     position: relative;
+    width: fit-content;
 }
 
 .coin-icon {
@@ -400,7 +402,7 @@ onUnmounted(stopMusic);
     font-weight: bold;
     font-size: 14px;
     line-height: 1;
-    padding: 6px 6px 3px 20px;
+    padding: 6px 7px 5px 13px;
 }
 
 /* Main Content */
@@ -562,7 +564,7 @@ onUnmounted(stopMusic);
 }
 
 .green-lobby-anim {
-    bottom: 38px !important;
+    bottom: 28px !important;
 }
 
 .lobby-full-glass {

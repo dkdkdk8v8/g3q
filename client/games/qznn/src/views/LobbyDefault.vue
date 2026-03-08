@@ -97,8 +97,7 @@ onUnmounted(stopMusic);
                         <div class="room-info" :style="{ backgroundImage: `url(${eachRoomBg})` }"
                             @click="handleEnterRoomClick(room.level)">
                             <div class="room-info-content">
-                                <div class="room-name-container"
-                                    :style="{ backgroundImage: `url(${roomNameBgLv})` }">
+                                <div class="room-name-container" :style="{ backgroundImage: `url(${roomNameBgLv})` }">
                                     <img v-if="getRoomTextImage(room.name)" :src="getRoomTextImage(room.name)"
                                         class="room-name-img" />
                                     <span v-else class="room-name-text">{{ room.name }}</span>
@@ -165,20 +164,36 @@ onUnmounted(stopMusic);
 
 .lobby-full-glass {
     position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     backdrop-filter: blur(6px);
-    background: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.4));
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.4));
     pointer-events: none;
     z-index: 0;
 }
 
 @keyframes floatBg {
-    0%   { transform: translate(0, 0) scale(1); }
-    25%  { transform: translate(25%, 30%) scale(1.02); }
-    50%  { transform: translate(25%, 60%) scale(1.05); }
-    75%  { transform: translate(50%, 55%) scale(1.02); }
-    100% { transform: translate(80%, 50%) scale(1); }
+    0% {
+        transform: translate(0, 0) scale(1);
+    }
+
+    25% {
+        transform: translate(25%, 30%) scale(1.02);
+    }
+
+    50% {
+        transform: translate(25%, 60%) scale(1.05);
+    }
+
+    75% {
+        transform: translate(50%, 55%) scale(1.02);
+    }
+
+    100% {
+        transform: translate(80%, 50%) scale(1);
+    }
 }
 
 /* Top Area */
@@ -200,7 +215,10 @@ onUnmounted(stopMusic);
     padding: 20px 15px 5px 15px;
 }
 
-.top-left .btn-exit { height: 21px; cursor: pointer; }
+.top-left .btn-exit {
+    height: 21px;
+    cursor: pointer;
+}
 
 .top-right {
     display: flex;
@@ -208,9 +226,16 @@ onUnmounted(stopMusic);
     gap: 5px;
 }
 
-.top-icon-btn { height: 32px; cursor: pointer; }
+.top-icon-btn {
+    height: 32px;
+    cursor: pointer;
+}
 
-.top-separator { width: 2px; height: 13px; margin: 0 5px; }
+.top-separator {
+    width: 2px;
+    height: 13px;
+    margin: 0 5px;
+}
 
 .top-line-container {
     width: 100%;
@@ -221,7 +246,10 @@ onUnmounted(stopMusic);
     justify-content: center;
 }
 
-.top-line-img { width: 100%; height: 2px; }
+.top-line-img {
+    width: 100%;
+    height: 2px;
+}
 
 .top-row-2 {
     display: flex;
@@ -231,51 +259,262 @@ onUnmounted(stopMusic);
 }
 
 /* User Info */
-.user-info-container { display: flex; align-items: center; gap: 10px; }
-.avatar-wrapper { position: relative; width: 43px; height: 43px; }
-.user-avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
-.avatar-border-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
-.user-nickname { color: white; font-size: 14px; font-weight: bold; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
-.user-details { display: flex; flex-direction: column; justify-content: center; gap: 3px; padding-left: 5px; }
-.coins-display { display: flex; justify-content: center; align-items: center; padding: 0 4px 0 10px; background-size: 100% 100%; background-repeat: no-repeat; height: 18px; position: relative; }
-.coin-icon { width: auto; height: 16px; position: absolute; left: -10px; top: 40%; transform: translateY(-50%); }
-.coin-val { color: #FFD700; font-weight: bold; font-size: 14px; line-height: 1; }
+.user-info-container {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.avatar-wrapper {
+    position: relative;
+    width: 43px;
+    height: 43px;
+}
+
+.user-avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.avatar-border-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.user-nickname {
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    padding-left: 5px;
+}
+
+.coins-display {
+    margin-left: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    height: 18px;
+    position: relative;
+    width: fit-content;
+}
+
+.coin-icon {
+    width: auto;
+    height: 16px;
+    position: absolute;
+    left: -10px;
+    top: 40%;
+    transform: translateY(-50%);
+}
+
+.coin-val {
+    padding: 0 6px 0 11px;
+    color: #FFD700;
+    font-weight: bold;
+    font-size: 14px;
+    line-height: 1;
+}
 
 /* Main Content */
-.main-content { flex: 1; display: flex; overflow: hidden; padding-top: 10px; padding-bottom: 5px; position: relative; z-index: 1; min-height: 0; }
-.room-list-container { flex: 1; width: 100%; overflow-y: auto; padding: 0 15px 10px 15px; }
-.room-list-container::-webkit-scrollbar { display: none; }
-.room-list { display: flex; flex-direction: column; gap: 13px; }
+.main-content {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    padding-top: 10px;
+    padding-bottom: 5px;
+    position: relative;
+    z-index: 1;
+    min-height: 0;
+}
+
+.room-list-container {
+    flex: 1;
+    width: 100%;
+    overflow-y: auto;
+    padding: 0 15px 10px 15px;
+}
+
+.room-list-container::-webkit-scrollbar {
+    display: none;
+}
+
+.room-list {
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+}
 
 .room-row {
-    display: flex; align-items: center; height: 50px; position: relative;
-    opacity: 0; transform: translateX(30px);
+    display: flex;
+    align-items: center;
+    height: 50px;
+    position: relative;
+    opacity: 0;
+    transform: translateX(30px);
     animation: slideIn 0.5s ease forwards;
     transition: transform 0.1s ease;
 }
-.room-row.room-clicked { transform: scale(0.96) !important; }
 
-@keyframes slideIn { to { opacity: 1; transform: translateX(0); } }
+.room-row.room-clicked {
+    transform: scale(0.96) !important;
+}
 
-.room-info { width: 80%; height: 100%; background-size: 100% 100%; display: flex; align-items: center; padding: 0 10px; cursor: pointer; }
-.room-info-content { display: flex; align-items: center; width: 100%; justify-content: space-between; padding-right: 40px; }
-.room-name-container { background-size: 100% 100%; padding: 17px 15px 13px 20px; display: flex; justify-content: center; align-items: center; }
-.room-name-text { color: white; font-weight: bold; font-size: 14px; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
-.room-name-img { height: 15px; width: auto; object-fit: contain; }
-.room-stat { margin-left: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.stat-label-img { height: 10px; width: auto; object-fit: contain; margin-bottom: 10px; margin-top: 0; }
+@keyframes slideIn {
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.room-info {
+    width: 80%;
+    height: 100%;
+    background-size: 100% 100%;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    cursor: pointer;
+}
+
+.room-info-content {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    justify-content: space-between;
+    padding-right: 40px;
+}
+
+.room-name-container {
+    background-size: 100% 100%;
+    padding: 17px 15px 13px 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.room-name-text {
+    color: white;
+    font-weight: bold;
+    font-size: 14px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.room-name-img {
+    height: 15px;
+    width: auto;
+    object-fit: contain;
+}
+
+.room-stat {
+    margin-left: 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.stat-label-img {
+    height: 10px;
+    width: auto;
+    object-fit: contain;
+    margin-bottom: 10px;
+    margin-top: 0;
+}
 
 /* Enter Button */
-.room-enter-btn { position: absolute; right: 0; top: 50%; transform: translateY(-50%); height: 100%; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; max-width: 100px; }
-.enter-btn-wrapper { position: relative; height: 100%; display: flex; justify-content: center; align-items: center; transition: filter 0.1s ease; }
-.enter-btn-bg-img { height: 100%; width: auto; object-fit: contain; }
-.enter-btn-text-img { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); height: 28%; width: auto; z-index: 2; pointer-events: none; }
+.room-enter-btn {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    max-width: 100px;
+}
 
-.particles-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden; z-index: 1; pointer-events: none; }
-.star-particle { position: absolute; bottom: 10px; width: 3px; height: 3px; background-color: #ffd700; border-radius: 50%; box-shadow: 0 0 3px #fff; opacity: 0; animation: particleMove 2s infinite linear; }
+.enter-btn-wrapper {
+    position: relative;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: filter 0.1s ease;
+}
+
+.enter-btn-bg-img {
+    height: 100%;
+    width: auto;
+    object-fit: contain;
+}
+
+.enter-btn-text-img {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    height: 28%;
+    width: auto;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.particles-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.star-particle {
+    position: absolute;
+    bottom: 10px;
+    width: 3px;
+    height: 3px;
+    background-color: #ffd700;
+    border-radius: 50%;
+    box-shadow: 0 0 3px #fff;
+    opacity: 0;
+    animation: particleMove 2s infinite linear;
+}
+
 @keyframes particleMove {
-    0% { transform: translateY(0) scale(0.5); opacity: 0; }
-    20% { opacity: 1; }
-    100% { transform: translateY(-25px) scale(1); opacity: 0; }
+    0% {
+        transform: translateY(0) scale(0.5);
+        opacity: 0;
+    }
+
+    20% {
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(-25px) scale(1);
+        opacity: 0;
+    }
 }
 </style>

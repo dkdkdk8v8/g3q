@@ -48,7 +48,7 @@ export default defineComponent({
 					// 请求参数
 					params: {
 						page: 1,
-						size: 20
+						size: 100
 					},
 					// 请求服务
 					service: {},
@@ -82,7 +82,8 @@ export default defineComponent({
 			return (
 				<div
 					class={["cl-crud", { "is-border": props.border }]}
-					style={{ padding: props.padding }}>
+					style={{ padding: props.padding }}
+				>
 					{slots.default?.()}
 				</div>
 			);

@@ -262,28 +262,28 @@ public static String generateSign(Map&lt;String, Object&gt; params, String secre
       <el-card shadow="never" class="doc-section" id="sec-errors">
         <template #header><span class="section-title">12. 错误码</span></template>
 
-        <h5 style="margin: 12px 0 4px; color: #409eff">认证相关（10xx）</h5>
+        <h5 class="error-group-title" style="color: var(--el-color-primary)">认证相关（10xx）</h5>
         <el-table :data="authErrorCodes" border size="small" style="margin-bottom: 12px">
           <el-table-column prop="code" label="错误码" width="100" />
           <el-table-column prop="message" label="message" width="260" />
           <el-table-column prop="desc" label="说明" />
         </el-table>
 
-        <h5 style="margin: 12px 0 4px; color: #e6a23c">参数相关（2xxx）</h5>
+        <h5 class="error-group-title" style="color: var(--el-color-warning)">参数相关（2xxx）</h5>
         <el-table :data="paramErrorCodes" border size="small" style="margin-bottom: 12px">
           <el-table-column prop="code" label="错误码" width="100" />
           <el-table-column prop="message" label="message" width="260" />
           <el-table-column prop="desc" label="说明" />
         </el-table>
 
-        <h5 style="margin: 12px 0 4px; color: #f56c6c">业务相关（3xxx）</h5>
+        <h5 class="error-group-title" style="color: var(--el-color-danger)">业务相关（3xxx）</h5>
         <el-table :data="bizErrorCodes" border size="small" style="margin-bottom: 12px">
           <el-table-column prop="code" label="错误码" width="100" />
           <el-table-column prop="message" label="message" width="260" />
           <el-table-column prop="desc" label="说明" />
         </el-table>
 
-        <h5 style="margin: 12px 0 4px; color: #909399">其他</h5>
+        <h5 class="error-group-title" style="color: var(--el-text-color-secondary)">其他</h5>
         <el-table :data="otherErrorCodes" border size="small">
           <el-table-column prop="code" label="错误码" width="100" />
           <el-table-column prop="message" label="message" width="260" />
@@ -640,6 +640,7 @@ const paramErrorCodes = [
   { code: 2002, message: 'gameCode is required', desc: '缺少 gameCode 参数（启动游戏）' },
   { code: 2003, message: 'amount must be positive', desc: 'amount 必须大于 0（转入/转出）' },
   { code: 2004, message: 'orderId is required', desc: '缺少 orderId 参数（转入/转出）' },
+  { code: 2005, message: 'size cannot exceed 500', desc: 'size 超过最大限制 500（查询投注记录）' },
 ];
 
 const bizErrorCodes = [
@@ -868,7 +869,7 @@ const apiList = [
       { name: 'startTime', type: 'string', required: '否', desc: '开始时间，格式 YYYY-MM-DD HH:mm:ss' },
       { name: 'endTime', type: 'string', required: '否', desc: '结束时间，格式 YYYY-MM-DD HH:mm:ss' },
       { name: 'page', type: 'number', required: '否', desc: '页码，默认 1' },
-      { name: 'size', type: 'number', required: '否', desc: '每页条数，默认 20' },
+      { name: 'size', type: 'number', required: '否', desc: '每页条数，默认 20，最大 500' },
     ],
     response: [
       { name: 'list', type: 'array', desc: '投注记录列表' },
@@ -930,8 +931,8 @@ const apiList = [
 .doc-sidebar {
   width: 200px;
   min-width: 200px;
-  border-right: 1px solid #e4e7ed;
-  background: #fafafa;
+  border-right: 1px solid var(--el-border-color);
+  background: var(--el-bg-color-page);
   overflow-y: auto;
 }
 
@@ -944,7 +945,7 @@ const apiList = [
 .sidebar-title {
   font-size: 15px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
   margin-bottom: 12px;
   padding-left: 4px;
 }
@@ -956,14 +957,14 @@ const apiList = [
 .toc-group-label {
   font-size: 13px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
   padding: 6px 8px 2px;
 }
 
 .toc-item {
   padding: 6px 8px;
   font-size: 13px;
-  color: #606266;
+  color: var(--el-text-color-regular);
   cursor: pointer;
   border-radius: 4px;
   line-height: 1.4;
@@ -971,13 +972,13 @@ const apiList = [
 }
 
 .toc-item:hover {
-  color: #409eff;
-  background: #ecf5ff;
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
 }
 
 .toc-item.active {
-  color: #409eff;
-  background: #ecf5ff;
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
   font-weight: 600;
 }
 
@@ -996,10 +997,11 @@ const apiList = [
 .doc-header h2 {
   margin: 0 0 8px;
   font-size: 22px;
+  color: var(--el-text-color-primary);
 }
 
 .doc-desc {
-  color: #666;
+  color: var(--el-text-color-secondary);
   font-size: 14px;
   margin: 0;
 }
@@ -1016,8 +1018,8 @@ const apiList = [
 
 .code-block {
   position: relative;
-  background: #f5f7fa;
-  border: 1px solid #e4e7ed;
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color);
   border-radius: 4px;
   padding: 12px 16px;
   margin-bottom: 16px;
@@ -1029,13 +1031,13 @@ const apiList = [
   top: 8px;
   right: 8px;
   cursor: pointer;
-  color: #909399;
+  color: var(--el-text-color-placeholder);
   z-index: 1;
   transition: color 0.2s;
 }
 
 .copy-icon:hover {
-  color: #409eff;
+  color: var(--el-color-primary);
 }
 
 .code-block pre {
@@ -1044,24 +1046,27 @@ const apiList = [
   line-height: 1.6;
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
   white-space: pre;
+  color: var(--el-text-color-primary);
 }
 
 .doc-steps {
   padding-left: 20px;
   line-height: 2;
   font-size: 14px;
+  color: var(--el-text-color-regular);
 }
 
 .doc-steps code {
-  background: #f0f0f0;
+  background: var(--el-fill-color);
   padding: 2px 6px;
   border-radius: 3px;
   font-size: 13px;
+  color: var(--el-text-color-primary);
 }
 
 .param-hint {
   font-size: 13px;
-  color: #909399;
+  color: var(--el-text-color-placeholder);
   margin-bottom: 8px;
 }
 
@@ -1072,7 +1077,7 @@ const apiList = [
 .api-notes ul {
   padding-left: 20px;
   font-size: 14px;
-  color: #606266;
+  color: var(--el-text-color-regular);
   line-height: 1.8;
 }
 
@@ -1080,6 +1085,7 @@ h4 {
   margin: 16px 0 8px;
   font-size: 14px;
   font-weight: 600;
+  color: var(--el-text-color-primary);
 }
 
 /* 代码示例 */
@@ -1095,5 +1101,9 @@ h4 {
   border-top-left-radius: 0;
   border-top-right-radius: 0;
   margin-bottom: 0;
+}
+
+.error-group-title {
+  margin: 12px 0 4px;
 }
 </style>

@@ -91,9 +91,9 @@ export class MerchantAuthMiddleware
         return;
       }
 
-      // 时间戳校验（1小时过期）
+      // 时间戳校验（7天过期）
       const now = Math.floor(Date.now() / 1000);
-      if (Math.abs(now - timestamp) > 3600) {
+      if (Math.abs(now - timestamp) > 604800) {
         await fail(1007, 'timestamp expired');
         return;
       }

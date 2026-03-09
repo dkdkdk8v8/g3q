@@ -16,7 +16,7 @@ export default defineComponent({
 		const currentPage = ref(1);
 
 		// 每页大小
-		const pageSize = ref(20);
+		const pageSize = ref(100);
 
 		// 页数发生变化
 		function onCurrentChange(index: number) {
@@ -37,7 +37,7 @@ export default defineComponent({
 		function setPagination(res: obj) {
 			if (res) {
 				currentPage.value = res.currentPage || res.page || 1;
-				pageSize.value = res.pageSize || res.size || 20;
+				pageSize.value = res.pageSize || res.size || 100;
 				total.value = res.total || 0;
 				crud.params.size = pageSize.value;
 			}
@@ -69,7 +69,7 @@ export default defineComponent({
 			return h(
 				<el-pagination
 					class="cl-pagination"
-					size={browser.isMini ? 'small' : style.size}
+					size={browser.isMini ? "small" : style.size}
 					background
 					page-sizes={[10, 20, 30, 40, 50, 100]}
 					pager-count={browser.isMini ? 5 : 7}

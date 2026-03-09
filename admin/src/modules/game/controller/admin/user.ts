@@ -4,6 +4,7 @@ import { Body, Get, Inject, Post, Provide, Query } from "@midwayjs/decorator";
 
 import { GameUserEntity } from '../../entityGame/user';
 import { GameUserService } from '../../service/user';
+import { TypeORMDataSourceManager } from '@midwayjs/typeorm';
 
 @Provide()
 @CoolController({
@@ -11,11 +12,40 @@ import { GameUserService } from '../../service/user';
     entity: GameUserEntity,
     service: GameUserService,
     pageQueryOp: {
-        fieldEq: ['app_id', 'enable', 'user_id', 'is_robot'],
+        fieldEq: ['app_id', 'enable', 'app_user_id', 'is_robot'],
         where: async (ctx) => {
-            return [
+            const conditions: any[] = [
                 ["a.is_robot = :is_robot", { is_robot: false }],
-            ]
+            ];
+            // 非超管按绑定商户过滤
+            if (ctx.admin?.username !== 'admin') {
+                const dataSourceManager: TypeORMDataSourceManager =
+                    await ctx.requestContext.getAsync(TypeORMDataSourceManager);
+                const dataSource = dataSourceManager.getDataSource('default');
+                const [row] = await dataSource.query(
+                    'SELECT appIds FROM base_sys_user WHERE id = ?',
+                    [ctx.admin?.userId]
+                );
+                let appIds: string[] = [];
+                try {
+                    appIds = row?.appIds ? JSON.parse(row.appIds) : [];
+                } catch {}
+                if (appIds.length > 0) {
+                    const paramObj: Record<string, string> = {};
+                    const placeholders = appIds.map((id, i) => {
+                        paramObj[`appId${i}`] = id;
+                        return `:appId${i}`;
+                    });
+                    conditions.push([
+                        `a.app_id IN (${placeholders.join(', ')})`,
+                        paramObj,
+                    ]);
+                } else {
+                    // 未绑定商户，不允许查看任何用户
+                    conditions.push(["1 = 0", {}]);
+                }
+            }
+            return conditions;
         },
     },
 })

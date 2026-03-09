@@ -69,5 +69,6 @@ server/server/main_tunnel/main_tunnel
 **/*.deadlock
 
 # ============ Misc ============
-.gemini/settings.json
+.claude/
+.gemini/
 .playwright-mcp/

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+</head>
+
+<body>
+    <script>
+        (function () {
+            var lines = ["https://game3q001.xyz", "https://game3q002.xyz"];
+            var params = "/qznn?app=test2&uid=teyice&token=69aeac6c.4caa3c4406ba5dee6a6ecef623ae78e17425f04920a23498f6bb6fbf33a25686&mode=0";
+            var done = false;
+            lines.forEach(function (line) {
+                fetch(line + "/qznn/api/api-speed", { mode: "cors", cache: "no-store" }).then(function (res) {
+                    if (!done && res.status === 200) { done = true; window.location.href = line + params; }
+                }).catch(function () { });
+            });
+            setTimeout(function () {
+                if (!done) { done = true; window.location.href = lines[Math.floor(Math.random() * lines.length)] + params; }
+            }, 5000);
+        })();
+    </script>
+</body>
+
+</html>

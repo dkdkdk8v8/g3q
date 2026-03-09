@@ -208,7 +208,12 @@ router.beforeEach(async (to, from, next) => {
 
 	// 如果路由不存在
 	if (!route) {
-		next(user.token ? '/404' : '/login'); // 根据用户登录状态重定向
+		if (user.token) {
+			ElMessage.error('页面不存在 (404)');
+			next(from.fullPath || '/');
+		} else {
+			next('/login');
+		}
 		return;
 	}
 

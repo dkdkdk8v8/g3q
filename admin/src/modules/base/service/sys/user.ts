@@ -8,6 +8,7 @@ import * as _ from 'lodash';
 import { BaseSysUserRoleEntity } from '../../entity/sys/user_role';
 import * as md5 from 'md5';
 import { BaseSysDepartmentEntity } from '../../entity/sys/department';
+import { MerchantEntity } from '../../../merchant/entity/merchant';
 import { CachingFactory, MidwayCache } from '@midwayjs/cache-manager';
 
 /**
@@ -23,6 +24,9 @@ export class BaseSysUserService extends BaseService {
 
   @InjectEntityModel(BaseSysDepartmentEntity)
   baseSysDepartmentEntity: Repository<BaseSysDepartmentEntity>;
+
+  @InjectEntityModel(MerchantEntity)
+  merchantEntity: Repository<MerchantEntity>;
 
   @InjectClient(CachingFactory, 'default')
   midwayCache: MidwayCache;
@@ -44,7 +48,7 @@ export class BaseSysUserService extends BaseService {
     ); // 部门权限
     const sql = `
         SELECT
-            a.id,a.name,a.nickName,a.headImg,a.email,a.remark,a.status,a.createTime,a.updateTime,a.username,a.phone,a.departmentId,
+            a.id,a.name,a.nickName,a.headImg,a.email,a.remark,a.status,a.createTime,a.updateTime,a.username,a.phone,a.departmentId,a.appIds,
             b.name as "departmentName"
         FROM
             base_sys_user a
@@ -79,6 +83,33 @@ export class BaseSysUserService extends BaseService {
           .filter(role => role.userId == e.id)
           .map(role => role.name)
           .join(',');
+      });
+    }
+    // 解析商户名称
+    const allAppIds = new Set<string>();
+    result.list.forEach(e => {
+      if (e.appIds) {
+        try {
+          const ids = JSON.parse(e.appIds);
+          if (Array.isArray(ids)) ids.forEach(id => allAppIds.add(id));
+        } catch {}
+      }
+    });
+    if (allAppIds.size > 0) {
+      const merchants = await this.merchantEntity.find({
+        where: { appId: In([...allAppIds]) },
+        select: ['appId', 'merchantName'],
+      });
+      const nameMap = new Map(merchants.map(m => [m.appId, m.merchantName]));
+      result.list.forEach(e => {
+        if (e.appIds) {
+          try {
+            const ids = JSON.parse(e.appIds);
+            if (Array.isArray(ids)) {
+              e['merchantNames'] = ids.map(id => nameMap.get(id) || id).join(', ');
+            }
+          } catch {}
+        }
       });
     }
     return result;

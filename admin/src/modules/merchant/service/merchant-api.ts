@@ -58,10 +58,11 @@ export class MerchantApiService extends BaseService {
         app_id: appId,
         app_user_id: playerId,
         nick_name: nickname || playerId,
-        avatar: avatar || this.generateAvatar(userId),
+        avatar: avatar || await this.generateAvatar(userId),
         enable: true,
         balance: 0,
         balance_lock: 0,
+        create_at: new Date(),
       });
       await this.userEntity.save(user);
     } else if (nickname || avatar) {
@@ -176,10 +177,11 @@ export class MerchantApiService extends BaseService {
           app_id: appId,
           app_user_id: playerId,
           nick_name: nickname || playerId,
-          avatar: avatar || this.generateAvatar(userId),
+          avatar: avatar || await this.generateAvatar(userId),
           enable: true,
           balance: 0,
           balance_lock: 0,
+          create_at: new Date(),
         });
         created = true;
       } else if (nickname || avatar) {
@@ -313,7 +315,8 @@ export class MerchantApiService extends BaseService {
     page?: number;
     size?: number;
   }) {
-    const { appId, playerId, startTime, endTime, page = 1, size = 20 } = param;
+    const { appId, playerId, startTime, endTime, page = 1, size: rawSize = 20 } = param;
+    const size = Math.min(rawSize, 500);
 
     const qb = this.userRecordEntity
       .createQueryBuilder('r')
@@ -371,13 +374,15 @@ export class MerchantApiService extends BaseService {
     return `${tsHex}.${hmac}`;
   }
 
-  /** 根据 userId 确定性分配默认头像编号（1-12） */
-  private generateAvatar(userId: string): string {
+  /** 根据 userId 确定性分配默认随机头像 */
+  private async generateAvatar(userId: string): Promise<string> {
+    const count = (await this.baseSysParamService.dataByKey('admin.AvatarCount')) || 12;
     let hash = 0;
     for (let i = 0; i < userId.length; i++) {
       hash = ((hash << 5) - hash) + userId.charCodeAt(i);
       hash |= 0;
     }
-    return `${(Math.abs(hash) % 12) + 1}`;
+    const index = (Math.abs(hash) % count) + 1;
+    return `gwd3czq/${index}.jpg`;
   }
 }

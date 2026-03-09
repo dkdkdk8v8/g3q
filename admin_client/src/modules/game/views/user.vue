@@ -11,13 +11,13 @@
         批量禁用
       </el-button>
       <cl-flex1 />
-      <cl-filter label="APP">
+      <cl-filter v-if="showAppFilter" label="APP">
         <cl-select :options="options.app_id" prop="app_id" :width="120" />
       </cl-filter>
-      <cl-search-key field="user_id" :field-list="[
+      <cl-search-key field="app_user_id" :field-list="[
         {
           label: '用户ID',
-          value: 'user_id'
+          value: 'app_user_id'
         },
       ]" />
     </cl-row>
@@ -58,31 +58,19 @@
 
     <!-- 新增、编辑 -->
     <cl-upsert ref="Upsert" />
-    <!-- 资金记录 -->
-    <user-record ref="UserRecordRef" />
 
     <!-- 修改余额弹窗 -->
-    <el-dialog
-      v-model="balanceForm.visible"
-      title="修改余额"
-      width="420px"
-      :close-on-click-modal="false"
-    >
+    <el-dialog v-model="balanceForm.visible" title="修改余额" width="420px" :close-on-click-modal="false">
       <el-form label-width="80px">
         <el-form-item label="用户ID">
-          <span>{{ balanceForm.userId }}</span>
+          <span>{{ balanceForm.displayUserId }}</span>
         </el-form-item>
         <el-form-item label="当前余额">
           <span>{{ (balanceForm.currentBalance / 100).toFixed(2) }}</span>
         </el-form-item>
         <el-form-item label="修改金额">
-          <el-input-number
-            v-model="balanceForm.amount"
-            :precision="2"
-            :step="1"
-            controls-position="right"
-            style="width: 200px"
-          />
+          <el-input-number v-model="balanceForm.amount" :precision="2" :step="1" controls-position="right"
+            style="width: 200px" />
           <div style="color: #909399; font-size: 12px; margin-top: 4px">
             正数增加，负数扣减
           </div>
@@ -102,32 +90,54 @@
 import { useCrud, useTable, useUpsert } from "@cool-vue/crud";
 import { useCool } from "/@/cool";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { reactive, ref } from "vue";
-import UserRecord from "../components/user-record.vue";
+import { reactive, ref, computed } from "vue";
 import { DictEnable } from "../utils/dict";
 import FormatMoney from "../components/format-money.vue";
 import { useOptions } from '/$/options';
+import { useBase } from '/$/base';
 
 const { options: optionsStore } = useOptions();
-const { service } = useCool();
+const { service, router } = useCool();
+const { user } = useBase();
+
+// 解析当前用户绑定的商户
+const userAppIds = computed<string[]>(() => {
+  try {
+    const ids = user.info?.appIds ? JSON.parse(user.info.appIds) : [];
+    return Array.isArray(ids) ? ids : [];
+  } catch {
+    return [];
+  }
+});
+
+// 根据绑定商户过滤选项
+const allMerchantOptions = optionsStore.get("merchant_app");
+const filteredAppOptions = computed(() => {
+  if (!userAppIds.value.length) return allMerchantOptions.value;
+  return allMerchantOptions.value.filter((o: any) => userAppIds.value.includes(o.value));
+});
+const showAppFilter = computed(() => filteredAppOptions.value.length > 1);
 
 // 字典
 const options = reactive({
-  app_id: optionsStore.get("merchant_app"),
+  app_id: filteredAppOptions,
+});
+
+// 是否显示APP列（admin 或绑定多个商户时显示）
+const showAppColumn = computed(() => {
+  if (user.info?.username === 'admin') return true;
+  return filteredAppOptions.value.length > 1;
 });
 
 // 状态
 const enable = ref(1);
 
-// 记录弹窗
-const UserRecordRef = ref();
-
 // cl-table
 const Table = useTable({
   columns: [
     { type: "selection" },
-    { label: "APP", prop: "app_id", dict: options.app_id, dictColor: true, minWidth: 100, fixed: "left" },
-    { label: "用户ID", prop: "user_id", minWidth: 120, fixed: "left" },
+    { label: "APP", prop: "app_id", dict: options.app_id, dictColor: true, minWidth: 100, fixed: "left", hidden: !showAppColumn.value },
+    { label: "用户ID", prop: "app_user_id", minWidth: 120, fixed: "left" },
     {
       label: "头像",
       prop: "avatar",
@@ -141,9 +151,17 @@ const Table = useTable({
     },
     { label: "昵称", prop: "nick_name", minWidth: 100 },
     {
-      label: "余额",
+      label: "总余额",
+      prop: "_total_balance",
+      minWidth: 90,
+      formatter(row) {
+        return ((Number(row.balance) + Number(row.balance_lock)) / 100).toFixed(2);
+      },
+    },
+    {
+      label: "可用余额",
       prop: "balance",
-      minWidth: 80,
+      minWidth: 90,
       formatter(row) {
         return (row.balance / 100).toFixed(2);
       },
@@ -151,7 +169,7 @@ const Table = useTable({
     {
       label: "锁定余额",
       prop: "balance_lock",
-      minWidth: 80,
+      minWidth: 90,
       formatter(row) {
         return (row.balance_lock / 100).toFixed(2);
       },
@@ -207,18 +225,21 @@ const Table = useTable({
     },
     {
       type: "op",
-      width: 150,
+      width: 180,
       buttons: [
         {
-          label: "余额",
+          label: "修改余额",
           onClick({ scope }) {
             openModifyBalance(scope.row);
           },
         },
         {
-          label: "查看",
+          label: "资金记录",
           onClick({ scope }) {
-            UserRecordRef.value?.open(scope.row);
+            router.push({
+              path: "/game/user-record",
+              query: { app_user_id: scope.row.app_user_id },
+            });
           },
         },
       ]
@@ -237,7 +258,12 @@ const Crud = useCrud(
     service: service.game.user,
   },
   (app) => {
-    app.refresh({ enable: enable.value });
+    const params: any = { enable: enable.value };
+    // 只绑定1个商户时自动带上筛选
+    if (userAppIds.value.length === 1) {
+      params.app_id = userAppIds.value[0];
+    }
+    app.refresh(params);
   },
 );
 
@@ -246,12 +272,14 @@ const balanceForm = reactive({
   visible: false,
   loading: false,
   userId: "",
+  displayUserId: "",
   currentBalance: 0,
   amount: 0,
 });
 
 function openModifyBalance(row: any) {
   balanceForm.userId = row.user_id;
+  balanceForm.displayUserId = row.app_user_id;
   balanceForm.currentBalance = row.balance;
   balanceForm.amount = 0;
   balanceForm.visible = true;

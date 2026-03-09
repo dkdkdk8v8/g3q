@@ -5,10 +5,6 @@
 				<div class="title">{{ $t('基本信息') }}</div>
 
 				<el-form label-width="100px" :model="form" :disabled="loading" label-position="top">
-					<el-form-item :label="$t('头像')">
-						<cl-upload v-model="form.headImg" />
-					</el-form-item>
-
 					<el-form-item :label="$t('昵称')">
 						<el-input
 							v-model="form.nickName"
@@ -63,7 +59,6 @@ const { user } = useBase();
 
 // 表单数据
 const form = reactive({
-	headImg: '',
 	nickName: '',
 	password: '',
 	oldPassword: ''
@@ -93,7 +88,6 @@ async function save() {
 }
 
 onMounted(() => {
-	form.headImg = user.info?.headImg || '';
 	form.nickName = user.info?.nickName || '';
 });
 </script>

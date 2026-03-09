@@ -143,20 +143,14 @@ request.interceptors.response.use(
 			if (status == 401) {
 				user.logout(); // 未授权，登出用户
 			} else {
-				if (!isDev) {
-					switch (status) {
-						case 403:
-							router.push('/403'); // 禁止访问
-							break;
-
-						case 500:
-							router.push('/500'); // 服务器错误
-							break;
-
-						case 502:
-							router.push('/502'); // 网关错误
-							break;
-					}
+				const msgMap: Record<number, string> = {
+					403: '禁止访问 (403)',
+					500: '服务器错误 (500)',
+					502: '网关错误 (502)'
+				};
+				const msg = msgMap[status];
+				if (msg) {
+					ElMessage.error(msg);
 				}
 			}
 		}

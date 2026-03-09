@@ -15,6 +15,7 @@ import { Context } from '@midwayjs/koa';
  *   2002 — gameCode 缺失
  *   2003 — amount 必须大于 0
  *   2004 — orderId 缺失
+ *   2005 — size 超过最大限制
  *   3001 — 玩家不存在
  *   3002 — 余额不足
  *   3003 — 玩家在游戏中，无法转出
@@ -154,6 +155,7 @@ export class MerchantOpenApiController extends BaseController {
   @Post('/betRecords', { summary: '查询投注记录' })
   async betRecords(@Body() body: any) {
     const { playerId, startTime, endTime, page, size } = body;
+    if (size > 500) return this.error(2005, 'size cannot exceed 500');
     try {
       const result = await this.merchantApiService.getBetRecords({
         appId: this.getAppId(),

@@ -119,6 +119,18 @@ declare namespace Eps {
 		[key: string]: any;
 	}
 
+	interface GameUserRecordEntity {
+		/**
+		 * undefined
+		 */
+		id?: number;
+
+		/**
+		 * 任意键值
+		 */
+		[key: string]: any;
+	}
+
 	interface MerchantApiLogEntity {
 		/**
 		 * ID
@@ -261,6 +273,11 @@ declare namespace Eps {
 	interface GameRobotPageResponse {
 		pagination: PagePagination;
 		list: GameUserEntity[];
+	}
+
+	interface GameUserRecordPageResponse {
+		pagination: PagePagination;
+		list: GameUserRecordEntity[];
 	}
 
 	interface GameUserPageResponse {
@@ -1038,6 +1055,25 @@ declare namespace Eps {
 		request: Request;
 	}
 
+	interface GameUserRecord {
+		/**
+		 * 分页查询
+		 */
+		page(data?: any): Promise<GameUserRecordPageResponse>;
+
+		/**
+		 * 权限标识
+		 */
+		permission: { page: string };
+
+		/**
+		 * 权限状态
+		 */
+		_permission: { page: boolean };
+
+		request: Request;
+	}
+
 	interface GameUser {
 		/**
 		 * 获取用户资金记录
@@ -1498,7 +1534,13 @@ declare namespace Eps {
 		};
 		demo: { goods: DemoGoods };
 		dict: { info: DictInfo; type: DictType };
-		game: { robot: GameRobot; room: GameRoom; staPeriod: GameStaPeriod; user: GameUser };
+		game: {
+			robot: GameRobot;
+			room: GameRoom;
+			staPeriod: GameStaPeriod;
+			userRecord: GameUserRecord;
+			user: GameUser;
+		};
 		merchant: { apiLog: MerchantApiLog; merchant: MerchantMerchant };
 		plugin: { info: PluginInfo };
 		recycle: { data: RecycleData };

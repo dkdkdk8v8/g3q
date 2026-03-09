@@ -5,7 +5,7 @@ export default {
   local: [
     // {
     //   sshOptions: {
-    //     host: '43.198.45.138',
+    //     host: '43.198.8.247',
     //     port: 22,
     //     username: 'ec2-user',
     //     privateKey: readFileSync(
@@ -15,7 +15,7 @@ export default {
     //   forwardOptions: {
     //     srcAddr: '127.0.0.1',
     //     srcPort: 13306,
-    //     dstAddr: '127.0.0.1',
+    //     dstAddr: 'database-g3q-instance-1.c1y06igkstt7.ap-east-1.rds.amazonaws.com',
     //     dstPort: 3306,
     //   },
     // },

@@ -56,7 +56,9 @@ func (a *ModelUser) TableUnique() [][]string {
 
 func (a *ModelUser) TableIndex() [][]string {
 	return [][]string{
-		{"user_id"}, {"enable"}, {"app_id"}, {"app_user_id"}, {"is_robot"},
+		{"is_robot", "app_id", "enable", "create_at"}, // 后台用户列表：按商户+状态筛选+时间排序
+		{"is_robot", "enable", "last_played"},          // 机器人查询：空闲机器人排序
+		{"app_id", "app_user_id"},                      // 按商户+商户用户ID查找
 	}
 }
 
@@ -86,6 +88,8 @@ func (a *ModelUserRecord) TableUnique() [][]string {
 
 func (a *ModelUserRecord) TableIndex() [][]string {
 	return [][]string{
-		{"user_id"}, {"game_record_id"}, {"create_at"},
+		{"user_id", "record_type", "create_at"}, // 主复合索引：策略日汇总、商户/后台按类型+时间查询
+		{"user_id", "create_at"},                 // 客户端按时间范围查记录
+		{"game_record_id"},                       // JOIN game_record
 	}
 }

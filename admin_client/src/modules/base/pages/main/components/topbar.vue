@@ -27,14 +27,11 @@
 				@command="onCommand"
 			>
 				<div class="app-topbar__user">
-					<el-text class="mr-[10px]">{{ user.info.nickName }}</el-text>
-					<cl-avatar :size="26" :src="user.info.headImg" />
+					<el-text>{{ user.info.nickName }}</el-text>
 				</div>
 
 				<template #dropdown>
 					<div class="user">
-						<cl-avatar :size="34" :src="user.info.headImg" />
-
 						<div class="det">
 							<el-text size="small" tag="p">{{ user.info.nickName }}</el-text>
 							<el-text size="small" type="info">{{ user.info.email }}</el-text>

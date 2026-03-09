@@ -312,9 +312,9 @@ func GetUserGameRecordsJoinGameRecord(userId string, limit int, id uint64, start
 	sql := `SELECT g3q_user_record.*, g3q_game_record.game_name, g3q_game_record.game_data
 	FROM g3q_user_record
 	LEFT JOIN g3q_game_record ON g3q_user_record.game_record_id = g3q_game_record.id
-	WHERE g3q_user_record.user_id = ?`
+	WHERE g3q_user_record.user_id = ? AND g3q_user_record.record_type = ?`
 	var args []interface{}
-	args = append(args, userId)
+	args = append(args, userId, RecordTypeGame)
 	if id > 0 {
 		sql += " AND g3q_user_record.id < ?"
 		args = append(args, id)

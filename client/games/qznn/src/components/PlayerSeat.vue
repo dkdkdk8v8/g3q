@@ -131,7 +131,8 @@ const props = defineProps({
     hiddenCardIndices: {
         type: Array,
         default: () => []
-    }
+    },
+    speech: Object, // { type: 'text' | 'emoji', content: string }
 });
 
 const store = useGameStore();
@@ -400,6 +401,11 @@ const shouldMoveStatusFloat = computed(() => {
     // Also during SHOWDOWN/SETTLEMENT if cards are there
     return false;
 });
+
+// Speech bubble visibility
+const showSpeechBubble = computed(() => {
+    return props.speech && props.speech.content;
+});
 </script>
 <template>
     <div class="player-seat" :class="`seat-${position}`">
@@ -422,7 +428,12 @@ const shouldMoveStatusFloat = computed(() => {
                 <!-- Avatar Frame Overlay -->
                 <img :src="avatarFrameImg" class="avatar-border-overlay" />
 
-
+                <!-- Speech Bubble -->
+                <div v-show="showSpeechBubble" class="speech-bubble"
+                    :class="{ 'speech-visible': showSpeechBubble }">
+                    <span v-if="speech && speech.type === 'text'">{{ speech.content }}</span>
+                    <img v-else-if="speech && speech.type === 'emoji'" :src="speech.content" class="speech-emoji" />
+                </div>
 
                 <!-- 状态浮层，移到 avatar-area 以便相对于头像定位 -->
                 <div class="status-float" :class="{ 'is-me': isMe, 'move-up': shouldMoveStatusFloat }"
@@ -1175,5 +1186,94 @@ const shouldMoveStatusFloat = computed(() => {
 /* Card Move Animation */
 .cards-move {
     transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Speech Bubble */
+.speech-bubble {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-10px);
+    background: linear-gradient(180deg, #f9fafb 0%, #e5e7eb 100%);
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    padding: 6px 10px;
+    min-width: 60px;
+    max-width: 140px;
+    text-align: center;
+    font-size: 11px;
+    color: #1f2937;
+    z-index: 200;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    word-break: break-word;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.speech-bubble.speech-visible {
+    opacity: 1;
+    animation: speechBubbleBounceIn 0.3s ease-out forwards;
+}
+
+.speech-bubble::before {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-2px);
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 12px solid #e5e7eb;
+    z-index: 51;
+}
+
+.speech-bubble::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-3px);
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 10px solid #f9fafb;
+    z-index: 52;
+}
+
+.speech-emoji {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+}
+
+@keyframes speechBubbleBounceIn {
+    from, 20%, 40%, 60%, 80%, to {
+        animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+    }
+    0% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(0) scale3d(0.3, 0.3, 0.3);
+    }
+    20% {
+        transform: translateX(-50%) translateY(-12px) scale3d(1.1, 1.1, 1.1);
+    }
+    40% {
+        transform: translateX(-50%) translateY(-9px) scale3d(0.9, 0.9, 0.9);
+    }
+    60% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(-11px) scale3d(1.03, 1.03, 1.03);
+    }
+    80% {
+        transform: translateX(-50%) translateY(-10px) scale3d(0.97, 0.97, 0.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(-10px);
+    }
 }
 </style>

@@ -6,6 +6,7 @@ import { useSettingsStore } from '../stores/settings.js';
 
 import CoinLayer from '../components/CoinLayer.vue';
 import DealingLayer from '../components/DealingLayer.vue';
+import ChatBubbleSelector from '../components/ChatBubbleSelector.vue';
 
 import SettingsModal from '../components/SettingsModal.vue';
 import HelpModal from '../components/HelpModal.vue';
@@ -23,8 +24,113 @@ import gameClient from '../socket.js';
 import { showToast as vantToast } from 'vant';
 import PokerCard from '../components/PokerCard.vue';
 
+import talk0 from '@/assets/sounds/talk_0.mp3';
+import talk1 from '@/assets/sounds/talk_1.mp3';
+import talk2 from '@/assets/sounds/talk_2.mp3';
+import talk3 from '@/assets/sounds/talk_3.mp3';
+import talk4 from '@/assets/sounds/talk_4.mp3';
+import talk5 from '@/assets/sounds/talk_5.mp3';
+import talk6 from '@/assets/sounds/talk_6.mp3';
+import talk7 from '@/assets/sounds/talk_7.mp3';
+import talk8 from '@/assets/sounds/talk_8.mp3';
+import talk9 from '@/assets/sounds/talk_9.mp3';
+import talk10 from '@/assets/sounds/talk_10.mp3';
+import gameChatBtnImg from '@/assets/common/game_chat_btn.png';
+
+import emoji1 from '@/assets/emoji/emoji_0.png';
+import emoji2 from '@/assets/emoji/emoji_1.png';
+import emoji3 from '@/assets/emoji/emoji_2.png';
+import emoji4 from '@/assets/emoji/emoji_3.png';
+import emoji5 from '@/assets/emoji/emoji_4.png';
+import emoji6 from '@/assets/emoji/emoji_5.png';
+import emoji7 from '@/assets/emoji/emoji_6.png';
+import emoji8 from '@/assets/emoji/emoji_7.png';
+import emoji9 from '@/assets/emoji/emoji_8.png';
+import emoji10 from '@/assets/emoji/emoji_9.png';
+import emoji11 from '@/assets/emoji/emoji_10.png';
+import emoji12 from '@/assets/emoji/emoji_11.png';
+import emoji13 from '@/assets/emoji/emoji_12.png';
+import emoji14 from '@/assets/emoji/emoji_13.png';
+import emoji15 from '@/assets/emoji/emoji_14.png';
+import emoji16 from '@/assets/emoji/emoji_15.png';
+
 const store = useGameStore();
 const settingsStore = useSettingsStore();
+
+// --- Chat / Speech / Emoji Logic ---
+const showChatSelector = ref(false);
+const playerSpeech = ref(new Map());
+let lastTalkTime = 0;
+const TALK_COOLDOWN = 3000; // 3 seconds
+
+const phraseSounds = [talk0, talk1, talk2, talk3, talk4, talk5, talk6, talk7, talk8, talk9, talk10];
+const allEmojis = [emoji1, emoji2, emoji3, emoji4, emoji5, emoji6, emoji7, emoji8, emoji9, emoji10, emoji11, emoji12, emoji13, emoji14, emoji15, emoji16];
+const commonPhrases = [
+    "猜猜我是牛几呀", "风水轮流转，底裤都要输光了", "辛苦这么多年，一夜回到解放前",
+    "我又赢了，谢谢大家送钱", "快点开牌，我是牛牛", "唉，一手烂牌臭到底",
+    "快点吧，我等的花都谢了", "吐了个槽的，整个一个杯具啊", "你的牌也太好啦",
+    "不要吵啦，有什么好吵的，专心玩牌吧", "作孽啊"
+];
+
+const checkCooldown = () => {
+    const now = Date.now();
+    if (now - lastTalkTime < TALK_COOLDOWN) {
+        vantToast('发言太频繁，请稍后再试');
+        return false;
+    }
+    lastTalkTime = now;
+    return true;
+};
+
+const onPhraseSelected = (phrase, index) => {
+    if (!checkCooldown()) return;
+    store.sendPlayerTalk(0, index);
+};
+
+const onEmojiSelected = (emojiUrl, index) => {
+    if (!checkCooldown()) return;
+    store.sendPlayerTalk(1, index);
+};
+
+const toggleShowChatSelector = debounce(() => {
+    showChatSelector.value = !showChatSelector.value;
+}, 500);
+
+const getSpeech = (playerId) => playerSpeech.value.get(playerId);
+const showSpeechBubble = (playerId) => {
+    const s = getSpeech(playerId);
+    return s && s.content;
+};
+
+// Watch PushTalk queue from store
+watch(() => store.playerSpeechQueue, (queue) => {
+    while (queue.length > 0) {
+        const event = queue.shift();
+        const { userId, type, index } = event;
+
+        let content = '';
+        if (type === 0 && commonPhrases[index]) {
+            content = commonPhrases[index];
+            // Play phrase sound
+            if (settingsStore.soundEnabled && phraseSounds[index]) {
+                AudioUtils.playEffect(phraseSounds[index]);
+            }
+        } else if (type === 1 && allEmojis[index]) {
+            content = allEmojis[index];
+        } else {
+            continue;
+        }
+
+        playerSpeech.value.set(userId, { type: type === 0 ? 'text' : 'emoji', content });
+        playerSpeech.value = new Map(playerSpeech.value); // Trigger reactivity
+
+        // Remove speech bubble after 3 seconds
+        setTimeout(() => {
+            playerSpeech.value.delete(userId);
+            playerSpeech.value = new Map(playerSpeech.value);
+        }, 3000);
+    }
+}, { deep: true });
 
 // --- Showdown Sound Logic ---
 const playedShowdownSounds = ref(new Set());
@@ -1711,7 +1817,8 @@ const shouldMoveStatusToHighPosition = computed(() => {
                     :visible-card-count="visibleCounts[p.id] !== undefined ? visibleCounts[p.id] : 0"
                     :hidden-card-indices="hiddenCardsMap[p.id] || []" :is-ready="p.isReady"
                     :is-animating-highlight="p.id === currentlyHighlightedPlayerId"
-                    :trigger-banker-animation="showBankerConfirmAnim && p.isBanker" :is-win="!!winEffects[p.id]" />
+                    :trigger-banker-animation="showBankerConfirmAnim && p.isBanker" :is-win="!!winEffects[p.id]"
+                    :speech="getSpeech(p.id)" />
                 <div v-else class="empty-seat">
 
                     <div class="empty-seat-avatar">
@@ -1875,38 +1982,31 @@ const shouldMoveStatusToHighPosition = computed(() => {
                         <!-- Avatar Frame Overlay -->
                         <img :src="avatarFrameImg" class="avatar-border-overlay" />
 
+                        <!-- Speech Bubble for My Player -->
+                        <div v-show="showSpeechBubble(myPlayer.id)" class="speech-bubble"
+                            :class="{ 'speech-visible': showSpeechBubble(myPlayer.id) }">
+                            <span v-if="getSpeech(myPlayer.id) && getSpeech(myPlayer.id).type === 'text'">{{
+                                getSpeech(myPlayer.id).content }}</span>
+                            <img v-else-if="getSpeech(myPlayer.id) && getSpeech(myPlayer.id).type === 'emoji'"
+                                :src="getSpeech(myPlayer.id).content" class="speech-emoji" />
+                        </div>
 
                     </div>
-
-
 
                     <div class="info-box" :style="{ '--bg-img': `url(${userInfoBgImg})` }"
                         :class="{ 'is-observer': myPlayer.isObserver }">
 
                         <!-- Banker Badge -->
-
                         <div v-if="myPlayer.isBanker && !['IDLE', 'READY_COUNTDOWN', 'GAME_OVER'].includes(store.currentPhase)"
                             class="banker-badge"><img :src="zhuangImg" alt="庄" class="banker-badge-img" /></div>
 
                         <div class="name van-ellipsis">{{ myPlayer.name }}</div>
 
-
-
                         <div class="coins-pill">
-
-
-
                             {{ formatCoins(myPlayer.coins) }}
-
-
-
                         </div>
 
-
-
                     </div>
-
-
 
                     <!-- Status float (rob/bet multiplier status) -->
 
@@ -1929,6 +2029,11 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                     </div>
 
+                </div>
+
+                <!-- Chat Button -->
+                <div class="chat-toggle-btn" @click="toggleShowChatSelector()">
+                    <img :src="gameChatBtnImg" class="chat-btn-img" />
                 </div>
 
                 <!-- Hosting Button -->
@@ -2049,6 +2154,11 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
         <HostingModal v-model:visible="showHosting" :rob-options="allRobOptions" :bet-options="betMultipliers"
             @confirm="handleHostingConfirm" />
+
+        <div>
+            <ChatBubbleSelector v-model:visible="showChatSelector" @selectPhrase="onPhraseSelected"
+                @selectEmoji="onEmojiSelected" />
+        </div>
 
     </div>
 </template>
@@ -3941,6 +4051,116 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
 .hosting-btn:active {
     transform: translateY(-50%) scale(0.95);
+}
+
+/* Chat Button */
+.chat-toggle-btn {
+    position: absolute;
+    left: 20px;
+    top: 76%;
+    transform: translateY(-50%);
+    z-index: 200;
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.chat-btn-img {
+    width: 30px;
+    height: auto;
+    object-fit: contain;
+}
+
+.chat-toggle-btn:active {
+    transform: scale(0.95);
+}
+
+/* My Player Speech Bubble */
+.my-player-info-row .speech-bubble {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-10px);
+    background: linear-gradient(180deg, #f9fafb 0%, #e5e7eb 100%);
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    padding: 6px 10px;
+    min-width: 60px;
+    max-width: 160px;
+    text-align: center;
+    font-size: 12px;
+    color: #1f2937;
+    z-index: 200;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    word-break: break-word;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.my-player-info-row .speech-bubble.speech-visible {
+    opacity: 1;
+    animation: speechBubbleBounceIn 0.3s ease-out forwards;
+}
+
+.my-player-info-row .speech-bubble::before {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-2px);
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 12px solid #e5e7eb;
+    z-index: 51;
+}
+
+.my-player-info-row .speech-bubble::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-3px);
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 10px solid #f9fafb;
+    z-index: 52;
+}
+
+.speech-emoji {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+}
+
+@keyframes speechBubbleBounceIn {
+    from, 20%, 40%, 60%, 80%, to {
+        animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+    }
+    0% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(0) scale3d(0.3, 0.3, 0.3);
+    }
+    20% {
+        transform: translateX(-50%) translateY(-12px) scale3d(1.1, 1.1, 1.1);
+    }
+    40% {
+        transform: translateX(-50%) translateY(-9px) scale3d(0.9, 0.9, 0.9);
+    }
+    60% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(-11px) scale3d(1.03, 1.03, 1.03);
+    }
+    80% {
+        transform: translateX(-50%) translateY(-10px) scale3d(0.97, 0.97, 0.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(-10px);
+    }
 }
 </style>
 

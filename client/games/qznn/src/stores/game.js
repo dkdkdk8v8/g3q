@@ -142,6 +142,7 @@ export const useGameStore = defineStore('game', () => {
     const bankerCandidates = ref([]); // Store IDs of players who are candidates for banker
     const bankerMult = ref([]); // Store banker multiplier options
     const betMult = ref([]); // Store betting multiplier options
+    const playerSpeechQueue = ref([]); // Queue for incoming speech/emoji events from PushTalk
     const roomJoinedPromise = ref(null); // Added for async join completion
     const globalMessage = ref(''); // Global alert message
     let roomJoinedResolve = null;
@@ -382,7 +383,17 @@ export const useGameStore = defineStore('game', () => {
             globalMessage.value = data.Message;
         }
 
-
+        // Handle PushTalk (chat bubble / emoji / phrase)
+        if (pushType === 'PushTalk') {
+            if (data.UserId && data.Type !== undefined && data.Index !== undefined) {
+                playerSpeechQueue.value.push({
+                    userId: data.UserId,
+                    type: data.Type,
+                    index: data.Index
+                });
+            }
+            return; // PushTalk is self-contained, no room data to process
+        }
 
         const room = data.Room;
 
@@ -707,6 +718,12 @@ export const useGameStore = defineStore('game', () => {
 
 
 
+    const sendPlayerTalk = (type, index) => {
+        if (roomId.value) {
+            gameClient.send(QZNN_Prefix + "PlayerTalk", { RoomId: roomId.value, Type: type, Index: index });
+        }
+    };
+
     const resetState = () => {
         stopAllTimers();
         currentPhase.value = 'IDLE';
@@ -745,6 +762,8 @@ export const useGameStore = defineStore('game', () => {
         betMult,
         roomJoinedPromise, // Export roomJoinedPromise
         resetState, // Export resetState
+        sendPlayerTalk, // Export sendPlayerTalk
+        playerSpeechQueue, // Export speech queue
         globalMessage, // Export globalMessage
         // Manual Controls
         enterStateWaiting,

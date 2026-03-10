@@ -472,7 +472,7 @@ const shouldMoveStatusFloat = computed(() => {
                 :style="{ visibility: showCards ? 'visible' : 'hidden' }">
                 <template v-for="(card, idx) in displayedHand" :key="idx">
                     <PokerCard v-if="visibleCardCount === -1 || idx < visibleCardCount"
-                        :card="(shouldShowCardFace) ? card : null" :is-small="!isMe"
+                        :card="(shouldShowCardFace && card.rawId !== undefined) ? card : null" :is-small="!isMe"
                         :class="{ 'hand-card': true, 'bull-card-overlay': isBullPart(idx), 'selected': selectedCardIndices.includes(idx) }"
                         :style="{
                             opacity: hiddenCardIndices.includes(idx) ? 0 : 1

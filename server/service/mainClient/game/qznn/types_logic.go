@@ -259,7 +259,12 @@ func (r *QZNNRoom) getClientRoom(pushId string) *QZNNRoom {
 	}
 	pushPlayers := r.getBroadCasePlayers(nil)
 	for _, p := range pushPlayers {
-		n.Players = append(n.Players, p.GetClientPlayer(preCard, bSecret && !p.IsShow && p.ID != pushId))
+		// 必须在 p.Mu 锁内读取 IsShow，避免与 HandleShowCards 的写入产生数据竞争，
+		// 否则可能导致客户端收到 IsShow=true 但 Cards=[-1,...] 的矛盾数据（白牌）
+		p.Mu.RLock()
+		isShow := p.IsShow
+		p.Mu.RUnlock()
+		n.Players = append(n.Players, p.GetClientPlayer(preCard, bSecret && !isShow && p.ID != pushId))
 	}
 	return n
 }

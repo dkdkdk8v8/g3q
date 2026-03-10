@@ -24,6 +24,7 @@ interface StatsData {
   betCount: number;
   betAmount: number;
   gameWin: number;
+  taxAmount: number;
   firstGameUserCount: number;
   firstGameUserIds: string[];
   cardResult: Record<string, number>;
@@ -110,6 +111,7 @@ export class StaPeriodJob implements IJob {
         betCount: 0,
         betAmount: 0,
         gameWin: 0,
+        taxAmount: 0,
         firstGameUserCount: 0,
         firstGameUserIds: [],
         cardResult: {},
@@ -145,6 +147,7 @@ export class StaPeriodJob implements IJob {
           entity.betCount = 0;
           entity.betAmount = 0;
           entity.gameWin = 0;
+          entity.taxAmount = 0;
           entity.firstGameUserCount = 0;
           entity.firstGameUserIds = [];
           entity.cardResult = {};
@@ -155,6 +158,7 @@ export class StaPeriodJob implements IJob {
         entity.betCount += stats.betCount;
         entity.betAmount += stats.betAmount;
         entity.gameWin += stats.gameWin;
+        entity.taxAmount += stats.taxAmount;
         entity.firstGameUserCount += stats.firstGameUserCount;
 
         const existingIds = Array.isArray(entity.firstGameUserIds) ? entity.firstGameUserIds : [];
@@ -300,6 +304,9 @@ export class StaPeriodJob implements IJob {
 
           // 平台盈亏 = 用户输赢的负数
           stats.gameWin += -1 * (Number(BalanceChange) || 0);
+
+          // 税收累计
+          stats.taxAmount += (Number(player.Tax) || 0);
 
           // 统计牌型
           if (game_name === QznnCardUtil.GameNameQZNN) {

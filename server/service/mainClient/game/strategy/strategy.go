@@ -215,6 +215,7 @@ func (s *StrategyManager) ApplyRiskControl(baseLucky float64, ctx *StrategyConte
 		over := diff - Tolerance
 		releaseProb := over * Scale
 		if releaseProb > 1.0 {
+			releaseProb = 1.0
 		}
 		if rand.Float64() < releaseProb {
 			shouldRelease = true

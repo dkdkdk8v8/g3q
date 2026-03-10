@@ -909,7 +909,7 @@ func (r *QZNNRoom) startGame() {
 	}
 
 	// 每次游戏开始前更新策略参数
-	//r.UpdateStrategyParams()
+	r.UpdateStrategyParams()
 
 	//保底的检查，用户能不能玩，至少2个有效用户，不够要再踢回waiting
 	activePlayer := r.GetActivePlayers(nil)
@@ -1101,7 +1101,7 @@ func (r *QZNNRoom) startGame() {
 
 	// 【核心修改】在此处介入策略系统
 	// 在进入 StateDealing (发牌/补牌) 之前，根据倍数和库存调整手牌
-	//r.applyStrategyRiskControl()
+	r.applyStrategyRiskControl()
 
 	//补牌到5张，不看牌发5张，看3补2，看4
 	if !r.SetStatus([]RoomState{StateBetting}, StateDealing, 0) {
@@ -1296,6 +1296,7 @@ func (r *QZNNRoom) startGame() {
 				"pre_tax_win": p.BalanceChange,
 				"tax":         tax,
 			}
+			p.Tax = tax
 			p.BalanceChange -= tax
 		}
 	}

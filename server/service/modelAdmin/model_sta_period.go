@@ -19,6 +19,7 @@ type ModelStaPeriod struct {
 	BetCount           int       `orm:"column(betCount);default(0)"`
 	BetAmount          int       `orm:"column(betAmount);default(0)"`
 	GameWin            int       `orm:"column(gameWin);default(0)"`
+	TaxAmount          int       `orm:"column(taxAmount);default(0)"`
 	FirstGameUserCount int       `orm:"column(firstGameUserCount);default(0)"`
 	FirstGameUserIds   string    `orm:"column(firstGameUserIds);type(json)"` // Stored as JSON string
 	CardResult         string    `orm:"column(cardResult);type(json)"`       // Stored as JSON string

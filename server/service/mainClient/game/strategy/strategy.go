@@ -37,7 +37,7 @@ type StrategyContext struct {
 
 	// 新增系统维度数据
 	KillRateToday           float64 // 今日实时杀率 系统今日(UTC时间)盈利/ 系统今日(UTC时间)流水
-	TurnoverTodayAndYestory int64   // 今日系统流水
+	TurnoverTodayAndYesterday int64 // 今日+昨日系统流水 (48小时滚动窗口)
 
 	// 动态参数
 	TotalMult     int64 // 本局总倍数 (QZNN: 抢庄*下注, DDZ: 叫分*炸弹)
@@ -56,7 +56,7 @@ func (c *StrategyContext) Log() {
 		"PendingCompensate":       c.PendingCompensate,
 		"BaseBet":                 c.BaseBet,
 		"KillRateToday":           util.Round(c.KillRateToday, 2),
-		"TurnoverTodayAndYestory": c.TurnoverTodayAndYestory,
+		"TurnoverTodayAndYesterday": c.TurnoverTodayAndYesterday,
 		"TotalMult":               c.TotalMult,
 		"RiskExposure":            c.RiskExposure,
 		"IsRobot":                 c.IsRobot,
@@ -92,6 +92,12 @@ func NewStrategyManager(cfg StrategyConfig) *StrategyManager {
 func (s *StrategyManager) CalcBaseLucky(ctx *StrategyContext) (float64, []string) {
 	baseLucky := s.Config.BaseLucky
 	var reasons []string
+
+	// 机器人不参与水位/补偿/新手/连胜连败修正，固定 Lucky = BaseLucky
+	// 机器人的输赢由 InventoryProtect 在 adjustCardsBasedOnLucky 中专门处理
+	if ctx.IsRobot {
+		return baseLucky, []string{"Robot_FixedLucky"}
+	}
 
 	// 1. 水位修正 (Water Level Correction)
 	// 逻辑：输得越多，Lucky 越高；赢得越多，Lucky 越低
@@ -188,7 +194,7 @@ func (s *StrategyManager) ApplyRiskControl(baseLucky float64, ctx *StrategyConte
 	currentRate := ctx.KillRateToday
 
 	targetRate := s.Config.TargetProfitRate
-	if ctx.TurnoverTodayAndYestory > 0 && ctx.TurnoverTodayAndYestory < s.Config.MinTurnover {
+	if ctx.TurnoverTodayAndYesterday > 0 && ctx.TurnoverTodayAndYesterday < s.Config.MinTurnover {
 		currentRate = targetRate
 	}
 

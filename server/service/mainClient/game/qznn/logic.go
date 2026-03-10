@@ -89,8 +89,8 @@ func NewRoomStrategy() *RoomStrategy {
 	cfg := strategy.StrategyConfig{
 		TargetProfitRate:  modelAdmin.SysParamCache.GetFloat64("strategy.TargetProfitRate", 0.05),
 		BaseLucky:         modelAdmin.SysParamCache.GetFloat64("strategy.BaseLucky", 50),
-		HighRiskMult:      int64(modelAdmin.SysParamCache.GetInt("strategy.BaseLucky", 20)),        // 示例: 4倍抢庄 * 5倍下注 = 20
-		EnableNewbieBonus: modelAdmin.SysParamCache.GetBool("strategy.EnableNewbieBonust", true),   // 是否开启新手光环    // 开启新手光环
+		HighRiskMult:      int64(modelAdmin.SysParamCache.GetInt("strategy.HighRiskMult", 20)),      // 示例: 4倍抢庄 * 5倍下注 = 20
+		EnableNewbieBonus: modelAdmin.SysParamCache.GetBool("strategy.EnableNewbieBonus", true),    // 是否开启新手光环
 		MinTurnover:       int64(modelAdmin.SysParamCache.GetInt("strategy.MinTurnover", 5000000)), // 最小流水阈值 (例如200万分/2万元)，低于此值不介入强风控
 	}
 	rs := &RoomStrategy{
@@ -1568,7 +1568,7 @@ func (r *QZNNRoom) calculateRealtimeLucky(p *Player) float64 {
 		LosingStreak:      strategyData.LosingStreak,
 		RiskExposure:      int64(modelAdmin.SysParamCache.GetInt("strategy.RiskExposure", 2000000)),
 		// 修正：将昨日和今日的数据合并，形成“滚动杀率”，这比单纯的百分比修正更科学（自动包含权重的概念）
-		TurnoverTodayAndYestory: r.Strategy.TodayTurnover,
+		TurnoverTodayAndYesterday: r.Strategy.TodayTurnover + r.Strategy.YesterdayTurnover,
 		KillRateToday:           0, // 下面计算
 	}
 
@@ -1580,8 +1580,8 @@ func (r *QZNNRoom) calculateRealtimeLucky(p *Player) float64 {
 	yesterdayExcess := float64(r.Strategy.YesterdayProfit) - yesterdayExpected
 	effectiveProfit := float64(r.Strategy.TodayProfit) + yesterdayExcess
 
-	if ctx.TurnoverTodayAndYestory > 0 {
-		ctx.KillRateToday = effectiveProfit / float64(ctx.TurnoverTodayAndYestory)
+	if ctx.TurnoverTodayAndYesterday > 0 {
+		ctx.KillRateToday = effectiveProfit / float64(ctx.TurnoverTodayAndYesterday)
 	}
 
 	if r.CanLog() {
@@ -1654,8 +1654,8 @@ func (r *QZNNRoom) adjustCardsBasedOnLucky() {
 		if isHighRisk {
 			shouldLose = true
 			triggerType = "HighRisk"
-		} else {
-			// 3.2 基于 Lucky 值的概率干预
+		} else if !p.IsRobot {
+			// 3.2 基于 Lucky 值的概率干预 (仅对真人生效)
 			// Lucky > 65: 尝试赢; Lucky < 35: 尝试输
 			randVal := rand.Float64() * 100
 			if targetLucky > 65 && randVal < targetLucky {

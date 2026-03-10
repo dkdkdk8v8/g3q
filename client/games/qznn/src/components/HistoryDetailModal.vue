@@ -248,7 +248,7 @@ const positionedPlayers = computed(() => {
     const players = (props.data && props.data.rawPlayers) ? props.data.rawPlayers : [];
 
     // Find my index/seat
-    const myIndex = players.findIndex(p => p.ID === myId.value);
+    const myIndex = players.findIndex(p => p && p.ID === myId.value);
 
     // If myIndex is not found (shouldn't happen), assume 0
     const baseIndex = myIndex >= 0 ? myIndex : 0;
@@ -313,6 +313,7 @@ const positionedPlayers = computed(() => {
     // Map existing players to their view positions
     const posMap = {};
     players.forEach((p, idx) => {
+        if (!p) return;
         const processed = processPlayer(p, idx);
         posMap[processed.viewPos] = processed;
     });

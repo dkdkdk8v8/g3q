@@ -11,7 +11,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var (
@@ -69,15 +68,13 @@ func main() {
 				return
 			}
 
-			vipDefaultCfgDir := filepath.Dir(os.Args[0])
-			viper.AddConfigPath(vipDefaultCfgDir + "/cfg")
-			viper.SetConfigType("yaml")
-			initMain.InitAlert()
+			cfgDir := filepath.Dir(os.Args[0])
+			initMain.InitAlert(cfgDir, debug)
 			alert.IsDisable = debug
 
 			daemonRunner := initMain.DaemonRunner{Ctx: initMain.BaseCtx{ProcessName: processName, IgnorePid: debug, IsTerm: term,
-				VipDefaultCfgDir: vipDefaultCfgDir, IsDebug: debug, IsTest: test}}
-			authWork, err := createMainWork(debug)
+				VipDefaultCfgDir: cfgDir, IsDebug: debug, IsTest: test}}
+			authWork, err := createMainWork(cfgDir, debug)
 			if err != nil {
 				logrus.WithError(err).Error("createRemoteAuthWorkFail")
 				return

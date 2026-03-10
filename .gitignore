@@ -44,8 +44,10 @@ admin/cache/
 # ============ Go Server ============
 **/cfg/server.yaml
 **/cfg/server_debug.yaml
+server/server/main_client/main_client
 server/server/main_client/local_main_client
 server/server/main_client/local_main_client.work.pid
+server/server/main_robot/main_robot
 server/server/main_robot/local_main_robot
 server/server/main_robot/local_main_robot.work.pid
 server/server/main_schedule/local_main_schedule

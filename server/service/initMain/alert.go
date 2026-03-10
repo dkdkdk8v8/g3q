@@ -3,7 +3,6 @@ package initMain
 import (
 	"compoment/alert"
 	"fmt"
-	"github.com/spf13/viper"
 	"time"
 )
 
@@ -16,20 +15,14 @@ var AlertLimit5Hit1M *alert.MsgSender
 var AlertLimit100Hit10M *alert.MsgSender
 
 var AlertCfg struct {
-	TgMonitorBotToken string
-	TgMonitorChatID   int64
-	TgNormalChatID    int64
+	TgMonitorBotToken string `yaml:"TgMonitorBotToken"`
+	TgMonitorChatID   int64  `yaml:"TgMonitorChatID"`
+	TgNormalChatID    int64  `yaml:"TgNormalChatID"`
 }
 
-func InitAlert() error {
-	viper.SetConfigName("server.yaml")
-	err := viper.ReadInConfig()
-	if err != nil {
-		fmt.Printf("Fatal server.yaml config file: %s \n", err)
-		return err
-	}
-	if err := viper.Unmarshal(&AlertCfg); err != nil {
-		fmt.Printf("Fatal server.yaml config file: %s \n", err)
+func InitAlert(cfgDir string, debug bool) error {
+	if err := LoadYamlConfig(cfgDir, debug, &AlertCfg); err != nil {
+		fmt.Printf("Fatal %v server.yaml config file: %s \n", debug, err)
 		return err
 	}
 

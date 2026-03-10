@@ -5,7 +5,7 @@ export default {
   local: [
     // {
     //   sshOptions: {
-    //     host: '43.198.8.247',
+    //     host: '43.198.45.138',
     //     port: 22,
     //     username: 'ec2-user',
     //     privateKey: readFileSync(

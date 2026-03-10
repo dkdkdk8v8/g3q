@@ -60,7 +60,8 @@ type PlayerData struct {
 	SeatNum       int        // 座位号
 	CardResult    CardResult `json:"-"`
 	IsOb          bool       // 是否观众
-	BalanceChange int64      // 本局输赢
+	BalanceChange int64      // 本局输赢(税后)
+	Tax           int64      // 本局税收
 	ValidBet      int64      //有效投注流水
 	IsRobot       bool       `json:"-" DiyJson:"IsRobot"`
 	GameCount     int        `json:"-"` // 游戏次数
@@ -120,6 +121,7 @@ func (p *Player) ResetGameData() {
 	p.IsShow = false
 	p.CardResult = CardResult{}
 	p.BalanceChange = 0
+	p.Tax = 0
 	p.IsOb = false
 	p.ValidBet = 0
 }

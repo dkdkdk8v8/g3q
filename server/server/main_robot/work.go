@@ -19,7 +19,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
 func init() {
@@ -45,28 +44,28 @@ func midPanicHttp(c *gin.Context, err any) {
 }
 
 type workCfg struct {
-	WorkId        int
-	HttpHost      string
-	HttpPort      string
-	ShutDownWait  int
-	LogLevel      string
-	MysqlHost     string
-	MysqlPort     string
-	MysqlReadHost string
-	MysqlReadPort string
-	MysqlUser     string
-	MysqlPwd      string
-	MysqlConn     int
-	MysqlIdle     int
-	RedisAddr     string
-	RedisPwd      string
+	WorkId        int    `yaml:"WorkId"`
+	HttpHost      string `yaml:"HttpHost"`
+	HttpPort      string `yaml:"HttpPort"`
+	ShutDownWait  int    `yaml:"ShutDownWait"`
+	LogLevel      string `yaml:"LogLevel"`
+	MysqlHost     string `yaml:"MysqlHost"`
+	MysqlPort     string `yaml:"MysqlPort"`
+	MysqlReadHost string `yaml:"MysqlReadHost"`
+	MysqlReadPort string `yaml:"MysqlReadPort"`
+	MysqlUser     string `yaml:"MysqlUser"`
+	MysqlPwd      string `yaml:"MysqlPwd"`
+	MysqlConn     int    `yaml:"MysqlConn"`
+	MysqlIdle     int    `yaml:"MysqlIdle"`
+	RedisAddr     string `yaml:"RedisAddr"`
+	RedisPwd      string `yaml:"RedisPwd"`
 	RedisTunnel   struct {
-		Host   string
-		User   string
-		Rsa    string
-		Target string
-	}
-	IsSsl bool
+		Host   string `yaml:"Host"`
+		User   string `yaml:"User"`
+		Rsa    string `yaml:"Rsa"`
+		Target string `yaml:"Target"`
+	} `yaml:"RedisTunnel"`
+	IsSsl bool `yaml:"IsSsl"`
 }
 
 type mainClientWork struct {
@@ -76,22 +75,11 @@ type mainClientWork struct {
 	defaultEngine *gin.Engine
 }
 
-func createMainWork(debug bool) (*mainClientWork, error) {
-	if debug {
-		viper.SetConfigName("server_debug.yaml")
-	} else {
-		viper.SetConfigName("server.yaml")
-	}
-
-	err := viper.ReadInConfig()
-	if err != nil {
-		return nil, errors.Errorf("Fatal server.yaml config file: %s \n", err)
-	}
+func createMainWork(cfgDir string, debug bool) (*mainClientWork, error) {
 	ret := &mainClientWork{}
-	if err := viper.Unmarshal(&ret.cfg); err != nil {
-		return nil, errors.Errorf("Fatal server.yaml config file: %s \n", err)
+	if err := initMain.LoadYamlConfig(cfgDir, debug, &ret.cfg); err != nil {
+		return nil, errors.Errorf("Fatal yaml config file: %s \n", err)
 	}
-
 	return ret, nil
 }
 

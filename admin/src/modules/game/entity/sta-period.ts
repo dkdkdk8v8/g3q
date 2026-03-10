@@ -40,6 +40,9 @@ export class StaPeriodEntity extends BaseEntity {
   @Column({ comment: '平台盈亏', default: 0 })
   gameWin: number;
 
+  @Column({ comment: '税收金额', default: 0 })
+  taxAmount: number;
+
   @Column({ comment: '首次游戏人数', default: 0 })
   firstGameUserCount: number;
 

@@ -1,4 +1,4 @@
-import { Config, Inject, Provide } from '@midwayjs/decorator';
+import {  Inject, Provide } from '@midwayjs/decorator';
 import { BaseService } from '@cool-midway/core';
 import axios from 'axios';
 import { Context } from '@midwayjs/koa';
@@ -14,13 +14,7 @@ export class GameRpcService extends BaseService {
 
 
     async getUrl(path: string): Promise<string> {
-        const env = process.env.NODE_ENV;
-        let host: string;
-        if (env === 'production') {
-            host = await this.baseSysParamService.dataByKey('admin.RpcUrl');
-        } else {
-            host = await this.baseSysParamService.dataByKey('admin.RpcUrlDebug');
-        }
+        let host = await this.baseSysParamService.dataByKey('admin.RpcUrl');
         return `${host}/${path}`;
     }
 

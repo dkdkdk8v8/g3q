@@ -63,14 +63,16 @@
 <script lang="ts" setup name="sta-trend">
 import { useCool } from "/@/cool";
 import { useDict } from '/$/dict';
+import { useOptions } from '/$/options';
 import { reactive, ref, onMounted, onUnmounted, watch, computed } from "vue";
 import dayjs from "dayjs";
 
 const { service } = useCool();
 const { dict } = useDict();
+const { options: optionsStore } = useOptions();
 
 const options = reactive({
-    app_id: dict.get("app_id"),
+    app_id: optionsStore.get("merchant_app"),
     sta_duration: dict.get("sta_duration"),
 });
 

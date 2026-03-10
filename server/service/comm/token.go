@@ -5,12 +5,18 @@ import (
 	"compoment/crypto"
 	"compoment/rds"
 	"compoment/util"
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"time"
 )
 
 var ConfTokenTTLSec = conf.NewStrLoader("config.token.ttl", "0")
@@ -125,6 +131,47 @@ func VerifyToken(token string) (*Token, error) {
 		}
 	}
 	return &tokenJson, nil
+}
+
+// --- Launch Token (HMAC-SHA256, 用于游戏启动链接验证) ---
+
+const LaunchTokenKey = "bG0nWM8GJkDg3rmZ1tv1a6ecFYYRp0XX"
+const LaunchTokenTTL = 604800 // 7天
+
+var ErrLaunchTokenExpired = fmt.Errorf("token expired")
+
+// VerifyLaunchToken 验证游戏启动链接中的 token
+// token 格式: {timestamp_hex}.{hmac_sha256_hex}
+// 签名错误返回普通 error，过期返回 ErrLaunchTokenExpired（调用方可据此判断是否允许重连）
+func VerifyLaunchToken(token, appId, playerId string) error {
+	parts := strings.SplitN(token, ".", 2)
+	if len(parts) != 2 {
+		return fmt.Errorf("invalid token format")
+	}
+
+	tsHex, sig := parts[0], parts[1]
+
+	// 解析十六进制时间戳
+	ts, err := strconv.ParseInt(tsHex, 16, 64)
+	if err != nil {
+		return fmt.Errorf("invalid token timestamp")
+	}
+
+	// 先验证签名，再检查过期
+	mac := hmac.New(sha256.New, []byte(LaunchTokenKey))
+	mac.Write([]byte(fmt.Sprintf("%s:%s:%d", appId, playerId, ts)))
+	expected := hex.EncodeToString(mac.Sum(nil))
+
+	if !hmac.Equal([]byte(sig), []byte(expected)) {
+		return fmt.Errorf("token signature mismatch")
+	}
+
+	// 检查是否过期
+	if time.Now().Unix()-ts > LaunchTokenTTL {
+		return ErrLaunchTokenExpired
+	}
+
+	return nil
 }
 
 //func RefreshToken(tokenString string) (string, error) {

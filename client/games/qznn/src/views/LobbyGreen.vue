@@ -4,6 +4,7 @@ import { useLobby } from '../composables/useLobby.js';
 import HistoryModal from '../components/HistoryModal.vue';
 import SettingsModal from '../components/SettingsModal.vue';
 import HelpModal from '../components/HelpModal.vue';
+import LobbyBackgroundAnimation from '../components/LobbyBackgroundAnimation.vue';
 
 // Assets
 import avatarFrameImg from '@/assets/common/avatar_circle.png';
@@ -73,6 +74,7 @@ onUnmounted(stopMusic);
                     <div class="user-details">
                         <span class="user-nickname">{{ userInfo.displayName }}</span>
                         <div class="coins-display" :style="{ backgroundImage: `url(${diamondBg})` }">
+                            <img :src="goldImg" class="coin-icon" />
                             <span class="coin-val">{{ userInfo.coins }}</span>
                         </div>
                     </div>
@@ -113,6 +115,9 @@ onUnmounted(stopMusic);
                 </TransitionGroup>
             </div>
         </div>
+
+        <LobbyBackgroundAnimation :mode="1" class="green-lobby-anim" />
+        <div class="lobby-full-glass"></div>
 
         <HistoryModal v-model:visible="showHistory" />
         <SettingsModal v-model:visible="showSettings" />
@@ -324,7 +329,7 @@ onUnmounted(stopMusic);
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 8px 15px 10px 15px;
+    padding: 8px 15px 0 15px;
 }
 
 /* User Info */
@@ -358,7 +363,6 @@ onUnmounted(stopMusic);
 }
 
 .user-nickname {
-    margin-left: 5px;
     text-align: center;
     color: white;
     font-size: 18px;
@@ -373,21 +377,23 @@ onUnmounted(stopMusic);
 }
 
 .coins-display {
+    margin-left: 8px;
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 0 4px 0 10px;
     background-size: 100% 100%;
     background-repeat: no-repeat;
+    height: 18px;
     position: relative;
+    width: fit-content;
 }
 
 .coin-icon {
     width: auto;
-    height: 16px;
+    height: 18px;
     position: absolute;
-    left: -10px;
-    top: 40%;
+    left: -11px;
+    top: 8px;
     transform: translateY(-50%);
 }
 
@@ -396,7 +402,7 @@ onUnmounted(stopMusic);
     font-weight: bold;
     font-size: 14px;
     line-height: 1;
-    padding: 6px 6px 3px 20px;
+    padding: 6px 7px 5px 13px;
 }
 
 /* Main Content */
@@ -512,9 +518,17 @@ onUnmounted(stopMusic);
 }
 
 @keyframes miniBeamSweep {
-    0% { opacity: 0.8; }
-    50% { opacity: 0.15; }
-    100% { opacity: 0.8; }
+    0% {
+        opacity: 0.8;
+    }
+
+    50% {
+        opacity: 0.15;
+    }
+
+    100% {
+        opacity: 0.8;
+    }
 }
 
 .room-stat {
@@ -547,5 +561,21 @@ onUnmounted(stopMusic);
     height: 35px;
     width: auto;
     object-fit: contain;
+}
+
+.green-lobby-anim {
+    bottom: 28px !important;
+}
+
+.lobby-full-glass {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    backdrop-filter: blur(6px);
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.4));
+    pointer-events: none;
+    z-index: 0;
 }
 </style>

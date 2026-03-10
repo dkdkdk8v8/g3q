@@ -59,6 +59,7 @@
 import { useCrud, useTable } from "@cool-vue/crud";
 import { useCool } from "/@/cool";
 import { useDict } from '/$/dict';
+import { useOptions } from '/$/options';
 import { reactive, ref } from "vue";
 import dayjs from "dayjs";
 import FormatMoney from "../components/format-money.vue";
@@ -66,11 +67,12 @@ import { dateShortcuts } from "../utils/date-shortcuts";
 
 
 const { dict } = useDict();
+const { options: optionsStore } = useOptions();
 const { service } = useCool();
 
 // 字典
 const options = reactive({
-    app_id: dict.get("app_id"),
+    app_id: optionsStore.get("merchant_app"),
     game_name: dict.get("game_name"),
     qznn_room_level: dict.get("qznn_room_level"),
     qznn_room_type: dict.get("qznn_room_type"),

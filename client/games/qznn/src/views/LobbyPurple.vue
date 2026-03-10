@@ -4,6 +4,7 @@ import { useLobby } from '../composables/useLobby.js';
 import HistoryModal from '../components/HistoryModal.vue';
 import SettingsModal from '../components/SettingsModal.vue';
 import HelpModal from '../components/HelpModal.vue';
+import LobbyBackgroundAnimation from '../components/LobbyBackgroundAnimation.vue';
 
 // Assets
 import avatarFrameImg from '@/assets/common/avatar_circle.png';
@@ -83,6 +84,7 @@ onUnmounted(stopMusic);
                     <div class="user-details">
                         <span class="user-nickname">{{ userInfo.displayName }}</span>
                         <div class="coins-display" :style="{ backgroundImage: `url(${diamondBg})` }">
+                            <img :src="goldImg" class="coin-icon" />
                             <span class="coin-val">{{ userInfo.coins }}</span>
                         </div>
                     </div>
@@ -137,6 +139,9 @@ onUnmounted(stopMusic);
                 </TransitionGroup>
             </div>
         </div>
+
+        <LobbyBackgroundAnimation :mode="2" class="purple-lobby-anim" />
+        <div class="lobby-full-glass"></div>
 
         <HistoryModal v-model:visible="showHistory" />
         <SettingsModal v-model:visible="showSettings" />
@@ -224,7 +229,6 @@ onUnmounted(stopMusic);
 }
 
 .user-nickname {
-    text-align: center;
     color: white;
     font-size: 15px;
     font-weight: bold;
@@ -234,9 +238,8 @@ onUnmounted(stopMusic);
 .user-details {
     display: flex;
     flex-direction: column;
-    justify-content: center;
     gap: 3px;
-    padding-left: 5px;
+    padding-left: 15px;
     margin-bottom: 5px;
 }
 
@@ -244,11 +247,11 @@ onUnmounted(stopMusic);
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 0 4px 0 10px;
     background-size: 100% 100%;
     background-repeat: no-repeat;
     height: 18px;
     position: relative;
+    width: fit-content;
 }
 
 .coin-icon {
@@ -265,7 +268,7 @@ onUnmounted(stopMusic);
     font-weight: bold;
     font-size: 14px;
     line-height: 1;
-    padding: 3px 3px 1px 15px;
+    padding: 3px 8px 2px 12px;
 }
 
 .top-right {
@@ -426,7 +429,7 @@ onUnmounted(stopMusic);
     position: absolute;
     inset: 0;
     pointer-events: none;
-    z-index: 0;
+    z-index: 1;
     overflow: hidden;
 }
 
@@ -455,17 +458,43 @@ onUnmounted(stopMusic);
 }
 
 @keyframes auroraRise1 {
-    0% { transform: translateY(20%); opacity: 0; }
-    10% { opacity: 0.8; }
-    80% { opacity: 0.8; }
-    100% { transform: translateY(-120vh); opacity: 0; }
+    0% {
+        transform: translateY(20%);
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 0.8;
+    }
+
+    80% {
+        opacity: 0.8;
+    }
+
+    100% {
+        transform: translateY(-120vh);
+        opacity: 0;
+    }
 }
 
 @keyframes auroraRise2 {
-    0% { transform: translateY(20%); opacity: 0; }
-    10% { opacity: 0.7; }
-    80% { opacity: 0.7; }
-    100% { transform: translateY(-120vh); opacity: 0; }
+    0% {
+        transform: translateY(20%);
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 0.7;
+    }
+
+    80% {
+        opacity: 0.7;
+    }
+
+    100% {
+        transform: translateY(-120vh);
+        opacity: 0;
+    }
 }
 
 /* ====== 方案2: 浮动粒子 ====== */
@@ -473,7 +502,7 @@ onUnmounted(stopMusic);
     position: absolute;
     inset: 0;
     pointer-events: none;
-    z-index: 0;
+    z-index: 1;
     overflow: hidden;
 }
 
@@ -514,12 +543,20 @@ onUnmounted(stopMusic);
             rgba(255, 220, 255, 0.06) 50%,
             transparent 80%);
     pointer-events: none;
+    opacity: 0;
     animation: shimmerBreath 4s ease-in-out infinite;
 }
 
 @keyframes shimmerBreath {
-    0%, 100% { opacity: 0; }
-    50% { opacity: 1; }
+
+    0%,
+    100% {
+        opacity: 0;
+    }
+
+    50% {
+        opacity: 1;
+    }
 }
 
 /* ====== 方案3: 筹码图标发光 ====== */
@@ -537,5 +574,21 @@ onUnmounted(stopMusic);
     50% {
         filter: drop-shadow(0 0 8px rgba(255, 180, 220, 0.6)) drop-shadow(0 0 15px rgba(200, 120, 255, 0.3));
     }
+}
+
+.purple-lobby-anim {
+    bottom: 20px !important;
+}
+
+.lobby-full-glass {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    backdrop-filter: blur(6px);
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.4));
+    pointer-events: none;
+    z-index: 0;
 }
 </style>

@@ -50,7 +50,7 @@ export const config = {
 	// 忽略规则
 	ignore: {
 		// 不显示请求进度条
-		NProgress: ['__cool_*'],
+		NProgress: ['__cool_*', 'admin/game/room/qznn'],
 		// 页面不需要登录验证
 		token: []
 	},

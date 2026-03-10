@@ -40,18 +40,18 @@
 <script lang="tsx" name="sta-user" setup>
 import { useCrud, useTable } from "@cool-vue/crud";
 import { useCool } from "/@/cool";
-import { useDict } from '/$/dict';
+import { useOptions } from '/$/options';
 import { reactive, ref } from "vue";
 import dayjs from "dayjs";
 import { dateShortcuts } from "../utils/date-shortcuts";
 import FormatMoney from "../components/format-money.vue"
 
-const { dict } = useDict();
+const { options: optionsStore } = useOptions();
 const { service } = useCool();
 
 // 字典
 const options = reactive({
-    app_id: dict.get("app_id"),
+    app_id: optionsStore.get("merchant_app"),
 });
 
 // 日期范围默认最近30天

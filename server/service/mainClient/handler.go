@@ -471,3 +471,72 @@ func Deposit(c *gin.Context) (interface{}, error) {
 func Withdraw(c *gin.Context) (interface{}, error) {
 	return nil, nil
 }
+
+// RpcKickPlayer 踢出玩家（运营商API调用）
+func RpcKickPlayer(c *gin.Context) (interface{}, error) {
+	userId := c.Query("userId")
+	if userId == "" {
+		return nil, comm.NewMyError("userId is required")
+	}
+
+	// 1. 如果在 QZNN 房间中，执行离开
+	room, _ := game.GetMgr().CheckPlayerInRoom(userId)
+	if room != nil {
+		_ = qznn.HandlerPlayerLeave(room, userId)
+	}
+
+	// 2. 如果在 BRNN 房间中，执行离开
+	brnnRoom, brnnPlayer := game.GetMgr().CheckPlayerInBRNN(userId)
+	if brnnRoom != nil && brnnPlayer != nil {
+		brnnRoom.RemovePlayer(userId)
+	}
+
+	// 3. 关闭 WebSocket 连接
+	wsConnectMapMutex.Lock()
+	if wsWrap, ok := wsConnectMap[userId]; ok {
+		if wsWrap != nil {
+			wsWrap.CloseNormal("kicked by operator")
+		}
+		delete(wsConnectMap, userId)
+	}
+	wsConnectMapMutex.Unlock()
+
+	return gin.H{"kicked": true}, nil
+}
+
+// RpcOnlineStatus 查询玩家在线状态（运营商API调用）
+func RpcOnlineStatus(c *gin.Context) (interface{}, error) {
+	userId := c.Query("userId")
+	if userId == "" {
+		return nil, comm.NewMyError("userId is required")
+	}
+
+	online := false
+	inGame := false
+	gameType := ""
+
+	// 检查 WS 连接
+	wsConnectMapMutex.RLock()
+	if wsWrap, ok := wsConnectMap[userId]; ok && wsWrap != nil && wsWrap.IsConnected() {
+		online = true
+	}
+	wsConnectMapMutex.RUnlock()
+
+	// 检查是否在 QZNN 游戏中
+	if room, _ := game.GetMgr().CheckPlayerInRoom(userId); room != nil {
+		inGame = true
+		gameType = "qznn"
+	}
+
+	// 检查是否在 BRNN 游戏中
+	if brnnRoom, brnnPlayer := game.GetMgr().CheckPlayerInBRNN(userId); brnnRoom != nil && brnnPlayer != nil {
+		inGame = true
+		gameType = "brnn"
+	}
+
+	return gin.H{
+		"online":   online,
+		"inGame":   inGame,
+		"gameType": gameType,
+	}, nil
+}

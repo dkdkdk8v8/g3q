@@ -2,7 +2,11 @@ package mainRobot
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io"
 	"math/rand"
 	"net/http"
@@ -393,9 +397,16 @@ func (r *Robot) Run() {
 		Host:   targetHost,
 		Path:   PATH_WS,
 	}
+	// 生成 LaunchToken
+	ts := time.Now().Unix()
+	mac := hmac.New(sha256.New, []byte(comm.LaunchTokenKey))
+	mac.Write([]byte(fmt.Sprintf("%s:%s:%d", r.AppId, r.AppUserId, ts)))
+	token := fmt.Sprintf("%x.%s", ts, hex.EncodeToString(mac.Sum(nil)))
+
 	q := u.Query()
 	q.Set("uid", r.AppUserId)
 	q.Set("app", r.AppId)
+	q.Set("token", token)
 	u.RawQuery = q.Encode()
 
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
@@ -621,6 +632,8 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 					}).Info("Robot - Successfully left room")
 				}
 			}
+			// 如果房间内只剩自己，主动退出
+			r.checkAloneAndLeave()
 		}
 
 	case qznn.PushPlayerCallBanker:
@@ -811,4 +824,34 @@ func (r *Robot) checkLeave() {
 			r.Close()
 		}
 	}()
+}
+
+// checkAloneAndLeave 房间内只剩自己时主动退出
+func (r *Robot) checkAloneAndLeave() {
+	r.mu.Lock()
+	roomData := r.RoomData
+	roomId := r.RoomId
+	balance := r.Balance
+	r.mu.Unlock()
+
+	if roomData == nil {
+		return
+	}
+
+	otherCount := 0
+	for _, p := range roomData.Players {
+		if p != nil && p.ID != r.Uid {
+			otherCount++
+		}
+	}
+
+	if otherCount == 0 {
+		logrus.WithFields(logrus.Fields{
+			"roomId":  roomId,
+			"uid":     r.Uid,
+			"balance": balance,
+		}).Info("Robot - Alone in room, leaving")
+		r.Send(qznn.CmdPlayerLeave, map[string]interface{}{"RoomId": roomId})
+		r.Close()
+	}
 }

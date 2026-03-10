@@ -43,6 +43,37 @@ export class GameUserService extends BaseService {
         return result;
     }
 
+    /**
+     * 管理员修改用户余额
+     */
+    async modifyBalance(userId: string, amount: number) {
+        const user = await this.userEntity.findOneBy({ user_id: userId });
+        if (!user) {
+            throw new Error('用户不存在');
+        }
+
+        const balanceBefore = user.balance;
+        const balanceAfter = balanceBefore + amount;
+        if (balanceAfter < 0) {
+            throw new Error('余额不足，修改后余额不能为负');
+        }
+
+        await this.userEntity.update({ user_id: userId }, { balance: balanceAfter });
+
+        const record = this.userRecordEntity.create({
+            user_id: userId,
+            record_type: 3,
+            balance_before: balanceBefore,
+            balance_after: balanceAfter,
+            game_record_id: 0,
+            order_id: `ADMIN_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+            create_at: new Date(),
+        });
+        await this.userRecordEntity.save(record);
+
+        return { balanceBefore, balanceAfter };
+    }
+
     async pageUserRecords(user_id: string, page = 1, size = 10): Promise<{
         list: GameUserRecordEntity[],
         pagination: {

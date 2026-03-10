@@ -44,6 +44,10 @@ export class BaseSysUserEntity extends BaseEntity {
 
   @Column({ comment: '状态 0-禁用 1-启用', default: 1 })
   status: number;
+
+  @Column({ comment: '绑定商户appId列表(JSON)', nullable: true, type: 'text' })
+  appIds: string;
+
   // 部门名称
   departmentName: string;
   // 角色ID列表

@@ -32,7 +32,9 @@ export function useLobby() {
             displayName: displayName,
             id: userStore.userInfo.user_id || '---',
             coins: formatCoins(userStore.userInfo.balance || 0),
-            avatar: userStore.userInfo.avatar || defaultAvatar
+            avatar: userStore.userInfo.avatar
+                ? (userStore.userInfo.avatar.startsWith('http://') || userStore.userInfo.avatar.startsWith('https://') ? userStore.userInfo.avatar : `/${userStore.userInfo.avatar}`)
+                : defaultAvatar
         };
     });
 

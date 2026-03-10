@@ -18,6 +18,7 @@
 					<el-button
 						v-permission="service.base.sys.user.permission.move"
 						type="success"
+						size="small"
 						:disabled="Table?.selection.length == 0"
 						@click="toMove()"
 					>
@@ -34,6 +35,7 @@
 							<el-button
 								v-permission="service.base.sys.user.permission.move"
 								text
+								size="small"
 								@click="toMove(scope.row)"
 							>
 								{{ $t('转移') }}
@@ -69,9 +71,11 @@ import UserMove from './components/user-move.vue';
 import { useViewGroup } from '/@/plugins/view';
 import { useI18n } from 'vue-i18n';
 import { Plugins } from '/#/crud';
+import { useOptions } from '/$/options';
 
 const { service, refs, setRefs } = useCool();
 const { t } = useI18n();
+const { options: optionsStore } = useOptions();
 
 const { ViewGroup } = useViewGroup({
 	title: t('用户列表')
@@ -88,16 +92,6 @@ const Table = useTable({
 		{
 			type: 'selection',
 			width: 60
-		},
-		{
-			prop: 'headImg',
-			label: t('头像'),
-			component: {
-				name: 'cl-avatar',
-				props: {
-					size: 32
-				}
-			}
 		},
 		{
 			prop: 'username',
@@ -128,6 +122,12 @@ const Table = useTable({
 			formatter(row) {
 				return row.roleName?.split(',');
 			}
+		},
+		{
+			prop: 'merchantNames',
+			label: t('绑定商户'),
+			minWidth: 160,
+			showOverflowTooltip: true
 		},
 		{
 			prop: 'status',
@@ -169,16 +169,6 @@ const Upsert = useUpsert({
 	},
 
 	items: [
-		{
-			prop: 'headImg',
-			label: t('头像'),
-			component: {
-				name: 'cl-upload',
-				props: {
-					text: t('选择头像')
-				}
-			}
-		},
 		{
 			prop: 'name',
 			label: t('姓名'),
@@ -244,6 +234,19 @@ const Upsert = useUpsert({
 			}
 		},
 		{
+			prop: 'appIds',
+			label: t('绑定商户'),
+			component: {
+				name: 'el-select',
+				options: [],
+				props: {
+					multiple: true,
+					placeholder: t('请选择商户'),
+					clearable: true
+				}
+			}
+		},
+		{
 			prop: 'phone',
 			label: t('手机号码'),
 			span: 12,
@@ -293,8 +296,19 @@ const Upsert = useUpsert({
 	onSubmit(data, { next }) {
 		next({
 			departmentId: ViewGroup.value?.selected?.id,
-			...data
+			...data,
+			appIds: data.appIds?.length ? JSON.stringify(data.appIds) : null
 		});
+	},
+
+	async onInfo(data, { done }) {
+		const res = await service.base.sys.user.info({ id: data.id });
+		try {
+			res.appIds = res.appIds ? JSON.parse(res.appIds) : [];
+		} catch {
+			res.appIds = [];
+		}
+		done(res);
 	},
 
 	async onOpen() {
@@ -308,6 +322,16 @@ const Upsert = useUpsert({
 						value: e.id
 					};
 				})
+			);
+		});
+		// 设置商户列表
+		service.merchant.merchant.list().then(res => {
+			Upsert.value?.setOptions(
+				'appIds',
+				res.map(e => ({
+					label: e.merchantName || '',
+					value: e.appId
+				}))
 			);
 		});
 	},

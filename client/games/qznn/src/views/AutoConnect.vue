@@ -22,7 +22,7 @@ const userStore = useUserStore();
 const settingsStore = useSettingsStore();
 const loadingStore = useLoadingStore();
 
-const DEFAULT_HOST = '43.198.8.247:8082';
+const DEFAULT_HOST = '127.0.0.1:18082';
 
 onUnmounted(() => {
     gameClient.offServerPush('PushRouter');
@@ -43,12 +43,16 @@ function _initAutoConnect() {
     const params = new URLSearchParams(window.location.search);
     const app = params.get('app');
     const uid = params.get('uid');
-    const token = params.get('token') || 'auto';
-    const mode = Number(params.get('mode') || 0);
+    const token = params.get('token');
+    const mode = Number(params.get('mode') ?? 0);
     const host = params.get('host') || DEFAULT_HOST;
 
-    if (!app || !uid) {
-        loadingStore.setAppLoadingError('缺少必要参数: app 和 uid');
+    const missing = [];
+    if (!app) missing.push('app');
+    if (!uid) missing.push('uid');
+    if (!token) missing.push('token');
+    if (missing.length > 0) {
+        loadingStore.setAppLoadingError(`缺少必要参数: ${missing.join('、')}`);
         return;
     }
 

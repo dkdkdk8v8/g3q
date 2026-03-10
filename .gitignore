@@ -30,6 +30,7 @@ vite.config.ts.timestamp*
 package-lock.json
 pnpm-lock.yaml
 pnpm-workspace.yaml
+admin-client/build/
 
 # ============ Secrets & Config ============
 *.pem
@@ -68,5 +69,6 @@ server/server/main_tunnel/main_tunnel
 **/*.deadlock
 
 # ============ Misc ============
-.gemini/settings.json
+.claude/
+.gemini/
 .playwright-mcp/

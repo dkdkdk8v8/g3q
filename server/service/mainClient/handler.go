@@ -65,6 +65,10 @@ func joinRoom(roomId string, excludeRoomId string, userId string, connWrap *ws.W
 	if roomId != "" {
 		room = game.GetMgr().GetRoomByRoomId(roomId)
 		if room == nil {
+			// 回滚：释放已锁定的余额
+			if _, resetErr := modelClient.GameResetUserBalance(userId); resetErr != nil {
+				logrus.WithField("userId", userId).WithError(resetErr).Error("RoomJoin-ResetBal-Fail")
+			}
 			return nil, comm.NewMyError("房间不存在")
 		}
 	}
@@ -72,6 +76,10 @@ func joinRoom(roomId string, excludeRoomId string, userId string, connWrap *ws.W
 	if room == nil && !user.IsRobot {
 		room, err = game.GetMgr().SelectRoom(user, p, cfg, excludeRoomId)
 		if err != nil {
+			// 回滚：释放已锁定的余额
+			if _, resetErr := modelClient.GameResetUserBalance(userId); resetErr != nil {
+				logrus.WithField("userId", userId).WithError(resetErr).Error("RoomJoin-ResetBal-Fail")
+			}
 			return nil, err
 		}
 	}
@@ -81,6 +89,10 @@ func joinRoom(roomId string, excludeRoomId string, userId string, connWrap *ws.W
 
 	room, err = game.GetMgr().JoinQZNNRoom(room, user, p)
 	if err != nil {
+		// 回滚：释放已锁定的余额
+		if _, resetErr := modelClient.GameResetUserBalance(userId); resetErr != nil {
+			logrus.WithField("userId", userId).WithError(resetErr).Error("RoomJoin-ResetBal-Fail")
+		}
 		return nil, err
 	}
 

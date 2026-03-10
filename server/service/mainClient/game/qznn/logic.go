@@ -389,10 +389,14 @@ func (r *QZNNRoom) kickOffByWsDisconnect() ([]string, bool) {
 	}
 
 	if slices.Contains([]RoomState{StateWaiting, StatePrepare}, r.State) {
+		var leftIds []string
 		for _, delUserId := range delIds {
 			// 再次检查防止并发修改导致空指针或误删
-			r.leave(delUserId)
+			if r.leave(delUserId) {
+				leftIds = append(leftIds, delUserId)
+			}
 		}
+		return leftIds, len(leftIds) > 0
 	}
 	return delIds, true
 }
@@ -445,12 +449,16 @@ func (r *QZNNRoom) AddPlayer(p *Player) (int, error) {
 		}
 	}
 	if p.IsRobot {
-		// 每个房间最多1个机器人
+		// 每个房间最多4个机器人
+		robotCount := 0
 		for _, existingPlayer := range r.Players {
 			if existingPlayer != nil && existingPlayer.IsRobot {
-				r.RoomMu.Unlock()
-				return 0, comm.ErrMaxRobotInRoom
+				robotCount++
 			}
+		}
+		if robotCount >= 4 {
+			r.RoomMu.Unlock()
+			return 0, comm.ErrMaxRobotInRoom
 		}
 	} else {
 		// 真人加入时更新时间戳
@@ -615,10 +623,11 @@ func (r *QZNNRoom) leave(userId string) bool {
 	for i, pl := range r.Players {
 		if pl != nil && pl.ID == userId {
 			//modelUser balanceLock -> balance
-			modelUser, err := modelClient.GameResetUserBalance(userId)
+			_, err := modelClient.GameResetUserBalance(userId)
 			if err != nil {
-				logrus.WithField("userId", userId).WithField("balanceLock", modelUser.BalanceLock).WithField(
-					"balance", modelUser.Balance).WithError(err).Error("ResetBalLock-Fail")
+				logrus.WithField("userId", userId).WithError(err).Error("ResetBalLock-Fail")
+				// 数据库失败，不移除玩家，防止余额永久冻结
+				return false
 			}
 			r.Players[i] = nil
 
@@ -1373,6 +1382,12 @@ func (r *QZNNRoom) startGame() {
 
 	modelUsers, err := modelClient.UpdateUserSetting(&settle)
 	if err != nil {
+		// 回滚内存中的余额，防止内存与数据库不一致
+		for _, p := range activePlayer {
+			p.Mu.Lock()
+			p.Balance -= p.BalanceChange
+			p.Mu.Unlock()
+		}
 		var allUserIds []string
 		for _, u := range settle.Players {
 			allUserIds = append(allUserIds, u.UserId)
@@ -1384,7 +1399,7 @@ func (r *QZNNRoom) startGame() {
 				"changeBal", u.ChangeBalance).WithError(err).Error("UpdateUserSetting-Restore")
 		}
 		logrus.WithField("gameId", r.GameID).WithField(
-			"userIds", strings.Join(allUserIds, ",")).Error("UpdateUserSetting-Fail-Exiting")
+			"userIds", strings.Join(allUserIds, ",")).Error("UpdateUserSetting-Fail-Rollback")
 		return
 	}
 

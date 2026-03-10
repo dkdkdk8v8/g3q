@@ -1,11 +1,31 @@
 #!/bin/bash
 set -e
 
+# Environment selection
+echo "Select deploy environment:"
+echo "  1) test       (43.198.45.138)"
+echo "  2) production (16.162.178.10)"
+read -p "Enter choice [1/2]: " ENV_CHOICE
+
+case "${ENV_CHOICE}" in
+  1)
+    REMOTE_HOST="43.198.45.138"
+    ENV_NAME="test"
+    ;;
+  2)
+    REMOTE_HOST="16.162.178.10"
+    ENV_NAME="production"
+    ;;
+  *)
+    echo "Invalid choice. Exiting."
+    exit 1
+    ;;
+esac
+
 # Config
-REMOTE_HOST="43.198.45.138"
 REMOTE_USER="ec2-user"
 SSH_KEY="$(dirname "$0")/src/tunnel/rsa.pem"
-REMOTE_DIR="/home/ec2-user/g3q/admin"
+REMOTE_DIR="/home/ec2-user/node/admin"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 ARCHIVE_NAME="admin_${TIMESTAMP}.zip"
 
@@ -13,7 +33,7 @@ ARCHIVE_NAME="admin_${TIMESTAMP}.zip"
 chmod 600 "${SSH_KEY}"
 SSH_OPTS="-i ${SSH_KEY} -o StrictHostKeyChecking=no"
 
-echo "=== Admin Deploy ==="
+echo "=== Admin Deploy [${ENV_NAME}] -> ${REMOTE_HOST} ==="
 
 # 1. Build
 echo "[1/4] Building..."

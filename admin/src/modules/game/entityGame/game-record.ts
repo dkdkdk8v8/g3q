@@ -14,6 +14,9 @@ export class GameRecordEntity {
   @Column({ comment: '游戏记录ID' })
   game_id: string;
 
+  @Column({ comment: '房间ID', nullable: true, default: null })
+  room_id: string;
+
   @Column({ comment: '游戏数据' })
   game_data: string;
 

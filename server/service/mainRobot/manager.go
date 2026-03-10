@@ -72,6 +72,7 @@ type RobotAction struct {
 	Level      int
 	BankerType int
 	RoomId     string // 如果为空则创建新房间
+	DelaySec   int    // 进入房间前等待秒数(等待真人进入)
 }
 
 // managerLoop 管理器主循环
@@ -110,6 +111,32 @@ func isRobotCompatible(user *modelClient.ModelUser, room *RoomDataSimple) bool {
 	return true
 }
 
+// cleanupAllRobotRooms 清理纯机器人房间(没有真人时让机器人退出)
+func cleanupAllRobotRooms(rooms []*RoomDataSimple) {
+	for _, room := range rooms {
+		realCount := 0
+		robotCount := 0
+		for _, p := range room.Players {
+			if p != nil {
+				if p.IsRobot {
+					robotCount++
+				} else {
+					realCount++
+				}
+			}
+		}
+		if realCount == 0 && robotCount > 0 {
+			activeRobotsMu.Lock()
+			for _, rt := range activeRobots {
+				if rt.Action.RoomId == room.ID {
+					rt.Cancel()
+				}
+			}
+			activeRobotsMu.Unlock()
+		}
+	}
+}
+
 // managerRound 执行一轮调度
 func managerRound() {
 	// 1. 读取全部房间数据
@@ -118,6 +145,9 @@ func managerRound() {
 		logrus.Errorf("Failed to fetch room list: %v", err)
 		return
 	}
+
+	// 清理纯机器人房间(真人全部离开后机器人也退出)
+	cleanupAllRobotRooms(rooms)
 
 	// 2. 根据优先级生成行动计划
 	actions := planActions(rooms)
@@ -171,7 +201,7 @@ func managerRound() {
 }
 
 // planActions 根据房间状态生成调度计划
-// 新模型：每个房间最多1个机器人，真人加入后延迟一段时间再派机器人
+// 每个房间最多 MAX_ROBOTS_PER_ROOM 个机器人，每个机器人等待 2-5 秒再进入
 func planActions(rooms []*RoomDataSimple) []RobotAction {
 	var actions []RobotAction
 
@@ -195,7 +225,7 @@ func planActions(rooms []*RoomDataSimple) []RobotAction {
 		if playerCount >= 5 {
 			continue
 		}
-		// 跳过已有机器人的房间
+		// 跳过已达机器人上限的房间
 		if robotCount >= MAX_ROBOTS_PER_ROOM {
 			continue
 		}
@@ -207,16 +237,28 @@ func planActions(rooms []*RoomDataSimple) []RobotAction {
 		if room.LastRealPlayerJoinAt.IsZero() {
 			continue
 		}
-		// 跳过延迟未到的房间
-		if time.Since(room.LastRealPlayerJoinAt) < time.Duration(ROBOT_JOIN_DELAY_SEC)*time.Second {
+		// 真人加入后至少等 ROBOT_JOIN_DELAY_MIN 秒
+		if time.Since(room.LastRealPlayerJoinAt) < time.Duration(ROBOT_JOIN_DELAY_MIN)*time.Second {
 			continue
 		}
 
-		actions = append(actions, RobotAction{
-			Level:      room.Config.Level,
-			BankerType: room.Config.BankerType,
-			RoomId:     room.ID,
-		})
+		// 计算还需要多少个机器人（不超过空位数）
+		emptySeats := 5 - playerCount
+		needRobots := MAX_ROBOTS_PER_ROOM - robotCount
+		if needRobots > emptySeats {
+			needRobots = emptySeats
+		}
+
+		for i := 0; i < needRobots; i++ {
+			// 第 N 个机器人等待 (N+1) * random(2,5) 秒
+			delay := (i + 1) * (ROBOT_JOIN_DELAY_MIN + rand.Intn(ROBOT_JOIN_DELAY_MAX-ROBOT_JOIN_DELAY_MIN+1))
+			actions = append(actions, RobotAction{
+				Level:      room.Config.Level,
+				BankerType: room.Config.BankerType,
+				RoomId:     room.ID,
+				DelaySec:   delay,
+			})
+		}
 	}
 
 	return actions
@@ -291,6 +333,20 @@ func runRobot(user *modelClient.ModelUser, ctx context.Context, action RobotActi
 		delete(activeRobots, user.UserId)
 		activeRobotsMu.Unlock()
 	}()
+
+	// 等待指定延迟秒数(等待真人进入房间)
+	if action.DelaySec > 0 {
+		logrus.WithFields(logrus.Fields{
+			"roomId": action.RoomId,
+			"uid":    user.UserId,
+			"delay":  action.DelaySec,
+		}).Info("Robot - Waiting before entering room")
+		select {
+		case <-time.After(time.Duration(action.DelaySec) * time.Second):
+		case <-ctx.Done():
+			return
+		}
+	}
 
 	// 进入房间前按照规则充值
 	if cfg := qznn.GetConfig(action.Level); cfg != nil {
@@ -783,31 +839,31 @@ func (r *Robot) checkLeave() {
 			return
 		}
 
-		// 计算真人数量（机器人是唯一的机器人，所以 realCount = totalCount - 1）
+		// 计算房间内其他玩家数量
 		totalCount := 0
 		for _, p := range roomData.Players {
 			if p != nil {
 				totalCount++
 			}
 		}
-		realCount := totalCount - 1 // 自己是唯一的机器人
+		otherCount := totalCount - 1 // 减去自己
 
 		// 游戏最小局数后按照概率退出房间
 		if gamesPlayed < MIN_GAMES {
 			return
 		}
 
-		// 只有1个真人时不退出，真人多时提高退出概率
+		// 根据房间人数决定退出概率
 		var prob float64
 		switch {
-		case realCount >= 4:
+		case otherCount >= 4:
 			prob = PROB_LEAVE_5_PLAYERS
-		case realCount == 3:
+		case otherCount == 3:
 			prob = PROB_LEAVE_4_PLAYERS
-		case realCount == 2:
+		case otherCount == 2:
 			prob = PROB_LEAVE_3_PLAYERS
 		default:
-			prob = PROB_LEAVE_2_PLAYERS // 0, 即1个真人时不退出
+			prob = PROB_LEAVE_2_PLAYERS // 0, 即只有1个其他玩家时不退出
 		}
 
 		if prob > 0 && rand.Float64() < prob {
@@ -819,7 +875,7 @@ func (r *Robot) checkLeave() {
 			roomLeaveCooldown[roomId] = time.Now()
 			roomLeaveMu.Unlock()
 
-			logrus.WithFields(logrus.Fields{"roomId": roomId, "uid": r.Uid, "balance": balance}).Infof("Robot - Decided to leave room, real players: %d, games played: %d, probability: %.2f", realCount, gamesPlayed, prob)
+			logrus.WithFields(logrus.Fields{"roomId": roomId, "uid": r.Uid, "balance": balance}).Infof("Robot - Decided to leave room, other players: %d, games played: %d, probability: %.2f", otherCount, gamesPlayed, prob)
 			r.Send(qznn.CmdPlayerLeave, map[string]interface{}{"RoomId": roomId})
 			r.Close()
 		}

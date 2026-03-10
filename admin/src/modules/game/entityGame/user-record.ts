@@ -32,6 +32,9 @@ export class GameUserRecordEntity {
   @Column({ comment: '订单状态', default: 0 })
   order_state: number;
 
+  @Column({ comment: '订单备注/失败原因', nullable: true, default: null })
+  order_remark: string;
+
   @Column({ comment: '创建时间' })
   create_at: Date;
 }

@@ -79,6 +79,7 @@ export class StaPeriodService extends BaseService {
                     betCount: 0,
                     betAmount: 0,
                     gameWin: 0,
+                    taxAmount: 0,
                     firstGameUserCount: 0,
                 });
             }
@@ -88,6 +89,7 @@ export class StaPeriodService extends BaseService {
             data.betCount += item.betCount;
             data.betAmount += item.betAmount;
             data.gameWin += item.gameWin;
+            data.taxAmount += item.taxAmount || 0;
             data.firstGameUserCount += item.firstGameUserCount;
         }
 
@@ -109,6 +111,7 @@ export class StaPeriodService extends BaseService {
             betAmount: 0,
             betCount: 0,
             gameWin: 0,
+            taxAmount: 0,
             firstGameUserCount: 0,
             avgBetPerUser: 0,
             avgBetPerGame: 0,
@@ -121,6 +124,7 @@ export class StaPeriodService extends BaseService {
             summary.betAmount += item.betAmount;
             summary.betCount += item.betCount;
             summary.gameWin += item.gameWin;
+            summary.taxAmount += item.taxAmount || 0;
             summary.firstGameUserCount += item.firstGameUserCount;
         }
 

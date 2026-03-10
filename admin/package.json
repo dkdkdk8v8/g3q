@@ -67,6 +67,7 @@
     "ci": "npm run cov",
     "build": "mwtsc --cleanOutDir",
     "pm2:prod": "NODE_ENV=production pm2 start ./bootstrap.js -i 1 --name admin",
+    "pm2:test": "NODE_ENV=test pm2 start ./bootstrap.js -i 1 --name admin",
     "pm2:stop": "pm2 stop admin & pm2 delete admin"
   },
   "midway-bin-clean": [

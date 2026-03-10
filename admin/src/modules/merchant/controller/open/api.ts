@@ -16,11 +16,14 @@ import { Context } from '@midwayjs/koa';
  *   2003 — amount 必须大于 0
  *   2004 — orderId 缺失
  *   2005 — size 超过最大限制
+ *   2006 — type 参数无效
+ *   2007 — amount 必须为整数（分）
  *   3001 — 玩家不存在
  *   3002 — 余额不足
  *   3003 — 玩家在游戏中，无法转出
  *   3004 — 踢出玩家失败
  *   3005 — 游戏服务不可用
+ *   3006 — 订单不存在
  *   9999 — 系统内部错误
  */
 @Provide()
@@ -87,6 +90,7 @@ export class MerchantOpenApiController extends BaseController {
     const { playerId, amount, orderId, nickname, avatar } = body;
     if (!playerId) return this.error(2001, 'playerId is required');
     if (!amount || amount <= 0) return this.error(2003, 'amount must be positive');
+    if (!Number.isInteger(amount)) return this.error(2007, 'amount must be an integer (in cents)');
     if (!orderId) return this.error(2004, 'orderId is required');
     try {
       const result = await this.merchantApiService.transferIn({
@@ -105,16 +109,22 @@ export class MerchantOpenApiController extends BaseController {
 
   @Post('/transferOut', { summary: '转出（提现）' })
   async transferOut(@Body() body: any) {
-    const { playerId, amount, orderId } = body;
+    const { playerId, amount, orderId, type = 'amount' } = body;
     if (!playerId) return this.error(2001, 'playerId is required');
-    if (!amount || amount <= 0) return this.error(2003, 'amount must be positive');
     if (!orderId) return this.error(2004, 'orderId is required');
+    if (type === 'amount') {
+      if (!amount || amount <= 0) return this.error(2003, 'amount must be positive');
+      if (!Number.isInteger(amount)) return this.error(2007, 'amount must be an integer (in cents)');
+    } else if (type !== 'all') {
+      return this.error(2006, 'type must be "amount" or "all"');
+    }
     try {
       const result = await this.merchantApiService.transferOut({
         appId: this.getAppId(),
         playerId,
-        amount,
+        amount: type === 'all' ? undefined : amount,
         orderId,
+        type,
       });
       return this.success(result);
     } catch (e) {
@@ -170,4 +180,41 @@ export class MerchantOpenApiController extends BaseController {
       return this.error(e.code || 9999, e.message);
     }
   }
+
+  @Post('/fundRecords', { summary: '查询资金记录' })
+  async fundRecords(@Body() body: any) {
+    const { playerId, recordType, startTime, endTime, page, size } = body;
+    if (size > 500) return this.error(2005, 'size cannot exceed 500');
+    try {
+      const result = await this.merchantApiService.getFundRecords({
+        appId: this.getAppId(),
+        playerId,
+        recordType,
+        startTime,
+        endTime,
+        page,
+        size,
+      });
+      return this.success(result);
+    } catch (e) {
+      return this.error(e.code || 9999, e.message);
+    }
+  }
+
+  @Post('/orderQuery', { summary: '查询订单状态' })
+  async orderQuery(@Body() body: any) {
+    const { orderId } = body;
+    if (!orderId) return this.error(2004, 'orderId is required');
+    try {
+      const result = await this.merchantApiService.queryOrder(
+        this.getAppId(),
+        orderId,
+      );
+      if (!result) return this.error(3006, 'order not found');
+      return this.success(result);
+    } catch (e) {
+      return this.error(e.code || 9999, e.message);
+    }
+  }
+
 }

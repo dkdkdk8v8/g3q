@@ -220,6 +220,15 @@ const Table = useTable({
             },
         },
         {
+            label: "税收",
+            prop: "taxAmount",
+            minWidth: 100,
+            sortable: "custom",
+            formatter(row) {
+                return (row.taxAmount / 100).toFixed(2);
+            },
+        },
+        {
             label: "平台盈亏",
             prop: "gameWin",
             minWidth: 100,

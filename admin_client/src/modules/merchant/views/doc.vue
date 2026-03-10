@@ -247,9 +247,9 @@ public static String generateSign(Map&lt;String, Object&gt; params, String secre
         </div>
       </el-card>
 
-      <!-- 11. 货币说明 -->
+      <!-- 货币说明 -->
       <el-card shadow="never" class="doc-section" id="sec-currency">
-        <template #header><span class="section-title">11. 货币说明</span></template>
+        <template #header><span class="section-title">{{ apiList.length + 4 }}. 货币说明</span></template>
         <p>所有涉及金额的字段（余额、转入金额、转出金额等）均以 <b>分</b> 为单位，类型为整数。</p>
         <el-table :data="currencyExamples" border size="small">
           <el-table-column prop="display" label="实际金额" width="120" />
@@ -258,9 +258,9 @@ public static String generateSign(Map&lt;String, Object&gt; params, String secre
         </el-table>
       </el-card>
 
-      <!-- 12. 错误码 -->
+      <!-- 错误码 -->
       <el-card shadow="never" class="doc-section" id="sec-errors">
-        <template #header><span class="section-title">12. 错误码</span></template>
+        <template #header><span class="section-title">{{ apiList.length + 5 }}. 错误码</span></template>
 
         <h5 class="error-group-title" style="color: var(--el-color-primary)">认证相关（10xx）</h5>
         <el-table :data="authErrorCodes" border size="small" style="margin-bottom: 12px">
@@ -329,6 +329,8 @@ const tocGroups = [
       { id: 'sec-kick', label: '踢出玩家' },
       { id: 'sec-online', label: '查询在线状态' },
       { id: 'sec-betRecords', label: '查询投注记录' },
+      { id: 'sec-fundRecords', label: '查询资金记录' },
+      { id: 'sec-orderQuery', label: '订单查询' },
     ],
   },
   {
@@ -639,8 +641,10 @@ const paramErrorCodes = [
   { code: 2001, message: 'playerId is required', desc: '缺少 playerId 参数' },
   { code: 2002, message: 'gameCode is required', desc: '缺少 gameCode 参数（启动游戏）' },
   { code: 2003, message: 'amount must be positive', desc: 'amount 必须大于 0（转入/转出）' },
-  { code: 2004, message: 'orderId is required', desc: '缺少 orderId 参数（转入/转出）' },
-  { code: 2005, message: 'size cannot exceed 500', desc: 'size 超过最大限制 500（查询投注记录）' },
+  { code: 2004, message: 'orderId is required', desc: '缺少 orderId 参数（转入/转出/订单查询）' },
+  { code: 2005, message: 'size cannot exceed 500', desc: 'size 超过最大限制 500（查询记录）' },
+  { code: 2006, message: 'type must be "amount" or "all"', desc: 'type 参数无效（转出）' },
+  { code: 2007, message: 'amount must be an integer (in cents)', desc: 'amount 必须为整数，单位为分（转入/转出）' },
 ];
 
 const bizErrorCodes = [
@@ -649,6 +653,7 @@ const bizErrorCodes = [
   { code: 3003, message: 'player is in game, cannot transfer out', desc: '玩家在游戏中，需等待游戏结束或先踢出' },
   { code: 3004, message: 'kick player failed', desc: '踢出玩家失败（游戏服务异常）' },
   { code: 3005, message: 'game service unavailable', desc: '游戏服务不可用（未配置游戏地址）' },
+  { code: 3006, message: 'order not found', desc: '订单不存在' },
 ];
 
 const otherErrorCodes = [
@@ -714,7 +719,8 @@ const apiList = [
     ],
     response: [
       { name: 'balanceAvailable', type: 'number', desc: '可用余额（单位：分）' },
-      { name: 'balanceTotal', type: 'number', desc: '总余额（单位：分，可用余额 + 游戏中锁定余额）' },
+      { name: 'balanceLock', type: 'number', desc: '锁定余额（单位：分，游戏中冻结的金额）' },
+      { name: 'balanceTotal', type: 'number', desc: '总余额（单位：分，可用余额 + 锁定余额）' },
     ],
     reqExample: JSON.stringify({
       appId: 'APP001',
@@ -739,7 +745,7 @@ const apiList = [
     desc: '向玩家账户充值。若玩家不存在则自动创建账户并充值。',
     params: [
       { name: 'playerId', type: 'string', required: '是', desc: '商户侧玩家唯一标识' },
-      { name: 'amount', type: 'number', required: '是', desc: '转入金额（单位：分），必须大于 0' },
+      { name: 'amount', type: 'number', required: '是', desc: '转入金额（单位：分），必须为正整数' },
       { name: 'orderId', type: 'string', required: '是', desc: '商户侧订单号，用于幂等和对账' },
       { name: 'nickname', type: 'string', required: '否', desc: '玩家昵称，不传则使用 playerId' },
       { name: 'avatar', type: 'string', required: '否', desc: '玩家头像，不传则系统自动分配默认头像' },
@@ -775,33 +781,37 @@ const apiList = [
     id: 'sec-transferOut',
     title: '转出（提现）',
     path: '/open/merchant/transferOut',
-    desc: '从玩家账户提现。',
+    desc: '从玩家账户提现。支持指定金额和全部提现两种方式。',
     params: [
       { name: 'playerId', type: 'string', required: '是', desc: '商户侧玩家唯一标识' },
-      { name: 'amount', type: 'number', required: '是', desc: '转出金额（单位：分），必须大于 0' },
       { name: 'orderId', type: 'string', required: '是', desc: '商户侧订单号，用于幂等和对账' },
+      { name: 'type', type: 'string', required: '否', desc: '提现方式：amount（默认，指定金额）或 all（全部提现）' },
+      { name: 'amount', type: 'number', required: '条件', desc: 'type=amount 时必填，转出金额（单位：分），必须为正整数；type=all 时忽略' },
     ],
     response: [
       { name: 'duplicate', type: 'boolean', desc: '是否为重复订单' },
       { name: 'amount', type: 'number', desc: '本次实际转出金额（单位：分，重复订单时为 0）' },
-      { name: 'balanceAvailable', type: 'number', desc: '当前可用余额（单位：分）' },
-      { name: 'balanceTotal', type: 'number', desc: '当前总余额（单位：分）' },
+      { name: 'balanceAvailable', type: 'number', desc: '转出后可用余额（单位：分）' },
+      { name: 'balanceLock', type: 'number', desc: '锁定余额（单位：分）' },
+      { name: 'balanceTotal', type: 'number', desc: '总余额（单位：分）' },
     ],
     reqExample: JSON.stringify({
       appId: 'APP001',
       playerId: 'player_123',
       amount: 3000,
       orderId: 'ORD20240307002',
+      type: 'amount',
       timestamp: 1709800000,
       sign: 'a1b2c3...',
     }, null, 2),
     rspExample: JSON.stringify({
       code: 0,
       message: 'success',
-      data: { duplicate: false, amount: 3000, balanceAvailable: 12000, balanceTotal: 12000 },
+      data: { duplicate: false, amount: 3000, balanceAvailable: 12000, balanceLock: 0, balanceTotal: 12000 },
     }, null, 2),
     notes: [
-      '余额不足时返回 code=3002',
+      'type=amount：指定金额提现，余额不足时返回 code=3002',
+      'type=all：提现玩家全部可用余额，余额为 0 时返回 code=3002',
       '玩家在游戏中时返回 code=3003，需等待游戏结束或先踢出玩家',
       '使用 orderId 实现幂等，相同 orderId 重复请求不会重复扣款',
     ],
@@ -915,6 +925,136 @@ const apiList = [
       '不传 playerId 时查询该商户（appId）下所有玩家的记录',
       '不传时间范围时查询全部记录',
       '记录按时间倒序排列',
+    ],
+  },
+  {
+    id: 'sec-fundRecords',
+    title: '查询资金记录',
+    path: '/open/merchant/fundRecords',
+    desc: '查询玩家的资金变动记录，包括充值、提现、游戏、后台调整等所有类型，支持按类型筛选、分页和时间范围筛选。',
+    params: [
+      { name: 'playerId', type: 'string', required: '否', desc: '商户侧玩家标识，不传则查询该商户下所有玩家' },
+      { name: 'recordType', type: 'number', required: '否', desc: '记录类型筛选：0=充值，1=提现，2=游戏，3=后台调整。不传则查询全部类型' },
+      { name: 'startTime', type: 'string', required: '否', desc: '开始时间，格式 YYYY-MM-DD HH:mm:ss' },
+      { name: 'endTime', type: 'string', required: '否', desc: '结束时间，格式 YYYY-MM-DD HH:mm:ss' },
+      { name: 'page', type: 'number', required: '否', desc: '页码，默认 1' },
+      { name: 'size', type: 'number', required: '否', desc: '每页条数，默认 20，最大 500' },
+    ],
+    response: [
+      { name: 'list', type: 'array', desc: '资金记录列表' },
+      { name: 'list[].id', type: 'number', desc: '记录 ID' },
+      { name: 'list[].playerId', type: 'string', desc: '玩家标识' },
+      { name: 'list[].recordType', type: 'number', desc: '记录类型：0=充值，1=提现，2=游戏，3=后台调整' },
+      { name: 'list[].recordTypeText', type: 'string', desc: '类型文本：deposit / withdraw / game / admin' },
+      { name: 'list[].balanceBefore', type: 'number', desc: '变动前余额（单位：分）' },
+      { name: 'list[].balanceAfter', type: 'number', desc: '变动后余额（单位：分）' },
+      { name: 'list[].changeAmount', type: 'number', desc: '变动金额（单位：分，正数为增加，负数为减少）' },
+      { name: 'list[].orderId', type: 'string', desc: '订单号（充值/提现时有值）' },
+      { name: 'list[].createAt', type: 'string', desc: '记录时间' },
+      { name: 'pagination', type: 'object', desc: '分页信息' },
+      { name: 'pagination.page', type: 'number', desc: '当前页码' },
+      { name: 'pagination.size', type: 'number', desc: '每页条数' },
+      { name: 'pagination.total', type: 'number', desc: '总记录数' },
+    ],
+    reqExample: JSON.stringify({
+      appId: 'APP001',
+      playerId: 'player_123',
+      recordType: 0,
+      startTime: '2024-03-01 00:00:00',
+      endTime: '2024-03-07 23:59:59',
+      page: 1,
+      size: 20,
+      timestamp: 1709800000,
+      sign: 'a1b2c3...',
+    }, null, 2),
+    rspExample: JSON.stringify({
+      code: 0,
+      message: 'success',
+      data: {
+        list: [
+          {
+            id: 1001,
+            playerId: 'player_123',
+            recordType: 0,
+            recordTypeText: 'deposit',
+            balanceBefore: 0,
+            balanceAfter: 5000,
+            changeAmount: 5000,
+            orderId: 'ORD20240307001',
+            createAt: '2024-03-07 12:00:00',
+          },
+          {
+            id: 1002,
+            playerId: 'player_123',
+            recordType: 2,
+            recordTypeText: 'game',
+            balanceBefore: 5000,
+            balanceAfter: 7000,
+            changeAmount: 2000,
+            orderId: '',
+            createAt: '2024-03-07 15:30:00',
+          },
+        ],
+        pagination: { page: 1, size: 20, total: 2 },
+      },
+    }, null, 2),
+    notes: [
+      'recordType 类型说明：0=充值（商户转入），1=提现（商户转出），2=游戏（游戏输赢），3=后台调整（管理员手动修改余额）',
+      '不传 recordType 时查询所有类型的记录',
+      '不传 playerId 时查询该商户（appId）下所有玩家的记录',
+      '不传时间范围时查询全部记录',
+      '记录按时间倒序排列',
+    ],
+  },
+  {
+    id: 'sec-orderQuery',
+    title: '订单查询',
+    path: '/open/merchant/orderQuery',
+    desc: '根据 orderId 查询单笔订单的处理状态，支持充值和提现订单。适用于网络超时等场景下确认订单是否成功。',
+    params: [
+      { name: 'orderId', type: 'string', required: '是', desc: '商户侧订单号（transferIn / transferOut 时传入的 orderId）' },
+    ],
+    response: [
+      { name: 'orderId', type: 'string', desc: '订单号' },
+      { name: 'playerId', type: 'string', desc: '玩家标识' },
+      { name: 'recordType', type: 'number', desc: '订单类型：0=充值，1=提现' },
+      { name: 'recordTypeText', type: 'string', desc: '类型文本：deposit / withdraw' },
+      { name: 'orderState', type: 'number', desc: '订单状态：0=处理中，1=成功，2=失败' },
+      { name: 'orderStateText', type: 'string', desc: '状态文本：processing / success / failed' },
+      { name: 'amount', type: 'number', desc: '订单金额（单位：分）' },
+      { name: 'balanceBefore', type: 'number', desc: '变动前余额（单位：分）' },
+      { name: 'balanceAfter', type: 'number', desc: '变动后余额（单位：分）' },
+      { name: 'remark', type: 'string', desc: '备注（失败时包含失败原因）' },
+      { name: 'createAt', type: 'string', desc: '创建时间' },
+    ],
+    reqExample: JSON.stringify({
+      appId: 'APP001',
+      orderId: 'ORD20240307001',
+      timestamp: 1709800000,
+      sign: 'a1b2c3...',
+    }, null, 2),
+    rspExample: JSON.stringify({
+      code: 0,
+      message: 'success',
+      data: {
+        orderId: 'ORD20240307001',
+        playerId: 'player_123',
+        recordType: 0,
+        recordTypeText: 'deposit',
+        orderState: 1,
+        orderStateText: 'success',
+        amount: 5000,
+        balanceBefore: 0,
+        balanceAfter: 5000,
+        remark: '',
+        createAt: '2024-03-07 12:00:00',
+      },
+    }, null, 2),
+    notes: [
+      '支持查询充值（transferIn）和提现（transferOut）订单',
+      '订单不存在时返回 code=3006',
+      'recordType: 0=充值，1=提现',
+      'orderState: 0=处理中，1=成功，2=失败',
     ],
   },
 ];

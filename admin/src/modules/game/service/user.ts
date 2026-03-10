@@ -67,6 +67,7 @@ export class GameUserService extends BaseService {
             balance_after: balanceAfter,
             game_record_id: 0,
             order_id: `ADMIN_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+            order_state: 1,
             create_at: new Date(),
         });
         await this.userRecordEntity.save(record);

@@ -3,7 +3,6 @@
     <cl-row>
       <!-- 刷新按钮 -->
       <cl-refresh-btn />
-      <cl-multi-delete-btn />
       <el-button type="success" :disabled="!Table?.selection?.length" @click="batchEnable">
         批量启用
       </el-button>

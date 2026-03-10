@@ -11,7 +11,11 @@ import { GameUserEntity } from '../entityGame/user';
 import { GameRecordEntity } from '../entityGame/game-record';
 import { StaUserEntity } from '../entity/sta-user';
 import { StaPeriodService } from '../service/sta-period';
-import { QznnCardUtil } from '../util/qznn-card';
+import { getGameParser, ParsedPlayer } from '../util/game-parser';
+
+// 注册所有游戏解析器（import 时自动执行 registerGameParser）
+import '../util/qznn-parser';
+import '../util/brnn-parser';
 
 interface StatsData {
   timeKey: Date;
@@ -52,7 +56,6 @@ export class StaPeriodJob implements IJob {
   @Inject()
   logger: ILogger;
 
-
   @InjectClient(CachingFactory, 'default')
   midwayCache: MidwayCache;
 
@@ -76,7 +79,7 @@ export class StaPeriodJob implements IJob {
   private static COUNT = 10;
 
   async getLastId() {
-    let lastId = await this.midwayCache.get('game:sta:lastId');
+    const lastId = await this.midwayCache.get('game:sta:lastId');
     if (!lastId) return 0;
     return Number(lastId);
   }
@@ -85,18 +88,14 @@ export class StaPeriodJob implements IJob {
     await this.midwayCache.set('game:sta:lastId', id);
   }
 
-  /**
-   * 获取时间分片Key
-   */
+  /** 获取时间分片Key（10分钟粒度） */
   private getTimeKey(date: Date): Date {
     const recordTime = moment(date);
     recordTime.minute(Math.floor(recordTime.minute() / 10) * 10).second(0).millisecond(0);
     return recordTime.toDate();
   }
 
-  /**
-   * 获取或初始化统计对象
-   */
+  /** 获取或初始化统计对象 */
   private getStats(statsMap: Map<string, StatsData>, timeKey: Date, appId: string, gameName: string, roomLevel: number, roomType: number): StatsData {
     const mapKey = `${timeKey.getTime()}_${appId}_${gameName}_${roomLevel}_${roomType}`;
     if (!statsMap.has(mapKey)) {
@@ -121,9 +120,7 @@ export class StaPeriodJob implements IJob {
     return statsMap.get(mapKey);
   }
 
-  /**
-   * 保存统计数据
-   */
+  /** 保存统计数据 */
   private async saveStats(statsMap: Map<string, StatsData>) {
     if (statsMap.size === 0) return;
     const dataSource = this.staPeriodEntity.manager.connection;
@@ -181,9 +178,7 @@ export class StaPeriodJob implements IJob {
     });
   }
 
-  /**
-   * 保存用户统计数据
-   */
+  /** 保存用户统计数据 */
   private async saveUserStats(userStatsMap: Map<string, UserStatsData>) {
     if (userStatsMap.size === 0) return;
     const dataSource = this.staUserEntity.manager.connection;
@@ -216,9 +211,7 @@ export class StaPeriodJob implements IJob {
     });
   }
 
-  /**
-   * 检查是否首次游戏，带缓存优化
-   */
+  /** 检查是否首次游戏，带缓存优化 */
   private async checkIsFirstGame(userId: string, recordId: number): Promise<boolean> {
     const cacheKey = `game:sta:played:${userId}`;
     const hasPlayed = await this.midwayCache.get(cacheKey);
@@ -230,6 +223,105 @@ export class StaPeriodJob implements IJob {
       await this.midwayCache.set(cacheKey, 1, 7 * 24 * 3600);
     }
     return isFirst;
+  }
+
+  /**
+   * 处理单条记录中的单个玩家统计
+   */
+  private async processPlayer(
+    player: ParsedPlayer,
+    userMap: Map<string, GameUserEntity>,
+    record: GameRecordEntity,
+    gameName: string,
+    roomLevel: number,
+    roomType: number,
+    timeKey: Date,
+    dateKey: Date,
+    statsMap: Map<string, StatsData>,
+    userStatsMap: Map<string, UserStatsData>,
+    batchActiveUsers: Set<string>,
+    batchFirstGameUsers: Set<string>,
+    involvedApps: Set<string>,
+  ) {
+    if (player.isObserver) return;
+
+    const user = userMap.get(player.userId);
+    if (!user || user.is_robot) return;
+
+    const appId = user.app_id || '';
+    involvedApps.add(appId);
+
+    const stats = this.getStats(statsMap, timeKey, appId, gameName, roomLevel, roomType);
+
+    // 投注统计
+    stats.betCount++;
+    stats.betAmount += player.validBet;
+
+    // 平台盈亏 = 用户输赢的负数
+    stats.gameWin += -1 * player.balanceChange;
+
+    // 税收
+    stats.taxAmount += player.tax;
+
+    // 牌型统计
+    if (player.cardType) {
+      stats.cardResult[player.cardType] = (stats.cardResult[player.cardType] || 0) + 1;
+    }
+
+    // 单张牌频统计
+    if (player.cards && Array.isArray(player.cards)) {
+      for (const card of player.cards) {
+        if (typeof card === 'number' && card >= 0 && card < 52) {
+          stats.cartCount[card]++;
+        }
+      }
+    }
+
+    // 首次游戏判断
+    if (!batchFirstGameUsers.has(player.userId)) {
+      batchFirstGameUsers.add(player.userId);
+      if (await this.checkIsFirstGame(player.userId, record.id)) {
+        stats.firstGameUserCount += 1;
+        stats.firstGameUserIds.push(player.userId);
+      }
+    }
+
+    // 活跃用户按天去重
+    const dateStr = moment(timeKey).format('YYYY-MM-DD');
+    const dauKey = `${dateStr}:${player.userId}`;
+    let isDailyActive = false;
+    if (!batchActiveUsers.has(dauKey)) {
+      batchActiveUsers.add(dauKey);
+      isDailyActive = await this.staPeriodService.isDailyActive(timeKey, player.userId);
+    }
+    if (isDailyActive) {
+      stats.gameUserCount += 1;
+    }
+
+    // 用户数据统计
+    const userKey = `${dateKey.getTime()}_${player.userId}`;
+    if (!userStatsMap.has(userKey)) {
+      userStatsMap.set(userKey, {
+        date: dateKey,
+        userId: player.userId,
+        appId: appId,
+        betCount: 0,
+        betAmount: 0,
+        winCount: 0,
+        bankerCount: 0,
+        betWin: 0,
+      });
+    }
+    const uStats = userStatsMap.get(userKey);
+    uStats.betCount++;
+    uStats.betAmount += player.validBet;
+    uStats.betWin += player.balanceChange;
+    if (player.balanceChange > 0) {
+      uStats.winCount++;
+    }
+    if (player.isBanker) {
+      uStats.bankerCount++;
+    }
   }
 
   async onTick(): Promise<void> {
@@ -249,20 +341,29 @@ export class StaPeriodJob implements IJob {
       const userStatsMap = new Map<string, UserStatsData>();
       let newLastId = lastId;
 
-      // 预取用户信息
+      // 解析记录 & 收集所有玩家ID
       const allUserIds = new Set<string>();
-      const parsedRecords = [];
+      const parsedRecords: { record: GameRecordEntity; gameData: any }[] = [];
+
       for (const record of records) {
         const gameData = JSON.parse(record.game_data);
-        parsedRecords.push({ record, gameData });
-        const { Room } = gameData;
-        const { Players = [] } = Room;
-        for (const player of Players) {
-          if (player && player.ID) allUserIds.add(player.ID);
+        const parser = getGameParser(record.game_name);
+        if (!parser) {
+          this.logger.warn(`未注册的游戏类型: ${record.game_name}，跳过 record #${record.id}`);
+          if (record.id > newLastId) newLastId = record.id;
+          continue;
         }
+
+        const parsed = parser.parse(gameData);
+        for (const player of parsed.players) {
+          if (player.userId) allUserIds.add(player.userId);
+        }
+
+        parsedRecords.push({ record, gameData });
         if (record.id > newLastId) newLastId = record.id;
       }
 
+      // 批量预取用户信息
       const userMap = new Map<string, GameUserEntity>();
       if (allUserIds.size > 0) {
         const users = await this.userEntity.find({ where: { user_id: In([...allUserIds]) } });
@@ -275,106 +376,29 @@ export class StaPeriodJob implements IJob {
       const batchFirstGameUsers = new Set<string>();
 
       await Promise.all(parsedRecords.map(async ({ record, gameData }) => {
-        const { id, game_name, create_at } = record;
-        const { Room } = gameData;
-        let { Players = [], Config, BankerID } = Room;
-
-        const roomLevel = Config?.Level || 0;
-        const roomType = Room?.BankerType || 0;
+        const { game_name, create_at } = record;
+        const parser = getGameParser(game_name);
+        const parsed = parser.parse(gameData);
 
         const timeKey = this.getTimeKey(create_at);
         const dateKey = moment(create_at).startOf('day').toDate();
+        const involvedApps = new Set<string>();
 
-        Players = Players.filter(Boolean);
-        const involvedGroups = new Set<string>();
-
-        await Promise.all(Players.map(async (player) => {
-          const { ID: userId, IsOb, BalanceChange, ValidBet, Cards } = player;
-          if (IsOb) return;
-
-          const user = userMap.get(userId);
-          const app_id = user?.app_id || '';
-          if (!user || user.is_robot) return;
-          involvedGroups.add(`${app_id}`);
-
-          const stats = this.getStats(statsMap, timeKey, app_id, game_name, roomLevel, roomType);
-
-          stats.betCount++;
-          stats.betAmount += Math.abs(ValidBet);
-
-          // 平台盈亏 = 用户输赢的负数
-          stats.gameWin += -1 * (Number(BalanceChange) || 0);
-
-          // 税收累计
-          stats.taxAmount += (Number(player.Tax) || 0);
-
-          // 统计牌型
-          if (game_name === QznnCardUtil.GameNameQZNN) {
-            const cardType = QznnCardUtil.calculateCardResult(Cards);
-            stats.cardResult[cardType] = (stats.cardResult[cardType] || 0) + 1;
-          }
-
-          // 统计单张牌
-          if (Cards && Array.isArray(Cards)) {
-            for (const card of Cards) {
-              if (typeof card === 'number' && card >= 0 && card < 52) {
-                stats.cartCount[card]++;
-              }
-            }
-          }
-
-          // 首次游戏判断
-          // 使用 batchFirstGameUsers 防止同批次内同一个新用户被统计多次
-          if (!batchFirstGameUsers.has(userId)) {
-            batchFirstGameUsers.add(userId); // 先同步标记，防止后续并发进入
-            if (await this.checkIsFirstGame(userId, id)) {
-              stats.firstGameUserCount += 1;
-              stats.firstGameUserIds.push(userId);
-            }
-          }
-
-          // 活跃用户按天去重
-          const dateStr = moment(timeKey).format('YYYY-MM-DD');
-          const dauKey = `${dateStr}:${userId}`;
-          let isDailyActive = false;
-          if (!batchActiveUsers.has(dauKey)) {
-            batchActiveUsers.add(dauKey);
-            isDailyActive = await this.staPeriodService.isDailyActive(timeKey, userId);
-          }
-
-          if (isDailyActive) {
-            stats.gameUserCount += 1;
-          }
-
-          // 用户数据统计
-          const userKey = `${dateKey.getTime()}_${userId}`;
-          if (!userStatsMap.has(userKey)) {
-            userStatsMap.set(userKey, {
-              date: dateKey,
-              userId: userId,
-              appId: app_id,
-              betCount: 0,
-              betAmount: 0,
-              winCount: 0,
-              bankerCount: 0,
-              betWin: 0,
-            });
-          }
-          const uStats = userStatsMap.get(userKey);
-          uStats.betCount++;
-          uStats.betAmount += Math.abs(ValidBet);
-          uStats.betWin += (Number(BalanceChange) || 0);
-          if ((Number(BalanceChange) || 0) > 0) {
-            uStats.winCount++;
-          }
-          if (BankerID && String(BankerID) === String(userId)) {
-            uStats.bankerCount++;
-          }
+        // 处理每个玩家
+        await Promise.all(parsed.players.map(async (player) => {
+          await this.processPlayer(
+            player, userMap, record,
+            game_name, parsed.roomLevel, parsed.roomType,
+            timeKey, dateKey,
+            statsMap, userStatsMap,
+            batchActiveUsers, batchFirstGameUsers,
+            involvedApps,
+          );
         }));
 
-        // 增加游戏次数 (每个涉及的APP都+1)
-        for (const appId of involvedGroups) {
-          const stats = this.getStats(statsMap, timeKey, appId, game_name, roomLevel, roomType);
+        // 增加游戏次数（每个涉及的APP都+1）
+        for (const appId of involvedApps) {
+          const stats = this.getStats(statsMap, timeKey, appId, game_name, parsed.roomLevel, parsed.roomType);
           stats.gameCount += 1;
         }
       }));

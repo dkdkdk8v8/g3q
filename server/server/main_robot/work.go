@@ -123,7 +123,7 @@ func (w *mainClientWork) Start(baseCtx *initMain.BaseCtx) error {
 
 	go func() {
 		mainRobot.StartRobot()
-		// mainRobot.StartStress()
+		mainRobot.StartStress()
 	}()
 
 	fmt.Println("startOk")

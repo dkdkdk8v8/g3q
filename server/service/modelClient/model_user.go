@@ -71,7 +71,8 @@ type ModelUserRecord struct {
 	ValidBet      int64      `orm:"column(valid_bet);default(0)"`                          // 有效投注额
 	GameRecordId  uint64     `orm:"column(game_record_id);size(64)"`                       // 游戏RecordID // join ModelGame的Id 主键
 	OrderId       *string    `orm:"column(order_id);size(128);null;default(null)"`         // 订单ID
-	OrderState    int        `orm:"column(order_state);default(0)"`                        // 订单状态
+	OrderState    int        `orm:"column(order_state);default(0)"`                        // 订单状态: 0=处理中 1=成功 2=失败
+	OrderRemark   *string    `orm:"column(order_remark);size(512);null;default(null)"`     // 订单备注/失败原因
 	FinalLucky    float64    `orm:"column(final_lucky);digits(10);decimals(2);default(0)"` // 本局幸运值
 	CreateAt      time.Time  `orm:"column(create_at);type(datetime);auto_now_add"`         // 创建时间
 }

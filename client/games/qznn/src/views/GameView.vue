@@ -1841,12 +1841,12 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
             <!-- 阶段提示信息容器 -->
 
-            <div v-if="['READY_COUNTDOWN', 'ROB_BANKER', 'BETTING', 'SHOWDOWN', 'BANKER_SELECTION_ANIMATION', 'BANKER_CONFIRMED'].includes(store.currentPhase)"
+            <div v-if="['WAITING_FOR_PLAYERS', 'READY_COUNTDOWN', 'ROB_BANKER', 'BETTING', 'SHOWDOWN', 'BANKER_SELECTION_ANIMATION', 'BANKER_CONFIRMED'].includes(store.currentPhase)"
                 class="clock-and-info-wrapper">
 
-                <div class="phase-info">
+                <div class="phase-info" :style="store.currentPhase === 'WAITING_FOR_PLAYERS' ? { marginTop: '0' } : {}">
 
-                    <span v-if="store.currentPhase === 'WAITING_FOR_PLAYERS'">匹配玩家中...</span>
+                    <span v-if="store.currentPhase === 'WAITING_FOR_PLAYERS'">等待用户加入<span class="loading-dots"></span></span>
 
                     <span v-else-if="store.currentPhase === 'READY_COUNTDOWN'">游戏即将开始 {{ store.countdown }}</span>
 

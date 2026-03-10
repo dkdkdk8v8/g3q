@@ -35,8 +35,6 @@ func InitAdminWebHandler(engine *gin.Engine) error {
 	baseGroup.GET("/rpc/kick", comm.HandlerAdminWrap(RpcKickPlayer))
 	baseGroup.GET("/rpc/online", comm.HandlerAdminWrap(RpcOnlineStatus))
 	baseGroup.GET("/ping", comm.HandlerAdminWrap(Ping))
-	baseGroup.GET("/deposit", comm.HandlerAdminWrap(Deposit))
-	baseGroup.GET("/withdraw", comm.HandlerAdminWrap(Withdraw))
 
 	// 增加 Basic Auth 验证，防止 pprof 信息泄露
 	pprofGroup := engine.Group("/debug/pprof", gin.BasicAuth(gin.Accounts{

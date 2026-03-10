@@ -36,7 +36,7 @@ func GetOrCreateUser(appId string, appUserId string) (*ModelUser, error) {
 		AppId:     appId,
 		AppUserId: appUserId,
 		Enable:    true,
-		Balance:   200000, // 默认2000元 用于测试
+		Balance:   0,
 		Talk:      true,
 		Effect:    true,
 		Music:     true,

@@ -6,13 +6,11 @@ import (
 	"compoment/ws"
 	"encoding/json"
 	"errors"
-	"math"
 	"service/comm"
 	"service/mainClient/game"
 	"service/mainClient/game/qznn"
 	"service/modelClient"
 	"service/modelComm"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -205,7 +203,7 @@ func handleUserInfo(appId string, appUserId string) (*modelClient.ModelUser, err
 	}
 	nickName := user.NickName
 	if nickName == "" {
-		nickName = user.UserId
+		nickName = user.AppUserId
 	}
 
 	return user, nil
@@ -434,42 +432,6 @@ func Ping(c *gin.Context) (interface{}, error) {
 		Code:            0,
 		ServerTimestamp: time.Now().Unix(),
 	}, nil
-}
-
-type DepositRsp struct {
-	Code int
-}
-
-func Deposit(c *gin.Context) (interface{}, error) {
-	//uid := c.GetString("uid")
-	orderID := c.GetString("orderid")
-	creditStr := c.GetString("credit")
-	ccy := c.GetString("ccy")
-
-	if ccy != "CNY" {
-		return nil, ErrInvalidCcy
-	}
-	if ccy == "" {
-		ccy = "CNY"
-	}
-	if orderID == "" {
-		return nil, ErrInvalidOrderId
-	}
-	if len(orderID) <= 6 || len(orderID) > 128 {
-		return nil, ErrInvalidOrderId
-	}
-	//最多俩位小数,参考其他平台
-	credit, err := strconv.ParseFloat(creditStr, 64)
-	if err != nil {
-		return nil, ErrInvalidCredit
-	}
-	credit = math.Round(credit)
-
-	return nil, nil
-}
-
-func Withdraw(c *gin.Context) (interface{}, error) {
-	return nil, nil
 }
 
 // RpcKickPlayer 踢出玩家（运营商API调用）

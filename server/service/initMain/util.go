@@ -31,6 +31,19 @@ func Signal2Pid(pid int, sig os.Signal) error {
 	return nil
 }
 
+func ensureDebugFlag(args []string, isDebug bool) []string {
+	if !isDebug {
+		return args
+	}
+	debugFlag := "--" + CmdDebug
+	for _, a := range args {
+		if a == debugFlag {
+			return args
+		}
+	}
+	return append(args, debugFlag)
+}
+
 func CheckPidAlive(baseCtx *BaseCtx, process string, logOut bool) bool {
 	pid, err := GetPid(baseCtx, process)
 	if err == nil && pid > 0 {

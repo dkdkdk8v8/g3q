@@ -45,6 +45,7 @@ func (bm *DaemonRunner) ForkStart(restart bool) error {
 		forkCmd = append(forkCmd, cs...)
 		forkCmd = append(forkCmd, os.Args[1:]...)
 		forkCmd = util.RemoveString(forkCmd, []string{"--" + CmdStart, "--" + CmdRestart})
+		forkCmd = ensureDebugFlag(forkCmd, bm.Ctx.IsDebug)
 
 		cmd := exec.Command(os.Args[0], forkCmd...)
 		cmd.SysProcAttr = &syscall.SysProcAttr{
@@ -75,6 +76,7 @@ func (ar *MonitorRunner) aliveWork(baseCtx *BaseCtx) {
 		forkCmd = append(forkCmd, cs...)
 		forkCmd = append(forkCmd, oldArg...)
 		forkCmd = util.RemoveString(forkCmd, []string{"--" + CmdStart})
+		forkCmd = ensureDebugFlag(forkCmd, baseCtx.IsDebug)
 		for {
 			cmd := exec.Command(os.Args[0], forkCmd...)
 			cmd.SysProcAttr = &syscall.SysProcAttr{

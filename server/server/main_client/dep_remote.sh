@@ -4,7 +4,7 @@ set -e
 # Environment selection
 echo "Select deploy environment:"
 echo "  1) test       (43.198.45.138)"
-echo "  2) production (16.162.178.10)"
+echo "  2) production (18.166.193.158)"
 read -p "Enter choice [1/2]: " ENV_CHOICE
 
 case "${ENV_CHOICE}" in
@@ -13,7 +13,7 @@ case "${ENV_CHOICE}" in
     ENV_NAME="test"
     ;;
   2)
-    REMOTE_HOST="16.162.178.10"
+    REMOTE_HOST="18.166.193.158"
     ENV_NAME="production"
     ;;
   *)

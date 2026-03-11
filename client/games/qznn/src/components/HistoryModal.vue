@@ -320,11 +320,6 @@ watch(() => props.visible, (val) => {
                     <div v-for="(item, idx) in group.items" :key="idx" class="history-card" @click="openDetail(item)">
                         <div class="hc-content">
                             <div class="hc-top-row">
-                                <span class="hc-title">
-                                    <img v-if="getRoomLevelImage(item.roomLevelName)"
-                                        :src="getRoomLevelImage(item.roomLevelName)" class="room-level-img" />
-                                    <span v-else-if="item.roomLevelName">{{ item.roomLevelName }}</span>
-                                </span>
                                 <div class="hand-container">
                                     <img v-if="getHandTypeImage(item.handTypeKey)"
                                         :src="getHandTypeImage(item.handTypeKey)" class="hand-type-img" />
@@ -332,6 +327,11 @@ watch(() => props.visible, (val) => {
                                         {{ item.handType }}
                                     </span>
                                 </div>
+                                <span class="hc-title">
+                                    <img v-if="getRoomLevelImage(item.roomLevelName)"
+                                        :src="getRoomLevelImage(item.roomLevelName)" class="room-level-img" />
+                                    <span v-else-if="item.roomLevelName">{{ item.roomLevelName }}</span>
+                                </span>
                             </div>
                             <div class="hc-bottom-row">
                                 <span class="hc-time">{{ formatHistoryTime(item.timestamp) }}</span>
@@ -344,7 +344,7 @@ watch(() => props.visible, (val) => {
                             <div class="hc-bet-amt">
                                 投注: <img :src="goldImg" class="coin-icon-text" /><span class="coin-amount-text">{{
                                     formatCoins(item.bet)
-                                }}</span>
+                                    }}</span>
                             </div>
                         </div>
                         <van-icon name="arrow" class="hc-arrow" />
@@ -591,7 +591,7 @@ watch(() => props.visible, (val) => {
 }
 
 .hand-type-img {
-    height: 18px;
+    height: 20px;
     /* Slightly larger for visibility */
     object-fit: contain;
 }

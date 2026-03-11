@@ -206,9 +206,11 @@ export class MerchantApiService extends BaseService {
           if (avatar) user.avatar = avatar;
         }
 
+        user.balance = Number(user.balance) || 0;
+        user.balance_lock = Number(user.balance_lock) || 0;
         const balanceBefore = user.balance;
         user.balance += amount;
-        user.total_deposit = (user.total_deposit || 0) + amount;
+        user.total_deposit = (Number(user.total_deposit) || 0) + amount;
         await userRepo.save(user);
 
         // 事务内更新 record 为成功
@@ -272,6 +274,9 @@ export class MerchantApiService extends BaseService {
         throw apiError(3001, 'player not found');
       }
 
+      user.balance = Number(user.balance) || 0;
+      user.balance_lock = Number(user.balance_lock) || 0;
+
       if (user.balance_lock > 0) {
         throw apiError(3003, 'player is in game, cannot transfer out');
       }
@@ -289,7 +294,7 @@ export class MerchantApiService extends BaseService {
 
       const balanceBefore = user.balance;
       user.balance -= actualAmount;
-      user.total_with_draw = (user.total_with_draw || 0) + actualAmount;
+      user.total_with_draw = (Number(user.total_with_draw) || 0) + actualAmount;
       await userRepo.save(user);
 
       const recordRepo = manager.getRepository(GameUserRecordEntity);

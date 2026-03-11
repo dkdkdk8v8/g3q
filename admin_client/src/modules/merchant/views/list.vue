@@ -16,6 +16,17 @@
           <el-tag v-for="item in DictEnable" :key="item.value" v-show="scope.row.enable == item.value"
             :type="item.type as any" size="small">{{ item.label }}</el-tag>
         </template>
+        <template #column-ipWhitelist="{ scope }">
+          <template v-if="parseIpList(scope.row.ipWhitelist).length">
+            <el-tag
+              v-for="(ip, idx) in parseIpList(scope.row.ipWhitelist)"
+              :key="idx"
+              size="small"
+              style="margin-right: 4px; margin-bottom: 2px"
+            >{{ ip }}</el-tag>
+          </template>
+          <span v-else style="color: #999">不限制</span>
+        </template>
         <template #column-secretKey="{ scope }">
           <el-space :size="5">
             <span>{{ secretVisible[scope.row.id] ? scope.row.secretKey : '••••••••••••' }}</span>
@@ -34,7 +45,35 @@
       <cl-pagination />
     </cl-row>
 
-    <cl-upsert ref="Upsert" />
+    <cl-upsert ref="Upsert">
+      <template #slot-ipWhitelist="{ scope }">
+        <div>
+          <el-tag
+            v-for="(ip, idx) in (scope.ipWhitelist || [])"
+            :key="idx"
+            closable
+            style="margin-right: 6px; margin-bottom: 6px"
+            @close="scope.ipWhitelist.splice(idx, 1)"
+          >{{ ip }}</el-tag>
+          <template v-if="ipInput.visible">
+            <el-input
+              ref="IpInputRef"
+              v-model="ipInput.value"
+              size="small"
+              style="width: 180px"
+              placeholder="输入IP，按回车添加"
+              @keyup.enter="confirmIpInput(scope)"
+              @blur="confirmIpInput(scope)"
+            />
+          </template>
+          <el-button
+            v-else
+            size="small"
+            @click="showIpInput"
+          >+ 添加 IP</el-button>
+        </div>
+      </template>
+    </cl-upsert>
 
     <!-- 测试链接：参数输入弹窗 -->
     <el-dialog v-model="testForm.visible" title="测试启动游戏" width="400px">
@@ -100,7 +139,7 @@ import { useCool } from "/@/cool";
 import { useDict } from '/$/dict';
 import { ElMessage, ElMessageBox } from "element-plus";
 import { View as ViewIcon, Hide as HideIcon, Loading as LoadingIcon } from "@element-plus/icons-vue";
-import { reactive, ref } from "vue";
+import { nextTick, reactive, ref } from "vue";
 
 const { service } = useCool();
 const { dict } = useDict();
@@ -118,6 +157,34 @@ const DictMerchantType = [
 // 密钥显示控制
 const secretVisible = reactive<Record<number, boolean>>({});
 
+// IP白名单输入
+const IpInputRef = ref();
+const ipInput = reactive({ visible: false, value: "" });
+
+function showIpInput() {
+  ipInput.visible = true;
+  ipInput.value = "";
+  nextTick(() => IpInputRef.value?.focus());
+}
+
+/** 将 simple-json 字段统一转为数组（可能是字符串或已解析的数组） */
+function parseIpList(val: any): string[] {
+  if (Array.isArray(val)) return val;
+  if (typeof val === "string" && val) {
+    try { const arr = JSON.parse(val); if (Array.isArray(arr)) return arr; } catch {}
+  }
+  return [];
+}
+
+function confirmIpInput(scope: any) {
+  const val = ipInput.value.trim();
+  if (val && !scope.ipWhitelist.includes(val)) {
+    scope.ipWhitelist.push(val);
+  }
+  ipInput.visible = false;
+  ipInput.value = "";
+}
+
 // cl-table
 const Table = useTable({
   columns: [
@@ -127,6 +194,7 @@ const Table = useTable({
     { label: "密钥", prop: "secretKey", minWidth: 250 },
     { label: "备注", prop: "remark", minWidth: 120, showOverflowTooltip: true },
     { label: "商户类型", prop: "merchantType", width: 80, dict: DictMerchantType },
+    { label: "IP白名单", prop: "ipWhitelist", minWidth: 150 },
     { label: "状态", prop: "enable", width: 80 },
     { label: "创建时间", prop: "createTime", minWidth: 200, sortable: "desc" },
     {
@@ -186,6 +254,11 @@ const Upsert = useUpsert({
       },
     },
     {
+      prop: "ipWhitelist",
+      label: "IP白名单",
+      component: { name: "slot-ipWhitelist" },
+    },
+    {
       prop: "remark",
       label: "备注",
       component: {
@@ -199,11 +272,17 @@ const Upsert = useUpsert({
     if (data.id) {
       data.enable = data.enable ? 1 : 0;
     }
+    // 确保 ipWhitelist 是数组（simple-json 可能返回字符串）
+    data.ipWhitelist = parseIpList(data.ipWhitelist);
   },
   onSubmit(data, { next }) {
+    const ipWhitelist = Array.isArray(data.ipWhitelist) && data.ipWhitelist.length > 0
+      ? data.ipWhitelist
+      : null;
     next({
       ...data,
       enable: !!data.enable,
+      ipWhitelist,
     });
   },
 });

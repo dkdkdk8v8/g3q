@@ -317,7 +317,7 @@ export class MerchantApiService extends BaseService {
     try {
       const axios = require('axios');
       const res = await axios.get(url);
-      return res.data;
+      return { success: !!res.data?.kicked };
     } catch (e) {
       throw apiError(3004, 'kick player failed');
     }
@@ -335,7 +335,7 @@ export class MerchantApiService extends BaseService {
       return res.data;
     } catch (e) {
       const user = await this.userEntity.findOneBy({ user_id: userId });
-      return { online: user && user.balance_lock > 0 };
+      return { online: !!(user && user.balance_lock > 0), inGame: false, gameType: '' };
     }
   }
 
@@ -385,6 +385,8 @@ export class MerchantApiService extends BaseService {
         id: r.id,
         playerId: r.user_id.replace(appId, ''),
         recordType: r.record_type,
+        validBet: cents(r.valid_bet),
+        payout: cents(r.balance_after) - cents(r.balance_before),
         balanceBefore: cents(r.balance_before),
         balanceAfter: cents(r.balance_after),
         gameName: (r as any).gameRecord?.game_name || '',
@@ -506,6 +508,36 @@ export class MerchantApiService extends BaseService {
       .update(`${appId}:${playerId}:${timestamp}`)
       .digest('hex');
     return `${tsHex}.${hmac}`;
+  }
+
+  /**
+   * 查询游戏在线人数
+   * 通过 RPC 获取房间数据，按 BankerType 过滤，统计真实玩家（非机器人、非观战）
+   */
+  async getGameOnlineCount(gameCode: string) {
+    const gameCodeMap: Record<string, number> = { qznn: 0, qznn3: 1, qznn4: 2 };
+    const bankerType = gameCodeMap[gameCode];
+
+    // 不支持的游戏直接返回 0
+    if (bankerType === undefined) {
+      return { gameCode, onlineCount: 0 };
+    }
+
+    try {
+      const rooms = await this.rpcService.getQZNNData();
+      let count = 0;
+      for (const room of rooms || []) {
+        if (room.Config?.BankerType !== bankerType) continue;
+        for (const player of room.Players || []) {
+          if (player && !player.IsRobot) {
+            count++;
+          }
+        }
+      }
+      return { gameCode, onlineCount: count };
+    } catch {
+      return { gameCode, onlineCount: 0 };
+    }
   }
 
   /** 根据 userId 确定性分配默认随机头像 */

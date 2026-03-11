@@ -25,6 +25,9 @@ export class MerchantEntity extends BaseEntity {
   @Column({ comment: '是否启用', default: true })
   enable: boolean;
 
+  @Column({ comment: 'IP白名单（JSON数组），为空则不限制', type: 'simple-json', nullable: true, default: null })
+  ipWhitelist: string[];
+
   @Column({ comment: '备注', length: 255, nullable: true })
   remark: string;
 }

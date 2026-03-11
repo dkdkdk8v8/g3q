@@ -10,9 +10,19 @@ import { MerchantApiLogEntity } from '../../entity/api-log';
   api: ['page'],
   entity: MerchantApiLogEntity,
   pageQueryOp: {
-    fieldEq: ['appId', 'statusCode'],
+    fieldEq: ['appId'],
     keyWordLikeFields: ['path', 'clientIp'],
     addOrderBy: { createTime: 'DESC' },
+    where: async (ctx) => {
+      const { statusCode } = ctx.request.body;
+      if (statusCode === 0 || statusCode === '0') {
+        return [['statusCode = :sc', { sc: 0 }]];
+      }
+      if (statusCode === 'fail') {
+        return [['statusCode != :sc', { sc: 0 }]];
+      }
+      return [];
+    },
   },
 })
 export class MerchantApiLogController extends BaseController {}

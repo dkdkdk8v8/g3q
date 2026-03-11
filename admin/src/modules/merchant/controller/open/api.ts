@@ -10,7 +10,7 @@ import { Context } from '@midwayjs/koa';
  *
  * 响应格式：{ code: 0, message: 'success', data } —— 不使用框架默认的 1000
  * 错误码体系：
- *   10xx — 认证相关（中间件处理）
+ *   10xx — 认证相关（中间件处理，含1006 IP白名单）
  *   2001 — playerId 缺失
  *   2002 — gameCode 缺失
  *   2003 — amount 必须大于 0
@@ -195,6 +195,18 @@ export class MerchantOpenApiController extends BaseController {
         page,
         size,
       });
+      return this.success(result);
+    } catch (e) {
+      return this.error(e.code || 9999, e.message);
+    }
+  }
+
+  @Post('/gameOnline', { summary: '查询游戏在线人数' })
+  async gameOnline(@Body() body: any) {
+    const { gameCode } = body;
+    if (!gameCode) return this.error(2002, 'gameCode is required');
+    try {
+      const result = await this.merchantApiService.getGameOnlineCount(gameCode);
       return this.success(result);
     } catch (e) {
       return this.error(e.code || 9999, e.message);

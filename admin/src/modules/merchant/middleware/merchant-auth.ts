@@ -91,6 +91,14 @@ export class MerchantAuthMiddleware
         return;
       }
 
+      // IP白名单校验（局域网IP放行）
+      if (merchant.ipWhitelist && merchant.ipWhitelist.length > 0) {
+        if (!this.isPrivateIp(clientIp) && !merchant.ipWhitelist.includes(clientIp)) {
+          await fail(1006, 'ip not in whitelist');
+          return;
+        }
+      }
+
       // 时间戳校验（7天过期）
       const now = Math.floor(Date.now() / 1000);
       if (Math.abs(now - timestamp) > 604800) {
@@ -135,5 +143,18 @@ export class MerchantAuthMiddleware
       .createHash('sha256')
       .update(sorted + secretKey)
       .digest('hex');
+  }
+
+  /** 判断是否为局域网IP（兼容 ::ffff:x.x.x.x 格式） */
+  private isPrivateIp(ip: string): boolean {
+    // 剥离 IPv4-mapped IPv6 前缀
+    const raw = ip.startsWith('::ffff:') ? ip.slice(7) : ip;
+    if (raw === '127.0.0.1' || raw === '::1' || raw === 'localhost') return true;
+    const parts = raw.split('.').map(Number);
+    if (parts.length !== 4) return false;
+    if (parts[0] === 10) return true;
+    if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
+    if (parts[0] === 192 && parts[1] === 168) return true;
+    return false;
   }
 }

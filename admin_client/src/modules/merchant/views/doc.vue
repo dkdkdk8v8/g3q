@@ -328,6 +328,7 @@ const tocGroups = [
       { id: 'sec-transferOut', label: '转出（提现）' },
       { id: 'sec-kick', label: '踢出玩家' },
       { id: 'sec-online', label: '查询在线状态' },
+      { id: 'sec-gameOnline', label: '游戏在线人数' },
       { id: 'sec-betRecords', label: '查询投注记录' },
       { id: 'sec-fundRecords', label: '查询资金记录' },
       { id: 'sec-orderQuery', label: '订单查询' },
@@ -633,6 +634,7 @@ const authErrorCodes = [
   { code: 1003, message: 'sign is required', desc: '请求体缺少 sign' },
   { code: 1004, message: 'merchant not found', desc: 'appId 对应的商户不存在' },
   { code: 1005, message: 'merchant is disabled', desc: '商户已被禁用' },
+  { code: 1006, message: 'ip not in whitelist', desc: '请求IP不在商户白名单中' },
   { code: 1007, message: 'timestamp expired', desc: '时间戳与服务器时间差超过 1 小时' },
   { code: 1008, message: 'invalid sign', desc: '签名校验不通过' },
 ];
@@ -699,7 +701,7 @@ const apiList = [
       code: 0,
       message: 'success',
       data: {
-        url: 'https://game.example.com/qznn?app=APP001&uid=player_123&token=xxx',
+        url: 'https://game.example.com/qznn?app=APP001&uid=player_123&token=xxx&mode=0',
       },
     }, null, 2),
     notes: [
@@ -731,7 +733,7 @@ const apiList = [
     rspExample: JSON.stringify({
       code: 0,
       message: 'success',
-      data: { balanceAvailable: 10000, balanceTotal: 10500 },
+      data: { balanceAvailable: 10000, balanceLock: 500, balanceTotal: 10500 },
     }, null, 2),
     notes: [
       '玩家不存在时返回 balanceAvailable=0, balanceTotal=0',
@@ -870,6 +872,35 @@ const apiList = [
     notes: null,
   },
   {
+    id: 'sec-gameOnline',
+    title: '游戏在线人数',
+    path: '/open/merchant/gameOnline',
+    desc: '查询指定游戏的当前在线真实玩家人数（不含机器人）。',
+    params: [
+      { name: 'gameCode', type: 'string', required: '是', desc: '游戏编码，见「支持的游戏」。目前支持 qznn、qznn3、qznn4，其他游戏返回 0' },
+    ],
+    response: [
+      { name: 'gameCode', type: 'string', desc: '游戏编码' },
+      { name: 'onlineCount', type: 'number', desc: '当前在线真实玩家人数' },
+    ],
+    reqExample: JSON.stringify({
+      appId: 'APP001',
+      gameCode: 'qznn',
+      timestamp: 1709800000,
+      sign: 'a1b2c3...',
+    }, null, 2),
+    rspExample: JSON.stringify({
+      code: 0,
+      message: 'success',
+      data: { gameCode: 'qznn', onlineCount: 12 },
+    }, null, 2),
+    notes: [
+      '统计的是所有商户下的真实玩家总数，不含机器人',
+      '目前仅支持 qznn、qznn3、qznn4，其他 gameCode 返回 onlineCount=0',
+      '数据为实时查询，反映当前瞬时在线人数',
+    ],
+  },
+  {
     id: 'sec-betRecords',
     title: '查询投注记录',
     path: '/open/merchant/betRecords',
@@ -885,6 +916,8 @@ const apiList = [
       { name: 'list', type: 'array', desc: '投注记录列表' },
       { name: 'list[].id', type: 'number', desc: '记录 ID' },
       { name: 'list[].playerId', type: 'string', desc: '玩家标识' },
+      { name: 'list[].validBet', type: 'number', desc: '有效投注额（单位：分）' },
+      { name: 'list[].payout', type: 'number', desc: '派彩金额（单位：分），正数为盈利，负数为亏损' },
       { name: 'list[].balanceBefore', type: 'number', desc: '游戏前余额（单位：分）' },
       { name: 'list[].balanceAfter', type: 'number', desc: '游戏后余额（单位：分）' },
       { name: 'list[].gameName', type: 'string', desc: '游戏名称' },
@@ -912,9 +945,11 @@ const apiList = [
           {
             id: 1001,
             playerId: 'player_123',
+            validBet: 5000,
+            payout: 2000,
             balanceBefore: 10000,
             balanceAfter: 12000,
-            gameName: '抢庄牛牛',
+            gameName: 'qznn',
             createAt: '2024-03-07 15:30:00',
           },
         ],

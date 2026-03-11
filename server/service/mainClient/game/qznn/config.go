@@ -3,6 +3,18 @@ package qznn
 const PlayerCardMax = 5
 const GameName = "qznn"
 
+// GetGameNameByBankerType 根据抢庄类型返回对应的游戏名称
+func GetGameNameByBankerType(bankerType int) string {
+	switch bankerType {
+	case BankerTypeLook3:
+		return "qznn3"
+	case BankerTypeLook4:
+		return "qznn4"
+	default:
+		return GameName
+	}
+}
+
 var Configs = []LobbyConfig{
 	{Level: 1, Name: "体验场", MinBalance: 600, BaseBet: 100, BetMult: []int64{1, 5, 10, 15, 20}, BankerMult: []int64{1, 2, 3, 4}},
 	{Level: 2, Name: "初级场", MinBalance: 3000, BaseBet: 500, BetMult: []int64{1, 5, 10, 15, 20}, BankerMult: []int64{1, 2, 3, 4}},

@@ -13,7 +13,8 @@ type ModelStaPeriod struct {
 	TimeKey            time.Time `orm:"column(timeKey);type(datetime)"`
 	AppId              string    `orm:"column(appId);size(255);default()"`
 	GameName           string    `orm:"column(gameName);size(255);default()"`
-	IsRobot            bool      `orm:"column(isRobot);default(0)"`
+	RoomLevel          int       `orm:"column(roomLevel);default(0)"`
+	RoomType           int       `orm:"column(roomType);default(0)"`
 	GameUserCount      int       `orm:"column(gameUserCount);default(0)"`
 	GameCount          int       `orm:"column(gameCount);default(0)"`
 	BetCount           int       `orm:"column(betCount);default(0)"`
@@ -23,6 +24,7 @@ type ModelStaPeriod struct {
 	FirstGameUserCount int       `orm:"column(firstGameUserCount);default(0)"`
 	FirstGameUserIds   string    `orm:"column(firstGameUserIds);type(json)"` // Stored as JSON string
 	CardResult         string    `orm:"column(cardResult);type(json)"`       // Stored as JSON string
+	CartCount          string    `orm:"column(cartCount);type(json)"`        // Stored as JSON string
 }
 
 func (u *ModelStaPeriod) TableName() string {

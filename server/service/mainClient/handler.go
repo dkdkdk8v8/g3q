@@ -354,6 +354,7 @@ func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) 
 		LastId        uint64
 		Date          string //20250530
 		LastTimestamp int64
+		GameName      string // 游戏名称过滤: qznn, qznn3, qznn4
 	}
 	if err := json.Unmarshal(data, &req); err != nil {
 		return nil, comm.ErrClientParam
@@ -383,7 +384,7 @@ func handleGameRecord(userId string, data []byte) (*handleGameRecordRsp, error) 
 
 	var currentSummy *recordSummery
 
-	records, err := modelClient.GetUserGameRecordsJoinGameRecord(userId, req.Limit, req.LastId, start, end)
+	records, err := modelClient.GetUserGameRecordsJoinGameRecord(userId, req.Limit, req.LastId, start, end, req.GameName)
 	if err != nil {
 		return nil, err
 	}

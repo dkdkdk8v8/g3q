@@ -313,7 +313,7 @@ type ModelUserRecordJoinGameRecord struct {
 	GameData     string
 }
 
-func GetUserGameRecordsJoinGameRecord(userId string, limit int, id uint64, start, end time.Time) ([]*ModelUserRecordJoinGameRecord, error) {
+func GetUserGameRecordsJoinGameRecord(userId string, limit int, id uint64, start, end time.Time, gameName string) ([]*ModelUserRecordJoinGameRecord, error) {
 	ormDb := GetReadOrm()
 	var records []*ModelUserRecordJoinGameRecord
 	sql := `SELECT g3q_user_record.*, g3q_game_record.game_name, g3q_game_record.game_data
@@ -322,6 +322,10 @@ func GetUserGameRecordsJoinGameRecord(userId string, limit int, id uint64, start
 	WHERE g3q_user_record.user_id = ? AND g3q_user_record.record_type = ?`
 	var args []interface{}
 	args = append(args, userId, RecordTypeGame)
+	if gameName != "" {
+		sql += " AND g3q_game_record.game_name = ?"
+		args = append(args, gameName)
+	}
 	if id > 0 {
 		sql += " AND g3q_user_record.id < ?"
 		args = append(args, id)

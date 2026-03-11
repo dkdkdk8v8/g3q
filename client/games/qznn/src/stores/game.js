@@ -77,12 +77,17 @@ export const useGameStore = defineStore('game', () => {
 
         isLoadingHistory.value = true;
 
+        // 根据 gameMode 映射游戏名称: 0→qznn, 1→qznn3, 2→qznn4
+        const gameNameMap = { 0: 'qznn', 1: 'qznn3', 2: 'qznn4' };
+        const gameName = gameNameMap[gameMode.value] || 'qznn';
+
         // Send request to server
         gameClient.send('GameRecord', {
             Limit: 10,
             LastId: historyLastId.value,
             LastTimestamp: historyLastTimestamp.value,
-            Date: historyFilterDate.value
+            Date: historyFilterDate.value,
+            GameName: gameName
         });
     };
 

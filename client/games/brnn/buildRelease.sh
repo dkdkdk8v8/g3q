@@ -13,7 +13,7 @@ if [ ! -d "$releaseDir" ]; then
 fi
 cd build
 zip -r "brnn_h5_${VERSION}.zip" dist
-mv "brnn_h5_${VERSION}.zip" "$releaseDir"
+# mv "brnn_h5_${VERSION}.zip" "$releaseDir"
 cd ../
 
 echo "Release版本号为：$VERSION"

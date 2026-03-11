@@ -321,10 +321,9 @@ watch(() => props.visible, (val) => {
                         <div class="hc-content">
                             <div class="hc-top-row">
                                 <span class="hc-title">
-                                    {{ item.roomModeText }}
                                     <img v-if="getRoomLevelImage(item.roomLevelName)"
                                         :src="getRoomLevelImage(item.roomLevelName)" class="room-level-img" />
-                                    <span v-else-if="item.roomLevelName"> | {{ item.roomLevelName }}</span>
+                                    <span v-else-if="item.roomLevelName">{{ item.roomLevelName }}</span>
                                 </span>
                                 <div class="hand-container">
                                     <img v-if="getHandTypeImage(item.handTypeKey)"

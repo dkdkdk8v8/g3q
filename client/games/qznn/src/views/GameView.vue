@@ -1930,6 +1930,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
                             <PokerCard
                                 v-if="visibleCounts[myPlayer.id] === undefined || idx < visibleCounts[myPlayer.id]"
                                 :card="shouldShowCardFace ? getEffectiveCardProp(card, idx) : null" :is-small="false"
+                                :peek-reveal="store.gameMode === 2 && idx === 4"
                                 :class="{ 'hand-card': true, 'bull-card-overlay': isBullPart(idx), 'selected': selectedCardIndices.includes(idx) }"
                                 :style="{
                                     marginLeft: idx === 0 ? '0' : '5px', /* for myPlayer */
@@ -2849,6 +2850,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 .my-hand-cards-area .hand-card.selected {
     transform: translateY(-10px);
 }
+
 
 .my-hand-cards-area .hand-result-badge {
     position: absolute;

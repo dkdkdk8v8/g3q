@@ -299,11 +299,13 @@ export const useGameStore = defineStore('game', () => {
                 existing.state = newData.state;
                 existing.robMultiplier = newData.robMultiplier;
                 existing.betMultiplier = newData.betMultiplier;
-                existing.isShowHand = newData.isShowHand;
+                // isShowHand 一旦为 true 就不再回退（防止服务器连续广播中后续 false 覆盖）
+                if (!existing.isShowHand) {
+                    existing.isShowHand = newData.isShowHand;
+                }
                 existing.serverSeatNum = newData.serverSeatNum;
                 existing.clientSeatNum = newData.clientSeatNum;
                 existing.isReady = newData.isReady;
-                existing.handResult = newData.handResult; // Replace result object
                 existing.isObserver = newData.isObserver; // Update isObserver
 
                 // Update roundScore if BalanceChange is provided by server
@@ -311,12 +313,23 @@ export const useGameStore = defineStore('game', () => {
                     existing.roundScore = Number(newData.balanceChange);
                 }
 
-                // Smart update hand to prevent reactivity trigger if same
-                const isHandDifferent = existing.hand.length !== newData.hand.length ||
-                    existing.hand.some((c, i) => c.id !== newData.hand[i].id);
+                // 判断新手牌是否包含有效牌（非 -1 placeholder）
+                const newHandHasValidCards = newData.hand.length > 0 && newData.hand.some(c => c.rawId !== undefined);
+                const existingHandHasValidCards = existing.hand.length > 0 && existing.hand.some(c => c.rawId !== undefined);
 
-                if (isHandDifferent) {
-                    existing.hand = newData.hand;
+                // 已有有效手牌时，不被 [-1,-1,-1,-1,-1] 的 placeholder 数据覆盖
+                if (newHandHasValidCards || !existingHandHasValidCards) {
+                    // Smart update hand to prevent reactivity trigger if same
+                    const isHandDifferent = existing.hand.length !== newData.hand.length ||
+                        existing.hand.some((c, i) => c.id !== newData.hand[i].id);
+
+                    if (isHandDifferent) {
+                        existing.hand = newData.hand;
+                    }
+
+                    existing.handResult = newData.handResult;
+                } else {
+                    // 新数据是 placeholder 但已有有效牌，保留现有手牌和结果不变
                 }
 
                 finalPlayers.push(existing);

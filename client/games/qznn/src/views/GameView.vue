@@ -806,6 +806,52 @@ const isBullPart = (index) => {
     return false;
 };
 
+// 看四张模式：前4张牌翻开后，能凑牛的3张牌索引
+const earlyBullReady = ref(false);
+let earlyBullTimer = null;
+
+// 监听：4张牌发完且翻牌动画结束后触发
+watch([
+    () => visibleCounts.value[myPlayer.value?.id],
+    () => dealingCounts.value[myPlayer.value?.id],
+], ([vCount, dCount]) => {
+    if (store.gameMode !== 2) return;
+    if (earlyBullTimer) { clearTimeout(earlyBullTimer); earlyBullTimer = null; }
+    // 4张已到位且发牌动画结束，等翻牌动画完成后再显示
+    if (vCount >= 4 && !dCount && !earlyBullReady.value) {
+        earlyBullTimer = setTimeout(() => {
+            earlyBullReady.value = true;
+        }, 800);
+    }
+});
+
+// 只有新一轮开始时才复位
+watch(() => store.currentPhase, (phase) => {
+    if (phase === 'READY_COUNTDOWN') {
+        earlyBullReady.value = false;
+        if (earlyBullTimer) { clearTimeout(earlyBullTimer); earlyBullTimer = null; }
+    }
+});
+
+const earlyBullIndices = computed(() => {
+    if (!earlyBullReady.value) return [];
+    if (!myPlayer.value || !myPlayer.value.hand) return [];
+    const hand = myPlayer.value.hand;
+    if (hand.length < 4) return [];
+    const first4 = hand.slice(0, 4);
+    if (first4.some(c => c.rawId === undefined)) return [];
+    for (let i = 0; i < 2; i++) {
+        for (let j = i + 1; j < 3; j++) {
+            for (let k = j + 1; k < 4; k++) {
+                if ((first4[i].value + first4[j].value + first4[k].value) % 10 === 0) {
+                    return [i, j, k];
+                }
+            }
+        }
+    }
+    return [];
+});
+
 // New helper function to control when card data is passed to PokerCard to trigger flip animation
 const getEffectiveCardProp = (originalCard, cardIndex) => {
     // This logic specifically applies to my player's cards during supplemental dealing.
@@ -1933,8 +1979,10 @@ const shouldMoveStatusToHighPosition = computed(() => {
                                 :peek-reveal="store.gameMode === 2 && idx === 4"
                                 :class="{ 'hand-card': true, 'bull-card-overlay': isBullPart(idx), 'selected': selectedCardIndices.includes(idx) }"
                                 :style="{
-                                    marginLeft: idx === 0 ? '0' : '5px', /* for myPlayer */
-                                    opacity: (dealingCounts[myPlayer.id] && idx >= (visibleCounts[myPlayer.id] - dealingCounts[myPlayer.id])) ? 0 : 1
+                                    marginLeft: idx === 0 ? '0' : '5px',
+                                    opacity: (dealingCounts[myPlayer.id] && idx >= (visibleCounts[myPlayer.id] - dealingCounts[myPlayer.id])) ? 0 : 1,
+                                    transform: earlyBullIndices.includes(idx) ? 'translateY(-6px)' : '',
+                                    transition: earlyBullReady ? 'transform 0.3s ease' : 'none'
                                 }" @click="handleCardClick({ card, index: idx })" />
                         </template>
                     </TransitionGroup>

@@ -15,6 +15,7 @@ import textRightBottomIconImg from '@/assets/win/text_right_bottom_icon.png';
 import goldImg from '@/assets/common/gold.png';
 
 const showRibbons = ref(false);
+const ribbonsExit = ref(false);
 const showBackEffects = ref(false);
 const showBgDecorations = ref(false); // Decorations behind text
 const showFgDecorations = ref(false); // Decorations in front of text
@@ -48,6 +49,11 @@ onMounted(() => {
     setTimeout(() => {
         showFgDecorations.value = true;
     }, 850);
+
+    // Sequence 6: Ribbons exit (2s delay) - continue in same direction off screen
+    setTimeout(() => {
+        ribbonsExit.value = true;
+    }, 2000);
 });
 
 onUnmounted(() => {
@@ -119,7 +125,7 @@ const triggerExplosion = () => {
 <template>
     <div class="win-anim-container">
         <!-- Layer 1: Ribbons -->
-        <div class="layer-ribbons" :class="{ 'active': showRibbons }">
+        <div class="layer-ribbons" :class="{ 'active': showRibbons, 'exit': ribbonsExit }">
             <img :src="bottomLineImg" class="ribbon-bottom" />
             <img :src="topLineImg" class="ribbon-top" />
         </div>
@@ -285,6 +291,15 @@ const triggerExplosion = () => {
 
 .layer-ribbons.active .ribbon-bottom {
     transform: translateX(0);
+}
+
+/* top_line 从左进来，继续往右滑出；bottom_line 从右进来，继续往左滑出 */
+.layer-ribbons.exit .ribbon-top {
+    transform: translateX(100%);
+}
+
+.layer-ribbons.exit .ribbon-bottom {
+    transform: translateX(-100%);
 }
 
 /* --- Layer 3: Text Group (Highest Z-Index) --- */

@@ -10,6 +10,7 @@ import loseTextRightImg from '@/assets/lose/lose_text_right.png';
 import textRightTopIconImg from '@/assets/lose/text_right_top_icon.png';
 
 const showRibbons = ref(false);
+const ribbonsExit = ref(false);
 const showBackEffects = ref(false);
 const showText = ref(false);
 const showRightTextTilt = ref(false);
@@ -34,13 +35,18 @@ onMounted(() => {
     setTimeout(() => {
         showRightTextTilt.value = true;
     }, 1000);
+
+    // Sequence 5: Ribbons exit (2s delay) - continue in same direction off screen
+    setTimeout(() => {
+        ribbonsExit.value = true;
+    }, 2000);
 });
 </script>
 
 <template>
     <div class="lose-anim-container">
         <!-- Layer 1: Ribbons -->
-        <div class="layer-ribbons" :class="{ 'active': showRibbons }">
+        <div class="layer-ribbons" :class="{ 'active': showRibbons, 'exit': ribbonsExit }">
             <img :src="bottomLineImg" class="ribbon-bottom" />
             <img :src="topLineImg" class="ribbon-top" />
         </div>
@@ -144,6 +150,15 @@ onMounted(() => {
 
 .layer-ribbons.active .ribbon-bottom {
     transform: translateX(0);
+}
+
+/* top_line 从左进来，继续往右滑出；bottom_line 从右进来，继续往左滑出 */
+.layer-ribbons.exit .ribbon-top {
+    transform: translateX(100%);
+}
+
+.layer-ribbons.exit .ribbon-bottom {
+    transform: translateX(-100%);
 }
 
 /* --- Layer 3: Text Group --- */

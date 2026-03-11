@@ -91,12 +91,14 @@ export class MerchantAuthMiddleware
         return;
       }
 
-      // IP白名单校验（局域网IP放行）
-      if (merchant.ipWhitelist && merchant.ipWhitelist.length > 0) {
-        if (!this.isPrivateIp(clientIp) && !merchant.ipWhitelist.includes(clientIp)) {
-          await fail(1006, 'ip not in whitelist');
-          return;
-        }
+      // IP白名单校验（局域网IP放行，白名单为空则拒绝所有）
+      if (!merchant.ipWhitelist || merchant.ipWhitelist.length === 0) {
+        await fail(1006, 'ip not in whitelist');
+        return;
+      }
+      if (!this.isPrivateIp(clientIp) && !merchant.ipWhitelist.includes(clientIp)) {
+        await fail(1006, 'ip not in whitelist');
+        return;
       }
 
       // 时间戳校验（7天过期）

@@ -5,12 +5,11 @@ import { Column, Entity, Index } from 'typeorm';
  * 用户数据统计
  */
 @Entity('sta_user')
+@Index('idx_sta_user_uq', ['date', 'userId'], { unique: true })
 export class StaUserEntity extends BaseEntity {
-  @Index()
   @Column({ comment: '时间节点', nullable: false })
   date: Date;
 
-  @Index()
   @Column({ comment: '用户ID', default: '' })
   userId: string;
 

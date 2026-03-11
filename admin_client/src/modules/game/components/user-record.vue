@@ -58,9 +58,8 @@
                                             <span v-if="player.IsOb" class="watch-badge">看</span>
                                         </div>
                                         <div class="p-cards">
-                                            <span v-for="(card, cIndex) in player.Cards" :key="cIndex"
-                                                :style="{ color: getCardStyle(card).color }">{{ getCardStyle(card).text
-                                                }}</span>
+                                            <poker-card v-for="(card, cIndex) in player.Cards" :key="cIndex"
+                                                :value="card" size="small" />
                                             <span class="card-result">{{ getCardResult(player.Cards) }}</span>
                                         </div>
                                         <div class="p-info">
@@ -92,8 +91,10 @@
 import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
 import { useCool } from "/@/cool";
 import { useDict } from '/$/dict';
-import { getCardResult, getCardStyle } from "../utils/card";
+import { getCardResult } from "../utils/card";
+import { QznnRoomTypes, getQznnRoomTypeLabel } from "../utils/dict";
 import { ArrowRight } from "@element-plus/icons-vue";
+import PokerCard from "./poker-card.vue";
 
 const RecordType = {
     DEPOSIT: 0,
@@ -118,7 +119,7 @@ const { dict } = useDict();
 
 const options = reactive({
     qznn_room_level: dict.get("qznn_room_level"),
-    qznn_room_type: dict.get("qznn_room_type"),
+    qznn_room_type: QznnRoomTypes,
 });
 
 const visible = ref(false);
@@ -427,15 +428,16 @@ defineExpose({
                 .p-cards {
                     margin-bottom: 4px;
                     white-space: nowrap;
-
-                    span {
-                        margin-right: 2px;
-                        font-weight: bold;
-                    }
+                    display: flex;
+                    align-items: center;
+                    gap: 2px;
+                    flex-wrap: wrap;
 
                     .card-result {
-                        margin-left: 4px;
+                        margin-left: 6px;
                         color: var(--el-color-primary);
+                        font-weight: bold;
+                        font-size: 12px;
                     }
                 }
 

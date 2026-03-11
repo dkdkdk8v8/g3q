@@ -5,8 +5,8 @@ import { Column, Entity, Index } from 'typeorm';
  * 数据统计分片
  */
 @Entity('sta_period')
+@Index('idx_sta_period_uq', ['timeKey', 'appId', 'gameName', 'roomLevel', 'roomType'], { unique: true })
 export class StaPeriodEntity extends BaseEntity {
-  @Index()
   @Column({ comment: '时间节点', nullable: false })
   timeKey: Date;
 
@@ -17,11 +17,9 @@ export class StaPeriodEntity extends BaseEntity {
   @Column({ comment: '游戏名称', default: '' })
   gameName: string;
 
-  @Index()
   @Column({ comment: '房间等级', default: 0 })
   roomLevel: number;
 
-  @Index()
   @Column({ comment: '房间类型', default: 0 })
   roomType: number;
 
@@ -52,7 +50,7 @@ export class StaPeriodEntity extends BaseEntity {
   @Column({ comment: '牌型结果', type: 'json' })
   cardResult: any;
 
-  @Column({ comment: '牌型结果', type: 'json' })
+  @Column({ comment: '单张牌频次', type: 'json' })
   cartCount: number[];
 
 }

@@ -62,6 +62,7 @@ import { useDict } from '/$/dict';
 import { useOptions } from '/$/options';
 import { reactive, ref } from "vue";
 import dayjs from "dayjs";
+import { QznnRoomTypes, getQznnRoomTypeLabel } from "../utils/dict";
 import FormatMoney from "../components/format-money.vue";
 import { dateShortcuts } from "../utils/date-shortcuts";
 
@@ -75,7 +76,7 @@ const options = reactive({
     app_id: optionsStore.get("merchant_app"),
     game_name: dict.get("game_name"),
     qznn_room_level: dict.get("qznn_room_level"),
-    qznn_room_type: dict.get("qznn_room_type"),
+    qznn_room_type: QznnRoomTypes,
 });
 
 // 日期范围默认最近30天
@@ -145,7 +146,7 @@ const Table = useTable({
                     return options.qznn_room_level.find(i => String(row.title) === String(i.value))?.label || row.title || '未知';
                 }
                 if (searchParams.showType === "roomType") {
-                    return options.qznn_room_type.find(i => String(row.title) === String(i.value))?.label || row.title || '未知';
+                    return getQznnRoomTypeLabel(row.title);
                 }
                 return row.title;
             },

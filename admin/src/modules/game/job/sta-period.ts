@@ -2,10 +2,10 @@ import { IJob, Job } from '@midwayjs/cron';
 import { Inject } from '@midwayjs/decorator';
 import { InjectEntityModel } from '@midwayjs/typeorm';
 import { CachingFactory, MidwayCache } from '@midwayjs/cache-manager';
-import { MoreThan, Repository, In } from 'typeorm';
+import { MoreThan, Repository, In, EntityManager } from 'typeorm';
 import * as moment from 'moment';
 
-import { FORMAT, ILogger, InjectClient } from '@midwayjs/core';
+import { ILogger, InjectClient } from '@midwayjs/core';
 import { StaPeriodEntity } from '../entity/sta-period';
 import { GameUserEntity } from '../entityGame/user';
 import { GameRecordEntity } from '../entityGame/game-record';
@@ -47,9 +47,9 @@ interface UserStatsData {
 }
 
 @Job({
-  cronTime: FORMAT.CRONTAB.EVERY_SECOND,
+  cronTime: '*/5 * * * * *',
   runOnInit: false,
-  start: ['production'].includes(process.env.NODE_ENV),
+  start: ['production', 'test'].includes(process.env.NODE_ENV),
 })
 export class StaPeriodJob implements IJob {
 
@@ -120,95 +120,96 @@ export class StaPeriodJob implements IJob {
     return statsMap.get(mapKey);
   }
 
-  /** 保存统计数据 */
-  private async saveStats(statsMap: Map<string, StatsData>) {
-    if (statsMap.size === 0) return;
+  /** 在同一事务中保存 sta_period 和 sta_user */
+  private async saveAll(statsMap: Map<string, StatsData>, userStatsMap: Map<string, UserStatsData>) {
+    if (statsMap.size === 0 && userStatsMap.size === 0) return;
     const dataSource = this.staPeriodEntity.manager.connection;
     await dataSource.transaction(async manager => {
-      for (const stats of statsMap.values()) {
-        const where = { timeKey: stats.timeKey, appId: stats.appId, gameName: stats.gameName, roomLevel: stats.roomLevel, roomType: stats.roomType };
-        let entity = await manager.findOne(StaPeriodEntity, {
-          where,
-          lock: { mode: 'pessimistic_write' },
-        });
-        this.logger.info(where);
-        if (!entity) {
-          entity = new StaPeriodEntity();
-          entity.timeKey = stats.timeKey;
-          entity.appId = stats.appId;
-          entity.gameName = stats.gameName;
-          entity.roomLevel = stats.roomLevel;
-          entity.roomType = stats.roomType;
-          entity.gameUserCount = 0;
-          entity.gameCount = 0;
-          entity.betCount = 0;
-          entity.betAmount = 0;
-          entity.gameWin = 0;
-          entity.taxAmount = 0;
-          entity.firstGameUserCount = 0;
-          entity.firstGameUserIds = [];
-          entity.cardResult = {};
-          entity.cartCount = new Array(52).fill(0);
-        }
-        entity.gameUserCount += stats.gameUserCount;
-        entity.gameCount += stats.gameCount;
-        entity.betCount += stats.betCount;
-        entity.betAmount += stats.betAmount;
-        entity.gameWin += stats.gameWin;
-        entity.taxAmount += stats.taxAmount;
-        entity.firstGameUserCount += stats.firstGameUserCount;
-
-        const existingIds = Array.isArray(entity.firstGameUserIds) ? entity.firstGameUserIds : [];
-        entity.firstGameUserIds = [...existingIds, ...stats.firstGameUserIds];
-
-        const existingCardResult = entity.cardResult || {};
-        for (const key in stats.cardResult) {
-          existingCardResult[key] = (existingCardResult[key] || 0) + stats.cardResult[key];
-        }
-        entity.cardResult = existingCardResult;
-
-        const existingCartCount = entity.cartCount || new Array(52).fill(0);
-        for (let i = 0; i < 52; i++) {
-          existingCartCount[i] = (existingCartCount[i] || 0) + stats.cartCount[i];
-        }
-        entity.cartCount = existingCartCount;
-
-        await manager.save(entity);
-      }
+      await this.savePeriodStats(manager, statsMap);
+      await this.saveUserStats(manager, userStatsMap);
     });
   }
 
-  /** 保存用户统计数据 */
-  private async saveUserStats(userStatsMap: Map<string, UserStatsData>) {
-    if (userStatsMap.size === 0) return;
-    const dataSource = this.staUserEntity.manager.connection;
-    await dataSource.transaction(async manager => {
-      for (const stats of userStatsMap.values()) {
-        let entity = await manager.findOne(StaUserEntity, {
-          where: { date: stats.date, userId: stats.userId },
-          lock: { mode: 'pessimistic_write' },
-        });
-        if (!entity) {
-          entity = new StaUserEntity();
-          entity.date = stats.date;
-          entity.userId = stats.userId;
-          entity.appId = stats.appId;
-          entity.betCount = 0;
-          entity.betAmount = 0;
-          entity.winCount = 0;
-          entity.bankerCount = 0;
-          entity.betWin = 0;
-        }
-
-        entity.betCount = (entity.betCount || 0) + stats.betCount;
-        entity.betAmount = (Number(entity.betAmount) || 0) + stats.betAmount;
-        entity.winCount = (entity.winCount || 0) + stats.winCount;
-        entity.bankerCount = (entity.bankerCount || 0) + stats.bankerCount;
-        entity.betWin = (Number(entity.betWin) || 0) + stats.betWin;
-
-        await manager.save(entity);
+  /** 保存时间分片统计 */
+  private async savePeriodStats(manager: EntityManager, statsMap: Map<string, StatsData>) {
+    for (const stats of statsMap.values()) {
+      const where = { timeKey: stats.timeKey, appId: stats.appId, gameName: stats.gameName, roomLevel: stats.roomLevel, roomType: stats.roomType };
+      let entity = await manager.findOne(StaPeriodEntity, {
+        where,
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!entity) {
+        entity = new StaPeriodEntity();
+        entity.timeKey = stats.timeKey;
+        entity.appId = stats.appId;
+        entity.gameName = stats.gameName;
+        entity.roomLevel = stats.roomLevel;
+        entity.roomType = stats.roomType;
+        entity.gameUserCount = 0;
+        entity.gameCount = 0;
+        entity.betCount = 0;
+        entity.betAmount = 0;
+        entity.gameWin = 0;
+        entity.taxAmount = 0;
+        entity.firstGameUserCount = 0;
+        entity.firstGameUserIds = [];
+        entity.cardResult = {};
+        entity.cartCount = new Array(52).fill(0);
       }
-    });
+      entity.gameUserCount += stats.gameUserCount;
+      entity.gameCount += stats.gameCount;
+      entity.betCount += stats.betCount;
+      entity.betAmount += stats.betAmount;
+      entity.gameWin += stats.gameWin;
+      entity.taxAmount += stats.taxAmount;
+      entity.firstGameUserCount += stats.firstGameUserCount;
+
+      const existingIds = Array.isArray(entity.firstGameUserIds) ? entity.firstGameUserIds : [];
+      entity.firstGameUserIds = [...existingIds, ...stats.firstGameUserIds];
+
+      const existingCardResult = entity.cardResult || {};
+      for (const key in stats.cardResult) {
+        existingCardResult[key] = (existingCardResult[key] || 0) + stats.cardResult[key];
+      }
+      entity.cardResult = existingCardResult;
+
+      const existingCartCount = entity.cartCount || new Array(52).fill(0);
+      for (let i = 0; i < 52; i++) {
+        existingCartCount[i] = (existingCartCount[i] || 0) + stats.cartCount[i];
+      }
+      entity.cartCount = existingCartCount;
+
+      await manager.save(entity);
+    }
+  }
+
+  /** 保存用户统计 */
+  private async saveUserStats(manager: EntityManager, userStatsMap: Map<string, UserStatsData>) {
+    for (const stats of userStatsMap.values()) {
+      let entity = await manager.findOne(StaUserEntity, {
+        where: { date: stats.date, userId: stats.userId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!entity) {
+        entity = new StaUserEntity();
+        entity.date = stats.date;
+        entity.userId = stats.userId;
+        entity.appId = stats.appId;
+        entity.betCount = 0;
+        entity.betAmount = 0;
+        entity.winCount = 0;
+        entity.bankerCount = 0;
+        entity.betWin = 0;
+      }
+
+      entity.betCount = (entity.betCount || 0) + stats.betCount;
+      entity.betAmount = (Number(entity.betAmount) || 0) + stats.betAmount;
+      entity.winCount = (entity.winCount || 0) + stats.winCount;
+      entity.bankerCount = (entity.bankerCount || 0) + stats.bankerCount;
+      entity.betWin = (Number(entity.betWin) || 0) + stats.betWin;
+
+      await manager.save(entity);
+    }
   }
 
   /** 检查是否首次游戏，带缓存优化 */
@@ -220,7 +221,7 @@ export class StaPeriodJob implements IJob {
     }
     const isFirst = await this.staPeriodService.isFirstGame(userId, recordId);
     if (!isFirst) {
-      await this.midwayCache.set(cacheKey, 1, 7 * 24 * 3600);
+      await this.midwayCache.set(cacheKey, 1, 7 * 24 * 3600 * 1000);
     }
     return isFirst;
   }
@@ -336,6 +337,8 @@ export class StaPeriodJob implements IJob {
         order: { id: 'ASC' },
         take: StaPeriodJob.COUNT,
       });
+      if (records.length === 0) return;
+
       this.logger.info(`开始处理id大于${lastId}的数据，共${records.length}条`);
       const statsMap = new Map<string, StatsData>();
       const userStatsMap = new Map<string, UserStatsData>();
@@ -343,10 +346,9 @@ export class StaPeriodJob implements IJob {
 
       // 解析记录 & 收集所有玩家ID
       const allUserIds = new Set<string>();
-      const parsedRecords: { record: GameRecordEntity; gameData: any }[] = [];
+      const parsedRecords: { record: GameRecordEntity; parsed: ReturnType<ReturnType<typeof getGameParser>['parse']> }[] = [];
 
       for (const record of records) {
-        const gameData = JSON.parse(record.game_data);
         const parser = getGameParser(record.game_name);
         if (!parser) {
           this.logger.warn(`未注册的游戏类型: ${record.game_name}，跳过 record #${record.id}`);
@@ -354,12 +356,13 @@ export class StaPeriodJob implements IJob {
           continue;
         }
 
+        const gameData = JSON.parse(record.game_data);
         const parsed = parser.parse(gameData);
         for (const player of parsed.players) {
           if (player.userId) allUserIds.add(player.userId);
         }
 
-        parsedRecords.push({ record, gameData });
+        parsedRecords.push({ record, parsed });
         if (record.id > newLastId) newLastId = record.id;
       }
 
@@ -375,17 +378,14 @@ export class StaPeriodJob implements IJob {
       const batchActiveUsers = new Set<string>();
       const batchFirstGameUsers = new Set<string>();
 
-      await Promise.all(parsedRecords.map(async ({ record, gameData }) => {
+      // 顺序处理每条记录（避免并发修改共享状态）
+      for (const { record, parsed } of parsedRecords) {
         const { game_name, create_at } = record;
-        const parser = getGameParser(game_name);
-        const parsed = parser.parse(gameData);
-
         const timeKey = this.getTimeKey(create_at);
         const dateKey = moment(create_at).startOf('day').toDate();
         const involvedApps = new Set<string>();
 
-        // 处理每个玩家
-        await Promise.all(parsed.players.map(async (player) => {
+        for (const player of parsed.players) {
           await this.processPlayer(
             player, userMap, record,
             game_name, parsed.roomLevel, parsed.roomType,
@@ -394,17 +394,17 @@ export class StaPeriodJob implements IJob {
             batchActiveUsers, batchFirstGameUsers,
             involvedApps,
           );
-        }));
+        }
 
         // 增加游戏次数（每个涉及的APP都+1）
         for (const appId of involvedApps) {
           const stats = this.getStats(statsMap, timeKey, appId, game_name, parsed.roomLevel, parsed.roomType);
           stats.gameCount += 1;
         }
-      }));
+      }
 
-      await this.saveStats(statsMap);
-      await this.saveUserStats(userStatsMap);
+      // 同一事务中保存所有统计数据，避免部分成功导致重试时重复计数
+      await this.saveAll(statsMap, userStatsMap);
       if (newLastId > lastId) {
         await this.setLastId(newLastId);
       }

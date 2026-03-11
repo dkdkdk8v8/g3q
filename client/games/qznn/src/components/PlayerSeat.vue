@@ -475,6 +475,7 @@ const showSpeechBubble = computed(() => {
             class="score-float" :class="player.roundScore > 0 ? 'win' : 'lose'">
             <SpriteNumber :value="(player.roundScore > 0 ? '+' : '') + formatCoins(player.roundScore)"
                 :type="player.roundScore > 0 ? 'red' : 'white'" :height="player.roundScore > 0 ? 18 : 16" />
+            <span v-if="player.handResult && player.handResult.multiplier" class="multiplier-tag">({{ player.handResult.multiplier }}倍)</span>
         </div>
 
         <!-- 手牌区域 (始终渲染以占位) -->
@@ -1131,6 +1132,12 @@ const showSpeechBubble = computed(() => {
     font-family: 'Arial Black', sans-serif;
 }
 
+.score-float {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+}
+
 .score-float.win {
     color: #00cf31;
 }
@@ -1139,7 +1146,12 @@ const showSpeechBubble = computed(() => {
     color: #f95f5f;
 }
 
-/* ... */
+.multiplier-tag {
+    font-size: 12px;
+    margin-left: 2px;
+    font-weight: bold;
+    text-shadow: 1px 1px 1px #000;
+}
 
 @keyframes floatUp {
     0% {

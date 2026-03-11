@@ -2114,6 +2114,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
                     class="score-float" :class="myPlayer.roundScore > 0 ? 'win' : 'lose'">
                     <SpriteNumber :value="(myPlayer.roundScore > 0 ? '+' : '') + formatCoins(myPlayer.roundScore)"
                         :type="myPlayer.roundScore > 0 ? 'red' : 'white'" :height="26" />
+                    <span v-if="myPlayer.handResult && myPlayer.handResult.multiplier" class="multiplier-tag">({{ myPlayer.handResult.multiplier }}倍)</span>
                 </div>
             </div>
 
@@ -3890,6 +3891,13 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
 .score-float.lose {
     color: #f95f5f;
+}
+
+.multiplier-tag {
+    font-size: 16px;
+    margin-left: 2px;
+    font-weight: bold;
+    text-shadow: 1px 1px 1px #000;
 }
 
 .coin-icon-float {

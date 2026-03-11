@@ -24,7 +24,7 @@ esac
 
 # Config
 REMOTE_USER="ec2-user"
-SSH_KEY="$(dirname "$0")/../admin/src/tunnel/rsa.pem"
+SSH_KEY="/Users/just/Projects/g3q/admin/src/tunnel/rsa.pem"
 REMOTE_DIR="/home/ec2-user/node/admin-client"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 ARCHIVE_NAME="admin-client_${TIMESTAMP}.zip"

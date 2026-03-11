@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, Column, Index, PrimaryGeneratedColumn } from 'typeorm';
 
 /**
  * 用户记录表
@@ -8,6 +8,7 @@ export class GameUserRecordEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Index()
   @Column({ comment: '用户ID' })
   user_id: string;
 
@@ -23,6 +24,7 @@ export class GameUserRecordEntity {
   @Column({ comment: '有效投注', default: 0 })
   valid_bet: number;
 
+  @Index()
   @Column({ comment: '游戏记录ID' })
   game_record_id: number;
 

@@ -9,7 +9,7 @@ export default {
     //     port: 22,
     //     username: 'ec2-user',
     //     privateKey: readFileSync(
-    //       path.join(__dirname, './rsa.pem')
+    //       path.join(__dirname, '../../../ssh/rsa.pem')
     //     ).toString(),
     //   },
     //   forwardOptions: {

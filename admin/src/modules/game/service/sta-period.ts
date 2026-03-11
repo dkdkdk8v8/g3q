@@ -182,7 +182,7 @@ export class StaPeriodService extends BaseService {
         const cacheKey = `game:dau:${dateStr}:${userId}`;
         const exists = await this.midwayCache.get(cacheKey);
         if (!exists) {
-            await this.midwayCache.set(cacheKey, 1, 24 * 3600 * 1000);
+            await this.midwayCache.set(cacheKey, 1, 48 * 3600 * 1000); // 48小时（跨天冗余）
             return true;
         }
         return false;

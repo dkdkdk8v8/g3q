@@ -13,6 +13,7 @@ import (
 	"service/comm"
 	"service/initMain"
 	"service/mainRobot"
+	"service/modelAdmin"
 	"service/modelClient"
 	"time"
 
@@ -114,12 +115,20 @@ func (w *mainClientWork) Start(baseCtx *initMain.BaseCtx) error {
 		w.cfg.MysqlReadHost, w.cfg.MysqlReadPort,
 		w.cfg.MysqlUser, w.cfg.MysqlPwd,
 		w.cfg.MysqlConn, w.cfg.MysqlIdle)
+	ormutil.RegOrmModel(modelAdmin.RegModels, modelAdmin.ServerDB, modelAdmin.ServerDB,
+		w.cfg.MysqlHost, w.cfg.MysqlPort,
+		w.cfg.MysqlReadHost, w.cfg.MysqlReadPort,
+		w.cfg.MysqlUser, w.cfg.MysqlPwd,
+		w.cfg.MysqlConn, w.cfg.MysqlIdle)
 
 	logrus.Info("initModel")
 	if err := ormutil.InitModel(); err != nil {
 		logrus.WithError(err).Error("initModel-Fail")
 		return err
 	}
+
+	logrus.Info("initModelAdmin")
+	modelAdmin.Init()
 
 	go func() {
 		mainRobot.StartRobot()

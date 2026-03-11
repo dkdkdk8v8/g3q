@@ -86,6 +86,13 @@ func GetStressUsers() ([]*ModelUser, error) {
 	return users, err
 }
 
+// ReplenishStressBalance 补充压测用户余额（余额不足时重置为 amount）
+func ReplenishStressBalance(userId string, amount int64) error {
+	_, err := GetDb().Raw("UPDATE g3q_user SET balance=?, balance_lock=0 WHERE user_id=? AND balance < ?",
+		amount, userId, amount).Exec()
+	return err
+}
+
 // UpdateUser 更新用户信息
 func UpdateUser(user *ModelUser) (int64, error) {
 	return WrapUpdate(user)

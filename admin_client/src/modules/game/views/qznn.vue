@@ -1,164 +1,138 @@
 <template>
   <div class="game-room-qznn">
-    <div class="op-bar">
-      <el-button type="primary" :icon="Refresh" @click="refresh">刷新
-      </el-button>
-      <div class="stats">
-        <span class="label">房间:</span>
-        <span class="value">{{ roomCount }}</span>
-        <span class="divider">|</span>
-        <span class="label">用户:</span>
-        <span class="value">{{ playerStats.user }}</span>
-        <span class="divider">|</span>
-        <span class="label">机器人:</span>
-        <span class="value">{{ playerStats.robot }}</span>
+    <!-- Header Bar -->
+    <div class="header-bar">
+      <div class="header-left">
+        <el-button type="primary" :icon="Refresh" @click="refresh" round>刷新</el-button>
+        <div class="stats-pills">
+          <div class="pill">
+            <span class="pill-label">房间</span>
+            <span class="pill-value">{{ roomCount }}</span>
+          </div>
+          <div class="pill pill-success">
+            <span class="pill-label">用户</span>
+            <span class="pill-value">{{ playerStats.user }}</span>
+          </div>
+          <div class="pill pill-info">
+            <span class="pill-label">机器人</span>
+            <span class="pill-value">{{ playerStats.robot }}</span>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="stats-bar">
-      <div class="group">
-        <span class="label">等级:</span>
-        <el-button size="small" round :type="filterLevel === '' ? 'primary' : ''"
-          @click="filterLevel = ''">全部</el-button>
-        <el-button v-for="(count, name) in statsData.levels" :key="name" size="small" round
-          :type="filterLevel === name ? 'primary' : ''" @click="filterLevel = String(name)">{{ name }} {{ count
-          }}</el-button>
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <div class="filter-group">
+        <span class="filter-label">游戏玩法</span>
+        <div class="filter-chips">
+          <button v-for="gt in gameTypes" :key="gt.value" class="chip"
+            :class="{ active: filterType === gt.value }" @click="filterType = gt.value">{{ gt.label }}
+            <span class="chip-count">{{ gameTypePlayerCount[gt.value] || 0 }}</span></button>
+        </div>
       </div>
-      <div class="group">
-        <span class="label">类型:</span>
-        <el-button size="small" round :type="filterType === '' ? 'primary' : ''" @click="filterType = ''">全部</el-button>
-        <el-button v-for="(count, name) in statsData.types" :key="name" size="small" round
-          :type="filterType === name ? 'primary' : ''" @click="filterType = String(name)">{{ name }} {{ count
-          }}</el-button>
-      </div>
-      <div class="group">
-        <span class="label">用户:</span>
-        <el-button size="small" round :type="filterUserType === '' ? 'primary' : ''"
-          @click="filterUserType = ''">全部</el-button>
-        <el-button size="small" round :type="filterUserType === 'real' ? 'primary' : ''"
-          @click="filterUserType = 'real'">真实用户房间 {{ statsData.userTypes.real }}</el-button>
-        <el-button size="small" round :type="filterUserType === 'robot' ? 'primary' : ''"
-          @click="filterUserType = 'robot'">机器人房间 {{ statsData.userTypes.robot }}</el-button>
+      <div class="filter-group">
+        <span class="filter-label">房间等级</span>
+        <div class="filter-chips">
+          <button class="chip" :class="{ active: filterLevel === '' }" @click="filterLevel = ''">全部</button>
+          <button v-for="lv in levelOptions" :key="lv.value" class="chip"
+            :class="{ active: filterLevel === lv.value }" @click="filterLevel = lv.value">{{ lv.label }}
+            <span class="chip-count">{{ levelRoomCount[lv.value] || 0 }}</span></button>
+        </div>
       </div>
     </div>
 
+    <!-- Room List -->
     <div class="room-list" v-infinite-scroll="loadMore" :infinite-scroll-distance="200"
       :infinite-scroll-disabled="noMore">
       <el-empty v-if="errorMessage" :description="errorMessage" />
-
       <el-empty v-else-if="Object.keys(list).length === 0" description="暂时没有房间数据" />
 
       <div v-else>
         <div v-for="group in displayedGroups" :key="group.title" class="level-group">
-          <div class="group-header">{{ group.title }} <span class="count"></span></div>
-          <el-row :gutter="10">
-            <el-col v-for="item in group.rooms" :key="item.ID" :xs="24" :sm="12" :md="12" :lg="8" :xl="6">
-              <el-card shadow="hover" class="room-card" :class="getRoomClass(item.ID)">
-                <template #header>
-                  <el-tooltip placement="top">
-                    <template #content>
-                      <span>{{ item.GameID }}</span>
-                      <el-icon style="margin-left: 5px; cursor: pointer; vertical-align: middle;"
-                        @click="copyGameID(item.GameID)">
-                        <CopyDocument />
-                      </el-icon>
-                    </template>
-                    <div class="card-header">
-                      <div class="header-left">
-                        <div class="tags">
-                          <el-tag size="small" :type="getRoomTagType(item.ID)" effect="plain">{{
-                            getRoomInfo(item.ID).type
-                          }}
-                          </el-tag>
-                          <el-tag size="small" type="danger" effect="plain" style="cursor: pointer">{{
-                            getRoomInfo(item.ID).level }}</el-tag>
-                        </div>
-                      </div>
-                      <el-tag size="small" effect="dark" :type="(stateTypeMap[item.State] || 'info') as any">
-                        {{ stateMap[item.State] || item.State }}
-                        <span v-if="item.StateLeftSec > 0" style="margin-left: 2px">{{ item.StateLeftSec }}秒</span>
-                      </el-tag>
-                    </div>
-                  </el-tooltip>
-                </template>
-
-                <div class="room-content">
-                  <div class="players-list">
-                    <div v-for="(player, index) in item.Players" :key="index" class="player-item"
-                      :class="{ 'is-robot': player && player.IsRobot, 'is-human': player && !player.IsRobot }">
-                      <div v-if="player" class="player-info">
-                        <!-- <el-avatar :size="24" :src="player.Avatar" :icon="UserFilled" class="avatar"></el-avatar> -->
-                        <div class="details">
-                          <div class="player-name">
-                            <span v-if="item.BankerID === player.ID"
-                              style="color: var(--el-color-danger); font-weight: bold">庄</span>
-                            <span v-else-if="player.IsOb"
-                              style="color: var(--el-color-success); font-weight: bold">看</span>
-                            <el-tooltip placement="top" :enterable="true">
-                              <template #content>
-                                <div style="display: flex; align-items: center; gap: 4px; cursor: pointer;"
-                                  @click="copyText(player.ID, '用户ID')">
-                                  <span>{{ player.ID }}</span>
-                                  <el-icon>
-                                    <CopyDocument />
-                                  </el-icon>
-                                </div>
-                              </template>
-                              <span style="cursor: help; border-bottom: 1px dashed #999;">{{ player.NickName ||
-                                player.ID
-                              }}</span>
-                            </el-tooltip>
-                            <span v-if="player.CallMult >= 0 && player.BetMult === -1"
-                              style="color: var(--el-color-danger); font-weight: bold; margin-left: 2px">
-                              {{ player.CallMult === 0 ? '不抢' : '抢庄x' + player.CallMult }}
-                            </span>
-                            <span v-if="player.BetMult >= 0" style="color: var(--el-color-danger); margin-left: 2px">
-                              下注x{{ player.BetMult }}
-                            </span>
-                          </div>
-                          <div class="player-id">
-                            <template v-if="Array.isArray(player.Cards)">
-                              <span v-for="(card, idx) in player.Cards" :key="idx"
-                                :style="{ color: getCardStyle(card).color, marginRight: '2px', fontWeight: 'bold', display: 'inline-block', width: '24px', textAlign: 'center' }">
-                                {{ getCardStyle(card).text }}
-                              </span>
-                              <span v-if="player.Cards && player.Cards.length === 5"
-                                style="margin-left: 4px; color: var(--el-color-primary); font-weight: bold">
-                                {{ getCardResult(player.Cards) }} {{ player.IsShow ? '摊牌' : '' }}
-                              </span>
-                            </template>
-                            <span v-else>{{ player.Cards }}</span>
-                          </div>
-                        </div>
-                        <div class="balance-wrapper">
-                          <div class="player-balance">
-                            ￥{{ (player.Balance / 100).toFixed(2) }}
-                          </div>
-                          <div class="player-balance-change">
-                            <span v-if="player.BalanceChange > 0" class="positive">+{{ (player.BalanceChange /
-                              100).toFixed(2)
-                              }}</span>
-                            <span v-else-if="player.BalanceChange < 0" class="negative">{{ (player.BalanceChange /
-                              100).toFixed(2)
-                              }}</span>
-                            <span v-else class="zero">0</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div v-else class="player-empty">空闲</div>
-                    </div>
-                  </div>
-
-                  <div class="room-footer">
-                    <div class="time-info">
-                      <span>{{ dayjs(item.CreateAt).format("YYYY-MM-DD HH:mm:ss") }}</span>
-                      <span>{{ dayjs(item.CreateAt).fromNow() }}</span>
-                    </div>
-                  </div>
+          <div class="group-header">
+            <span class="group-indicator"></span>
+            {{ group.title }}
+          </div>
+          <div class="room-grid">
+            <div v-for="item in group.rooms" :key="item.ID" class="room-card" :class="getRoomClass(item.ID)">
+              <!-- Card Header -->
+              <div class="room-card-header">
+                <div class="header-tags">
+                  <span class="tag tag-type" :class="'tag-' + getRoomTagType(item.ID)">{{
+                    getRoomInfo(item.ID).type }}</span>
+                  <span class="tag tag-level">{{ getRoomInfo(item.ID).level }}</span>
                 </div>
-              </el-card>
-            </el-col>
-          </el-row>
+                <el-tooltip placement="top">
+                  <template #content>
+                    <div style="display: flex; align-items: center; gap: 4px; cursor: pointer;"
+                      @click="copyGameID(item.GameID)">
+                      <span>{{ item.GameID }}</span>
+                      <el-icon><CopyDocument /></el-icon>
+                    </div>
+                  </template>
+                  <span class="state-badge" :class="'state-' + (stateTypeMap[item.State] || 'info')">
+                    {{ stateMap[item.State] || item.State }}
+                    <span v-if="item.StateLeftSec > 0" class="state-timer">{{ item.StateLeftSec }}s</span>
+                  </span>
+                </el-tooltip>
+              </div>
+
+              <!-- Players -->
+              <div class="players-area">
+                <div v-for="(player, index) in item.Players" :key="index" class="player-row"
+                  :class="{ 'is-robot': player && player.IsRobot, 'is-human': player && !player.IsRobot }">
+                  <template v-if="player">
+                    <div class="player-left">
+                      <div class="player-info-col">
+                        <el-tooltip placement="top" :enterable="true">
+                          <template #content>
+                            <div style="display: flex; align-items: center; gap: 4px; cursor: pointer;"
+                              @click="copyText(player.ID, '用户ID')">
+                              <span>{{ player.ID }}</span>
+                              <el-icon><CopyDocument /></el-icon>
+                            </div>
+                          </template>
+                          <span class="player-nickname" :class="{ 'is-banker': item.BankerID === player.ID, 'is-ob': player.IsOb }">{{ player.NickName || player.ID }}</span>
+                        </el-tooltip>
+                        <div class="player-balance-row">
+                          <span class="balance">{{ (player.Balance / 100).toFixed(2) }}</span>
+                          <span v-if="player.BalanceChange > 0" class="positive">+{{ (player.BalanceChange /
+                            100).toFixed(2) }}</span>
+                          <span v-else-if="player.BalanceChange < 0" class="negative">{{ (player.BalanceChange /
+                            100).toFixed(2) }}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="player-center">
+                      <span v-if="player.CallMult >= 0 && player.BetMult === -1" class="mult-info call">
+                        {{ player.CallMult === 0 ? '不抢' : '抢庄x' + player.CallMult }}
+                      </span>
+                      <span v-if="player.BetMult >= 0" class="mult-info bet">
+                        下注x{{ player.BetMult }}
+                      </span>
+                    </div>
+                    <div class="player-right">
+                      <template v-if="Array.isArray(player.Cards) && player.Cards.length > 0">
+                        <span v-if="player.Cards.length === 5" class="card-result"
+                          :class="getResultClass(getCardResult(player.Cards))">
+                          {{ getCardResult(player.Cards) }}
+                        </span>
+                        <poker-card v-for="(card, idx) in player.Cards" :key="idx" :value="card" size="small" />
+                      </template>
+                    </div>
+                  </template>
+                  <div v-else class="empty-seat">空闲</div>
+                </div>
+              </div>
+
+              <!-- Footer -->
+              <div class="room-card-footer">
+                <span>{{ dayjs(item.CreateAt).format("MM-DD HH:mm:ss") }}</span>
+                <span>{{ dayjs(item.CreateAt).fromNow() }}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -174,7 +148,9 @@ import dayjs from "dayjs";
 import { Refresh, CopyDocument } from "@element-plus/icons-vue";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/zh-cn";
-import { getCardResult, getCardStyle } from "../utils/card";
+import { getCardResult } from "../utils/card";
+import { QznnRoomTypes, getQznnRoomTypeLabel } from "../utils/dict";
+import PokerCard from "../components/poker-card.vue";
 
 dayjs.extend(relativeTime);
 dayjs.locale("zh-cn");
@@ -183,8 +159,9 @@ const { dict } = useDict();
 const list = ref<any>({});
 const errorMessage = ref("");
 const filterLevel = ref("");
-const filterType = ref("");
-const filterUserType = ref("");
+const filterType = ref("0");
+
+const gameTypes = QznnRoomTypes.map((i) => ({ value: String(i.value), label: i.label }));
 
 const levelMap = computed(() => {
   const map: Record<string, string> = {};
@@ -195,13 +172,20 @@ const levelMap = computed(() => {
   return map;
 });
 
-const typeMap = computed(() => {
-  const map: Record<string, string> = {};
-  const data = dict.get("qznn_room_type").value || [];
-  data.forEach((item: any) => {
-    map[String(item.value)] = item.label;
+const levelOptions = computed(() => {
+  const data = dict.get("qznn_room_level").value || [];
+  return data.map((item: any) => ({ value: String(item.value), label: item.label }));
+});
+
+const levelRoomCount = computed(() => {
+  const counts: Record<string, number> = {};
+  levelOptions.value.forEach((lv) => (counts[lv.value] = 0));
+  Object.values(list.value).forEach((room: any) => {
+    const parts = (room.ID || "").split("_");
+    const rawLevel = parts.length >= 3 ? parts[2] : "";
+    if (counts[rawLevel] !== undefined) counts[rawLevel]++;
   });
-  return map;
+  return counts;
 });
 
 function getRoomInfo(id: string) {
@@ -210,7 +194,7 @@ function getRoomInfo(id: string) {
   if (parts.length >= 3) {
     return {
       level: levelMap.value[parts[2]] || "未知",
-      type: typeMap.value[parts[1]] || "未知",
+      type: getQznnRoomTypeLabel(parts[1]),
     };
   }
   return { level: "未知", type: "未知" };
@@ -225,7 +209,7 @@ function getRoomClass(id: string) {
   for (let i = 0; i < typeStr.length; i++) {
     typeCode += typeStr.charCodeAt(i);
   }
-  return `room-type-${typeCode % 6}`;
+  return `room-variant-${typeCode % 6}`;
 }
 
 function getRoomTagType(id: string) {
@@ -238,42 +222,43 @@ function getRoomTagType(id: string) {
     typeCode += typeStr.charCodeAt(i);
   }
   const types = ['primary', 'success', 'warning', 'danger', 'info', 'primary'];
-  return types[typeCode % 6] as any;
+  return types[typeCode % 6];
+}
+
+function getResultClass(result: string) {
+  if (!result) return "";
+  if (result === "牛牛" || result === "五花牛" || result === "炸弹" || result === "五小牛" || result === "四花牛") return "result-special";
+  if (result === "无牛") return "result-none";
+  return "result-normal";
+}
+
+function getRoomRawParts(id: string) {
+  if (!id) return { type: "", level: "" };
+  const parts = id.split("_");
+  return {
+    type: parts.length >= 2 ? parts[1] : "",
+    level: parts.length >= 3 ? parts[2] : "",
+  };
 }
 
 const filteredList = computed<any[]>(() => {
   const all = Object.values(list.value);
-
   return all.filter((item: any) => {
-    const info = getRoomInfo(item.ID);
-    const matchLevel = filterLevel.value ? info.level === filterLevel.value : true;
-    const matchType = filterType.value ? info.type === filterType.value : true;
-
-    let matchUserType = true;
-    if (filterUserType.value) {
-      const players = (item.Players || []).filter((p: any) => p);
-      const isRobotRoom = players.length > 0 && players.every((p: any) => p.IsRobot);
-      if (filterUserType.value === 'robot') {
-        matchUserType = isRobotRoom;
-      } else if (filterUserType.value === 'real') {
-        matchUserType = !isRobotRoom;
-      }
-    }
-    return matchLevel && matchType && matchUserType;
+    const raw = getRoomRawParts(item.ID);
+    const matchType = filterType.value ? raw.type === filterType.value : true;
+    const matchLevel = filterLevel.value ? raw.level === filterLevel.value : true;
+    return matchType && matchLevel;
   });
 });
 
 const groupedList = computed(() => {
   const groups: { title: string; rooms: any[] }[] = [];
   const temp: Record<string, any[]> = {};
-
   filteredList.value.forEach((item) => {
     const { level } = getRoomInfo(item.ID);
     if (!temp[level]) temp[level] = [];
     temp[level].push(item);
   });
-
-  // 按照 levelMap 的 key 顺序 (1, 2, 3, 4) 添加分组
   Object.keys(levelMap.value).sort().forEach((key) => {
     const name = levelMap.value[key];
     if (temp[name]) {
@@ -282,7 +267,6 @@ const groupedList = computed(() => {
       delete temp[name];
     }
   });
-  // 添加剩余未匹配的分组（如未知）
   Object.keys(temp).forEach((name) => {
     temp[name].sort((a, b) => new Date(b.CreateAt).getTime() - new Date(a.CreateAt).getTime());
     groups.push({ title: name, rooms: temp[name] });
@@ -290,33 +274,24 @@ const groupedList = computed(() => {
   return groups;
 });
 
-// 懒加载控制：当前显示的房间总数限制
 const displayedRoomsCount = ref(20);
 
 const noMore = computed(() => {
   return displayedRoomsCount.value >= filteredList.value.length;
 });
 
-// 根据限制计算当前需要渲染的分组数据
 const displayedGroups = computed(() => {
   const limit = displayedRoomsCount.value;
   let count = 0;
   const result: { title: string; rooms: any[] }[] = [];
-
   for (const group of groupedList.value) {
     if (count >= limit) break;
-
     const remaining = limit - count;
-    // 如果当前组的房间数未超过剩余配额，全部放入
     if (group.rooms.length <= remaining) {
       result.push(group);
       count += group.rooms.length;
     } else {
-      // 否则只截取部分房间
-      result.push({
-        ...group,
-        rooms: group.rooms.slice(0, remaining)
-      });
+      result.push({ ...group, rooms: group.rooms.slice(0, remaining) });
       count += remaining;
     }
   }
@@ -326,16 +301,16 @@ const displayedGroups = computed(() => {
 const stateMap: Record<string, string> = {
   StateWaiting: "等待中",
   StatePrepare: "准备中",
-  StateStartGame: "开始游戏",
+  StateStartGame: "开始",
   StatePreCard: "预发牌",
-  StateBanking: "玩家抢庄",
-  StateRandomBank: "随机抢庄",
-  StateBankerConfirm: "确认庄家",
-  StateBetting: "玩家下注",
-  StateDealing: "发牌中",
-  StateShowCard: "玩家摊牌",
-  StateSettling: "结算中",
-  StateSettlingDirectPreCard: "即将下一局",
+  StateBanking: "抢庄",
+  StateRandomBank: "随机庄",
+  StateBankerConfirm: "确认庄",
+  StateBetting: "下注",
+  StateDealing: "发牌",
+  StateShowCard: "摊牌",
+  StateSettling: "结算",
+  StateSettlingDirectPreCard: "下一局",
 };
 
 const stateTypeMap: Record<string, string> = {
@@ -371,29 +346,18 @@ const playerStats = computed(() => {
   return { user, robot };
 });
 
-const statsData = computed(() => {
-  const levels: Record<string, number> = {};
-  const types: Record<string, number> = {};
-  const userTypes: Record<string, number> = { real: 0, robot: 0 };
-
-  Object.values(levelMap.value).forEach((v) => (levels[v] = 0));
-  Object.values(typeMap.value).forEach((v) => (types[v] = 0));
-
+const gameTypePlayerCount = computed(() => {
+  const counts: Record<string, number> = {};
+  gameTypes.forEach((gt) => (counts[gt.value] = 0));
   Object.values(list.value).forEach((room: any) => {
-    const info = getRoomInfo(room.ID);
-    if (levels[info.level] !== undefined) levels[info.level]++;
-    if (types[info.type] !== undefined) types[info.type]++;
-
-    const players = (room.Players || []).filter((p: any) => p);
-    const isRobotRoom = players.length > 0 && players.every((p: any) => p.IsRobot);
-    if (isRobotRoom) {
-      userTypes.robot++;
-    } else {
-      userTypes.real++;
+    const raw = getRoomRawParts(room.ID);
+    if (counts[raw.type] !== undefined && room.Players && Array.isArray(room.Players)) {
+      room.Players.forEach((p: any) => {
+        if (p && !p.IsRobot) counts[raw.type]++;
+      });
     }
   });
-
-  return { levels, types, userTypes };
+  return counts;
 });
 
 const copyGameID = (id: any) => {
@@ -408,12 +372,10 @@ const copyText = (text: any, label: string = '内容') => {
 
 const loadMore = () => {
   if (noMore.value) return;
-  // 每次滚动到底部增加显示 50 个房间
   displayedRoomsCount.value += 50;
 };
 
-// 当筛选条件变化时，重置显示数量，避免数据错乱或停留在底部
-watch([filterLevel, filterType, filterUserType], () => {
+watch([filterLevel, filterType], () => {
   displayedRoomsCount.value = 20;
 });
 
@@ -460,304 +422,422 @@ onUnmounted(() => {
 
 <style lang="scss" scoped>
 .game-room-qznn {
-  padding: 10px;
+  padding: 16px 20px;
   height: 100%;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  background: var(--el-bg-color-page);
+}
 
-  .op-bar {
-    margin-bottom: 10px;
+// ===== Header Bar =====
+.header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+
+  .header-left {
     display: flex;
     align-items: center;
-
-    .stats {
-      margin-left: 15px;
-      font-size: 14px;
-      color: var(--el-text-color-regular);
-      display: flex;
-      align-items: center;
-
-      .value {
-        font-weight: bold;
-        color: var(--el-text-color-primary);
-        margin-left: 4px;
-      }
-
-      .divider {
-        margin: 0 12px;
-        color: var(--el-border-color);
-      }
-    }
+    gap: 16px;
   }
 
-  .stats-bar {
-    margin-bottom: 15px;
-    padding: 10px 15px;
-    border-radius: 4px;
+  .stats-pills {
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    font-size: 13px;
-    color: var(--el-text-color-regular);
+    gap: 8px;
 
-    .group {
+    .pill {
       display: flex;
       align-items: center;
-      margin-bottom: 10px;
-      gap: 5px;
-
-      .label {
-        font-weight: bold;
-        margin-right: 10px;
-      }
-    }
-  }
-
-  .room-list {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-  }
-
-  .level-group {
-    margin-bottom: 20px;
-
-    .group-header {
-      font-size: 16px;
-      font-weight: bold;
-      margin-bottom: 10px;
-      padding-left: 8px;
-      border-left: 4px solid var(--el-color-primary);
-      color: var(--el-text-color-primary);
-
-      .count {
-        font-size: 14px;
-        color: var(--el-text-color-secondary);
-        font-weight: normal;
-        margin-left: 5px;
-      }
-    }
-  }
-
-  .room-card {
-    margin-bottom: 10px;
-    border-radius: 8px;
-    transition: all 0.3s;
-
-    :deep(.el-card__header) {
-      padding: 8px 10px;
-    }
-
-    :deep(.el-card__body) {
-      padding: 8px;
-    }
-
-    :deep(.el-card__header) {
-      background-color: var(--room-header-bg);
-      transition: background-color 0.3s;
-    }
-
-    // Room Type Colors
-    &.room-type-0 {
-      --room-header-bg: #d9ecff;
-
-      :global(.dark) & {
-        --room-header-bg: #1d2530;
-      }
-    }
-
-    &.room-type-1 {
-      --room-header-bg: #e1f3d8;
-
-      :global(.dark) & {
-        --room-header-bg: #1d2b1d;
-      }
-    }
-
-    &.room-type-2 {
-      --room-header-bg: #faecd8;
-
-      :global(.dark) & {
-        --room-header-bg: #2b251d;
-      }
-    }
-
-    &.room-type-3 {
-      --room-header-bg: #fde2e2;
-
-      :global(.dark) & {
-        --room-header-bg: #2b1d1d;
-      }
-    }
-
-    &.room-type-4 {
-      --room-header-bg: #e9e9eb;
-
-      :global(.dark) & {
-        --room-header-bg: #262727;
-      }
-    }
-
-    &.room-type-5 {
-      --room-header-bg: #e7dcf5;
-
-      :global(.dark) & {
-        --room-header-bg: #251d2b;
-      }
-    }
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--el-box-shadow-light);
-    }
-
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-weight: bold;
-      font-size: 14px;
-
-      .header-left {
-        display: flex;
-        flex-direction: column;
-
-        .tags {
-          display: flex;
-          gap: 6px;
-        }
-      }
-    }
-
-    .room-content {
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      background: var(--el-fill-color);
       font-size: 13px;
+      transition: all 0.2s;
 
-      .players-list {
-        background-color: var(--el-fill-color-light);
-        border-radius: 4px;
-        padding: 4px;
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 4px;
-
-        .player-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          height: 44px;
-          box-sizing: border-box;
-          padding: 0 4px;
-          background-color: var(--el-bg-color);
-          border-radius: 4px;
-          overflow: hidden;
-
-          &.is-human {
-            background: linear-gradient(to right, var(--el-color-success-light-7), var(--el-color-success-light-9));
-          }
-
-          &.is-robot {
-            // background-color: var(--el-color-primary-light-9);
-          }
-
-          .player-info {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-
-            .avatar {
-              flex-shrink: 0;
-            }
-
-            .details {
-              flex: 1;
-              display: flex;
-              flex-direction: column;
-              justify-content: center;
-              align-items: flex-start;
-              overflow: hidden;
-              margin-right: 4px;
-              text-align: left;
-
-              .player-name {
-                font-size: 13px;
-                font-weight: 500;
-                margin-left: 2px;
-                margin-bottom: 2px;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-              }
-
-              .player-id {
-                font-size: 12px;
-                color: var(--el-text-color-secondary);
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                height: 18px;
-                line-height: 18px;
-              }
-            }
-
-            .balance-wrapper {
-              display: flex;
-              flex-direction: column;
-              align-items: flex-end;
-
-              .player-balance {
-                white-space: nowrap;
-                color: var(--el-color-warning);
-                font-size: 12px;
-                font-weight: bold;
-              }
-
-              .player-balance-change {
-                font-size: 12px;
-                font-weight: bold;
-
-                .positive {
-                  color: var(--el-color-success);
-                }
-
-                .negative {
-                  color: var(--el-color-danger);
-                }
-
-                .zero {
-                  color: var(--el-text-color-secondary);
-                }
-              }
-            }
-          }
-
-          .player-empty {
-            color: var(--el-text-color-placeholder);
-            flex: 1;
-            text-align: center;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-          }
-        }
+      .pill-label {
+        color: var(--el-text-color-secondary);
       }
 
-      .room-footer {
-        margin-top: 6px;
-        color: var(--el-text-color-secondary);
-        font-size: 12px;
-        padding: 0 4px;
-        border-top: 1px solid var(--el-border-color-lighter);
-        padding-top: 6px;
+      .pill-value {
+        font-weight: 700;
+        color: var(--el-text-color-primary);
+        font-variant-numeric: tabular-nums;
+      }
 
-        .time-info {
-          display: flex;
-          justify-content: space-between;
-        }
+      &.pill-success .pill-value {
+        color: var(--el-color-success);
+      }
+
+      &.pill-info .pill-value {
+        color: var(--el-color-info);
       }
     }
   }
+}
+
+// ===== Filter Bar =====
+.filter-bar {
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: var(--el-bg-color);
+  border-radius: 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .filter-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--el-text-color-secondary);
+      min-width: 60px;
+      white-space: nowrap;
+    }
+
+    .filter-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+  }
+}
+
+// ===== Chip (shared) =====
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--el-border-color);
+  background: transparent;
+  color: var(--el-text-color-regular);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+
+  &:hover {
+    border-color: var(--el-color-primary-light-3);
+    color: var(--el-color-primary);
+  }
+
+  &.active {
+    background: var(--el-color-primary);
+    border-color: var(--el-color-primary);
+    color: #fff;
+    font-weight: 500;
+  }
+
+  .chip-count {
+    font-size: 11px;
+    opacity: 0.8;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+// ===== Room List =====
+.room-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.level-group {
+  margin-bottom: 24px;
+
+  .group-header {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    padding-left: 4px;
+    color: var(--el-text-color-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .group-indicator {
+      width: 4px;
+      height: 18px;
+      border-radius: 2px;
+      background: var(--el-color-primary);
+    }
+  }
+}
+
+.room-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 10px;
+}
+
+// ===== Room Card =====
+.room-card {
+  background: var(--el-bg-color);
+  border-radius: 8px;
+  border: 1px solid var(--el-border-color-lighter);
+  overflow: hidden;
+  transition: all 0.25s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+
+    :global(.dark) & {
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  // Room variant accent colors (top border)
+  &.room-variant-0 { border-top: 3px solid #3b82f6; }
+  &.room-variant-1 { border-top: 3px solid #22c55e; }
+  &.room-variant-2 { border-top: 3px solid #f59e0b; }
+  &.room-variant-3 { border-top: 3px solid #ef4444; }
+  &.room-variant-4 { border-top: 3px solid #8b5cf6; }
+  &.room-variant-5 { border-top: 3px solid #06b6d4; }
+}
+
+.room-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--el-border-color-extra-light);
+
+  .header-tags {
+    display: flex;
+    gap: 6px;
+
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+
+      &.tag-type {
+        color: #fff;
+      }
+
+      &.tag-primary { background: #3b82f6; }
+      &.tag-success { background: #22c55e; }
+      &.tag-warning { background: #f59e0b; }
+      &.tag-danger { background: #ef4444; }
+      &.tag-info { background: #6b7280; }
+
+      &.tag-level {
+        background: var(--el-fill-color-dark);
+        color: var(--el-text-color-regular);
+      }
+    }
+  }
+
+  .state-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &.state-info {
+      background: var(--el-fill-color);
+      color: var(--el-text-color-secondary);
+    }
+
+    &.state-success {
+      background: rgba(34, 197, 94, 0.1);
+      color: #16a34a;
+
+      :global(.dark) & {
+        background: rgba(34, 197, 94, 0.15);
+        color: #4ade80;
+      }
+    }
+
+    &.state-danger {
+      background: rgba(239, 68, 68, 0.1);
+      color: #dc2626;
+
+      :global(.dark) & {
+        background: rgba(239, 68, 68, 0.15);
+        color: #f87171;
+      }
+    }
+
+    .state-timer {
+      font-variant-numeric: tabular-nums;
+    }
+  }
+}
+
+// ===== Players Area =====
+.players-area {
+  padding: 4px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.player-row {
+  display: flex;
+  align-items: center;
+  height: 38px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: var(--el-fill-color-lighter);
+  transition: background 0.2s;
+
+  &.is-human {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.06), rgba(34, 197, 94, 0.02));
+    border-left: 3px solid rgba(34, 197, 94, 0.4);
+  }
+
+  &.is-robot {
+    opacity: 0.7;
+  }
+
+  .player-left {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    width: 150px;
+
+    .player-info-col {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-width: 0;
+      gap: 1px;
+    }
+
+    .player-nickname {
+      display: inline-block;
+      width: 80px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: help;
+      border-bottom: 1px dashed var(--el-border-color);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+
+      &.is-banker {
+        color: #dc2626;
+        font-weight: 600;
+      }
+
+      &.is-ob {
+        color: var(--el-text-color-placeholder);
+      }
+    }
+
+    .player-balance-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+
+      .balance {
+        color: var(--el-text-color-regular);
+      }
+
+      .positive { color: var(--el-color-success); font-weight: 600; }
+      .negative { color: var(--el-color-danger); font-weight: 600; }
+    }
+  }
+
+  .player-center {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-width: 0;
+
+    .mult-info {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 1px 5px;
+      border-radius: 3px;
+      white-space: nowrap;
+
+      &.call {
+        background: rgba(239, 68, 68, 0.1);
+        color: #dc2626;
+        :global(.dark) & { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+      }
+
+      &.bet {
+        background: rgba(245, 158, 11, 0.1);
+        color: #d97706;
+        :global(.dark) & { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+      }
+    }
+  }
+
+  .player-right {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    justify-content: flex-end;
+    min-width: 0;
+
+    .card-result {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 3px;
+      white-space: nowrap;
+      margin-right: 4px;
+
+      &.result-special {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: #fff;
+      }
+
+      &.result-normal {
+        background: rgba(59, 130, 246, 0.1);
+        color: #2563eb;
+        :global(.dark) & { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+      }
+
+      &.result-none {
+        color: var(--el-text-color-placeholder);
+      }
+
+    }
+  }
+
+  .empty-seat {
+    flex: 1;
+    text-align: center;
+    color: var(--el-text-color-placeholder);
+    font-size: 11px;
+  }
+}
+
+// ===== Room Footer =====
+.room-card-footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 10px;
+  border-top: 1px solid var(--el-border-color-extra-light);
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
 }
 </style>

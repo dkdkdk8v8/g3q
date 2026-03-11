@@ -86,7 +86,7 @@
               v-for="(player, idx) in parsedGameData.Room.Players"
               :key="idx"
               class="gr-player"
-              :class="{ 'is-banker': player &amp;&amp; player.ID === parsedGameData.Room.BankerID }"
+              :class="{ 'is-banker': player && player.ID === parsedGameData.Room.BankerID }"
             >
               <template v-if="player">
                 <div class="gr-player-row">
@@ -114,14 +114,14 @@
                 </div>
                 <div class="gr-player-row gr-detail-row">
                   <div class="gr-cards">
-                    <span
+                    <poker-card
                       v-for="(card, ci) in player.Cards"
                       :key="ci"
-                      class="gr-card"
-                      :style="{ color: getCardStyle(card).color }"
-                    >{{ getCardStyle(card).text }}</span>
+                      :value="card"
+                      size="small"
+                    />
                     <span
-                      v-if="player.Cards &amp;&amp; player.Cards.length === 5"
+                      v-if="player.Cards && player.Cards.length === 5"
                       class="gr-niu"
                     >{{ getCardResult(player.Cards) }}</span>
                   </div>
@@ -178,7 +178,8 @@ import { useRoute } from "vue-router";
 import { computed, ref, watch } from "vue";
 import { Loading as LoadingIcon } from "@element-plus/icons-vue";
 import FormatMoney from "../components/format-money.vue";
-import { getCardStyle, getCardResult } from "../utils/card";
+import { getCardResult } from "../utils/card";
+import PokerCard from "../components/poker-card.vue";
 
 const { service } = useCool();
 const route = useRoute();
@@ -386,15 +387,7 @@ function formatGameData(data: string): string {
 .gr-cards {
   display: flex;
   align-items: center;
-  gap: 2px;
-}
-
-.gr-card {
-  display: inline-block;
-  width: 26px;
-  text-align: center;
-  font-weight: bold;
-  font-size: 13px;
+  gap: 3px;
 }
 
 .gr-niu {

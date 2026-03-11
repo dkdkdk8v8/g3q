@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="${SCRIPT_DIR}/../server/server/main_robot"
+SSH_KEY="${SCRIPT_DIR}/rsa.pem"
+
 # Environment selection
 echo "Select deploy environment:"
 echo "  1) test       (43.198.45.138)"
@@ -24,19 +28,18 @@ esac
 
 # Config
 REMOTE_USER="ec2-user"
-SSH_KEY="/Users/just/Projects/g3q/admin/src/tunnel/rsa.pem"
-REMOTE_DIR="/home/ec2-user/go/client"
-BUILD_FILE="build_main_client.bz2"
+REMOTE_DIR="/home/ec2-user/go/robot"
+BUILD_FILE="build_main_robot.bz2"
 
 # Ensure key has correct permissions
 chmod 600 "${SSH_KEY}"
 SSH_OPTS="-i ${SSH_KEY} -o StrictHostKeyChecking=no"
 
-echo "=== Main Client Deploy [${ENV_NAME}] -> ${REMOTE_HOST} ==="
+echo "=== Main Robot Deploy [${ENV_NAME}] -> ${REMOTE_HOST} ==="
 
 # 1. Build
 echo "[1/3] Building..."
-cd "$(dirname "$0")"
+cd "${PROJECT_DIR}"
 ./gobuild.sh
 
 # 2. Upload

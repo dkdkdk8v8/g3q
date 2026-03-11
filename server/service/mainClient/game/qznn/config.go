@@ -35,7 +35,7 @@ var CardMultipliers = map[int64]int64{
 	NiuSeven:     2,  // 牛7
 	NiuEight:     2,  // 牛8
 	NiuNine:      3,  // 牛9
-	NiuNiu:       4,  // 牛牛
+	NiuNiu:       3,  // 牛牛
 	NiuFace:      6,  // 五花牛
 	NiuBomb:      8,  // 炸弹牛
 	NiuFiveSmall: 10, // 五小牛

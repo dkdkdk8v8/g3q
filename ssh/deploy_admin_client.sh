@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="${SCRIPT_DIR}/../admin_client"
+SSH_KEY="${SCRIPT_DIR}/rsa.pem"
+
 # Environment selection
 echo "Select deploy environment:"
 echo "  1) test       (43.198.45.138)"
@@ -24,7 +28,6 @@ esac
 
 # Config
 REMOTE_USER="ec2-user"
-SSH_KEY="/Users/just/Projects/g3q/admin/src/tunnel/rsa.pem"
 REMOTE_DIR="/home/ec2-user/node/admin-client"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 ARCHIVE_NAME="admin-client_${TIMESTAMP}.zip"
@@ -37,7 +40,7 @@ echo "=== Admin Client Deploy [${ENV_NAME}] -> ${REMOTE_HOST} ==="
 
 # 1. Build
 echo "[1/4] Building..."
-cd "$(dirname "$0")"
+cd "${PROJECT_DIR}"
 pnpm build
 
 # 2. Compress dist

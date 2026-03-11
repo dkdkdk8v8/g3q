@@ -1,21 +1,24 @@
 #!/bin/bash
 set -e
 
-GAME_NAME="bjlnn"
-GAME_LABEL="百家乐牛牛"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="${SCRIPT_DIR}/../client/games/qznn"
+SSH_KEY="${SCRIPT_DIR}/rsa.pem"
+
+GAME_NAME="qznn"
+GAME_LABEL="抢庄牛牛"
 REMOTE_HOST="54.46.36.91"
 REMOTE_USER="ec2-user"
 REMOTE_DIR="/home/ec2-user/html/${GAME_NAME}"
-SSH_KEY="/Users/just/Projects/g3q/admin/src/tunnel/rsa.pem"
 
-# 确保密钥权限正确
+# Ensure key has correct permissions
 chmod 600 "${SSH_KEY}"
 SSH_OPTS="-i ${SSH_KEY} -o StrictHostKeyChecking=no"
 
 echo "===== ${GAME_LABEL} 部署开始 ====="
 
 # 打包
-cd "$(dirname "$0")"
+cd "${PROJECT_DIR}"
 ./buildRelease.sh
 
 # 获取版本号，找到zip包

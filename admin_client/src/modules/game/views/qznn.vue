@@ -28,7 +28,7 @@
         <div class="filter-chips">
           <button v-for="gt in gameTypes" :key="gt.value" class="chip"
             :class="{ active: filterType === gt.value }" @click="filterType = gt.value">{{ gt.label }}
-            <span class="chip-count">{{ gameTypePlayerCount[gt.value] || 0 }}</span></button>
+            <span class="chip-count">{{ gameTypeRoomCount[gt.value] || 0 }}</span></button>
         </div>
       </div>
       <div class="filter-group">
@@ -181,9 +181,9 @@ const levelRoomCount = computed(() => {
   const counts: Record<string, number> = {};
   levelOptions.value.forEach((lv) => (counts[lv.value] = 0));
   Object.values(list.value).forEach((room: any) => {
-    const parts = (room.ID || "").split("_");
-    const rawLevel = parts.length >= 3 ? parts[2] : "";
-    if (counts[rawLevel] !== undefined) counts[rawLevel]++;
+    const raw = getRoomRawParts(room.ID);
+    if (filterType.value && raw.type !== filterType.value) return;
+    if (counts[raw.level] !== undefined) counts[raw.level]++;
   });
   return counts;
 });
@@ -346,16 +346,12 @@ const playerStats = computed(() => {
   return { user, robot };
 });
 
-const gameTypePlayerCount = computed(() => {
+const gameTypeRoomCount = computed(() => {
   const counts: Record<string, number> = {};
   gameTypes.forEach((gt) => (counts[gt.value] = 0));
   Object.values(list.value).forEach((room: any) => {
     const raw = getRoomRawParts(room.ID);
-    if (counts[raw.type] !== undefined && room.Players && Array.isArray(room.Players)) {
-      room.Players.forEach((p: any) => {
-        if (p && !p.IsRobot) counts[raw.type]++;
-      });
-    }
+    if (counts[raw.type] !== undefined) counts[raw.type]++;
   });
   return counts;
 });

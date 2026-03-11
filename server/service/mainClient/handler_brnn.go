@@ -161,15 +161,12 @@ func buildEnrichedPlayerList(room *brnn.BRNNRoom) []brnn.PlayerRankInfo {
 	now := time.Now()
 	for i := range players {
 		p := &players[i]
-		records, err := modelClient.GetUserGameRecordsJoinGameRecord(p.UserId, 20, 0, epoch, now)
+		records, err := modelClient.GetUserGameRecordsJoinGameRecord(p.UserId, 20, 0, epoch, now, brnn.GameName)
 		if err != nil {
 			logrus.WithField("userId", p.UserId).WithError(err).Warn("brnn.GetPlayers.queryRecords")
 			continue
 		}
 		for _, rec := range records {
-			if rec.GameName != brnn.GameName {
-				continue
-			}
 
 			change := rec.BalanceAfter - rec.BalanceBefore
 			if change > 0 {

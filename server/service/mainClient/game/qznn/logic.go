@@ -1342,7 +1342,7 @@ func (r *QZNNRoom) startGame() {
 		var err1 error
 		nGameRecordId, err1 = modelClient.InsertGameRecord(&modelClient.ModelGameRecord{
 			GameId:   r.GameID,
-			GameName: GameName,
+			GameName: GetGameNameByBankerType(r.Config.BankerType),
 			RoomId:   r.ID,
 			GameData: string(roomBytes),
 		})

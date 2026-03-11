@@ -496,6 +496,18 @@ func (r *Robot) Run() {
 		}
 	}()
 
+	// 进房超时保护：30秒内未成功进入房间则关闭连接，防止僵尸机器人
+	go func() {
+		time.Sleep(30 * time.Second)
+		r.mu.Lock()
+		roomId := r.RoomId
+		r.mu.Unlock()
+		if roomId == "" {
+			logrus.WithField("uid", r.Uid).Warn("Robot - Join room timeout (30s), closing")
+			r.Close()
+		}
+	}()
+
 	// GenericMsg 类型定义用于解析服务器消息
 	type GenericMsg struct {
 		Cmd      comm.CmdType    `json:"Cmd"`
@@ -531,13 +543,19 @@ func (r *Robot) Run() {
 
 		if msg.Code != 0 {
 			r.mu.Lock()
+			roomId := r.RoomId
 			balance := r.Balance
 			r.mu.Unlock()
 			logrus.WithFields(logrus.Fields{
-				"roomId":  r.RoomId,
+				"roomId":  roomId,
 				"uid":     r.Uid,
 				"balance": balance,
 			}).Errorf("Robot - Received error: %d %s", msg.Code, msg.Msg)
+			// 如果还没进入房间就收到错误（如房间已满），直接退出避免变成僵尸
+			if roomId == "" {
+				logrus.WithField("uid", r.Uid).Info("Robot - Not in room, closing due to error")
+				return
+			}
 			continue
 		}
 

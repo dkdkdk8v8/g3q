@@ -4,7 +4,8 @@ import { watch, computed, onMounted, ref, nextTick } from 'vue';
 const props = defineProps({
   card: Object, // 如果没有card，显示背面
   isSmall: Boolean,
-  peekReveal: Boolean // 咪牌模式：牌背从左往右折叠翻开
+  peekReveal: Boolean, // 咪牌模式：牌背从左往右折叠翻开
+  skipAnimation: Boolean // 跳过翻牌动画，直接显示正面
 });
 
 // 控制卡片是否翻转显示正面
@@ -20,6 +21,10 @@ const cardImgUrl = computed(() => {
 onMounted(async () => {
   // 初始状态先为背面，延迟一小段时间后再翻转，以展示翻转动画
   if (props.card) {
+    if (props.skipAnimation) {
+      isFlipped.value = true;
+      return;
+    }
     await nextTick();
     if (props.peekReveal) {
       setTimeout(() => { isPeeking.value = true; }, 300);
@@ -31,6 +36,10 @@ onMounted(async () => {
 
 watch(() => props.card, async (newVal) => {
   if (newVal) {
+    if (props.skipAnimation) {
+      isFlipped.value = true;
+      return;
+    }
     if (props.peekReveal) {
       // 咪牌模式：先确保背面覆盖，然后延迟触发折叠动画
       isPeeking.value = false;
@@ -54,7 +63,7 @@ watch(() => props.card, async (newVal) => {
 <template>
   <div class="poker-card" :class="{ 'is-small': isSmall }">
     <!-- 标准翻牌模式 -->
-    <div v-if="!peekReveal" class="card-inner" :class="{ 'is-flipped': isFlipped }">
+    <div v-if="!peekReveal" class="card-inner" :class="{ 'is-flipped': isFlipped, 'no-transition': skipAnimation }">
       <div class="card-face">
         <img v-if="cardImgUrl" :src="cardImgUrl" class="card-img" />
         <div v-else class="card-placeholder">
@@ -104,6 +113,10 @@ watch(() => props.card, async (newVal) => {
   transition: transform 0.6s;
   transform-style: preserve-3d;
   transform: rotateY(180deg); /* Start flipped */
+}
+
+.card-inner.no-transition {
+  transition: none;
 }
 
 .card-inner.is-flipped {

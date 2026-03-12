@@ -23,6 +23,7 @@ import { AudioUtils } from '../utils/audio.js';
 import gameClient from '../socket.js';
 import { showToast as vantToast } from 'vant';
 import PokerCard from '../components/PokerCard.vue';
+import CardPeekOverlay from '../components/CardPeekOverlay.vue';
 
 import talk0 from '@/assets/sounds/talk_0.mp3';
 import talk1 from '@/assets/sounds/talk_1.mp3';
@@ -688,6 +689,10 @@ const router = useRouter();
 const route = useRoute();
 const coinLayer = ref(null);
 const dealingLayer = ref(null);
+const peekOverlay = ref(null);
+const isPeekAnimating = ref(false);
+const peekAnimationDone = ref(false);
+const fifthCardRef = ref(null);
 const seatRefs = ref({}); // 存储所有座位的引用 key: playerId
 const tableCenterRef = ref(null); // 桌面中心元素引用
 const startAnimationClass = ref('');
@@ -1148,6 +1153,8 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
         visibleCounts.value = {};
         dealingCounts.value = {}; // Reset dealing counts
         lastBetStates.value = {};
+        isPeekAnimating.value = false;
+        peekAnimationDone.value = false;
     } else if (newPhase === 'GAME_START_ANIMATION') {
         showStartAnim.value = true;
 
@@ -1161,6 +1168,8 @@ watch(() => store.currentPhase, async (newPhase, oldPhase) => {
     } else if (newPhase === 'PRE_DEAL') {
         visibleCounts.value = {};
         hiddenCardsMap.value = {}; // Reset hidden cards map
+        isPeekAnimating.value = false;
+        peekAnimationDone.value = false;
         // Initialize to 0 to prevent premature display
         store.players.forEach(p => {
             if (p.hand && p.hand.length > 0) {
@@ -1479,9 +1488,32 @@ const startDealingAnimation = (isSupplemental = false) => {
                     dealingCounts.value[t.id] -= t.count;
                     if (dealingCounts.value[t.id] < 0) dealingCounts.value[t.id] = 0;
                 }
+
+                // 看四张模式：我的第5张牌发完后触发咪牌动画
+                if (isSupplemental && t.isMe && store.gameMode === 2) {
+                    isPeekAnimating.value = true;
+                    nextTick(() => {
+                        const el = fifthCardRef.value?.$el || fifthCardRef.value;
+                        if (el && peekOverlay.value) {
+                            const rect = el.getBoundingClientRect();
+                            const card = myPlayer.value?.hand?.[4];
+                            if (card) {
+                                peekOverlay.value.startPeekAnimation({
+                                    card,
+                                    rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height }
+                                });
+                            }
+                        }
+                    });
+                }
             }, isSupplemental && store.gameMode === 2);
         }, pIndex * 80);
     });;
+};
+
+const onPeekComplete = () => {
+    isPeekAnimating.value = false;
+    peekAnimationDone.value = true;
 };
 
 onMounted(() => {
@@ -1817,6 +1849,8 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
         <DealingLayer ref="dealingLayer" />
 
+        <CardPeekOverlay ref="peekOverlay" @complete="onPeekComplete" />
+
         <CoinLayer ref="coinLayer" />
 
         <!-- Full-screen Switch Room Snapshot Overlay -->
@@ -2058,12 +2092,15 @@ const shouldMoveStatusToHighPosition = computed(() => {
                         <template v-for="(card, idx) in myPlayer.hand" :key="idx">
                             <PokerCard
                                 v-if="visibleCounts[myPlayer.id] === undefined || idx < visibleCounts[myPlayer.id]"
-                                :card="shouldShowCardFace ? getEffectiveCardProp(card, idx) : null" :is-small="false"
-                                :peek-reveal="store.gameMode === 2 && idx === 4"
+                                :ref="(el) => { if (idx === 4) fifthCardRef = el }"
+                                :card="(isPeekAnimating && idx === 4) ? null : (shouldShowCardFace ? getEffectiveCardProp(card, idx) : null)"
+                                :is-small="false"
+                                :peek-reveal="false"
+                                :skip-animation="idx === 4 && peekAnimationDone"
                                 :class="{ 'hand-card': true, 'bull-card-overlay': isBullPart(idx), 'selected': selectedCardIndices.includes(idx) }"
                                 :style="{
                                     marginLeft: idx === 0 ? '0' : '5px',
-                                    opacity: (dealingCounts[myPlayer.id] && idx >= (visibleCounts[myPlayer.id] - dealingCounts[myPlayer.id])) ? 0 : 1,
+                                    opacity: (isPeekAnimating && idx === 4) ? 0 : (dealingCounts[myPlayer.id] && idx >= (visibleCounts[myPlayer.id] - dealingCounts[myPlayer.id])) ? 0 : 1,
                                     transform: earlyBullIndices.includes(idx) ? 'translateY(-6px)' : '',
                                     transition: earlyBullReady ? 'transform 0.3s ease' : 'none'
                                 }" @click="handleCardClick({ card, index: idx })" />

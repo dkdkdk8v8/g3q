@@ -13,7 +13,8 @@
     <cl-row>
       <cl-table ref="Table">
         <template #column-enable="{ scope }">
-          <el-tag v-for="item in DictEnable" :key="item.value" v-show="scope.row.enable == item.value"
+          <el-tag
+v-for="item in DictEnable" :key="item.value" v-show="scope.row.enable == item.value"
             :type="item.type as any" size="small">{{ item.label }}</el-tag>
         </template>
         <template #column-ipWhitelist="{ scope }">
@@ -30,7 +31,8 @@
         <template #column-secretKey="{ scope }">
           <el-space :size="5">
             <span>{{ secretVisible[scope.row.id] ? scope.row.secretKey : '••••••••••••' }}</span>
-            <el-icon style="cursor: pointer; font-size: 16px; vertical-align: middle"
+            <el-icon
+style="cursor: pointer; font-size: 16px; vertical-align: middle"
               @click="secretVisible[scope.row.id] = !secretVisible[scope.row.id]">
               <view-icon v-if="!secretVisible[scope.row.id]" />
               <hide-icon v-else />

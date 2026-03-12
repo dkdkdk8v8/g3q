@@ -6,7 +6,8 @@
 
             <!-- 日期筛选 -->
             <div style="margin-right: 10px">
-                <el-date-picker v-model="dateRange" type="daterange" range-separator="至" start-placeholder="开始日期"
+                <el-date-picker
+v-model="dateRange" type="daterange" range-separator="至" start-placeholder="开始日期"
                     end-placeholder="结束日期" value-format="YYYY-MM-DD" @change="onDateChange"
                     :shortcuts="dateShortcuts" />
             </div>
@@ -15,13 +16,15 @@
 
             <!-- 用户ID筛选 -->
             <cl-filter label="用户ID">
-                <el-input v-model="searchParams.userId" placeholder="搜索用户ID" clearable @keyup.enter="refresh"
+                <el-input
+v-model="searchParams.userId" placeholder="搜索用户ID" clearable @keyup.enter="refresh"
                     @clear="refresh" style="width: 150px" />
             </cl-filter>
 
             <!-- APP筛选 -->
             <cl-filter label="APP">
-                <cl-select v-model="searchParams.app" :options="options.app_id" @change="refresh" clearable
+                <cl-select
+v-model="searchParams.app" :options="options.app_id" @change="refresh" clearable
                     placeholder="全部APP" style="width: 150px" />
             </cl-filter>
         </cl-row>

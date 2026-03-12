@@ -8,7 +8,8 @@
                 <el-timeline-item v-for="(item, index) in list" :key="index" hide-timestamp>
                     <el-card shadow="hover" class="record-card">
                         <template #header>
-                            <div class="card-header"
+                            <div
+class="card-header"
                                 @click="item.record_type === RecordType.GAME ? item.expanded = !item.expanded : null"
                                 :class="{ 'is-clickable': item.record_type === RecordType.GAME }">
                                 <div class="left">
@@ -25,15 +26,17 @@
                                     </span>
                                     <span class="label">余额:</span>
                                     <span class="balance">{{ (item.balance_after / 100).toFixed(2) }}</span>
-                                    <el-icon v-if="item.record_type === RecordType.GAME" class="expand-icon"
+                                    <el-icon
+v-if="item.record_type === RecordType.GAME" class="expand-icon"
                                         :class="{ 'is-expanded': item.expanded }">
-                                        <ArrowRight />
+                                        <arrow-right />
                                     </el-icon>
                                 </div>
                             </div>
                         </template>
 
-                        <div v-show="item.expanded" v-if="item.record_type === RecordType.GAME && item.parsedGameData"
+                        <div
+v-show="item.expanded" v-if="item.record_type === RecordType.GAME && item.parsedGameData"
                             class="game-detail">
                             <div class="room-info">
                                 <div class="tags">
@@ -48,17 +51,20 @@
                             </div>
 
                             <div class="players-grid">
-                                <div v-for="(player, pIndex) in item.parsedGameData.Room.Players" :key="pIndex"
+                                <div
+v-for="(player, pIndex) in item.parsedGameData.Room.Players" :key="pIndex"
                                     class="player-item" :class="{ 'is-me': player && player.ID === item.user_id }">
                                     <template v-if="player">
                                         <div class="p-header">
                                             <span class="name">{{ player.NickName || player.ID }}</span>
-                                            <span v-if="player.ID === item.parsedGameData.Room.BankerID"
+                                            <span
+v-if="player.ID === item.parsedGameData.Room.BankerID"
                                                 class="banker-badge">庄</span>
                                             <span v-if="player.IsOb" class="watch-badge">看</span>
                                         </div>
                                         <div class="p-cards">
-                                            <poker-card v-for="(card, cIndex) in player.Cards" :key="cIndex"
+                                            <poker-card
+v-for="(card, cIndex) in player.Cards" :key="cIndex"
                                                 :value="card" size="small" />
                                             <span class="card-result">{{ getCardResult(player.Cards) }}</span>
                                         </div>
@@ -66,7 +72,8 @@
                                             <span v-if="player.CallMult > 0">抢庄:{{ player.CallMult }}倍</span>
                                             <span v-if="player.BetMult > 0">下注:{{ player.BetMult }}倍</span>
                                         </div>
-                                        <div class="p-balance" v-show="!player.IsOb"
+                                        <div
+class="p-balance" v-show="!player.IsOb"
                                             :class="player.BalanceChange >= 0 ? 'win' : 'lose'">
                                             {{ player.BalanceChange > 0 ? '+' : '' }}{{ (player.BalanceChange /
                                                 100).toFixed(2) }}

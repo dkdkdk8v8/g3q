@@ -178,8 +178,63 @@ func cleanupZombieRobots(rooms []*RoomDataSimple) {
 	}
 }
 
+// cleanupExcessRobots 当 RobotsPerRoom 上限减少时，清理房间内多余的机器人
+func cleanupExcessRobots(rooms []*RoomDataSimple) {
+	_, maxRobots := getRobotsPerRoomRange()
+
+	for _, room := range rooms {
+		var robotPlayerIds []string
+		realCount := 0
+		for _, p := range room.Players {
+			if p != nil {
+				if p.IsRobot {
+					robotPlayerIds = append(robotPlayerIds, p.ID)
+				} else {
+					realCount++
+				}
+			}
+		}
+
+		// 只处理有真人的房间
+		if realCount == 0 {
+			continue
+		}
+
+		// 房间内机器人数量超过上限时，取消多余的
+		excess := len(robotPlayerIds) - maxRobots
+		if excess <= 0 {
+			continue
+		}
+
+		activeRobotsMu.Lock()
+		var toCancel []*RobotRuntime
+		for _, pid := range robotPlayerIds {
+			if len(toCancel) >= excess {
+				break
+			}
+			if rt, ok := activeRobots[pid]; ok {
+				toCancel = append(toCancel, rt)
+			}
+		}
+		activeRobotsMu.Unlock()
+
+		for _, rt := range toCancel {
+			logrus.WithFields(logrus.Fields{
+				"uid":       rt.UserId,
+				"roomId":    room.ID,
+				"maxRobots": maxRobots,
+				"current":   len(robotPlayerIds),
+			}).Info("Robot - Removing excess robot due to RobotsPerRoom config change")
+			rt.Cancel()
+		}
+	}
+}
+
 // managerRound 执行一轮调度
 func managerRound() {
+	// 检测配置变化
+	checkConfigChanges()
+
 	// 1. 读取全部房间数据
 	rooms, err := fetchRooms()
 	if err != nil {
@@ -192,6 +247,9 @@ func managerRound() {
 
 	// 清理僵尸机器人(在 activeRobots 中但不在任何房间)
 	cleanupZombieRobots(rooms)
+
+	// 清理超出 RobotsPerRoom 上限的多余机器人（配置减少时实时响应）
+	cleanupExcessRobots(rooms)
 
 	// 2. 统计每个房间已派发但尚未进入的"在途"机器人数
 	pendingPerRoom := make(map[string]int)

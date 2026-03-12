@@ -1,6 +1,46 @@
 package mainRobot
 
-import "service/modelAdmin"
+import (
+	"service/modelAdmin"
+
+	"github.com/sirupsen/logrus"
+)
+
+var (
+	prevJoinDelay     [2]int
+	prevRobotsPerRoom [2]int
+	configInitialized bool
+)
+
+// checkConfigChanges 检测配置变化并记录日志，返回配置是否发生了变化
+func checkConfigChanges() bool {
+	delayMin, delayMax := getJoinDelayRange()
+	robotsMin, robotsMax := getRobotsPerRoomRange()
+
+	if !configInitialized {
+		prevJoinDelay = [2]int{delayMin, delayMax}
+		prevRobotsPerRoom = [2]int{robotsMin, robotsMax}
+		configInitialized = true
+		logrus.Infof("Robot config loaded: joinDelaySeconds=[%d,%d], RobotsPerRoom=[%d,%d]",
+			delayMin, delayMax, robotsMin, robotsMax)
+		return false
+	}
+
+	changed := false
+	if delayMin != prevJoinDelay[0] || delayMax != prevJoinDelay[1] {
+		logrus.Infof("Robot config updated: joinDelaySeconds [%d,%d] → [%d,%d]",
+			prevJoinDelay[0], prevJoinDelay[1], delayMin, delayMax)
+		prevJoinDelay = [2]int{delayMin, delayMax}
+		changed = true
+	}
+	if robotsMin != prevRobotsPerRoom[0] || robotsMax != prevRobotsPerRoom[1] {
+		logrus.Infof("Robot config updated: RobotsPerRoom [%d,%d] → [%d,%d]",
+			prevRobotsPerRoom[0], prevRobotsPerRoom[1], robotsMin, robotsMax)
+		prevRobotsPerRoom = [2]int{robotsMin, robotsMax}
+		changed = true
+	}
+	return changed
+}
 
 // 服务器 Host 配置
 const HOST_PROD = "127.0.0.1:8084"

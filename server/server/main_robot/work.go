@@ -4,6 +4,7 @@ import (
 	"compoment/alert"
 	"compoment/logrotate"
 	"compoment/ormutil"
+	"compoment/rds"
 	"compoment/uid"
 	"fmt"
 	"math/rand"
@@ -125,6 +126,17 @@ func (w *mainClientWork) Start(baseCtx *initMain.BaseCtx) error {
 	if err := ormutil.InitModel(); err != nil {
 		logrus.WithError(err).Error("initModel-Fail")
 		return err
+	}
+
+	logrus.Info("redisInit")
+	if redisPool, err := rds.Login(w.cfg.RedisAddr, w.cfg.RedisPwd, w.cfg.IsSsl); err != nil {
+		logrus.WithError(err).Error("redisLogin-Fail")
+		return err
+	} else {
+		if err := redisPool.Ping(); err != nil {
+			logrus.WithError(err).Error("redisPing-Fail")
+			return err
+		}
 	}
 
 	logrus.Info("initModelAdmin")

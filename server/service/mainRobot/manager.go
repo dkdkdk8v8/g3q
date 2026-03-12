@@ -153,8 +153,18 @@ func managerRound() {
 	// 清理纯机器人房间(真人全部离开后机器人也退出)
 	cleanupAllRobotRooms(rooms)
 
-	// 2. 根据优先级生成行动计划
-	actions := planActions(rooms)
+	// 2. 统计每个房间已派发但尚未进入的"在途"机器人数
+	pendingPerRoom := make(map[string]int)
+	activeRobotsMu.Lock()
+	for _, rt := range activeRobots {
+		if rt.Action.RoomId != "" {
+			pendingPerRoom[rt.Action.RoomId]++
+		}
+	}
+	activeRobotsMu.Unlock()
+
+	// 3. 根据优先级生成行动计划（扣除在途机器人）
+	actions := planActions(rooms, pendingPerRoom)
 	if len(actions) == 0 {
 		return
 	}
@@ -206,7 +216,8 @@ func managerRound() {
 
 // planActions 根据房间状态生成调度计划
 // 每个房间最多 MAX_ROBOTS_PER_ROOM 个机器人，每个机器人等待 2-5 秒再进入
-func planActions(rooms []*RoomDataSimple) []RobotAction {
+// pendingPerRoom: 每个房间已派发但尚未进入的"在途"机器人数（从 activeRobots 统计）
+func planActions(rooms []*RoomDataSimple, pendingPerRoom map[string]int) []RobotAction {
 	var actions []RobotAction
 
 	for _, room := range rooms {
@@ -224,6 +235,15 @@ func planActions(rooms []*RoomDataSimple) []RobotAction {
 				}
 			}
 		}
+
+		// 加上在途机器人数（已派发但尚未进入房间的）
+		// pendingPerRoom 包含该房间所有活跃机器人（含已在房间内的），减去房间内已有的才是在途数
+		inTransit := pendingPerRoom[room.ID] - robotCount
+		if inTransit < 0 {
+			inTransit = 0
+		}
+		playerCount += inTransit
+		robotCount += inTransit
 
 		// 跳过满员房间
 		if playerCount >= 5 {

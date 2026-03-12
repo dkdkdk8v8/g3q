@@ -858,12 +858,12 @@ const earlyBullIndices = computed(() => {
 // 看四张模式：计算第5张需要什么牌能凑成高级牌型
 const typeOrder = ['FIVE_SMALL', 'BOMB', 'FIVE_FLOWER', 'FOUR_FLOWER', 'BULL_BULL', 'HAS_BULL'];
 const typeNames = {
-    BULL_BULL: '凑出牛牛需',
-    FOUR_FLOWER: '凑出四花牛需',
-    BOMB: '凑出炸弹需',
-    FIVE_FLOWER: '凑出五花牛需',
-    FIVE_SMALL: '凑出五小牛需',
-    HAS_BULL: '凑出有牛需'
+    BULL_BULL: '牛牛',
+    FOUR_FLOWER: '四花牛',
+    BOMB: '炸弹',
+    FIVE_FLOWER: '五花牛',
+    FIVE_SMALL: '五小牛',
+    HAS_BULL: '有牛'
 };
 
 const neededCardsMap = computed(() => {
@@ -2044,7 +2044,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
                 <!-- 看四张：需要什么牌提示 -->
                 <div v-if="neededCardsList.length > 0" class="needed-cards-hint">
                     <div v-for="item in neededCardsList" :key="item.type" class="needed-row">
-                        <span class="needed-type">{{ item.name }}:</span>
+                        <span class="needed-type">凑出<span class="needed-type-highlight">{{ item.name }}</span>需:</span>
                         <span class="needed-cards">
                             <span v-for="(c, i) in item.cards" :key="c.rawId" class="needed-card">{{ c.display }}<span
                                     v-if="i < item.cards.length - 1" class="needed-sep">·</span></span>
@@ -3052,11 +3052,16 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
 .needed-type {
     color: #d4b0ff;
-    font-weight: bold;
     margin-right: 4px;
     flex-shrink: 0;
     text-shadow: 0 0 5px rgba(180, 140, 255, 0.4);
     animation: text-soft-pulse 3s ease-in-out infinite;
+}
+
+.needed-type-highlight {
+    color: #e8d0ff;
+    font-weight: bold;
+    text-shadow: 0 0 5px rgba(200, 170, 255, 0.5);
 }
 
 @keyframes text-soft-pulse {
@@ -3079,7 +3084,8 @@ const shouldMoveStatusToHighPosition = computed(() => {
 .needed-card {
     font-weight: bold;
     font-size: 11px;
-    text-shadow: 0 0 4px rgba(200, 180, 255, 0.35);
+    color: #f0e4ff;
+    text-shadow: 0 0 4px rgba(200, 180, 255, 0.45);
 }
 
 .needed-sep {

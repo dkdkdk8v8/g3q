@@ -83,11 +83,12 @@ const startPeekAnimation = async ({ card, rect }) => {
     showBackdrop.value = false;
     await delay(550);
 
-    // 完成
+    // 先让真实手牌显示，再隐藏遮罩，避免闪烁
+    emit('complete');
+    await nextTick();
     isActive.value = false;
     phase.value = '';
     cardData.value = null;
-    emit('complete');
 };
 
 const delay = (ms) => new Promise(r => setTimeout(r, ms));

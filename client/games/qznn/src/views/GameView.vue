@@ -3008,7 +3008,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
     align-items: center;
     gap: 4px;
     padding: 6px 16px;
-    margin-top: -16px;
+    margin-top: -32px;
     margin-bottom: 6px;
     background: radial-gradient(ellipse at 50% 40%, rgba(140, 120, 255, 0.22), rgba(60, 40, 120, 0.3) 70%, rgba(20, 10, 50, 0.25));
     border: 1px solid rgba(180, 160, 255, 0.18);

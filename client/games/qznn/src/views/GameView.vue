@@ -858,12 +858,12 @@ const earlyBullIndices = computed(() => {
 // 看四张模式：计算第5张需要什么牌能凑成高级牌型
 const typeOrder = ['FIVE_SMALL', 'BOMB', 'FIVE_FLOWER', 'FOUR_FLOWER', 'BULL_BULL', 'HAS_BULL'];
 const typeNames = {
-    BULL_BULL: '牛牛',
-    FOUR_FLOWER: '四花牛',
-    BOMB: '炸弹',
-    FIVE_FLOWER: '五花牛',
-    FIVE_SMALL: '五小牛',
-    HAS_BULL: '有牛'
+    BULL_BULL: '凑牛牛需要',
+    FOUR_FLOWER: '凑四花牛需要',
+    BOMB: '凑炸弹需要',
+    FIVE_FLOWER: '凑五花牛需要',
+    FIVE_SMALL: '凑五小牛需要',
+    HAS_BULL: '凑牛需要'
 };
 
 const neededCardsMap = computed(() => {
@@ -2047,7 +2047,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
                         <span class="needed-type">{{ item.name }}:</span>
                         <span class="needed-cards">
                             <span v-for="(c, i) in item.cards" :key="c.rawId" class="needed-card">{{ c.display }}<span
-                                    v-if="i < item.cards.length - 1"> </span></span>
+                                    v-if="i < item.cards.length - 1" class="needed-sep">·</span></span>
                         </span>
                     </div>
                 </div>
@@ -2964,22 +2964,79 @@ const shouldMoveStatusToHighPosition = computed(() => {
     z-index: 150;
 }
 
-/* 看四张需要什么牌提示 */
+/* 看四张需要什么牌提示 — 梦境气泡 */
 .needed-cards-hint {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 4px;
-    padding: 6px 14px;
-    margin-bottom: 4px;
-    background: rgba(10, 28, 26, 0.75);
-    border: 1px solid rgba(251, 191, 36, 0.25);
-    border-radius: 20px;
+    padding: 6px 16px;
+    margin-top: -16px;
+    margin-bottom: 6px;
+    background: radial-gradient(ellipse at 50% 40%, rgba(140, 120, 255, 0.22), rgba(60, 40, 120, 0.3) 70%, rgba(20, 10, 50, 0.25));
+    border: 1px solid rgba(180, 160, 255, 0.18);
+    border-radius: 22px;
     max-width: 95%;
     max-height: 80px;
     overflow-y: auto;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    margin-bottom: 10px;
+    box-shadow: 0 0 14px rgba(140, 120, 255, 0.12), 0 0 30px rgba(100, 80, 200, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(8px);
+    animation: bubble-float 4s ease-in-out infinite, bubble-glow 3s ease-in-out infinite;
+    position: relative;
+    overflow: hidden;
+}
+
+.needed-cards-hint::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(105deg,
+            transparent 40%,
+            rgba(200, 180, 255, 0.08) 45%,
+            rgba(220, 200, 255, 0.12) 50%,
+            rgba(200, 180, 255, 0.08) 55%,
+            transparent 60%);
+    animation: bubble-shimmer 5s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes bubble-float {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-2px);
+    }
+}
+
+@keyframes bubble-glow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 12px rgba(140, 120, 255, 0.1), 0 0 25px rgba(100, 80, 200, 0.05);
+        opacity: 0.88;
+    }
+
+    50% {
+        box-shadow: 0 0 18px rgba(140, 120, 255, 0.2), 0 0 35px rgba(100, 80, 200, 0.1);
+        opacity: 0.96;
+    }
+}
+
+@keyframes bubble-shimmer {
+    0% {
+        transform: translateX(-30%) rotate(0deg);
+    }
+
+    100% {
+        transform: translateX(30%) rotate(0deg);
+    }
 }
 
 .needed-row {
@@ -2990,25 +3047,44 @@ const shouldMoveStatusToHighPosition = computed(() => {
     font-size: 11px;
     line-height: 1.5;
     width: 100%;
+    position: relative;
 }
 
 .needed-type {
-    color: #fbbf24;
+    color: #d4b0ff;
     font-weight: bold;
     margin-right: 4px;
     flex-shrink: 0;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    text-shadow: 0 0 5px rgba(180, 140, 255, 0.4);
+    animation: text-soft-pulse 3s ease-in-out infinite;
+}
+
+@keyframes text-soft-pulse {
+
+    0%,
+    100% {
+        opacity: 0.85;
+    }
+
+    50% {
+        opacity: 1;
+    }
 }
 
 .needed-cards {
-    color: #f0e6d2;
+    color: rgba(255, 255, 255, 0.82);
     flex-wrap: wrap;
 }
 
 .needed-card {
     font-weight: bold;
     font-size: 11px;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    text-shadow: 0 0 4px rgba(200, 180, 255, 0.35);
+}
+
+.needed-sep {
+    margin: 0 2px;
+    opacity: 0.4;
 }
 
 

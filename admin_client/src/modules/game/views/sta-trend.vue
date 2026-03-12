@@ -3,7 +3,8 @@
         <el-card shadow="never" class="mb-10">
             <div class="filter-row">
                 <span class="label">日期：</span>
-                <el-date-picker v-model="date" type="date" placeholder="选择日期" value-format="YYYY-MM-DD"
+                <el-date-picker
+v-model="date" type="date" placeholder="选择日期" value-format="YYYY-MM-DD"
                     @change="refresh" :clearable="false" />
 
                 <div style="flex: 1"></div>
@@ -15,7 +16,8 @@
                 </el-radio-group>
 
                 <span class="label ml-20"></span>
-                <cl-select v-model="appId" :options="options.app_id" placeholder="全部APP" clearable @change="refresh"
+                <cl-select
+v-model="appId" :options="options.app_id" placeholder="全部APP" clearable @change="refresh"
                     style="width: 200px" />
 
                 <el-button type="primary" @click="refresh" class="ml-20">刷新</el-button>
@@ -25,7 +27,8 @@
         <el-card shadow="never" class="mb-10">
             <el-row :gutter="20">
                 <el-col :xs="12" :sm="8" :md="4" v-for="item in summaryData" :key="item.key">
-                    <el-statistic :title="item.title" :value="item.value"
+                    <el-statistic
+:title="item.title" :value="item.value"
                         :precision="item.isMoney || item.isRate ? 2 : 0">
                         <template #prefix>
                             <span v-if="item.isMoney" style="font-size: 14px; margin-right: 2px">¥</span>
@@ -46,11 +49,13 @@
 
         <div class="chart-container">
             <el-row :gutter="15">
-                <el-col :xs="24" :sm="24" :md="12" :lg="12" :xl="8" v-for="(item, index) in chartList" :key="index"
+                <el-col
+:xs="24" :sm="24" :md="12" :lg="12" :xl="8" v-for="(item, index) in chartList" :key="index"
                     class="mb-15">
                     <el-card shadow="hover">
                         <div class="chart-box">
-                            <v-chart :option="item.option" :loading="item.loading" :loading-options="loadingOptions"
+                            <v-chart
+:option="item.option" :loading="item.loading" :loading-options="loadingOptions"
                                 autoresize />
                         </div>
                     </el-card>

@@ -3,7 +3,8 @@
 		<i class="iconfont icon-zuo"></i>
 	</div>
 
-	<div class="loader" :class="{
+	<div
+class="loader" :class="{
 		'is-show': loader.visible
 	}">
 		<div class="preload__loading"></div>

@@ -18,15 +18,18 @@
 					</el-form-item>
 
 					<el-form-item :label="$t('密码')">
-						<el-input v-model="form.password" type="password" :placeholder="$t('请输入密码')" maxlength="20"
+						<el-input
+v-model="form.password" type="password" :placeholder="$t('请输入密码')" maxlength="20"
 							show-password autocomplete="new-password" />
 					</el-form-item>
 
 					<el-form-item :label="$t('验证码')">
-						<el-input v-model="form.verifyCode" :placeholder="$t('验证码')" maxlength="4"
+						<el-input
+v-model="form.verifyCode" :placeholder="$t('验证码')" maxlength="4"
 							@keyup.enter="toLogin">
 							<template #suffix>
-								<pic-captcha :ref="setRefs('picCaptcha')" v-model="form.captchaId" @change="
+								<pic-captcha
+:ref="setRefs('picCaptcha')" v-model="form.captchaId" @change="
 									() => {
 										form.verifyCode = '';
 									}

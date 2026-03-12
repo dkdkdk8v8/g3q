@@ -3,11 +3,13 @@
         <el-card shadow="never" class="mb-10">
             <div class="filter-row">
                 <span class="label">日期：</span>
-                <el-date-picker v-model="date" type="date" placeholder="选择日期" value-format="YYYY-MM-DD"
+                <el-date-picker
+v-model="date" type="date" placeholder="选择日期" value-format="YYYY-MM-DD"
                     @change="refresh" :clearable="false" />
 
                 <span class="label ml-20">APP：</span>
-                <cl-select v-model="appId" :options="options.app_id" placeholder="全部APP" clearable @change="refresh"
+                <cl-select
+v-model="appId" :options="options.app_id" placeholder="全部APP" clearable @change="refresh"
                     style="width: 200px" />
 
                 <el-button type="primary" @click="refresh" class="ml-20">刷新</el-button>

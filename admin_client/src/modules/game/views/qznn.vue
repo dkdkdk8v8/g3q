@@ -26,7 +26,8 @@
       <div class="filter-group">
         <span class="filter-label">游戏玩法</span>
         <div class="filter-chips">
-          <button v-for="gt in gameTypes" :key="gt.value" class="chip"
+          <button
+v-for="gt in gameTypes" :key="gt.value" class="chip"
             :class="{ active: filterType === gt.value }" @click="filterType = gt.value">{{ gt.label }}
             <span class="chip-count">{{ gameTypeRoomCount[gt.value] || 0 }}</span></button>
         </div>
@@ -35,7 +36,8 @@
         <span class="filter-label">房间等级</span>
         <div class="filter-chips">
           <button class="chip" :class="{ active: filterLevel === '' }" @click="filterLevel = ''">全部</button>
-          <button v-for="lv in levelOptions" :key="lv.value" class="chip"
+          <button
+v-for="lv in levelOptions" :key="lv.value" class="chip"
             :class="{ active: filterLevel === lv.value }" @click="filterLevel = lv.value">{{ lv.label }}
             <span class="chip-count">{{ levelRoomCount[lv.value] || 0 }}</span></button>
         </div>
@@ -43,7 +45,8 @@
     </div>
 
     <!-- Room List -->
-    <div class="room-list" v-infinite-scroll="loadMore" :infinite-scroll-distance="200"
+    <div
+class="room-list" v-infinite-scroll="loadMore" :infinite-scroll-distance="200"
       :infinite-scroll-disabled="noMore">
       <el-empty v-if="errorMessage" :description="errorMessage" />
       <el-empty v-else-if="Object.keys(list).length === 0" description="暂时没有房间数据" />
@@ -65,10 +68,11 @@
                 </div>
                 <el-tooltip placement="top">
                   <template #content>
-                    <div style="display: flex; align-items: center; gap: 4px; cursor: pointer;"
+                    <div
+style="display: flex; align-items: center; gap: 4px; cursor: pointer;"
                       @click="copyGameID(item.GameID)">
                       <span>{{ item.GameID }}</span>
-                      <el-icon><CopyDocument /></el-icon>
+                      <el-icon><copy-document /></el-icon>
                     </div>
                   </template>
                   <span class="state-badge" :class="'state-' + (stateTypeMap[item.State] || 'info')">
@@ -80,17 +84,19 @@
 
               <!-- Players -->
               <div class="players-area">
-                <div v-for="(player, index) in item.Players" :key="index" class="player-row"
+                <div
+v-for="(player, index) in item.Players" :key="index" class="player-row"
                   :class="{ 'is-robot': player && player.IsRobot, 'is-human': player && !player.IsRobot }">
                   <template v-if="player">
                     <div class="player-left">
                       <div class="player-info-col">
                         <el-tooltip placement="top" :enterable="true">
                           <template #content>
-                            <div style="display: flex; align-items: center; gap: 4px; cursor: pointer;"
+                            <div
+style="display: flex; align-items: center; gap: 4px; cursor: pointer;"
                               @click="copyText(player.ID, '用户ID')">
                               <span>{{ player.ID }}</span>
-                              <el-icon><CopyDocument /></el-icon>
+                              <el-icon><copy-document /></el-icon>
                             </div>
                           </template>
                           <span class="player-nickname" :class="{ 'is-banker': item.BankerID === player.ID, 'is-ob': player.IsOb }">{{ player.NickName || player.ID }}</span>
@@ -114,7 +120,8 @@
                     </div>
                     <div class="player-right">
                       <template v-if="Array.isArray(player.Cards) && player.Cards.length > 0">
-                        <span v-if="player.Cards.length === 5" class="card-result"
+                        <span
+v-if="player.Cards.length === 5" class="card-result"
                           :class="getResultClass(getCardResult(player.Cards))">
                           {{ getCardResult(player.Cards) }}
                         </span>

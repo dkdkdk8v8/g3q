@@ -5,32 +5,37 @@
             <cl-refresh-btn />
             <!-- 日期筛选 -->
             <div style="margin-right: 10px">
-                <el-date-picker v-model="dateRange" type="daterange" range-separator="至" start-placeholder="开始日期"
+                <el-date-picker
+v-model="dateRange" type="daterange" range-separator="至" start-placeholder="开始日期"
                     end-placeholder="结束日期" value-format="YYYY-MM-DD" @change="onDateChange"
                     :shortcuts="dateShortcuts" />
             </div>
             <cl-flex1 />
             <!-- APP筛选 -->
             <cl-filter label="">
-                <cl-select v-model="searchParams.app" :options="options.app_id" @change="refresh" clearable
+                <cl-select
+v-model="searchParams.app" :options="options.app_id" @change="refresh" clearable
                     placeholder="全部APP" style="width: 150px" />
             </cl-filter>
 
             <!-- 游戏筛选 -->
             <cl-filter label="">
-                <cl-select v-model="searchParams.gameName" :options="options.game_name" @change="refresh" clearable
+                <cl-select
+v-model="searchParams.gameName" :options="options.game_name" @change="refresh" clearable
                     placeholder="全部游戏" style="width: 150px" />
             </cl-filter>
 
             <!-- 房间等级筛选 -->
             <cl-filter label="">
-                <cl-select v-model="searchParams.roomLevel" :options="options.qznn_room_level" @change="refresh"
+                <cl-select
+v-model="searchParams.roomLevel" :options="options.qznn_room_level" @change="refresh"
                     clearable placeholder="全部等级" style="width: 150px" />
             </cl-filter>
 
             <!-- 房间类型筛选 -->
             <cl-filter label="">
-                <cl-select v-model="searchParams.roomType" :options="options.qznn_room_type" @change="refresh" clearable
+                <cl-select
+v-model="searchParams.roomType" :options="options.qznn_room_type" @change="refresh" clearable
                     placeholder="全部类型" style="width: 150px" />
             </cl-filter>
         </cl-row>
@@ -99,7 +104,7 @@ const searchParams = reactive({
 // 自定义Service
 const crudService = {
     page: async (params: any) => {
-        let { app, showType, startDate, endDate, gameName, roomLevel, roomType } = searchParams;
+        const { app, showType, startDate, endDate, gameName, roomLevel, roomType } = searchParams;
         const { sort, order } = params;
         const res = await service.game.staPeriod.getDateStats({
             startDate,

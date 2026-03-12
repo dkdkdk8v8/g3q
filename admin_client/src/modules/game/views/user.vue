@@ -13,7 +13,8 @@
       <cl-filter v-if="showAppFilter" label="APP">
         <cl-select :options="options.app_id" prop="app_id" :width="120" />
       </cl-filter>
-      <cl-search-key field="app_user_id" :field-list="[
+      <cl-search-key
+field="app_user_id" :field-list="[
         {
           label: '用户ID',
           value: 'app_user_id'
@@ -40,7 +41,8 @@
           </el-space>
         </template>
         <template #column-enable="{ scope }">
-          <el-tag v-for="(item, index) in DictEnable" :key="index" :type="item.type as any" size="small"
+          <el-tag
+v-for="(item, index) in DictEnable" :key="index" :type="item.type as any" size="small"
             v-show="scope.row.enable == item.value">{{ item.label }}</el-tag>
         </template>
         <template #column-total_net_balance="{ scope }">
@@ -68,7 +70,8 @@
           <span>{{ (balanceForm.currentBalance / 100).toFixed(2) }}</span>
         </el-form-item>
         <el-form-item label="修改金额">
-          <el-input-number v-model="balanceForm.amount" :precision="2" :step="1" controls-position="right"
+          <el-input-number
+v-model="balanceForm.amount" :precision="2" :step="1" controls-position="right"
             style="width: 200px" />
           <div style="color: #909399; font-size: 12px; margin-top: 4px">
             正数增加，负数扣减

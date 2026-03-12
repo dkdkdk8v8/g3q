@@ -15,7 +15,11 @@ import { QznnCardUtil } from './qznn-card';
  * }
  */
 class QznnParser implements GameParser {
-  readonly gameName = 'qznn';
+  readonly gameName: string;
+
+  constructor(gameName = 'qznn') {
+    this.gameName = gameName;
+  }
 
   parse(gameData: any): ParsedGameData {
     const { Room } = gameData;
@@ -44,5 +48,7 @@ class QznnParser implements GameParser {
   }
 }
 
-// 注册
+// 注册 qznn / qznn3 / qznn4 三种游戏（数据格式一致，共用同一解析器）
 registerGameParser(new QznnParser());
+registerGameParser(new QznnParser('qznn3'));
+registerGameParser(new QznnParser('qznn4'));

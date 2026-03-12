@@ -15,7 +15,8 @@
 			<cl-filter label="APP">
 				<cl-select :options="options.app_id" prop="app_id" :width="120" />
 			</cl-filter>
-			<cl-search-key field="user_id" :field-list="[
+			<cl-search-key
+field="user_id" :field-list="[
 				{
 					label: '用户ID',
 					value: 'user_id'
@@ -35,7 +36,8 @@
 			<!-- 数据表格 -->
 			<cl-table ref="Table">
 				<template #column-enable="{ scope }">
-					<el-tag v-for="(item, index) in DictEnable" :key="index" :type="item.type as any" size="small"
+					<el-tag
+v-for="(item, index) in DictEnable" :key="index" :type="item.type as any" size="small"
 						v-show="scope.row.enable == item.value">{{ item.label }}</el-tag>
 				</template>
 			</cl-table>

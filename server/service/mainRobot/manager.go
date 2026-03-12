@@ -1,6 +1,7 @@
 package mainRobot
 
 import (
+	"compoment/rds"
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
@@ -24,6 +25,19 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	RedisDbRobot     = 9                    // 机器人状态专用 Redis DB
+	RedisKeyRobotMap = "robot:active_rooms" // Hash: userId → JSON{RoomId,Level,BankerType}
+	RedisSaveInterval = 10                  // 状态保存间隔(秒)
+)
+
+// RobotStateEntry Redis 中保存的机器人房间分配
+type RobotStateEntry struct {
+	RoomId     string `json:"r"`
+	Level      int    `json:"l"`
+	BankerType int    `json:"b"`
+}
+
 var targetHost = HOST_PROD
 
 // StartRobot 启动机器人管理服务
@@ -31,7 +45,10 @@ func StartRobot() {
 	if initMain.DefCtx.IsTerm {
 		targetHost = HOST_DEV
 	}
+	// 从 Redis 恢复上次的机器人房间分配
+	restoreRobotsFromRedis()
 	go managerLoop()
+	go redisSaveLoop()
 }
 
 // RobotRuntime 机器人运行时状态
@@ -127,12 +144,16 @@ func cleanupAllRobotRooms(rooms []*RoomDataSimple) {
 		}
 		if realCount == 0 && robotCount > 0 {
 			activeRobotsMu.Lock()
+			var toCancel []*RobotRuntime
 			for _, rt := range activeRobots {
 				if rt.Action.RoomId == room.ID {
-					rt.Cancel()
+					toCancel = append(toCancel, rt)
 				}
 			}
 			activeRobotsMu.Unlock()
+			for _, rt := range toCancel {
+				rt.Cancel()
+			}
 		}
 	}
 }
@@ -149,8 +170,18 @@ func managerRound() {
 	// 清理纯机器人房间(真人全部离开后机器人也退出)
 	cleanupAllRobotRooms(rooms)
 
-	// 2. 根据优先级生成行动计划
-	actions := planActions(rooms)
+	// 2. 统计每个房间已派发但尚未进入的"在途"机器人数
+	pendingPerRoom := make(map[string]int)
+	activeRobotsMu.Lock()
+	for _, rt := range activeRobots {
+		if rt.Action.RoomId != "" {
+			pendingPerRoom[rt.Action.RoomId]++
+		}
+	}
+	activeRobotsMu.Unlock()
+
+	// 3. 根据优先级生成行动计划（扣除在途机器人）
+	actions := planActions(rooms, pendingPerRoom)
 	if len(actions) == 0 {
 		return
 	}
@@ -202,7 +233,8 @@ func managerRound() {
 
 // planActions 根据房间状态生成调度计划
 // 每个房间最多 MAX_ROBOTS_PER_ROOM 个机器人，每个机器人等待 2-5 秒再进入
-func planActions(rooms []*RoomDataSimple) []RobotAction {
+// pendingPerRoom: 每个房间已派发但尚未进入的"在途"机器人数（从 activeRobots 统计）
+func planActions(rooms []*RoomDataSimple, pendingPerRoom map[string]int) []RobotAction {
 	var actions []RobotAction
 
 	for _, room := range rooms {
@@ -220,6 +252,15 @@ func planActions(rooms []*RoomDataSimple) []RobotAction {
 				}
 			}
 		}
+
+		// 加上在途机器人数（已派发但尚未进入房间的）
+		// pendingPerRoom 包含该房间所有活跃机器人（含已在房间内的），减去房间内已有的才是在途数
+		inTransit := pendingPerRoom[room.ID] - robotCount
+		if inTransit < 0 {
+			inTransit = 0
+		}
+		playerCount += inTransit
+		robotCount += inTransit
 
 		// 跳过满员房间
 		if playerCount >= 5 {
@@ -375,6 +416,7 @@ func runRobot(user *modelClient.ModelUser, ctx context.Context, action RobotActi
 		AppUserId: user.AppUserId,
 		Balance:   user.Balance,
 		Target:    action,
+		joinedCh:  make(chan struct{}),
 	}
 
 	// 监听取消信号
@@ -442,6 +484,7 @@ type Robot struct {
 	mu          sync.Mutex
 	gamesPlayed int
 	isClosing   bool
+	joinedCh    chan struct{} // 进入房间后关闭，通知超时 goroutine 退出
 	Balance     int64
 	Target      RobotAction
 }
@@ -498,13 +541,17 @@ func (r *Robot) Run() {
 
 	// 进房超时保护：30秒内未成功进入房间则关闭连接，防止僵尸机器人
 	go func() {
-		time.Sleep(30 * time.Second)
-		r.mu.Lock()
-		roomId := r.RoomId
-		r.mu.Unlock()
-		if roomId == "" {
-			logrus.WithField("uid", r.Uid).Warn("Robot - Join room timeout (30s), closing")
-			r.Close()
+		select {
+		case <-time.After(30 * time.Second):
+			r.mu.Lock()
+			roomId := r.RoomId
+			r.mu.Unlock()
+			if roomId == "" {
+				logrus.WithField("uid", r.Uid).Warn("Robot - Join room timeout (30s), closing")
+				r.Close()
+			}
+		case <-r.joinedCh:
+			// 已进入房间，提前退出
 		}
 	}()
 
@@ -602,7 +649,10 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 			Router znet.RouterType `json:"Router"`
 			Room   json.RawMessage `json:"Room"`
 		}
-		json.Unmarshal(data, &d)
+		if err := json.Unmarshal(data, &d); err != nil {
+			logrus.WithFields(logrus.Fields{"uid": r.Uid, "pushType": pushType}).Errorf("Robot - Failed to parse PushRouter: %v", err)
+			return
+		}
 		switch d.Router {
 		case znet.Lobby:
 			// 检查余额
@@ -637,7 +687,9 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 
 		case znet.Game:
 			var room qznn.QZNNRoom
-			if err := json.Unmarshal(d.Room, &room); err == nil {
+			if err := json.Unmarshal(d.Room, &room); err != nil {
+				logrus.WithFields(logrus.Fields{"uid": r.Uid}).Errorf("Robot - Failed to parse Game room: %v", err)
+			} else {
 				r.updateRoomInfo(&room)
 				r.mu.Lock()
 				bal := r.Balance
@@ -654,6 +706,7 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 	case qznn.PushChangeState:
 		var d qznn.PushChangeStateStruct
 		if err := json.Unmarshal(data, &d); err != nil {
+			logrus.WithFields(logrus.Fields{"uid": r.Uid, "pushType": pushType}).Errorf("Robot - Failed to parse push: %v", err)
 			return
 		}
 		if d.Room != nil {
@@ -673,6 +726,7 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 	case qznn.PushPlayJoin:
 		var d qznn.PushPlayerJoinStruct
 		if err := json.Unmarshal(data, &d); err != nil {
+			logrus.WithFields(logrus.Fields{"uid": r.Uid, "pushType": pushType}).Errorf("Robot - Failed to parse push: %v", err)
 			return
 		}
 		r.updateRoomInfo(d.Room)
@@ -690,6 +744,7 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 	case qznn.PushPlayLeave:
 		var d qznn.PushPlayerLeaveStruct
 		if err := json.Unmarshal(data, &d); err != nil {
+			logrus.WithFields(logrus.Fields{"uid": r.Uid, "pushType": pushType}).Errorf("Robot - Failed to parse push: %v", err)
 			return
 		}
 		r.updateRoomInfo(d.Room)
@@ -703,7 +758,9 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 						"roomId":  d.Room.ID,
 						"uid":     r.Uid,
 						"balance": bal,
-					}).Info("Robot - Successfully left room")
+					}).Info("Robot - Kicked from room, closing")
+					r.Close()
+					return
 				}
 			}
 			// 如果房间内只剩自己，主动退出
@@ -713,6 +770,7 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 	case qznn.PushPlayerCallBanker:
 		var d qznn.PushPlayerCallBankerStruct
 		if err := json.Unmarshal(data, &d); err != nil {
+			logrus.WithFields(logrus.Fields{"uid": r.Uid, "pushType": pushType}).Errorf("Robot - Failed to parse push: %v", err)
 			return
 		}
 		r.updateRoomInfo(d.Room)
@@ -720,6 +778,7 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 	case qznn.PushPlayerPlaceBet:
 		var d qznn.PushPlayerPlaceBetStruct
 		if err := json.Unmarshal(data, &d); err != nil {
+			logrus.WithFields(logrus.Fields{"uid": r.Uid, "pushType": pushType}).Errorf("Robot - Failed to parse push: %v", err)
 			return
 		}
 		r.updateRoomInfo(d.Room)
@@ -727,6 +786,7 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 	case qznn.PushPlayerShowCard:
 		var d qznn.PushPlayerShowCardStruct
 		if err := json.Unmarshal(data, &d); err != nil {
+			logrus.WithFields(logrus.Fields{"uid": r.Uid, "pushType": pushType}).Errorf("Robot - Failed to parse push: %v", err)
 			return
 		}
 		r.updateRoomInfo(d.Room)
@@ -734,6 +794,7 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 	case qznn.PushRoom:
 		var d qznn.PushRoomStruct
 		if err := json.Unmarshal(data, &d); err != nil {
+			logrus.WithFields(logrus.Fields{"uid": r.Uid, "pushType": pushType}).Errorf("Robot - Failed to parse push: %v", err)
 			return
 		}
 		r.updateRoomInfo(d.Room)
@@ -745,12 +806,22 @@ func (r *Robot) updateRoomInfo(room *qznn.QZNNRoom) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if room != nil {
+		prevRoomId := r.RoomId
 		r.RoomData = room
 		r.RoomId = room.ID
 		for _, p := range room.Players {
 			if p != nil && p.ID == r.Uid {
 				r.Balance = p.Balance
 				break
+			}
+		}
+		// 首次进入房间时通知超时 goroutine 退出
+		if prevRoomId == "" && room.ID != "" && r.joinedCh != nil {
+			select {
+			case <-r.joinedCh:
+				// 已关闭
+			default:
+				close(r.joinedCh)
 			}
 		}
 	}
@@ -766,6 +837,14 @@ func (r *Robot) handleStateChange(state qznn.RoomState) {
 	go func() {
 		// 模拟用户随机等待 1-3 秒
 		time.Sleep(time.Duration(rand.Intn(3)+1) * time.Second)
+
+		// 检查机器人是否已关闭，避免往已断开的连接发消息
+		r.mu.Lock()
+		if r.isClosing {
+			r.mu.Unlock()
+			return
+		}
+		r.mu.Unlock()
 
 		switch state {
 		case qznn.StateBanking:
@@ -847,6 +926,10 @@ func (r *Robot) checkLeave() {
 		time.Sleep(time.Duration(rand.Intn(3)+1) * time.Second)
 
 		r.mu.Lock()
+		if r.isClosing {
+			r.mu.Unlock()
+			return
+		}
 		roomData := r.RoomData
 		gamesPlayed := r.gamesPlayed
 		roomId := r.RoomId
@@ -885,12 +968,13 @@ func (r *Robot) checkLeave() {
 		}
 
 		if prob > 0 && rand.Float64() < prob {
+			cooldownKey := roomId + ":" + r.Uid
 			roomLeaveMu.Lock()
-			if lastTime, ok := roomLeaveCooldown[roomId]; ok && time.Since(lastTime) < ROOM_LEAVE_COOLDOWN*time.Second {
+			if lastTime, ok := roomLeaveCooldown[cooldownKey]; ok && time.Since(lastTime) < ROOM_LEAVE_COOLDOWN*time.Second {
 				roomLeaveMu.Unlock()
 				return
 			}
-			roomLeaveCooldown[roomId] = time.Now()
+			roomLeaveCooldown[cooldownKey] = time.Now()
 			roomLeaveMu.Unlock()
 
 			logrus.WithFields(logrus.Fields{"roomId": roomId, "uid": r.Uid, "balance": balance}).Infof("Robot - Decided to leave room, other players: %d, games played: %d, probability: %.2f", otherCount, gamesPlayed, prob)
@@ -927,5 +1011,113 @@ func (r *Robot) checkAloneAndLeave() {
 		}).Info("Robot - Alone in room, leaving")
 		r.Send(qznn.CmdPlayerLeave, map[string]interface{}{"RoomId": roomId})
 		r.Close()
+	}
+}
+
+// ===================== Redis 持久化 =====================
+
+// redisSaveLoop 定期将活跃机器人的房间分配保存到 Redis
+func redisSaveLoop() {
+	for {
+		time.Sleep(RedisSaveInterval * time.Second)
+		saveRobotsToRedis()
+	}
+}
+
+// saveRobotsToRedis 将当前活跃机器人的房间分配写入 Redis Hash
+func saveRobotsToRedis() {
+	activeRobotsMu.Lock()
+	snapshot := make(map[string]RobotAction, len(activeRobots))
+	for uid, rt := range activeRobots {
+		snapshot[uid] = rt.Action
+	}
+	activeRobotsMu.Unlock()
+
+	pool := rds.DefConnPool
+	if pool == nil {
+		return
+	}
+
+	// 先清空旧数据，再写入当前状态
+	pool.Del(RedisDbRobot, RedisKeyRobotMap)
+
+	if len(snapshot) == 0 {
+		return
+	}
+
+	p := pool.PipeLine()
+	defer p.Close()
+	p.Select(RedisDbRobot)
+	for uid, action := range snapshot {
+		if action.RoomId == "" {
+			continue // 跳过尚未分配房间的
+		}
+		entry := RobotStateEntry{
+			RoomId:     action.RoomId,
+			Level:      action.Level,
+			BankerType: action.BankerType,
+		}
+		b, _ := json.Marshal(entry)
+		p.HSet(RedisKeyRobotMap, uid, string(b))
+	}
+	if err := p.Do(); err != nil {
+		logrus.WithError(err).Error("Robot - Failed to save state to Redis")
+	}
+}
+
+// restoreRobotsFromRedis 从 Redis 恢复机器人房间分配，立即派发（delay=0）
+func restoreRobotsFromRedis() {
+	pool := rds.DefConnPool
+	if pool == nil {
+		logrus.Warn("Robot - Redis not available, skip restore")
+		return
+	}
+
+	all, err := pool.HGetAll(RedisDbRobot, RedisKeyRobotMap)
+	if err != nil {
+		logrus.WithError(err).Error("Robot - Failed to load state from Redis")
+		return
+	}
+	if len(all) == 0 {
+		logrus.Info("Robot - No saved state in Redis, starting fresh")
+		return
+	}
+
+	// 清空 Redis 中的旧状态（避免下次重启再次恢复已失效的数据）
+	pool.Del(RedisDbRobot, RedisKeyRobotMap)
+
+	var restored int
+	for uid, result := range all {
+		valStr, err := result.AsString()
+		if err != nil {
+			continue
+		}
+		var entry RobotStateEntry
+		if err := json.Unmarshal([]byte(valStr), &entry); err != nil {
+			continue
+		}
+		if entry.RoomId == "" {
+			continue
+		}
+
+		// 从 DB 加载机器人用户
+		user, err := modelClient.GetUserByUserId(uid)
+		if err != nil || user == nil {
+			logrus.WithField("uid", uid).Warn("Robot - Restore: user not found, skip")
+			continue
+		}
+
+		action := RobotAction{
+			Level:      entry.Level,
+			BankerType: entry.BankerType,
+			RoomId:     entry.RoomId,
+			DelaySec:   0, // 恢复时不延迟，立即进入
+		}
+		go launchRobot(user, action)
+		restored++
+	}
+
+	if restored > 0 {
+		logrus.Infof("Robot - Restored %d robots from Redis", restored)
 	}
 }

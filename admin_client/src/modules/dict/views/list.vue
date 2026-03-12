@@ -29,7 +29,8 @@
 				<cl-upsert ref="Upsert">
 					<template #slot-value="{ scope }">
 						<div>
-							<el-input v-model="scope.value" :placeholder="$t('请填写值')" clearable type="textarea"
+							<el-input
+v-model="scope.value" :placeholder="$t('请填写值')" clearable type="textarea"
 								:rows="4" class="mb-2" />
 
 							<cl-upload-space :text="$t('使用文件')" :limit="1" @confirm="onFileConfirm" />

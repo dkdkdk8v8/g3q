@@ -193,7 +193,7 @@ const recordTypeOptions = [
 ];
 
 const orderStateLabel: Record<number, string> = { 0: "处理中", 1: "成功", 2: "失败" };
-const orderStateTagType: Record<number, string> = { 0: "info", 1: "success", 2: "danger" };
+const orderStateTagType: Record<number, "info" | "success" | "warning" | "danger"> = { 0: "info", 1: "success", 2: "danger" };
 
 const Table = useTable({
   columns: [

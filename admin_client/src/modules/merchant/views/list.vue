@@ -26,7 +26,7 @@ v-for="item in DictEnable" :key="item.value" v-show="scope.row.enable == item.va
               style="margin-right: 4px; margin-bottom: 2px"
             >{{ ip }}</el-tag>
           </template>
-          <span v-else style="color: #999">不限制</span>
+          <span v-else style="color: #999">-</span>
         </template>
         <template #column-secretKey="{ scope }">
           <el-space :size="5">

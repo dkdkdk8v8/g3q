@@ -858,12 +858,12 @@ const earlyBullIndices = computed(() => {
 // 看四张模式：计算第5张需要什么牌能凑成高级牌型
 const typeOrder = ['FIVE_SMALL', 'BOMB', 'FIVE_FLOWER', 'FOUR_FLOWER', 'BULL_BULL', 'HAS_BULL'];
 const typeNames = {
-    BULL_BULL: '凑牛牛需要',
-    FOUR_FLOWER: '凑四花牛需要',
-    BOMB: '凑炸弹需要',
-    FIVE_FLOWER: '凑五花牛需要',
-    FIVE_SMALL: '凑五小牛需要',
-    HAS_BULL: '凑牛需要'
+    BULL_BULL: '凑出牛牛需',
+    FOUR_FLOWER: '凑出四花牛需',
+    BOMB: '凑出炸弹需',
+    FIVE_FLOWER: '凑出五花牛需',
+    FIVE_SMALL: '凑出五小牛需',
+    HAS_BULL: '凑出有牛需'
 };
 
 const neededCardsMap = computed(() => {

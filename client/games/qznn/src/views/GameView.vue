@@ -1962,7 +1962,9 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                 <div class="phase-info" :style="store.currentPhase === 'WAITING_FOR_PLAYERS' ? { marginTop: '0' } : {}">
 
-                    <span v-if="store.currentPhase === 'WAITING_FOR_PLAYERS'" style="line-height: 1; display: flex; align-items: center;">等待用户加入<span class="loading-dots"></span></span>
+                    <span v-if="store.currentPhase === 'WAITING_FOR_PLAYERS'"
+                        style="line-height: 1; display: flex; align-items: center;">等待用户加入<span
+                            class="loading-dots"></span></span>
 
                     <span v-else-if="store.currentPhase === 'READY_COUNTDOWN'">游戏即将开始 {{ store.countdown }}</span>
 
@@ -2044,7 +2046,8 @@ const shouldMoveStatusToHighPosition = computed(() => {
                     <div v-for="item in neededCardsList" :key="item.type" class="needed-row">
                         <span class="needed-type">{{ item.name }}:</span>
                         <span class="needed-cards">
-                            <span v-for="(c, i) in item.cards" :key="c.rawId" class="needed-card">{{ c.display }}<span v-if="i < item.cards.length - 1"> </span></span>
+                            <span v-for="(c, i) in item.cards" :key="c.rawId" class="needed-card">{{ c.display }}<span
+                                    v-if="i < item.cards.length - 1"> </span></span>
                         </span>
                     </div>
                 </div>
@@ -2079,7 +2082,9 @@ const shouldMoveStatusToHighPosition = computed(() => {
                             :style="myTeleportStyle" class="badge-teleport-wrapper">
                             <NiuBadge :type="myPlayer.handResult.typeName" class="hand-type-img"
                                 :style="{ ...getBadgeStyle(myPlayer.handResult), ...(getBadgeStyle(myPlayer.handResult).height ? {} : { height: '100%', width: 'auto' }) }" />
-                            <span v-if="myPlayer.handResult.multiplier" class="badge-multiplier">{{ myPlayer.handResult.multiplier }}倍</span>
+                            <span v-if="myPlayer.handResult.multiplier" class="badge-multiplier">{{
+                                myPlayer.handResult.multiplier
+                                }}倍</span>
                         </div>
                     </Teleport>
 
@@ -2964,14 +2969,17 @@ const shouldMoveStatusToHighPosition = computed(() => {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 3px;
-    padding: 5px 10px;
+    gap: 4px;
+    padding: 6px 14px;
     margin-bottom: 4px;
-    background: rgba(0, 0, 0, 0.55);
-    border-radius: 8px;
+    background: rgba(10, 28, 26, 0.75);
+    border: 1px solid rgba(251, 191, 36, 0.25);
+    border-radius: 20px;
     max-width: 95%;
     max-height: 80px;
     overflow-y: auto;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    margin-bottom: 10px;
 }
 
 .needed-row {
@@ -2980,25 +2988,27 @@ const shouldMoveStatusToHighPosition = computed(() => {
     flex-wrap: wrap;
     justify-content: center;
     font-size: 11px;
-    line-height: 1.4;
+    line-height: 1.5;
     width: 100%;
 }
 
 .needed-type {
     color: #fbbf24;
     font-weight: bold;
-    margin-right: 3px;
+    margin-right: 4px;
     flex-shrink: 0;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
 
 .needed-cards {
-    color: #e2e8f0;
+    color: #f0e6d2;
     flex-wrap: wrap;
 }
 
 .needed-card {
     font-weight: bold;
     font-size: 11px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 
@@ -4313,26 +4323,38 @@ const shouldMoveStatusToHighPosition = computed(() => {
 }
 
 @keyframes speechBubbleBounceIn {
-    from, 20%, 40%, 60%, 80%, to {
+
+    from,
+    20%,
+    40%,
+    60%,
+    80%,
+    to {
         animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
     }
+
     0% {
         opacity: 0;
         transform: translateX(-50%) translateY(0) scale3d(0.3, 0.3, 0.3);
     }
+
     20% {
         transform: translateX(-50%) translateY(-12px) scale3d(1.1, 1.1, 1.1);
     }
+
     40% {
         transform: translateX(-50%) translateY(-9px) scale3d(0.9, 0.9, 0.9);
     }
+
     60% {
         opacity: 1;
         transform: translateX(-50%) translateY(-11px) scale3d(1.03, 1.03, 1.03);
     }
+
     80% {
         transform: translateX(-50%) translateY(-10px) scale3d(0.97, 0.97, 0.97);
     }
+
     to {
         opacity: 1;
         transform: translateX(-50%) translateY(-10px);

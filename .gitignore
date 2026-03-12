@@ -36,6 +36,7 @@ admin-client/build/
 *.pem
 .env.local
 .env.*.local
+*_rsa
 
 # ============ Frontend build output ============
 admin_client/build/

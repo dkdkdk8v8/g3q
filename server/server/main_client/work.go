@@ -11,10 +11,12 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"time"
 	runDebug "runtime/debug"
 	"service/comm"
 	"service/initMain"
 	"service/mainClient"
+	"service/mainClient/game"
 	"service/modelAdmin"
 	"service/modelClient"
 
@@ -178,11 +180,34 @@ func (w *mainClientWork) Start(baseCtx *initMain.BaseCtx) error {
 		startHttpListen(w.cfg.AdminHost+":"+w.cfg.AdminPort, w.adminEngine)
 	}()
 
+	// 从 Redis 恢复热重启快照
+	if snapshots := game.LoadSnapshotsFromRedis(); len(snapshots) > 0 {
+		logrus.WithField("count", len(snapshots)).Info("Start: 正在恢复快照房间...")
+		game.GetMgr().RestoreFromSnapshots(snapshots)
+		logrus.Info("Start: 快照房间恢复完成")
+	}
+
 	fmt.Println("startOk")
 	return nil
 }
 
 func (w *mainClientWork) Stop(baseCtx *initMain.BaseCtx) error {
+	logrus.Info("Stop: 开始优雅快照...")
+
+	// 1. 快照所有房间状态(最多等10秒)
+	snapshots, err := game.GetMgr().GracefulSnapshot(10 * time.Second)
+	if err != nil {
+		logrus.WithError(err).Error("Stop: GracefulSnapshot failed")
+	} else if len(snapshots) > 0 {
+		// 2. 保存快照到 Redis
+		if err := game.SaveSnapshotsToRedis(snapshots); err != nil {
+			logrus.WithError(err).Error("Stop: SaveSnapshotsToRedis failed")
+		} else {
+			logrus.WithField("count", len(snapshots)).Info("Stop: 快照已保存到Redis")
+		}
+	} else {
+		logrus.Info("Stop: 没有房间需要快照")
+	}
 
 	w.WorkRunner.Stop(baseCtx)
 	logrus.Info("shutting down")

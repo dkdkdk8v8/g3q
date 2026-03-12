@@ -26,12 +26,16 @@ func joinRoom(roomId string, excludeRoomId string, userId string, connWrap *ws.W
 
 	alreadyRoom, alreadyPlayer := game.GetMgr().CheckPlayerInRoom(userId)
 	if alreadyPlayer != nil && alreadyRoom != nil {
-		//客户端弹框，确认要不要重新进入
-		alreadyRoom.PushPlayer(alreadyPlayer, comm.PushData{
-			Cmd:      comm.ServerPush,
-			PushType: qznn.PushRoom,
-			Data:     qznn.PushRoomStruct{Room: alreadyRoom.GetClientRoom(alreadyPlayer.ID)}})
-		return nil, comm.ErrPlayerInRoom
+		if cfg.BankerType == alreadyRoom.Config.BankerType {
+			//客户端弹框，确认要不要重新进入
+			alreadyRoom.PushPlayer(alreadyPlayer, comm.PushData{
+				Cmd:      comm.ServerPush,
+				PushType: qznn.PushRoom,
+				Data:     qznn.PushRoomStruct{Room: alreadyRoom.GetClientRoom(alreadyPlayer.ID)}})
+			return nil, comm.ErrPlayerInRoom
+		} else {
+			return nil, comm.ErrPlayerHaveGamingNotSettle
+		}
 	}
 
 	//player初始化完成，看房间

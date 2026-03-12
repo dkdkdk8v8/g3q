@@ -255,10 +255,11 @@ func managerRound() {
 }
 
 // planActions 根据房间状态生成调度计划
-// 每个房间最多 MAX_ROBOTS_PER_ROOM 个机器人，每个机器人等待 2-5 秒再进入
 // pendingPerRoom: 每个房间已派发但尚未进入的"在途"机器人数（从 activeRobots 统计）
 func planActions(rooms []*RoomDataSimple, pendingPerRoom map[string]int) []RobotAction {
 	var actions []RobotAction
+	_, maxRobots := getRobotsPerRoomRange()
+	delayMin, delayMax := getJoinDelayRange()
 
 	for _, room := range rooms {
 		playerCount := 0
@@ -290,7 +291,7 @@ func planActions(rooms []*RoomDataSimple, pendingPerRoom map[string]int) []Robot
 			continue
 		}
 		// 跳过已达机器人上限的房间
-		if robotCount >= MAX_ROBOTS_PER_ROOM {
+		if robotCount >= maxRobots {
 			continue
 		}
 		// 跳过没有真人的房间
@@ -301,21 +302,23 @@ func planActions(rooms []*RoomDataSimple, pendingPerRoom map[string]int) []Robot
 		if room.LastRealPlayerJoinAt.IsZero() {
 			continue
 		}
-		// 真人加入后至少等 ROBOT_JOIN_DELAY_MIN 秒
-		if time.Since(room.LastRealPlayerJoinAt) < time.Duration(ROBOT_JOIN_DELAY_MIN)*time.Second {
+		// 真人加入后至少等 delayMin 秒
+		if time.Since(room.LastRealPlayerJoinAt) < time.Duration(delayMin)*time.Second {
 			continue
 		}
 
 		// 计算还需要多少个机器人（不超过空位数）
 		emptySeats := 5 - playerCount
-		needRobots := MAX_ROBOTS_PER_ROOM - robotCount
+		needRobots := maxRobots - robotCount
 		if needRobots > emptySeats {
 			needRobots = emptySeats
 		}
 
 		for i := 0; i < needRobots; i++ {
-			// 第 N 个机器人等待 (N+1) * random(2,5) 秒
-			delay := (i + 1) * (ROBOT_JOIN_DELAY_MIN + rand.Intn(ROBOT_JOIN_DELAY_MAX-ROBOT_JOIN_DELAY_MIN+1))
+			delay := delayMin
+			if delayMax > delayMin {
+				delay = (i + 1) * (delayMin + rand.Intn(delayMax-delayMin+1))
+			}
 			actions = append(actions, RobotAction{
 				Level:      room.Config.Level,
 				BankerType: room.Config.BankerType,

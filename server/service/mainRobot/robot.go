@@ -590,6 +590,7 @@ func (r *Robot) checkLeave() {
 
 		if prob > 0 && rand.Float64() < prob {
 			// 检查房间内机器人数量是否会低于下限
+			minRobots, _ := getRobotsPerRoomRange()
 			activeRobotsMu.Lock()
 			robotsInRoom := 0
 			for _, rt := range activeRobots {
@@ -598,12 +599,12 @@ func (r *Robot) checkLeave() {
 				}
 			}
 			activeRobotsMu.Unlock()
-			if robotsInRoom <= MIN_ROBOTS_PER_ROOM {
+			if robotsInRoom <= minRobots {
 				logrus.WithFields(logrus.Fields{
 					"roomId":       roomId,
 					"uid":          r.Uid,
 					"robotsInRoom": robotsInRoom,
-					"min":          MIN_ROBOTS_PER_ROOM,
+					"min":          minRobots,
 				}).Info("Robot - Skip leaving, would drop below minimum robots")
 				return
 			}

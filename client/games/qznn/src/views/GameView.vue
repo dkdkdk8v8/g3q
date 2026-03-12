@@ -809,6 +809,8 @@ const isBullPart = (index) => {
 // 看四张模式：前4张牌翻开后，能凑牛的3张牌索引
 const earlyBullReady = ref(false);
 let earlyBullTimer = null;
+// 只在补牌前阶段展示提示，DEALING（补牌）及之后一律关闭
+const hintAllowedPhases = new Set(['PRE_DEAL', 'BETTING', 'BANKER_CONFIRMED', 'BANKER_SELECTION_ANIMATION', 'ROB_BANKER']);
 
 // 监听：4张牌发完且翻牌动画结束后触发
 watch([
@@ -817,17 +819,18 @@ watch([
 ], ([vCount, dCount]) => {
     if (store.gameMode !== 2) return;
     if (earlyBullTimer) { clearTimeout(earlyBullTimer); earlyBullTimer = null; }
+    // 只在允许的阶段才触发提示
+    if (!hintAllowedPhases.has(store.currentPhase)) return;
     // 4张已到位且发牌动画结束，等翻牌动画完成后再显示
     if (vCount >= 4 && !dCount && !earlyBullReady.value) {
         earlyBullTimer = setTimeout(() => {
+            if (!hintAllowedPhases.has(store.currentPhase)) return;
             earlyBullReady.value = true;
         }, 800);
     }
 });
-
-// 只有新一轮开始时才复位
 watch(() => store.currentPhase, (phase) => {
-    if (phase === 'READY_COUNTDOWN') {
+    if (!hintAllowedPhases.has(phase)) {
         earlyBullReady.value = false;
         if (earlyBullTimer) { clearTimeout(earlyBullTimer); earlyBullTimer = null; }
     }
@@ -850,6 +853,73 @@ const earlyBullIndices = computed(() => {
         }
     }
     return [];
+});
+
+// 看四张模式：计算第5张需要什么牌能凑成高级牌型
+const typeOrder = ['FIVE_SMALL', 'BOMB', 'FIVE_FLOWER', 'FOUR_FLOWER', 'BULL_BULL', 'HAS_BULL'];
+const typeNames = {
+    BULL_BULL: '牛牛',
+    FOUR_FLOWER: '四花牛',
+    BOMB: '炸弹',
+    FIVE_FLOWER: '五花牛',
+    FIVE_SMALL: '五小牛',
+    HAS_BULL: '有牛'
+};
+
+const neededCardsMap = computed(() => {
+    if (!earlyBullReady.value) return {};
+    if (!myPlayer.value || !myPlayer.value.hand) return {};
+    const hand = myPlayer.value.hand;
+    if (hand.length < 4) return {};
+    const first4 = hand.slice(0, 4);
+    if (first4.some(c => c.rawId === undefined)) return {};
+
+    const usedIds = new Set(first4.map(c => c.rawId));
+    // 检查前4张能否凑牛（有3张之和为10的倍数）
+    let hasBullBase = false;
+    for (let i = 0; i < 2; i++) {
+        for (let j = i + 1; j < 3; j++) {
+            for (let k = j + 1; k < 4; k++) {
+                if ((first4[i].value + first4[j].value + first4[k].value) % 10 === 0) {
+                    hasBullBase = true;
+                }
+            }
+        }
+    }
+
+    const result = {};
+
+    for (let cardId = 0; cardId < 52; cardId++) {
+        if (usedIds.has(cardId)) continue;
+        const fifthCard = transformServerCard(cardId);
+        const testHand = [...first4, fifthCard];
+        const handType = calculateHandType(testHand);
+
+        let targetType = null;
+        if (typeOrder.includes(handType.type)) {
+            targetType = handType.type;
+        } else if (!hasBullBase && handType.type.startsWith('BULL_') && handType.type !== 'BULL_BULL') {
+            targetType = 'HAS_BULL';
+        }
+        if (targetType) {
+            if (!result[targetType]) result[targetType] = [];
+            // 只按点数去重
+            if (!result[targetType].some(c => c.display === fifthCard.label)) {
+                result[targetType].push({ rawId: cardId, display: fifthCard.label });
+            }
+        }
+    }
+    return result;
+});
+
+const neededCardsList = computed(() => {
+    return typeOrder
+        .filter(type => neededCardsMap.value[type] && neededCardsMap.value[type].length > 0)
+        .map(type => ({
+            type,
+            name: typeNames[type],
+            cards: neededCardsMap.value[type]
+        }));
 });
 
 // New helper function to control when card data is passed to PokerCard to trigger flip animation
@@ -1415,7 +1485,7 @@ const startDealingAnimation = (isSupplemental = false) => {
 };
 
 onMounted(() => {
-    const gameMode = route.query.mode !== undefined ? route.query.mode : 0;
+    const gameMode = route.query.mode !== undefined ? route.query.mode : null;
     store.initGame(gameMode);
 
     // Preload animation images to prevent layout jumps
@@ -1969,6 +2039,16 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
             <div class="my-hand-cards-area">
 
+                <!-- 看四张：需要什么牌提示 -->
+                <div v-if="neededCardsList.length > 0" class="needed-cards-hint">
+                    <div v-for="item in neededCardsList" :key="item.type" class="needed-row">
+                        <span class="needed-type">{{ item.name }}:</span>
+                        <span class="needed-cards">
+                            <span v-for="(c, i) in item.cards" :key="c.rawId" class="needed-card">{{ c.display }}<span v-if="i < item.cards.length - 1"> </span></span>
+                        </span>
+                    </div>
+                </div>
+
                 <div class="hand-area">
 
                     <TransitionGroup tag="div" class="cards" name="list">
@@ -1996,9 +2076,10 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                     <Teleport to="body">
                         <div v-if="myPlayer.handResult && myPlayer.handResult.typeName && shouldShowBadge"
-                            :style="myTeleportStyle">
+                            :style="myTeleportStyle" class="badge-teleport-wrapper">
                             <NiuBadge :type="myPlayer.handResult.typeName" class="hand-type-img"
                                 :style="{ ...getBadgeStyle(myPlayer.handResult), ...(getBadgeStyle(myPlayer.handResult).height ? {} : { height: '100%', width: 'auto' }) }" />
+                            <span v-if="myPlayer.handResult.multiplier" class="badge-multiplier">{{ myPlayer.handResult.multiplier }}倍</span>
                         </div>
                     </Teleport>
 
@@ -2114,7 +2195,6 @@ const shouldMoveStatusToHighPosition = computed(() => {
                     class="score-float" :class="myPlayer.roundScore > 0 ? 'win' : 'lose'">
                     <SpriteNumber :value="(myPlayer.roundScore > 0 ? '+' : '') + formatCoins(myPlayer.roundScore)"
                         :type="myPlayer.roundScore > 0 ? 'red' : 'white'" :height="26" />
-                    <span v-if="myPlayer.handResult && myPlayer.handResult.multiplier" class="multiplier-tag">({{ myPlayer.handResult.multiplier }}倍)</span>
                 </div>
             </div>
 
@@ -2869,6 +2949,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 /* GameView.vue specific styles for myPlayer components */
 .my-hand-cards-area {
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     width: 100%;
@@ -2877,6 +2958,49 @@ const shouldMoveStatusToHighPosition = computed(() => {
     position: relative;
     z-index: 150;
 }
+
+/* 看四张需要什么牌提示 */
+.needed-cards-hint {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 5px 10px;
+    margin-bottom: 4px;
+    background: rgba(0, 0, 0, 0.55);
+    border-radius: 8px;
+    max-width: 95%;
+    max-height: 80px;
+    overflow-y: auto;
+}
+
+.needed-row {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    justify-content: center;
+    font-size: 11px;
+    line-height: 1.4;
+    width: 100%;
+}
+
+.needed-type {
+    color: #fbbf24;
+    font-weight: bold;
+    margin-right: 3px;
+    flex-shrink: 0;
+}
+
+.needed-cards {
+    color: #e2e8f0;
+    flex-wrap: wrap;
+}
+
+.needed-card {
+    font-weight: bold;
+    font-size: 11px;
+}
+
 
 /* Hand area styles (adapted from PlayerSeat.vue for myPlayer) */
 .my-hand-cards-area .hand-area {
@@ -3893,12 +4017,6 @@ const shouldMoveStatusToHighPosition = computed(() => {
     color: #f95f5f;
 }
 
-.multiplier-tag {
-    font-size: 16px;
-    margin-left: 2px;
-    font-weight: bold;
-    text-shadow: 1px 1px 1px #000;
-}
 
 .coin-icon-float {
     width: 20px;
@@ -4374,5 +4492,25 @@ const shouldMoveStatusToHighPosition = computed(() => {
     color: #facc15;
     /* Active item color */
     font-weight: bold;
+}
+
+/* 牌型倍数标签（Teleport到body，需要全局样式） */
+.badge-teleport-wrapper {
+    position: relative;
+}
+
+.badge-multiplier {
+    position: absolute;
+    top: -16px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    font-weight: bold;
+    color: #fbbf24;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 1px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+    pointer-events: none;
 }
 </style>

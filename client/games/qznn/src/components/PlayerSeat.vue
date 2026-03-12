@@ -475,7 +475,6 @@ const showSpeechBubble = computed(() => {
             class="score-float" :class="player.roundScore > 0 ? 'win' : 'lose'">
             <SpriteNumber :value="(player.roundScore > 0 ? '+' : '') + formatCoins(player.roundScore)"
                 :type="player.roundScore > 0 ? 'red' : 'white'" :height="player.roundScore > 0 ? 18 : 16" />
-            <span v-if="player.handResult && player.handResult.multiplier" class="multiplier-tag">({{ player.handResult.multiplier }}倍)</span>
         </div>
 
         <!-- 手牌区域 (始终渲染以占位) -->
@@ -499,9 +498,10 @@ const showSpeechBubble = computed(() => {
             </div>
 
             <Teleport to="body">
-                <div v-if="shouldShowBadge" :style="teleportStyle">
+                <div v-if="shouldShowBadge" :style="teleportStyle" class="badge-teleport-wrapper">
                     <NiuBadge :type="player.handResult.typeName" class="hand-type-img"
                         :style="['FIVE_SMALL', 'FIVE_FLOWER', 'FOUR_FLOWER', 'BOMB'].includes(player.handResult.type) ? { height: '100%' } : { height: '100%', width: 'auto' }" />
+                    <span v-if="player.handResult.multiplier" class="badge-multiplier">{{ player.handResult.multiplier }}倍</span>
                 </div>
             </Teleport>
         </div>
@@ -1123,7 +1123,7 @@ const showSpeechBubble = computed(() => {
 
 .score-float {
     position: absolute;
-    top: -6px;
+    top: 2px;
     font-weight: bold;
     font-size: 22px;
     text-shadow: 1px 1px 1px #000;
@@ -1146,12 +1146,6 @@ const showSpeechBubble = computed(() => {
     color: #f95f5f;
 }
 
-.multiplier-tag {
-    font-size: 12px;
-    margin-left: 2px;
-    font-weight: bold;
-    text-shadow: 1px 1px 1px #000;
-}
 
 @keyframes floatUp {
     0% {

@@ -549,9 +549,11 @@ export const useGameStore = defineStore('game', () => {
 
 
     // 初始化（模拟进入房间）
-    const initGame = (mode = 0) => {
-        // gameMode 始终从 URL mode 参数设置，不受 roomId 状态影响
-        gameMode.value = parseInt(mode); // Ensure number
+    const initGame = (mode = null) => {
+        // 只在明确传入 mode 时覆盖 gameMode（重连时 URL 无 mode，保留服务器推送的值）
+        if (mode !== null && mode !== undefined) {
+            gameMode.value = parseInt(mode);
+        }
 
         // If we already have a room ID (e.g. from joinRoom response arriving before this call), do not wipe state
         if (roomId.value !== '') {

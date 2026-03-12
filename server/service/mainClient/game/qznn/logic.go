@@ -35,6 +35,9 @@ type UserStrategyData struct {
 	WinningStreak     int      // 连胜局数
 	LosingStreak      int      // 连败局数
 	LuckyReasons      []string // 记录Lucky变动原因
+	// 会话级止损
+	SessionStartBalance int64   // 进场时余额
+	SessionLossRate     float64 // 本次会话亏损比例
 }
 
 /*
@@ -1155,7 +1158,7 @@ func (r *QZNNRoom) startGame() {
 		bankerMult = 1
 	}
 
-	const TaxRate = 0.05 // 5% 税率
+	TaxRate := r.Strategy.Config.TaxRate
 
 	// 1. 计算闲家输赢（暂不扣税，先算账）
 	type WinRecord struct {
@@ -1186,6 +1189,14 @@ func (r *QZNNRoom) startGame() {
 			if loseAmount > p.Balance {
 				//最多把自己的本金输光
 				loseAmount = p.Balance
+			}
+			// 单局亏损封顶
+			maxLoss := int64(math.Round(float64(p.Balance) * r.Strategy.Config.MaxLossRate))
+			if maxLoss < baseBet {
+				maxLoss = baseBet // 至少输1个底注
+			}
+			if loseAmount > maxLoss {
+				loseAmount = maxLoss
 			}
 			playerLoses = append(playerLoses, WinRecord{PlayerID: p.ID, Amount: loseAmount})
 		}
@@ -1537,11 +1548,19 @@ func (r *QZNNRoom) calculateRealtimeLucky(p *Player) float64 {
 		}
 
 		strategyData = &UserStrategyData{
-			TotalProfit:       totalProfit,
-			PendingCompensate: pendingCompensate,
-			BaseLucky:         r.Strategy.Config.BaseLucky,
+			TotalProfit:         totalProfit,
+			PendingCompensate:   pendingCompensate,
+			BaseLucky:           r.Strategy.Config.BaseLucky,
+			SessionStartBalance: p.Balance, // 记录进场余额，用于会话止损
 		}
 		r.Strategy.UserData[p.ID] = strategyData
+	}
+
+	// 计算会话亏损比例
+	if strategyData.SessionStartBalance > 0 && p.Balance < strategyData.SessionStartBalance {
+		strategyData.SessionLossRate = float64(strategyData.SessionStartBalance-p.Balance) / float64(strategyData.SessionStartBalance)
+	} else {
+		strategyData.SessionLossRate = 0
 	}
 
 	// 计算当前玩家涉及的总倍数
@@ -1579,8 +1598,10 @@ func (r *QZNNRoom) calculateRealtimeLucky(p *Player) float64 {
 		TotalMult:         totalMult,
 		IsRobot:           p.IsRobot,
 		IsNewbie:          p.GameCount < modelAdmin.SysParamCache.GetInt("strategy.NewPlayerGameCount", 50), // 假设 50 局以内算新手，需确保 p.GameCount 已正确赋值
+		GameCount:         p.GameCount,
 		WinningStreak:     strategyData.WinningStreak,
 		LosingStreak:      strategyData.LosingStreak,
+		SessionLossRate:   strategyData.SessionLossRate,
 		RiskExposure:      int64(modelAdmin.SysParamCache.GetInt("strategy.RiskExposure", 2000000)),
 		// 修正：将昨日和今日的数据合并，形成“滚动杀率”，这比单纯的百分比修正更科学（自动包含权重的概念）
 		TurnoverTodayAndYesterday: r.Strategy.TodayTurnover + r.Strategy.YesterdayTurnover,
@@ -1669,44 +1690,59 @@ func (r *QZNNRoom) adjustCardsBasedOnLucky() {
 		if isHighRisk {
 			shouldLose = true
 			triggerType = "HighRisk"
-		} else if !p.IsRobot {
-			// 3.2 基于 Lucky 值的概率干预 (仅对真人生效)
-			// Lucky > 65: 尝试赢; Lucky < 35: 尝试输
+		} else {
+			// 3.2 基于 Lucky 值的概率干预 (对所有玩家生效，包括机器人)
+			winThreshold := r.Strategy.Config.LuckyWinThreshold
+			loseThreshold := r.Strategy.Config.LuckyLoseThreshold
 			randVal := rand.Float64() * 100
-			if targetLucky > 65 && randVal < targetLucky {
+			if targetLucky > winThreshold && randVal < targetLucky {
 				shouldWin = true
 				triggerType = "LuckyWin"
-			} else if targetLucky < 35 && randVal > targetLucky {
+			} else if targetLucky < loseThreshold && randVal > targetLucky {
 				shouldLose = true
 				triggerType = "LuckyLose"
 			}
 		}
 
-		// 3.3 库存保护 (System Inventory Protection)
-		// 当系统库存低于警戒线时，启动收割模式
+		// 3.3 库存保护 & 库存释放
 		shouldProtect := false
-		// 复用 calculateRealtimeLucky 中计算出的风控结果，避免重复计算和逻辑不一致
+		shouldRelease := false
 		for _, reason := range strategyData.LuckyReasons {
 			if strings.Contains(reason, "InventoryProtect") {
 				shouldProtect = true
-				break
+			}
+			if strings.Contains(reason, "InventoryRelease") {
+				shouldRelease = true
 			}
 		}
 
 		if shouldProtect {
 			triggerType = "InventoryProtect"
-			if !p.IsRobot {
-				// 情况 A: 闲家是真人
-				// 无论庄家是谁，真人闲家都应该输 (输给机器人庄家=系统回血; 输给真人庄家=系统抽水/防止出分)
-				shouldWin = false
-				shouldLose = true
+			if p.IsRobot {
+				// 库存保护时机器人尝试赢：系统回血
+				shouldWin = true
+				shouldLose = false
 			} else {
-				// 情况 B: 闲家是机器人
-				// 只有当庄家是真人时，机器人闲家才需要刻意去赢 (系统回血)
-				if !banker.IsRobot {
-					shouldWin = true
-					shouldLose = false
+				// 真人：高风险强制输，普通情况取消赢的干预
+				if isHighRisk {
+					shouldWin = false
+					shouldLose = true
+				} else {
+					shouldWin = false
 				}
+			}
+		}
+
+		if shouldRelease {
+			if !p.IsRobot {
+				triggerType = "InventoryRelease"
+				// 库存释放（杀率过高）：给真人更多赢的机会
+				shouldWin = true
+				shouldLose = false
+			} else {
+				// 库存释放时机器人不干预，保持自然
+				shouldWin = false
+				shouldLose = false
 			}
 		}
 

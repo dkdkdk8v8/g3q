@@ -7,7 +7,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:visible', 'selectPhrase', 'selectEmoji']);
 
-const activeTab = ref('phrases'); // 'phrases' or 'emojis'
+const activeTab = ref('emojis'); // 'phrases' or 'emojis'
 
 // Common Phrases
 const commonPhrases = [
@@ -92,10 +92,10 @@ onUnmounted(() => {
         <div class="chat-selector-modal" ref="modalRef">
             <div class="modal-header">
                 <div class="tabs">
-                    <div :class="{ 'tab-item': true, active: activeTab === 'phrases' }" @click="activeTab = 'phrases'">
-                        常用语</div>
                     <div :class="{ 'tab-item': true, active: activeTab === 'emojis' }" @click="activeTab = 'emojis'">表情
                     </div>
+                    <div :class="{ 'tab-item': true, active: activeTab === 'phrases' }" @click="activeTab = 'phrases'">
+                        常用语</div>
                 </div>
                 <div class="close-btn" @click="closeModal">×</div>
             </div>

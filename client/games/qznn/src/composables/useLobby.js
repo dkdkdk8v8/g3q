@@ -159,6 +159,7 @@ export function useLobby() {
             currentMode.value = Number(route.query.mode);
         }
         userStore.lastSelectedMode = currentMode.value;
+        gameStore.gameMode = currentMode.value;
 
         gameClient.on('QZNN.UserInfo', (msg) => {
             userStore.updateUserInfo({

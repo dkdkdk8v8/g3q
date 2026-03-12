@@ -550,14 +550,15 @@ export const useGameStore = defineStore('game', () => {
 
     // 初始化（模拟进入房间）
     const initGame = (mode = 0) => {
+        // gameMode 始终从 URL mode 参数设置，不受 roomId 状态影响
+        gameMode.value = parseInt(mode); // Ensure number
+
         // If we already have a room ID (e.g. from joinRoom response arriving before this call), do not wipe state
-        // Check if roomId has a non-empty value
         if (roomId.value !== '') {
             return;
         }
 
         stopAllTimers();
-        gameMode.value = parseInt(mode); // Ensure number
 
         // Temporarily set to 'me' until actual join
         players.value = [];

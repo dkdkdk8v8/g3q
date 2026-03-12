@@ -63,7 +63,11 @@ func (bm *DaemonRunner) Run(runner Runner) {
 	for sig := range sigChan {
 		switch sig {
 		case syscall.SIGTERM, os.Interrupt:
-			runner.Stop(&bm.Ctx)
+			if err := runner.Stop(&bm.Ctx); err != nil {
+				// Stop 返回错误表示中止停服（如快照失败），保持运行等待下次信号
+				logrus.WithError(err).Error("Stop aborted, server keeps running. Send signal again to retry.")
+				continue
+			}
 			return
 		case syscall.SIGHUP:
 			// Handle SIGHUP signal if needed

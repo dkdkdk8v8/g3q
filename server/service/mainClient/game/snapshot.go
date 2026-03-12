@@ -12,11 +12,15 @@ import (
 )
 
 const snapshotRedisKey = "g3q:snapshot"
+const snapshotRedisTTL = 300 // 5分钟 TTL，给部署留足够时间
 
 // GracefulSnapshot coordinates a snapshot barrier across all QZNN rooms.
 // Active (in-game) rooms are asked to pause at a safe point; idle rooms are
-// snapshotted immediately. Returns all snapshots or an error on timeout.
+// snapshotted immediately.
+// 如果超时，释放所有房间并返回错误，调用方应中止停服流程。
 func (rm *RoomManager) GracefulSnapshot(timeout time.Duration) ([]*qznn.RoomSnapshot, error) {
+	snapshotStart := time.Now()
+
 	// Step 1: collect all rooms from the actor thread.
 	rooms := syncOp(rm, func(s *managerState) []*qznn.QZNNRoom {
 		out := make([]*qznn.QZNNRoom, 0, len(s.rooms))
@@ -35,9 +39,9 @@ func (rm *RoomManager) GracefulSnapshot(timeout time.Duration) ([]*qznn.RoomSnap
 	release := make(chan struct{})
 
 	var (
-		idleSnapshots  []*qznn.RoomSnapshot
-		activeRooms    []*qznn.QZNNRoom
-		readyChannels  []<-chan struct{}
+		idleSnapshots []*qznn.RoomSnapshot
+		activeRooms   []*qznn.QZNNRoom
+		readyChannels []<-chan struct{}
 	)
 
 	for _, r := range rooms {
@@ -62,12 +66,19 @@ func (rm *RoomManager) GracefulSnapshot(timeout time.Duration) ([]*qznn.RoomSnap
 	timer := time.NewTimer(timeout)
 	defer timer.Stop()
 
+	waitStart := time.Now()
 	for i, ch := range readyChannels {
 		select {
 		case <-ch:
 			// Room i is ready.
 		case <-timer.C:
+			// 超时: 释放所有已暂停的房间，让它们继续运行
 			close(release)
+			logrus.WithFields(logrus.Fields{
+				"blockedRoom": activeRooms[i].ID,
+				"ready":       i,
+				"total":       len(activeRooms),
+			}).Error("GracefulSnapshot: 超时！有房间未能到达安全点，中止快照，不停服，请检查问题")
 			return nil, fmt.Errorf("GracefulSnapshot: timed out waiting for room %s (ready %d/%d)",
 				activeRooms[i].ID, i, len(activeRooms))
 		}
@@ -86,7 +97,11 @@ func (rm *RoomManager) GracefulSnapshot(timeout time.Duration) ([]*qznn.RoomSnap
 	close(release)
 
 	allSnapshots := append(idleSnapshots, activeSnapshots...)
-	logrus.WithField("total", len(allSnapshots)).Info("GracefulSnapshot: completed")
+	logrus.WithFields(logrus.Fields{
+		"total":       len(allSnapshots),
+		"waitElapsed": time.Since(waitStart).String(),
+		"totalElapsed": time.Since(snapshotStart).String(),
+	}).Info("GracefulSnapshot: completed")
 	return allSnapshots, nil
 }
 
@@ -118,8 +133,7 @@ func (rm *RoomManager) RestoreFromSnapshots(snapshots []*qznn.RoomSnapshot) {
 	logrus.WithField("count", len(restored)).Info("RestoreFromSnapshots: rooms restored")
 }
 
-// SaveSnapshotsToRedis serializes snapshots to JSON and writes them to Redis
-// with a 60-second TTL.
+// SaveSnapshotsToRedis serializes snapshots to JSON and writes them to Redis.
 func SaveSnapshotsToRedis(snapshots []*qznn.RoomSnapshot) error {
 	data, err := json.Marshal(snapshots)
 	if err != nil {
@@ -129,34 +143,42 @@ func SaveSnapshotsToRedis(snapshots []*qznn.RoomSnapshot) error {
 	conn := rds.DefConnPool.Pool.Get()
 	defer conn.Close()
 
-	_, err = conn.Do("SET", snapshotRedisKey, data, "EX", 60)
+	_, err = conn.Do("SET", snapshotRedisKey, data, "EX", snapshotRedisTTL)
 	if err != nil {
 		return fmt.Errorf("SaveSnapshotsToRedis: redis SET error: %w", err)
 	}
 
-	logrus.WithField("bytes", len(data)).Info("SaveSnapshotsToRedis: saved")
+	logrus.WithField("bytes", len(data)).WithField("ttl", snapshotRedisTTL).Info("SaveSnapshotsToRedis: saved")
 	return nil
 }
 
 // LoadSnapshotsFromRedis reads snapshots from Redis, deserializes them, and
-// deletes the key. Returns nil if the key does not exist.
+// atomically deletes the key. Returns nil if the key does not exist.
 func LoadSnapshotsFromRedis() []*qznn.RoomSnapshot {
 	conn := rds.DefConnPool.Pool.Get()
 	defer conn.Close()
 
-	data, err := redis.Bytes(conn.Do("GET", snapshotRedisKey))
+	// 使用 GETDEL 原子操作: 读取并删除，防止两个进程同时消费同一份快照
+	data, err := redis.Bytes(conn.Do("GETDEL", snapshotRedisKey))
 	if err != nil {
 		if err == redis.ErrNil {
 			logrus.Info("LoadSnapshotsFromRedis: no snapshot found in Redis")
 			return nil
 		}
-		logrus.WithError(err).Error("LoadSnapshotsFromRedis: redis GET error")
-		return nil
-	}
-
-	// Delete the key immediately so it is not consumed twice.
-	if _, err := conn.Do("DEL", snapshotRedisKey); err != nil {
-		logrus.WithError(err).Warn("LoadSnapshotsFromRedis: redis DEL error")
+		// GETDEL 需要 Redis 6.2+，如果不支持则回退到 GET+DEL
+		logrus.WithError(err).Warn("LoadSnapshotsFromRedis: GETDEL failed, fallback to GET+DEL")
+		data, err = redis.Bytes(conn.Do("GET", snapshotRedisKey))
+		if err != nil {
+			if err == redis.ErrNil {
+				logrus.Info("LoadSnapshotsFromRedis: no snapshot found in Redis")
+				return nil
+			}
+			logrus.WithError(err).Error("LoadSnapshotsFromRedis: redis GET error")
+			return nil
+		}
+		if _, err := conn.Do("DEL", snapshotRedisKey); err != nil {
+			logrus.WithError(err).Warn("LoadSnapshotsFromRedis: redis DEL error")
+		}
 	}
 
 	var snapshots []*qznn.RoomSnapshot

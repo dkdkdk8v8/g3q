@@ -197,14 +197,18 @@ func (w *mainClientWork) Stop(baseCtx *initMain.BaseCtx) error {
 	// 1. 快照所有房间状态(最多等10秒)
 	snapshots, err := game.GetMgr().GracefulSnapshot(10 * time.Second)
 	if err != nil {
-		logrus.WithError(err).Error("Stop: GracefulSnapshot failed")
-	} else if len(snapshots) > 0 {
+		// 快照超时: 有房间未能到达安全点，中止停服，保持运行以便排查
+		logrus.WithError(err).Error("Stop: GracefulSnapshot超时，中止停服！请检查卡住的房间状态")
+		return fmt.Errorf("stop aborted: %w", err)
+	}
+
+	if len(snapshots) > 0 {
 		// 2. 保存快照到 Redis
 		if err := game.SaveSnapshotsToRedis(snapshots); err != nil {
-			logrus.WithError(err).Error("Stop: SaveSnapshotsToRedis failed")
-		} else {
-			logrus.WithField("count", len(snapshots)).Info("Stop: 快照已保存到Redis")
+			logrus.WithError(err).Error("Stop: SaveSnapshotsToRedis failed，中止停服！")
+			return fmt.Errorf("stop aborted: %w", err)
 		}
+		logrus.WithField("count", len(snapshots)).Info("Stop: 快照已保存到Redis")
 	} else {
 		logrus.Info("Stop: 没有房间需要快照")
 	}

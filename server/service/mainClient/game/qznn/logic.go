@@ -591,7 +591,28 @@ func (r *QZNNRoom) WaitSleep(wait time.Duration) {
 	if wait <= 0 {
 		return
 	}
-	time.Sleep(wait)
+	deadline := time.Now().Add(wait)
+	for {
+		remaining := time.Until(deadline)
+		if remaining <= 0 {
+			return
+		}
+		select {
+		case <-time.After(remaining):
+			return
+		case <-r.snapshotReq:
+			// 收到快照请求，立即暂停并等待协调器完成
+			select {
+			case r.snapshotReadyCh <- struct{}{}:
+			default:
+			}
+			<-r.snapshotRelCh
+			// 释放后继续等待剩余时间（回到 for 循环重新计算 remaining）
+		case <-r.driverGo:
+			// 房间销毁
+			return
+		}
+	}
 }
 
 func (r *QZNNRoom) WaitStateLeftTicker() {
@@ -1018,8 +1039,13 @@ func (r *QZNNRoom) gameLoop() {
 			r.doBankerSelection()
 
 		case StateRandomBank:
-			// 恢复时庄家还没选，重新从 CallMult 推导
-			r.doBankerSelection()
+			if r.BankerID != "" {
+				// 快照恢复: 庄家已确定，跳过重新选庄直接进入确认
+				r.SetStatus([]RoomState{StateRandomBank}, StateBankerConfirm, 0)
+			} else {
+				// 庄家未确定，重新从 CallMult 推导
+				r.doBankerSelection()
+			}
 
 		case StateBankerConfirm:
 			r.WaitSleep(time.Second * SecStateConfirmBanking)
@@ -1102,19 +1128,20 @@ func (r *QZNNRoom) doBankerSelection() {
 		bRandomBanker = true
 	}
 
-	if bRandomBanker {
-		if r.State != StateRandomBank {
-			r.SetStatus([]RoomState{StateBanking}, StateRandomBank, 0)
-		}
-		r.WaitSleep(time.Second * SecStateBankingRandom)
-	}
-
-	if len(candidates) > 0 {
+	// 先确定庄家，再播放动画。这样即使动画期间触发快照，BankerID 已经确定不会变。
+	if len(candidates) > 0 && r.BankerID == "" {
 		banker := candidates[rand.Intn(len(candidates))]
 		r.SetBankerId(banker.ID)
 		if banker.CallMult <= 0 {
 			banker.CallMult = r.Config.BankerMult[0]
 		}
+	}
+
+	if bRandomBanker {
+		if r.State != StateRandomBank {
+			r.SetStatus([]RoomState{StateBanking}, StateRandomBank, 0)
+		}
+		r.WaitSleep(time.Second * SecStateBankingRandom)
 	}
 
 	if r.CanLog() {

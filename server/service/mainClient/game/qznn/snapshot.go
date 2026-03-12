@@ -23,10 +23,11 @@ type RoomSnapshot struct {
 	CreateAt time.Time   `json:"CreateAt"`
 
 	// Game state
-	State           RoomState `json:"State"`
-	StateLeftSec    int       `json:"StateLeftSec"`
-	BankerID        string    `json:"BankerID"`
-	StrategyApplied bool      `json:"StrategyApplied"`
+	State                RoomState `json:"State"`
+	StateLeftSec         int       `json:"StateLeftSec"`
+	BankerID             string    `json:"BankerID"`
+	StrategyApplied      bool      `json:"StrategyApplied"`
+	LastRealPlayerJoinAt time.Time `json:"LastRealPlayerJoinAt"`
 
 	// Cards and strategy
 	Deck          []int          `json:"Deck"`
@@ -74,16 +75,17 @@ func (r *QZNNRoom) TakeSnapshot() *RoomSnapshot {
 	}
 
 	snap := &RoomSnapshot{
-		ID:              r.ID,
-		GameID:          r.GameID,
-		Config:          r.Config,
-		CreateAt:        r.CreateAt,
-		State:           r.State,
-		StateLeftSec:    r.StateLeftSec,
-		BankerID:        r.BankerID,
-		StrategyApplied: r.strategyApplied,
-		TotalBet:        r.TotalBet,
-		AllIsRobot:      r.AllIsRobot,
+		ID:                   r.ID,
+		GameID:               r.GameID,
+		Config:               r.Config,
+		CreateAt:             r.CreateAt,
+		State:                r.State,
+		StateLeftSec:         r.StateLeftSec,
+		BankerID:             r.BankerID,
+		StrategyApplied:      r.strategyApplied,
+		LastRealPlayerJoinAt: r.LastRealPlayerJoinAt,
+		TotalBet:             r.TotalBet,
+		AllIsRobot:           r.AllIsRobot,
 		TargetResults:   make(map[string]int, len(r.TargetResults)),
 		Deck:            make([]int, len(r.Deck)),
 		Players:         make([]PlayerSnapshot, 0, 5),
@@ -162,13 +164,14 @@ func RestoreFromSnapshot(snap *RoomSnapshot) *QZNNRoom {
 
 	r := &QZNNRoom{
 		QZNNRoomData: QZNNRoomData{
-			ID:       snap.ID,
-			GameID:   snap.GameID,
-			State:    snap.State,
-			BankerID: snap.BankerID,
-			Players:  make([]*Player, 5),
-			Config:   snap.Config,
-			CreateAt: snap.CreateAt,
+			ID:                   snap.ID,
+			GameID:               snap.GameID,
+			State:                snap.State,
+			BankerID:             snap.BankerID,
+			Players:              make([]*Player, 5),
+			Config:               snap.Config,
+			CreateAt:             snap.CreateAt,
+			LastRealPlayerJoinAt: snap.LastRealPlayerJoinAt,
 		},
 		Deck:            make([]int, len(snap.Deck)),
 		TargetResults:   make(map[string]int, len(snap.TargetResults)),

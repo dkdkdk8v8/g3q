@@ -116,11 +116,13 @@ func NewRoom(id string, bankerType, level int) *QZNNRoom {
 			BankerID: "",
 			CreateAt: time.Now(),
 		},
-		TargetResults: make(map[string]int, 5),
-		Deck:          []int{},
-		driverGo:      make(chan struct{}),
-		AllIsRobot:    true,
-		Strategy:      NewRoomStrategy(), // 初始化策略模块
+		TargetResults:   make(map[string]int, 5),
+		Deck:            []int{},
+		driverGo:        make(chan struct{}),
+		AllIsRobot:      true,
+		Strategy:        NewRoomStrategy(),
+		snapshotReq:     make(chan struct{}, 1),
+		snapshotReadyCh: make(chan struct{}, 1),
 	}
 	nRoom.Config = *GetConfig(level)
 	nRoom.Config.BankerType = bankerType
@@ -589,7 +591,28 @@ func (r *QZNNRoom) WaitSleep(wait time.Duration) {
 	if wait <= 0 {
 		return
 	}
-	time.Sleep(wait)
+	deadline := time.Now().Add(wait)
+	for {
+		remaining := time.Until(deadline)
+		if remaining <= 0 {
+			return
+		}
+		select {
+		case <-time.After(remaining):
+			return
+		case <-r.snapshotReq:
+			// 收到快照请求，立即暂停并等待协调器完成
+			select {
+			case r.snapshotReadyCh <- struct{}{}:
+			default:
+			}
+			<-r.snapshotRelCh
+			// 释放后继续等待剩余时间（回到 for 循环重新计算 remaining）
+		case <-r.driverGo:
+			// 房间销毁
+			return
+		}
+	}
 }
 
 func (r *QZNNRoom) WaitStateLeftTicker() {
@@ -605,6 +628,9 @@ func (r *QZNNRoom) WaitStateLeftTicker() {
 		if left <= 0 {
 			return
 		}
+
+		// 在等待期间响应快照请求，确保长等待状态(8s抢庄/下注/亮牌)能及时暂停
+		r.snapshotCheckpoint()
 
 		select {
 		case <-r.driverGo: // 房间销毁
@@ -914,26 +940,25 @@ func (r *QZNNRoom) logicTick() {
 }
 
 func (r *QZNNRoom) startGame() {
+	r.inGame.Store(true)
+	defer r.inGame.Store(false)
 
 	r.GameID = fmt.Sprintf("%d_%s", time.Now().Unix(), r.ID)
 	if r.CanLog() {
 		logrus.WithField("gameId", r.GameID).WithField("roomId", r.ID).Info("GameStart")
 	}
 
-	// 每次游戏开始前更新策略参数
 	r.UpdateStrategyParams()
+	r.strategyApplied = false
 
 	//保底的检查，用户能不能玩，至少2个有效用户，不够要再踢回waiting
 	activePlayer := r.GetActivePlayers(nil)
-	var activePlayerIds []string
-	for _, p := range activePlayer {
-		activePlayerIds = append(activePlayerIds, p.ID)
-	}
 	if r.CanLog() {
+		var activePlayerIds []string
+		for _, p := range activePlayer {
+			activePlayerIds = append(activePlayerIds, p.ID)
+		}
 		logrus.WithField("gameId", r.GameID).WithField("roomId", r.ID).WithField("players", activePlayerIds).Info("GameStart-ActivePlayers")
-	}
-
-	if r.CanLog() {
 		balanceLog := make(map[string]int64)
 		for _, p := range activePlayer {
 			p.Mu.RLock()
@@ -949,7 +974,6 @@ func (r *QZNNRoom) startGame() {
 	for _, p := range allPlayers {
 		if p != nil {
 			if _, ok := playerSet[p.ID]; ok {
-				//有相同id用户
 				logrus.WithField("!", nil).WithField("roomId", r.ID).WithField("duplicateId", p.ID).Error("InvalidPlayerCountForGame-Duplicate")
 				r.SetStatus([]RoomState{StateStartGame}, StateWaiting, 0)
 				return
@@ -957,8 +981,6 @@ func (r *QZNNRoom) startGame() {
 			playerSet[p.ID] = p
 		}
 	}
-
-	//todo::检查用户的modelUser 里面的 balance_lock 和 player 的balance 是否相等
 
 	if len(activePlayer) < 2 {
 		logrus.WithField("!", nil).WithField("roomId", r.ID).WithField("playerCount", len(activePlayer)).Error("InvalidPlayerCountForGame-NotEnough")
@@ -968,62 +990,125 @@ func (r *QZNNRoom) startGame() {
 
 	//准备牌堆并发牌
 	r.prepareDeck()
-	playerCardLog := logrus.Fields{}
-	for _, p := range r.GetActivePlayers(nil) {
-		p.Mu.RLock()
-		playerCardLog[p.ID] = logrus.Fields{
-			"cards":  p.Cards,
-			"target": r.TargetResults[p.ID],
-		}
-		p.Mu.RUnlock()
-	}
 	if r.CanLog() {
+		playerCardLog := logrus.Fields{}
+		for _, p := range r.GetActivePlayers(nil) {
+			p.Mu.RLock()
+			playerCardLog[p.ID] = logrus.Fields{
+				"cards":  p.Cards,
+				"target": r.TargetResults[p.ID],
+			}
+			p.Mu.RUnlock()
+		}
 		logrus.WithField("gameId", r.GameID).WithField("deck_len", len(r.Deck)).WithField("players_cards", playerCardLog).Info("PrepareDeck")
 	}
 
-	r.WaitStateLeftTicker()
+	// 进入状态驱动的游戏主循环
+	r.gameLoop()
+}
 
-	if BankerTypeNoLook != r.Config.BankerType {
-		//预发牌
-		if !r.SetStatus([]RoomState{StateStartGame}, StatePreCard, 0) {
-			logrus.WithField("gameId", r.GameID).Error("Room-StatusChange-Fail-preGiveCards")
+// gameLoop 是状态驱动的游戏主循环。
+// startGame() 和 resumeGame() 都调用此方法。
+// 正常开局从 StateStartGame 开始; 快照恢复从当前 State 继续。
+func (r *QZNNRoom) gameLoop() {
+	for {
+		// 每个状态入口都是安全的快照检查点
+		r.snapshotCheckpoint()
+
+		switch r.State {
+		case StateStartGame:
+			r.WaitStateLeftTicker()
+			if BankerTypeNoLook != r.Config.BankerType {
+				if !r.SetStatus([]RoomState{StateStartGame}, StatePreCard, 0) {
+					return
+				}
+			} else {
+				if !r.SetStatus([]RoomState{StateStartGame}, StateBanking, SecStateCallBanking) {
+					return
+				}
+			}
+
+		case StatePreCard:
+			r.WaitSleep(time.Second * SecStatePrecard)
+			if !r.SetStatus([]RoomState{StatePreCard}, StateBanking, SecStateCallBanking) {
+				return
+			}
+
+		case StateBanking:
+			r.WaitStateLeftTicker()
+			r.doBankerSelection()
+
+		case StateRandomBank:
+			if r.BankerID != "" {
+				// 快照恢复: 庄家已确定，跳过重新选庄直接进入确认
+				r.SetStatus([]RoomState{StateRandomBank}, StateBankerConfirm, 0)
+			} else {
+				// 庄家未确定，重新从 CallMult 推导
+				r.doBankerSelection()
+			}
+
+		case StateBankerConfirm:
+			r.WaitSleep(time.Second * SecStateConfirmBanking)
+			if !r.SetStatus([]RoomState{StateBankerConfirm}, StateBetting, SecStateBeting) {
+				return
+			}
+
+		case StateBetting:
+			r.WaitStateLeftTicker()
+			r.doFinalizeAndDeal()
+
+		case StateDealing:
+			r.WaitSleep(time.Second * SecStateDealing)
+			if !r.SetStatus([]RoomState{StateDealing}, StateShowCard, SecStateShowCard) {
+				return
+			}
+
+		case StateShowCard:
+			r.WaitStateLeftTicker()
+			r.doSettlement()
+
+		case StateSettling:
+			r.WaitSleep(time.Second * SecStateSetting)
+			r.doPostSettlement()
+			return // 一局结束
+
+		default:
 			return
 		}
-		//预先发牌动画，看3s后
-		r.WaitSleep(time.Second * SecStatePrecard)
-
 	}
-	//抢庄
-	if !r.SetStatus([]RoomState{StateStartGame, StatePreCard}, StateBanking, SecStateCallBanking) {
-		logrus.WithField("gameId", r.GameID).Error("Room-StatusChange-Fail-callBanker")
-		return
-	}
+}
 
-	//开始抢,等倒计时
-	r.WaitStateLeftTicker()
+// doBankerSelection 从 CallMult 数据推导庄家 (正常流程和快照恢复共用)
+func (r *QZNNRoom) doBankerSelection() {
+	activePlayer := r.GetActivePlayers(nil)
+
+	// 超时未抢庄的设为0
+	for _, p := range activePlayer {
+		p.Mu.Lock()
+		if p.CallMult < 0 {
+			p.CallMult = 0
+		}
+		p.Mu.Unlock()
+	}
 
 	callBankerLog := logrus.Fields{}
-	for _, p := range r.GetActivePlayers(nil) {
+	for _, p := range activePlayer {
 		p.Mu.RLock()
 		callBankerLog[p.ID] = p.CallMult
 		p.Mu.RUnlock()
 	}
-
 	if r.CanLog() {
 		logrus.WithField("gameId", r.GameID).WithField("call_mults", callBankerLog).Info("CallBankerResults")
 	}
 
-	// 查看是否已经有人抢庄
 	allCallPlayer := r.GetActivePlayers(func(p *Player) bool {
 		return p.CallMult > 0
 	})
 
-	// 确定庄家候选人列表
 	var candidates []*Player
 	bRandomBanker := false
 
 	if len(allCallPlayer) > 0 {
-		// 1. 有人抢庄：找出抢庄倍数最高的玩家集合
 		maxMult := int64(0)
 		for _, p := range allCallPlayer {
 			if p.CallMult > maxMult {
@@ -1035,41 +1120,35 @@ func (r *QZNNRoom) startGame() {
 				candidates = append(candidates, p)
 			}
 		}
-		// 如果最高倍数有多人，标记为随机庄家
 		if len(candidates) > 1 {
 			bRandomBanker = true
 		}
 	} else {
-		// 2. 没人抢庄：所有活跃玩家参与随机
-		candidates = r.GetActivePlayers(nil)
+		candidates = activePlayer
 		bRandomBanker = true
 	}
-	for _, p := range activePlayer {
-		p.Mu.Lock()
-		if p.CallMult < 0 {
-			p.CallMult = 0
-		}
-		p.Mu.Unlock()
-	}
 
-	// 3. 如果是随机产生的庄家（多人同倍数 或 无人抢庄），播放定庄动画
-	if bRandomBanker {
-		r.SetStatus([]RoomState{StateBanking}, StateRandomBank, 0)
-		r.WaitSleep(time.Second * SecStateBankingRandom)
-	}
-	// 4. 确定庄家：从候选人中随机选取 (若只有1人，结果也是确定的)
-	if len(candidates) > 0 {
+	// 先确定庄家，再播放动画。这样即使动画期间触发快照，BankerID 已经确定不会变。
+	if len(candidates) > 0 && r.BankerID == "" {
 		banker := candidates[rand.Intn(len(candidates))]
 		r.SetBankerId(banker.ID)
 		if banker.CallMult <= 0 {
 			banker.CallMult = r.Config.BankerMult[0]
 		}
 	}
-	var candidateIds []string
-	for _, c := range candidates {
-		candidateIds = append(candidateIds, c.ID)
+
+	if bRandomBanker {
+		if r.State != StateRandomBank {
+			r.SetStatus([]RoomState{StateBanking}, StateRandomBank, 0)
+		}
+		r.WaitSleep(time.Second * SecStateBankingRandom)
 	}
+
 	if r.CanLog() {
+		var candidateIds []string
+		for _, c := range candidates {
+			candidateIds = append(candidateIds, c.ID)
+		}
 		logrus.WithField("gameId", r.GameID).
 			WithField("candidates", candidateIds).
 			WithField("is_random", bRandomBanker).
@@ -1078,27 +1157,12 @@ func (r *QZNNRoom) startGame() {
 	}
 
 	r.SetStatus([]RoomState{StateBanking, StateRandomBank}, StateBankerConfirm, 0)
+}
 
-	r.WaitSleep(time.Second * SecStateConfirmBanking)
+// doFinalizeAndDeal 下注结束后: 默认下注 + 策略控牌 + 进入发牌
+func (r *QZNNRoom) doFinalizeAndDeal() {
+	activePlayer := r.GetActivePlayers(nil)
 
-	//非庄家投注
-	if !r.SetStatus([]RoomState{StateBankerConfirm}, StateBetting, SecStateBeting) {
-		logrus.WithField("gameId", r.GameID).Error("Room-StatusChange-Fail-Betting")
-		return
-	}
-
-	r.WaitStateLeftTicker()
-
-	betLog := logrus.Fields{}
-	for _, p := range r.GetActivePlayers(nil) {
-		if p.ID != r.BankerID {
-			betLog[p.ID] = p.BetMult
-		}
-	}
-
-	r.WaitStateLeftTicker()
-
-	//处理非庄家最低投注备注
 	for _, p := range activePlayer {
 		if p.ID == r.BankerID {
 			continue
@@ -1107,30 +1171,31 @@ func (r *QZNNRoom) startGame() {
 			p.BetMult = r.Config.BetMult[0]
 		}
 	}
+
 	if r.CanLog() {
+		betLog := logrus.Fields{}
+		for _, p := range activePlayer {
+			if p.ID != r.BankerID {
+				betLog[p.ID] = p.BetMult
+			}
+		}
 		logrus.WithField("gameId", r.GameID).WithField("bets", betLog).Info("BetResults")
 	}
 
-	// 【核心修改】在此处介入策略系统
-	// 在进入 StateDealing (发牌/补牌) 之前，根据倍数和库存调整手牌
-	r.applyStrategyRiskControl()
+	if !r.strategyApplied {
+		r.applyStrategyRiskControl()
+		r.strategyApplied = true
+	}
 
-	//补牌到5张，不看牌发5张，看3补2，看4
 	if !r.SetStatus([]RoomState{StateBetting}, StateDealing, 0) {
 		logrus.WithField("gameId", r.GameID).Error("Room-StatusChange-Fail-Dealing")
-		return
 	}
+}
 
-	r.WaitSleep(time.Second * SecStateDealing)
+// doSettlement 结算: 计算牌型→DB事务→回写内存→切换到StateSettling
+func (r *QZNNRoom) doSettlement() {
+	activePlayer := r.GetActivePlayers(nil)
 
-	if !r.SetStatus([]RoomState{StateDealing}, StateShowCard, SecStateShowCard) {
-		logrus.WithField("gameId", r.GameID).Error("Room-StatusChange-Fail-ShowCard")
-		return
-	}
-	r.WaitStateLeftTicker()
-
-	//计算牛牛，分配balance
-	//查找banker
 	var bankerPlayer *Player
 	cardResultLog := logrus.Fields{}
 	for _, p := range activePlayer {
@@ -1149,7 +1214,6 @@ func (r *QZNNRoom) startGame() {
 
 	if bankerPlayer == nil {
 		logrus.WithField("gameId", r.GameID).WithField("bankerId", r.BankerID).Error("Room-BankerInvalid")
-		// 异常情况强制进入结算状态，避免房间卡死
 		r.SetStatus([]RoomState{StateShowCard}, StateSettling, 0)
 		return
 	}
@@ -1159,15 +1223,12 @@ func (r *QZNNRoom) startGame() {
 	}
 
 	TaxRate := r.Strategy.Config.TaxRate
-
-	// 1. 计算闲家输赢（暂不扣税，先算账）
 	type WinRecord struct {
 		PlayerID string
 		Amount   int64
 	}
 	var playerWins []WinRecord
 	var playerLoses []WinRecord
-
 	baseBet := r.Config.BaseBet
 
 	for _, p := range activePlayer {
@@ -1175,25 +1236,20 @@ func (r *QZNNRoom) startGame() {
 			continue
 		}
 		isPlayerWin := CompareCards(p.CardResult, bankerPlayer.CardResult)
-		// 闲家赢：底注 * 庄倍 * 闲倍 * 闲家牌型倍数
 		winAmount := baseBet * bankerMult * p.BetMult * p.CardResult.Mult
-		// 庄家赢：底注 * 庄倍 * 闲倍 * 庄家牌型倍数
 		loseAmount := baseBet * bankerMult * p.BetMult * bankerPlayer.CardResult.Mult
 		if isPlayerWin {
 			if winAmount > p.Balance {
 				winAmount = p.Balance
 			}
-			//赢庄家，需要下面计算庄家赔付和庄家本金
 			playerWins = append(playerWins, WinRecord{PlayerID: p.ID, Amount: winAmount})
 		} else {
 			if loseAmount > p.Balance {
-				//最多把自己的本金输光
 				loseAmount = p.Balance
 			}
-			// 单局亏损封顶
 			maxLoss := int64(math.Round(float64(p.Balance) * r.Strategy.Config.MaxLossRate))
 			if maxLoss < baseBet {
-				maxLoss = baseBet // 至少输1个底注
+				maxLoss = baseBet
 			}
 			if loseAmount > maxLoss {
 				loseAmount = maxLoss
@@ -1201,14 +1257,13 @@ func (r *QZNNRoom) startGame() {
 			playerLoses = append(playerLoses, WinRecord{PlayerID: p.ID, Amount: loseAmount})
 		}
 	}
-	preSettleLog := logrus.Fields{
-		"banker":             bankerPlayer.ID,
-		"banker_card_result": bankerPlayer.CardResult,
-		"player_wins":        playerWins,
-		"player_loses":       playerLoses,
-	}
 	if r.CanLog() {
-		logrus.WithField("gameId", r.GameID).WithField("pre_settlement", preSettleLog).Info("PreSettlement")
+		logrus.WithField("gameId", r.GameID).WithField("pre_settlement", logrus.Fields{
+			"banker":             bankerPlayer.ID,
+			"banker_card_result": bankerPlayer.CardResult,
+			"player_wins":        playerWins,
+			"player_loses":       playerLoses,
+		}).Info("PreSettlement")
 	}
 
 	// 先算输的闲家给庄家赔付
@@ -1223,7 +1278,6 @@ func (r *QZNNRoom) startGame() {
 	}
 
 	if playerLoss2Banker > bankerPlayer.Balance {
-		//庄家本金不够多，输的闲按庄本金比例赔
 		for _, rec := range playerLoses {
 			for _, p := range activePlayer {
 				if p.ID == rec.PlayerID {
@@ -1235,7 +1289,6 @@ func (r *QZNNRoom) startGame() {
 			}
 		}
 	} else {
-		//庄家本金足够
 		for _, rec := range playerLoses {
 			for _, p := range activePlayer {
 				if p.ID == rec.PlayerID {
@@ -1247,7 +1300,6 @@ func (r *QZNNRoom) startGame() {
 		}
 	}
 
-	//计算庄家输给闲家
 	bankerLoss2player := int64(0)
 	for _, rec := range playerWins {
 		for _, p := range activePlayer {
@@ -1257,19 +1309,14 @@ func (r *QZNNRoom) startGame() {
 			}
 		}
 	}
-	//bankerPlayer.BalanceChange 当前赢的闲家的
 	bankerTotalFunds := bankerPlayer.Balance + bankerPlayer.BalanceChange
 	if bankerLoss2player > bankerTotalFunds {
-		//闲赢的钱大于庄家本金加刚赢的闲家的钱，不够赔
 		totalDistributed := int64(0)
 		for i, rec := range playerWins {
 			for _, p := range activePlayer {
 				if p.ID == rec.PlayerID {
-					//已经限制 赢的闲的本金
 					var realWin int64
 					if i == len(playerWins)-1 {
-						//资金泄漏风险（浮点数精度问题）：在庄家爆庄（不够赔）进行按比例分配时，使用 math.Round 分别计算每个人的赢钱数，累加后可能不等于庄家可赔付的总金额（可能多出或少于1分钱），导致系统资金账目不平。
-						//在按比例分配时，最后一名玩家应直接获得剩余的全部金额，以确保总账平齐。
 						realWin = bankerTotalFunds - totalDistributed
 					} else {
 						realWin = int64(math.Round(float64(rec.Amount) * float64(bankerTotalFunds) / float64(bankerLoss2player)))
@@ -1280,15 +1327,12 @@ func (r *QZNNRoom) startGame() {
 				}
 			}
 		}
-		//庄家本金输光
 		bankerPlayer.BalanceChange = 0
 		bankerPlayer.BalanceChange -= bankerPlayer.Balance
 	} else {
-		//庄家够赔
 		for _, rec := range playerWins {
 			for _, p := range activePlayer {
 				if p.ID == rec.PlayerID {
-					//已经限制 赢的闲的本金
 					p.BalanceChange += rec.Amount
 					bankerPlayer.BalanceChange -= rec.Amount
 					break
@@ -1297,17 +1341,16 @@ func (r *QZNNRoom) startGame() {
 		}
 	}
 
-	// 4 有效投注
+	// 有效投注
 	for _, p := range activePlayer {
 		if p.BalanceChange < 0 {
 			p.ValidBet = -p.BalanceChange
 		} else {
 			p.ValidBet = p.BalanceChange
 		}
-
 	}
 
-	// 5. 扣税 (只扣赢家的)
+	// 扣税
 	taxLog := logrus.Fields{}
 	for _, p := range activePlayer {
 		if p.BalanceChange > 0 {
@@ -1324,7 +1367,7 @@ func (r *QZNNRoom) startGame() {
 		logrus.WithField("gameId", r.GameID).WithField("taxes", taxLog).Info("Taxes")
 	}
 
-	//内存预先结算
+	// 内存预先结算
 	finalBalanceChanges := logrus.Fields{}
 	for _, p := range activePlayer {
 		finalBalanceChanges[p.ID] = p.BalanceChange
@@ -1336,9 +1379,8 @@ func (r *QZNNRoom) startGame() {
 		logrus.WithField("gameId", r.GameID).WithField("final_balance_changes", finalBalanceChanges).Info("FinalBalanceChanges")
 	}
 
-	//结算状态
+	// 结算状态
 	if !r.SetStatus([]RoomState{StateShowCard}, StateSettling, 0) {
-		//todo:: log detail for recovery data
 		logrus.WithField("gameId", r.GameID).Error("Room-StatusChange-Fail-Settling")
 		return
 	}
@@ -1349,7 +1391,6 @@ func (r *QZNNRoom) startGame() {
 	nGameRecordId := int64(0)
 	if r.CanLog() {
 		roomBytes, _ := json.Marshal(qznnGameData{Room: r})
-		//产生对局记录
 		var err1 error
 		nGameRecordId, err1 = modelClient.InsertGameRecord(&modelClient.ModelGameRecord{
 			GameId:   r.GameID,
@@ -1360,9 +1401,7 @@ func (r *QZNNRoom) startGame() {
 		if err1 != nil {
 			logrus.WithField("gameId", r.GameID).WithError(err1).Error("InsertGameRecord-Fail")
 		} else {
-			if r.CanLog() {
-				logrus.WithField("gameId", r.GameID).WithField("recordId", nGameRecordId).Info("InsertGameRecord-Success")
-			}
+			logrus.WithField("gameId", r.GameID).WithField("recordId", nGameRecordId).Info("InsertGameRecord-Success")
 		}
 	}
 
@@ -1371,13 +1410,9 @@ func (r *QZNNRoom) startGame() {
 	for _, p := range activePlayer {
 		insertUserRecord := !p.IsRobot
 		if initMain.DefCtx.IsTest {
-			//非测试模式下，机器人不记录对局记录
 			insertUserRecord = true
 		}
-
-		// 计算待补偿金额变化量 (输赢取反)
 		pendingCompensateChange := -p.BalanceChange
-
 		settle.Players = append(settle.Players, modelClient.UserSettingStruct{
 			UserId:                  p.ID,
 			ChangeBalance:           p.BalanceChange,
@@ -1393,7 +1428,6 @@ func (r *QZNNRoom) startGame() {
 
 	modelUsers, err := modelClient.UpdateUserSetting(&settle)
 	if err != nil {
-		// 回滚内存中的余额，防止内存与数据库不一致
 		for _, p := range activePlayer {
 			p.Mu.Lock()
 			p.Balance -= p.BalanceChange
@@ -1416,12 +1450,9 @@ func (r *QZNNRoom) startGame() {
 
 	for _, modelU := range modelUsers {
 		for _, player := range activePlayer {
-			//用最新数据更新balance
 			if player.ID == modelU.UserId {
 				player.Mu.Lock()
-				//检查内存player 的balance和最终数据库的差异
 				if player.Balance != modelU.BalanceLock {
-					//可能外面有余额，这里和数据库有的不一样
 					if r.CanLog() {
 						logrus.WithField("gameId", r.GameID).
 							WithField("userId", player.ID).
@@ -1430,14 +1461,11 @@ func (r *QZNNRoom) startGame() {
 							Error("BalanceMismatchAfterSettle")
 					}
 				}
-				//最终以数据库的数据为准
 				player.Balance = modelU.BalanceLock
 				player.Mu.Unlock()
-				//同步更新内存中的策略数据 (确保下一局立即生效)
 				if sData, ok := r.Strategy.UserData[player.ID]; ok {
 					sData.PendingCompensate = modelU.PendingCompensate
 					sData.TotalProfit = modelU.TotalNetBalance
-					// 更新连胜/连败数据 (用于下一局策略计算)
 					sData.WinningStreak = modelU.WinningStreak
 					sData.LosingStreak = modelU.LosingStreak
 				}
@@ -1445,13 +1473,15 @@ func (r *QZNNRoom) startGame() {
 			}
 		}
 	}
+}
 
-	//客户端播放结算动画
-	r.WaitSleep(time.Second * SecStateSetting)
+// doPostSettlement 结算后收尾: ResetGameData + 踢余额不足的玩家 + 切换状态
+func (r *QZNNRoom) doPostSettlement() {
+	activePlayer := r.GetActivePlayers(nil)
 
-	//清理数据
 	r.ResetGameData()
-	//检查在线用户
+	r.strategyApplied = false
+
 	playerCount := r.getStartGamePlayerCount(true)
 	prepareSec := SecStatePrepareSec
 	nextState := StateWaiting
@@ -1465,10 +1495,8 @@ func (r *QZNNRoom) startGame() {
 	case 3:
 		prepareSec = SecStatePrepareSecPlayer3
 		nextState = StatePrepare
-	default:
 	}
 
-	//查看是否有余额是0的用户，是0即可让用户去lobby了
 	for _, p := range activePlayer {
 		if p.Balance < r.Config.MinBalance {
 			if r.Leave(p.ID) {

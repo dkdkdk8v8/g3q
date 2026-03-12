@@ -2,6 +2,7 @@ package qznn
 
 import (
 	"compoment/ws"
+	"sync/atomic"
 	"time"
 
 	"github.com/sasha-s/go-deadlock"
@@ -178,6 +179,50 @@ type QZNNRoom struct {
 	OnBotAction   func(room *QZNNRoom) `json:"-"`
 	AllIsRobot    bool                 `json:"-"` // 是否全是机器人
 	Strategy      *RoomStrategy        // 新增字段
+
+	// --- 热更新快照支持 ---
+	inGame          atomic.Bool    `json:"-"` // startGame/gameLoop 协程是否在运行
+	strategyApplied bool           `json:"-"` // 本局策略换牌是否已执行
+	snapshotReq     chan struct{}  `json:"-"` // 协调器发送快照请求 (buffered 1)
+	snapshotReadyCh chan struct{}  `json:"-"` // 房间信号: 已到安全点 (buffered 1)
+	snapshotRelCh   chan struct{}  `json:"-"` // 协调器信号: 快照完成可继续
+}
+
+// IsInGame returns true if a startGame/gameLoop goroutine is running.
+func (r *QZNNRoom) IsInGame() bool {
+	return r.inGame.Load()
+}
+
+// RequestSnapshot signals the room to pause at the next safe checkpoint.
+// release will be closed by the coordinator when the snapshot is done.
+func (r *QZNNRoom) RequestSnapshot(release chan struct{}) {
+	r.snapshotRelCh = release
+	select {
+	case r.snapshotReq <- struct{}{}:
+	default:
+	}
+}
+
+// SnapshotReady returns the channel that signals the room is at a safe point.
+func (r *QZNNRoom) SnapshotReady() <-chan struct{} {
+	return r.snapshotReadyCh
+}
+
+// snapshotCheckpoint is called at safe points inside gameLoop.
+// If a snapshot has been requested, it signals ready and blocks until released.
+func (r *QZNNRoom) snapshotCheckpoint() {
+	select {
+	case <-r.snapshotReq:
+		// Snapshot requested — signal we're at a safe point, then wait.
+		select {
+		case r.snapshotReadyCh <- struct{}{}:
+		default:
+		}
+		// Block until coordinator finishes the snapshot.
+		<-r.snapshotRelCh
+	default:
+		// No snapshot requested, continue.
+	}
 }
 
 func (r *QZNNRoom) ResetGameData() {

@@ -1892,7 +1892,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
                 <div class="phase-info" :style="store.currentPhase === 'WAITING_FOR_PLAYERS' ? { marginTop: '0' } : {}">
 
-                    <span v-if="store.currentPhase === 'WAITING_FOR_PLAYERS'">等待用户加入<span class="loading-dots"></span></span>
+                    <span v-if="store.currentPhase === 'WAITING_FOR_PLAYERS'" style="line-height: 1; display: flex; align-items: center;">等待用户加入<span class="loading-dots"></span></span>
 
                     <span v-else-if="store.currentPhase === 'READY_COUNTDOWN'">游戏即将开始 {{ store.countdown }}</span>
 

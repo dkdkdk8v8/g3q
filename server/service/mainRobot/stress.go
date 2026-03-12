@@ -2,13 +2,8 @@ package mainRobot
 
 import (
 	"context"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"math/rand"
-	"net/url"
 	"service/comm"
 	"service/mainClient/game"
 	"service/mainClient/game/qznn"
@@ -22,16 +17,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const STRESS_MONITOR_INTERVAL = 5  // 压测监控循环间隔(秒)
+const STRESS_MONITOR_INTERVAL = 5          // 压测监控循环间隔(秒)
 const STRESS_REPLENISH_BALANCE = 100000000 // 压测用户余额补充金额（100万元=1亿分）
-
-type GenericMsg struct {
-	Cmd      comm.CmdType    `json:"Cmd"`
-	PushType comm.PushType   `json:"PushType"`
-	Data     json.RawMessage `json:"Data"`
-	Code     int             `json:"Code"`
-	Msg      string          `json:"Msg"`
-}
 
 // StressUserRuntime 压测用户运行时状态
 type StressUserRuntime struct {
@@ -165,17 +152,7 @@ type StressUser struct {
 }
 
 func (s *StressUser) send(cmd comm.CmdType, data interface{}) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	wire := struct {
-		Cmd  comm.CmdType `json:"cmd"`
-		Data interface{}  `json:"data"`
-	}{Cmd: cmd, Data: data}
-	b, err := comm.MarshalMsgpack(wire)
-	if err != nil {
-		return err
-	}
-	return s.Conn.WriteMessage(websocket.BinaryMessage, b)
+	return SendWSMessage(s.Conn, &s.mu, cmd, data)
 }
 
 func (s *StressUser) close() {
@@ -189,24 +166,8 @@ func (s *StressUser) close() {
 
 // runStressUserOnce 执行一次压测用户连接周期
 func runStressUserOnce(user *modelClient.ModelUser, ctx context.Context) {
-	u := url.URL{
-		Scheme: "ws",
-		Host:   targetHost,
-		Path:   PATH_WS,
-	}
-	// 生成 LaunchToken
-	ts := time.Now().Unix()
-	mac := hmac.New(sha256.New, []byte(comm.LaunchTokenKey))
-	mac.Write([]byte(fmt.Sprintf("%s:%s:%d", user.AppId, user.AppUserId, ts)))
-	token := fmt.Sprintf("%x.%s", ts, hex.EncodeToString(mac.Sum(nil)))
-
-	q := u.Query()
-	q.Set("uid", user.AppUserId)
-	q.Set("app", user.AppId)
-	q.Set("token", token)
-	u.RawQuery = q.Encode()
-
-	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	wsURL := BuildWSURL(user.AppId, user.AppUserId)
+	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
 	if err != nil {
 		logrus.WithField("uid", user.UserId).Errorf("Stress: Connect failed: %v", err)
 		return
@@ -230,22 +191,12 @@ func runStressUserOnce(user *modelClient.ModelUser, ctx context.Context) {
 	defer close(done)
 
 	// 心跳协程
-	go func() {
-		ticker := time.NewTicker(5 * time.Second)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-done:
-				return
-			case <-ticker.C:
-				if err := su.send(game.CmdPingPong, nil); err != nil {
-					return
-				}
-			}
-		}
-	}()
+	go StartHeartbeat(func() error {
+		return su.send(game.CmdPingPong, nil)
+	}, done)
+
+	// 设置初始读超时
+	conn.SetReadDeadline(time.Now().Add(WS_READ_TIMEOUT * time.Second))
 
 	// 消息接收循环
 	for {
@@ -254,6 +205,8 @@ func runStressUserOnce(user *modelClient.ModelUser, ctx context.Context) {
 		if readErr != nil {
 			return
 		}
+		// 收到消息，重置读超时
+		conn.SetReadDeadline(time.Now().Add(WS_READ_TIMEOUT * time.Second))
 		if err := comm.DecodeMsgpackViaJSON(rawData, &msg); err != nil {
 			continue
 		}
@@ -292,19 +245,15 @@ func (s *StressUser) handlePush(pushType comm.PushType, data []byte) {
 			s.send(qznn.CmdPlayerJoin, joinReq)
 			logrus.WithField("uid", s.Uid).Info("Stress: Sent join room request")
 		} else if d.Router == znet.Game {
-			var room struct {
-				ID    string          `json:"ID"`
-				State qznn.RoomState  `json:"State"`
-				Config qznn.LobbyConfig `json:"Config"`
+			var rd struct {
+				Room json.RawMessage `json:"Room"`
 			}
-			if err := json.Unmarshal(data, &struct {
-				Room *json.RawMessage `json:"Room"`
-			}{Room: func() *json.RawMessage { r := json.RawMessage(data); return &r }()}); err == nil {
-				// 解析房间数据
-				var rd struct {
-					Room json.RawMessage `json:"Room"`
+			if err := json.Unmarshal(data, &rd); err == nil && len(rd.Room) > 0 {
+				var room struct {
+					ID     string           `json:"ID"`
+					State  qznn.RoomState   `json:"State"`
+					Config qznn.LobbyConfig `json:"Config"`
 				}
-				json.Unmarshal(data, &rd)
 				json.Unmarshal(rd.Room, &room)
 				s.mu.Lock()
 				s.RoomId = room.ID
@@ -315,8 +264,8 @@ func (s *StressUser) handlePush(pushType comm.PushType, data []byte) {
 
 	case qznn.PushChangeState:
 		var d struct {
-			State  qznn.RoomState   `json:"State"`
-			Room   *json.RawMessage `json:"Room"`
+			State qznn.RoomState   `json:"State"`
+			Room  *json.RawMessage `json:"Room"`
 		}
 		if err := json.Unmarshal(data, &d); err != nil {
 			return

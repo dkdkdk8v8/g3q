@@ -8,11 +8,16 @@ const HOST_DEV = "127.0.0.1:18084"
 const PATH_WS = "/rpc/ws"
 const PATH_RPC_DATA = "/rpc/qznn-data"
 
-const MIN_ROBOT_ROOMS = 0            // 纯机器人房间最少保持数量
+// Redis 持久化配置
+const RedisDbRobot = 9                    // 机器人状态专用 Redis DB
+const RedisKeyRobotMap = "robot:active_rooms" // Hash: userId → JSON{RoomId,Level,BankerType}
+const RedisSaveInterval = 10              // 状态保存间隔(秒)
+
 const MANAGER_LOOP_INTERVAL = 3      // 机器人管理循环间隔(秒)
 const ROBOT_JOIN_DELAY_MIN = 2       // 机器人进入延迟最小秒数(等待真人)
 const ROBOT_JOIN_DELAY_MAX = 5       // 机器人进入延迟最大秒数(等待真人)
-const MAX_ROBOTS_PER_ROOM = 4        // 每个房间最多机器人数
+const MAX_ROBOTS_PER_ROOM = 4        // 每个房间最多机器人数（有真人时）
+const MIN_ROBOTS_PER_ROOM = 1        // 每个房间最少机器人数（有真人时）
 const MIN_GAMES = 20                 // 机器人至少玩几局
 const PROB_LEAVE_5_PLAYERS = 0.2     // 5人时退出概率
 const PROB_LEAVE_4_PLAYERS = 0.15    // 4人时退出概率
@@ -20,7 +25,9 @@ const PROB_LEAVE_3_PLAYERS = 0.1     // 3人时退出概率
 const PROB_LEAVE_2_PLAYERS = 0.0     // 2人时退出概率
 const ROBOT_BALANCE_MULT_MIN = 30.0  // 机器人进入房间携带金额最小倍数
 const ROBOT_BALANCE_MULT_MAX = 100.0 // 机器人进入房间携带金额最大倍数
-const ROOM_LEAVE_COOLDOWN = 60       //  房间退出冷却时间(秒)
+const ROOM_LEAVE_COOLDOWN = 60       // 房间退出冷却时间(秒)
+const WS_WRITE_TIMEOUT = 10          // WebSocket 写超时(秒)
+const WS_READ_TIMEOUT = 30           // WebSocket 读超时(秒)，需大于心跳间隔
 
 // 机器人允许进入的房间等级配置
 var ALLOWED_LEVELS = []int{1, 2, 3, 4, 5, 6}

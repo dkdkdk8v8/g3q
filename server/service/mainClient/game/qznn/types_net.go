@@ -12,6 +12,7 @@ const (
 	CmdPlayerShowCard   comm.CmdType = QZNN_Prefix + "PlayerShowCard"
 	CmdTalk             comm.CmdType = QZNN_Prefix + "PlayerTalk"
 	CmdPlayerChangeRoom comm.CmdType = QZNN_Prefix + "PlayerChangeRoom"
+	CmdPlayerReady      comm.CmdType = QZNN_Prefix + "PlayerReady"
 )
 
 const (
@@ -24,6 +25,7 @@ const (
 	PushBalanceChange    comm.PushType = "PushBalanceChange"
 	PushTalk             comm.PushType = "PushTalk"
 	PushRoom             comm.PushType = "PushRoom"
+	PushPlayerReady      comm.PushType = "PushPlayerReady"
 )
 
 type PushChangeStateStruct struct {
@@ -56,6 +58,11 @@ type PushPlayerShowCardStruct struct {
 
 type PushRoomStruct struct {
 	Room *QZNNRoom
+}
+
+type PushPlayerReadyStruct struct {
+	Room   *QZNNRoom
+	UserId string
 }
 
 type PushTalkStruct struct {

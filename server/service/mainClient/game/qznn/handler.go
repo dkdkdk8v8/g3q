@@ -184,6 +184,40 @@ func HandleShowCards(r *QZNNRoom, userID string) error {
 	return nil
 }
 
+func HandlePlayerReady(r *QZNNRoom, userID string) error {
+	if r == nil {
+		return comm.NewMyError("房间不存在")
+	}
+
+	p, ok := r.GetPlayerByID(userID)
+	if !ok {
+		return comm.NewMyError("无效用户")
+	}
+
+	p.Mu.Lock()
+	if p.IsReady {
+		p.Mu.Unlock()
+		return comm.NewMyError("已确认坐桌")
+	}
+	p.IsReady = true
+	// 根据当前房间状态决定是否立即取消OB
+	if !r.CheckPlayerIsOb() {
+		p.IsOb = false
+	}
+	p.Mu.Unlock()
+
+	r.BroadcastWithPlayer(func(p *Player) any {
+		return comm.PushData{
+			Cmd:      comm.ServerPush,
+			PushType: PushPlayerReady,
+			Data: PushPlayerReadyStruct{
+				Room:   r.GetClientRoom(p.ID),
+				UserId: userID}}
+	})
+	r.logicTick()
+	return nil
+}
+
 func HanderPlayerChangeRoom(r *QZNNRoom, userID string) error {
 	if r == nil {
 		return comm.NewMyError("房间不存在")

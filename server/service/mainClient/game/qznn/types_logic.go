@@ -61,6 +61,7 @@ type PlayerData struct {
 	SeatNum       int        // 座位号
 	CardResult    CardResult `json:"-"`
 	IsOb          bool       // 是否观众
+	IsReady       bool       // 是否确认坐桌（准备参与游戏）
 	BalanceChange int64      // 本局输赢(税后)
 	Tax           int64      // 本局税收
 	ValidBet      int64      //有效投注流水
@@ -123,7 +124,7 @@ func (p *Player) ResetGameData() {
 	p.CardResult = CardResult{}
 	p.BalanceChange = 0
 	p.Tax = 0
-	p.IsOb = false
+	p.IsOb = !p.IsReady // 根据IsReady决定OB状态
 	p.ValidBet = 0
 }
 
@@ -244,7 +245,10 @@ func (r *QZNNRoom) resetOb() {
 	for _, p := range r.Players {
 		if p != nil {
 			p.Mu.Lock()
-			p.IsOb = false
+			if p.IsReady {
+				p.IsOb = false
+			}
+			// 未 ready 的玩家保持 OB
 			p.Mu.Unlock()
 		}
 	}

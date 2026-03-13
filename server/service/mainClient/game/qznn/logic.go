@@ -489,7 +489,14 @@ func (r *QZNNRoom) AddPlayer(p *Player) (int, error) {
 
 	p.Mu.Lock()
 	p.SeatNum = emptySeat
-	p.IsOb = bIsObState
+	// 机器人自动ready，真人需要手动确认坐桌
+	if p.IsRobot {
+		p.IsReady = true
+		p.IsOb = bIsObState
+	} else {
+		p.IsReady = false
+		p.IsOb = true // 未确认坐桌，强制OB
+	}
 	p.Mu.Unlock()
 
 	r.Players[emptySeat] = p

@@ -243,6 +243,17 @@ func handleSaveSetting(userId string, data []byte) error {
 	return nil
 }
 
+func handlePlayerReady(userId string, data []byte) error {
+	var req struct {
+		RoomId string
+	}
+	if err := json.Unmarshal(data, &req); err != nil {
+		return comm.ErrClientParam
+	}
+	room := game.GetMgr().GetRoomByRoomId(req.RoomId)
+	return qznn.HandlePlayerReady(room, userId)
+}
+
 func handlerPlayerTalk(userId string, data []byte) error {
 	var req struct {
 		RoomId string

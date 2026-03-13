@@ -299,9 +299,14 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 					"uid":     r.Uid,
 					"balance": bal,
 				}).Info("Robot - Successfully synced room entry")
-				// 进入房间后立即发送准备
-				r.Send(qznn.CmdPlayerReady, map[string]interface{}{"RoomId": room.ID})
-				r.handleStateChange(room.State)
+				// 进入房间后延迟发送准备（模拟真人）
+				roomID := room.ID
+				roomState := room.State
+				go func() {
+					time.Sleep(randomActionDelay())
+					r.Send(qznn.CmdPlayerReady, map[string]interface{}{"RoomId": roomID})
+					r.handleStateChange(roomState)
+				}()
 			}
 		}
 
@@ -452,8 +457,8 @@ func (r *Robot) handleStateChange(state qznn.RoomState) {
 			}
 		}()
 
-		// 模拟用户随机等待 1-3 秒
-		time.Sleep(time.Duration(ACTION_DELAY_MIN+rand.Intn(ACTION_DELAY_MAX-ACTION_DELAY_MIN+1)) * time.Second)
+		// 模拟用户随机等待
+		time.Sleep(randomActionDelay())
 
 		// 检查机器人是否已关闭，避免往已断开的连接发消息
 		r.mu.Lock()
@@ -561,8 +566,8 @@ func (r *Robot) checkLeave() {
 			}
 		}()
 
-		// 随机等待 1-3 秒
-		time.Sleep(time.Duration(ACTION_DELAY_MIN+rand.Intn(ACTION_DELAY_MAX-ACTION_DELAY_MIN+1)) * time.Second)
+		// 随机等待
+		time.Sleep(randomActionDelay())
 
 		r.mu.Lock()
 		if r.isClosing {

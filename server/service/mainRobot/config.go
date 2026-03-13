@@ -1,7 +1,9 @@
 package mainRobot
 
 import (
+	"math/rand"
 	"service/modelAdmin"
+	"time"
 
 	"github.com/sirupsen/logrus"
 )
@@ -9,6 +11,7 @@ import (
 var (
 	prevJoinDelay     [2]int
 	prevRobotsPerRoom [2]int
+	prevActionDelay   [2]int
 	configInitialized bool
 )
 
@@ -16,19 +19,21 @@ var (
 func checkConfigChanges() bool {
 	delayMin, delayMax := getJoinDelayRange()
 	robotsMin, robotsMax := getRobotsPerRoomRange()
+	actionMin, actionMax := getActionDelayRange()
 
 	if !configInitialized {
 		prevJoinDelay = [2]int{delayMin, delayMax}
 		prevRobotsPerRoom = [2]int{robotsMin, robotsMax}
+		prevActionDelay = [2]int{actionMin, actionMax}
 		configInitialized = true
-		logrus.Infof("Robot config loaded: joinDelaySeconds=[%d,%d], RobotsPerRoom=[%d,%d]",
-			delayMin, delayMax, robotsMin, robotsMax)
+		logrus.Infof("Robot config loaded: JoinDelaySeconds=[%d,%d], RobotsPerRoom=[%d,%d], ActionDelay=[%d,%d]",
+			delayMin, delayMax, robotsMin, robotsMax, actionMin, actionMax)
 		return false
 	}
 
 	changed := false
 	if delayMin != prevJoinDelay[0] || delayMax != prevJoinDelay[1] {
-		logrus.Infof("Robot config updated: joinDelaySeconds [%d,%d] → [%d,%d]",
+		logrus.Infof("Robot config updated: JoinDelaySeconds [%d,%d] → [%d,%d]",
 			prevJoinDelay[0], prevJoinDelay[1], delayMin, delayMax)
 		prevJoinDelay = [2]int{delayMin, delayMax}
 		changed = true
@@ -37,6 +42,12 @@ func checkConfigChanges() bool {
 		logrus.Infof("Robot config updated: RobotsPerRoom [%d,%d] → [%d,%d]",
 			prevRobotsPerRoom[0], prevRobotsPerRoom[1], robotsMin, robotsMax)
 		prevRobotsPerRoom = [2]int{robotsMin, robotsMax}
+		changed = true
+	}
+	if actionMin != prevActionDelay[0] || actionMax != prevActionDelay[1] {
+		logrus.Infof("Robot config updated: ActionDelay [%d,%d] → [%d,%d]",
+			prevActionDelay[0], prevActionDelay[1], actionMin, actionMax)
+		prevActionDelay = [2]int{actionMin, actionMax}
 		changed = true
 	}
 	return changed
@@ -68,9 +79,11 @@ const WS_WRITE_TIMEOUT = 10          // WebSocket 写超时(秒)
 const WS_READ_TIMEOUT = 30           // WebSocket 读超时(秒)，需大于心跳间隔
 const HEARTBEAT_INTERVAL = 5         // 心跳发送间隔(秒)
 const JOIN_ROOM_TIMEOUT = 30         // 进入房间超时(秒)
-const ACTION_DELAY_MIN = 1           // 模拟操作最小等待(秒)
-const ACTION_DELAY_MAX = 3           // 模拟操作最大等待(秒)
 const HTTP_FETCH_TIMEOUT = 10        // HTTP 请求超时(秒)
+
+// 模拟操作延迟默认值
+const DEFAULT_ACTION_DELAY_MIN = 1
+const DEFAULT_ACTION_DELAY_MAX = 3
 
 // 机器人允许进入的房间等级配置
 var ALLOWED_LEVELS = []int{1, 2, 3, 4, 5, 6}
@@ -78,11 +91,11 @@ var ALLOWED_LEVELS = []int{1, 2, 3, 4, 5, 6}
 // 机器人允许进入的玩法类型配置 (0:无看牌抢庄, 1:看三张牌抢庄, 2:看四张牌抢庄)
 var ALLOWED_BANKER_TYPES = []int{0, 1, 2}
 
-// getJoinDelayRange 从 robot.joinDelaySeconds 配置获取 [min, max] 延迟秒数
+// getJoinDelayRange 从 robot.JoinDelaySeconds 配置获取 [min, max] 延迟秒数
 const ROBOT_JOIN_DELAY_MIN = 2       // 机器人进入延迟最小秒数(等待真人)
 const ROBOT_JOIN_DELAY_MAX = 5       // 机器人进入延迟最大秒数(等待真人)
 func getJoinDelayRange() (min, max int) {
-	arr := modelAdmin.SysParamCache.GetIntArray("robot.joinDelaySeconds", []int{ROBOT_JOIN_DELAY_MIN, ROBOT_JOIN_DELAY_MAX})
+	arr := modelAdmin.SysParamCache.GetIntArray("robot.JoinDelaySeconds", []int{ROBOT_JOIN_DELAY_MIN, ROBOT_JOIN_DELAY_MAX})
 	if len(arr) >= 2 && arr[0] >= 0 && arr[1] >= arr[0] {
 		return arr[0], arr[1]
 	}
@@ -98,4 +111,22 @@ func getRobotsPerRoomRange() (min, max int) {
 		return arr[0], arr[1]
 	}
 	return MIN_ROBOTS_PER_ROOM, MAX_ROBOTS_PER_ROOM
+}
+
+// getActionDelayRange 从 robot.ActionDelay 配置获取 [min, max] 操作延迟秒数
+func getActionDelayRange() (min, max int) {
+	arr := modelAdmin.SysParamCache.GetIntArray("robot.ActionDelay", []int{DEFAULT_ACTION_DELAY_MIN, DEFAULT_ACTION_DELAY_MAX})
+	if len(arr) >= 2 && arr[0] >= 0 && arr[1] >= arr[0] {
+		return arr[0], arr[1]
+	}
+	return DEFAULT_ACTION_DELAY_MIN, DEFAULT_ACTION_DELAY_MAX
+}
+
+// randomActionDelay 返回配置范围内的随机延迟 Duration
+func randomActionDelay() time.Duration {
+	min, max := getActionDelayRange()
+	if max <= min {
+		return time.Duration(min) * time.Second
+	}
+	return time.Duration(min+rand.Intn(max-min+1)) * time.Second
 }

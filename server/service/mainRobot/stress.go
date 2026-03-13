@@ -259,9 +259,15 @@ func (s *StressUser) handlePush(pushType comm.PushType, data []byte) {
 				s.mu.Lock()
 				s.RoomId = room.ID
 				s.mu.Unlock()
-				// 进入房间后立即发送准备
-				s.send(qznn.CmdPlayerReady, map[string]interface{}{"RoomId": room.ID})
-				s.handleGameState(room.State, room.Config)
+				// 进入房间后延迟发送准备（模拟真人）
+				roomID := room.ID
+				roomState := room.State
+				roomConfig := room.Config
+				go func() {
+					time.Sleep(randomActionDelay())
+					s.send(qznn.CmdPlayerReady, map[string]interface{}{"RoomId": roomID})
+					s.handleGameState(roomState, roomConfig)
+				}()
 			}
 		}
 
@@ -292,8 +298,8 @@ func (s *StressUser) handlePush(pushType comm.PushType, data []byte) {
 // handleGameState 根据游戏状态执行操作(模拟真人行为)
 func (s *StressUser) handleGameState(state qznn.RoomState, config qznn.LobbyConfig) {
 	go func() {
-		// 模拟真人随机等待 1-3 秒
-		time.Sleep(time.Duration(ACTION_DELAY_MIN+rand.Intn(ACTION_DELAY_MAX-ACTION_DELAY_MIN+1)) * time.Second)
+		// 模拟真人随机等待
+		time.Sleep(randomActionDelay())
 
 		s.mu.Lock()
 		roomId := s.RoomId

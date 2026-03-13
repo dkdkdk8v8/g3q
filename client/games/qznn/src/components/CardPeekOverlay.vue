@@ -193,8 +193,8 @@ defineExpose({ startPeekAnimation });
                     <div v-for="item in snapshotHintList" :key="item.type" class="peek-hint-row">
                         <span class="peek-hint-type">凑出<span class="peek-hint-highlight">{{ item.name }}</span>需:</span>
                         <span class="peek-hint-cards">
-                            <span v-for="(c, i) in item.cards" :key="c.rawId" class="peek-hint-card">{{ c.display }}<span
-                                    v-if="i < item.cards.length - 1" class="peek-hint-sep">·</span></span>
+                            <span v-for="(c, i) in item.cards" :key="c.rawId" class="peek-hint-card">{{ c.display
+                                }}<span v-if="i < item.cards.length - 1" class="peek-hint-sep">·</span></span>
                         </span>
                     </div>
                 </div>
@@ -202,13 +202,11 @@ defineExpose({ startPeekAnimation });
                 <div class="card-flipper" :style="{ transform: `perspective(800px) rotateY(${flipAngle}deg)` }">
                     <!-- 牌背面（默认可见） -->
                     <div class="card-back-side">
-                        <div class="peek-card-back" :style="{ clipPath: backClip, backgroundImage: `url(${cardBackImg})` }"></div>
+                        <div class="peek-card-back"
+                            :style="{ clipPath: backClip, backgroundImage: `url(${cardBackImg})` }"></div>
 
                         <div v-if="foldSize > 0" class="fold-corner" :style="{ clipPath: foldClip }">
-                            <img v-if="cardImgUrl"
-                                :src="cardImgUrl"
-                                class="fold-face-img"
-                                :style="foldImgStyle" />
+                            <img v-if="cardImgUrl" :src="cardImgUrl" class="fold-face-img" :style="foldImgStyle" />
                             <div class="fold-shade"></div>
                         </div>
                     </div>
@@ -245,7 +243,7 @@ defineExpose({ startPeekAnimation });
 }
 
 .peek-backdrop.visible {
-    background: rgba(0, 0, 0, 0.75);
+    background: rgba(0, 0, 0, 0.85);
 }
 
 .peek-card {

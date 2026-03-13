@@ -3,6 +3,7 @@ package mainRobot
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"math/rand"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"service/mainClient/game/qznn"
 	"service/modelClient"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -31,10 +33,11 @@ func StartRobot() {
 
 // RobotRuntime 机器人运行时状态
 type RobotRuntime struct {
-	Cancel    context.CancelFunc
-	Action    RobotAction
-	UserId    string
-	StartedAt time.Time // 启动时间，用于僵尸检测
+	Cancel      context.CancelFunc
+	Action      RobotAction
+	UserId      string
+	StartedAt   time.Time    // 启动时间，用于僵尸检测
+	ShouldLeave atomic.Bool  // 配置变化时标记，机器人在下次结算后主动退出
 }
 
 var (
@@ -219,13 +222,15 @@ func cleanupExcessRobots(rooms []*RoomDataSimple) {
 		activeRobotsMu.Unlock()
 
 		for _, rt := range toCancel {
-			logrus.WithFields(logrus.Fields{
-				"uid":       rt.UserId,
-				"roomId":    room.ID,
-				"maxRobots": maxRobots,
-				"current":   len(robotPlayerIds),
-			}).Info("Robot - Removing excess robot due to RobotsPerRoom config change")
-			rt.Cancel()
+			if !rt.ShouldLeave.Load() {
+				logrus.WithFields(logrus.Fields{
+					"uid":       rt.UserId,
+					"roomId":    room.ID,
+					"maxRobots": maxRobots,
+					"current":   len(robotPlayerIds),
+				}).Info("Robot - Marking excess robot for graceful leave")
+				rt.ShouldLeave.Store(true)
+			}
 		}
 	}
 }
@@ -375,7 +380,7 @@ func planActions(rooms []*RoomDataSimple, pendingPerRoom map[string]int) []Robot
 		for i := 0; i < needRobots; i++ {
 			delay := delayMin
 			if delayMax > delayMin {
-				delay = (i + 1) * (delayMin + rand.Intn(delayMax-delayMin+1))
+				delay = delayMin + rand.Intn(delayMax-delayMin+1) + i*2
 			}
 			actions = append(actions, RobotAction{
 				Level:      room.Config.Level,
@@ -427,6 +432,8 @@ func fetchIdleRobots(count int) []*modelClient.ModelUser {
 	return result
 }
 
+var httpClient = &http.Client{Timeout: HTTP_FETCH_TIMEOUT * time.Second}
+
 // fetchRooms 获取房间列表
 func fetchRooms() ([]*RoomDataSimple, error) {
 	u := url.URL{
@@ -434,11 +441,15 @@ func fetchRooms() ([]*RoomDataSimple, error) {
 		Host:   targetHost,
 		Path:   PATH_RPC_DATA,
 	}
-	resp, err := http.Get(u.String())
+	resp, err := httpClient.Get(u.String())
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("fetchRooms: unexpected status %d", resp.StatusCode)
+	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -446,22 +457,17 @@ func fetchRooms() ([]*RoomDataSimple, error) {
 	}
 
 	var result struct {
-		Code int    `json:"code"`
-		Msg  string `json:"msg"`
-		Data string `json:"data"`
+		Code int                        `json:"code"`
+		Msg  string                     `json:"msg"`
+		Data map[string]*RoomDataSimple `json:"data"`
 	}
 
 	if err := json.Unmarshal(body, &result); err != nil {
 		return nil, err
 	}
 
-	var roomMap map[string]*RoomDataSimple
-	if err := json.Unmarshal([]byte(result.Data), &roomMap); err != nil {
-		return nil, err
-	}
-
 	var rooms []*RoomDataSimple
-	for _, r := range roomMap {
+	for _, r := range result.Data {
 		rooms = append(rooms, r)
 	}
 	return rooms, nil

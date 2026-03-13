@@ -25,7 +25,9 @@ export class GameRpcService extends BaseService {
         if (code !== 0) {
             throw new Error(`获取抢庄牛牛房间数据失败: ${msg}`);
         }
-        const qznnData = JSON.parse(data);
-        return qznnData;
+        if (!data) {
+            return {};
+        }
+        return JSON.parse(data);
     }
 }

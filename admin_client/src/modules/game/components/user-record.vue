@@ -43,9 +43,6 @@ v-show="item.expanded" v-if="item.record_type === RecordType.GAME && item.parsed
                                     <el-tag size="small" type="danger" effect="plain">{{
                                         options.qznn_room_level.find(i => i.value ===
                                             item.parsedGameData.Room.Config.Level)?.label}}</el-tag>
-                                    <el-tag size="small" type="warning" effect="plain">{{
-                                        options.qznn_room_type.find(i => i.value ===
-                                            item.parsedGameData.Room.Config.BankerType)?.label}}</el-tag>
                                 </div>
                                 <span class="room-id">{{ item.parsedGameData.Room.ID }}</span>
                             </div>
@@ -99,7 +96,6 @@ import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
 import { useCool } from "/@/cool";
 import { useDict } from '/$/dict';
 import { getCardResult } from "../utils/card";
-import { QznnRoomTypes, getQznnRoomTypeLabel } from "../utils/dict";
 import { ArrowRight } from "@element-plus/icons-vue";
 import PokerCard from "./poker-card.vue";
 
@@ -126,7 +122,6 @@ const { dict } = useDict();
 
 const options = reactive({
     qznn_room_level: dict.get("qznn_room_level"),
-    qznn_room_type: QznnRoomTypes,
 });
 
 const visible = ref(false);

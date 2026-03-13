@@ -67,7 +67,7 @@ func SendWSMessage(conn *websocket.Conn, mu *sync.Mutex, cmd comm.CmdType, data 
 
 // StartHeartbeat 启动心跳循环，done channel 关闭时终止
 func StartHeartbeat(sendFn func() error, done <-chan struct{}) {
-	ticker := time.NewTicker(5 * time.Second)
+	ticker := time.NewTicker(HEARTBEAT_INTERVAL * time.Second)
 	defer ticker.Stop()
 	for {
 		select {

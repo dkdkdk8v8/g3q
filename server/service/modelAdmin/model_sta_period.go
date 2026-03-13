@@ -18,9 +18,9 @@ type ModelStaPeriod struct {
 	GameUserCount      int       `orm:"column(gameUserCount);default(0)"`
 	GameCount          int       `orm:"column(gameCount);default(0)"`
 	BetCount           int       `orm:"column(betCount);default(0)"`
-	BetAmount          int       `orm:"column(betAmount);default(0)"`
-	GameWin            int       `orm:"column(gameWin);default(0)"`
-	TaxAmount          int       `orm:"column(taxAmount);default(0)"`
+	BetAmount          int64     `orm:"column(betAmount);default(0)"`
+	GameWin            int64     `orm:"column(gameWin);default(0)"`
+	TaxAmount          int64     `orm:"column(taxAmount);default(0)"`
 	FirstGameUserCount int       `orm:"column(firstGameUserCount);default(0)"`
 	FirstGameUserIds   string    `orm:"column(firstGameUserIds);type(json)"` // Stored as JSON string
 	CardResult         string    `orm:"column(cardResult);type(json)"`       // Stored as JSON string
@@ -39,9 +39,9 @@ func GetStaPeriod(userId string, date time.Time) (*ModelStaPeriod, error) {
 
 // 获取昨日所有period的数据，并统计 gameWin 的累加，BetAmount的累加
 // byday 0：今日 -1:昨日 -2:2天前  -3:3天前
-func GetStaPeriodByDay(byday int) (int, int) {
-	var totalGameWin int
-	var totalBetAmount int
+func GetStaPeriodByDay(byday int) (int64, int64) {
+	var totalGameWin int64
+	var totalBetAmount int64
 	bydayTime := util.AddDateWithoutLock(time.Now(), 0, 0, -byday)
 
 	ormDb := GetReadDb()

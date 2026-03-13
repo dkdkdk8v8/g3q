@@ -1530,14 +1530,14 @@ func (r *QZNNRoom) doPostSettlement() {
 func (r *QZNNRoom) UpdateStrategyParams() {
 	// 获取今日系统水位
 	win, turnover := modelAdmin.GetStaPeriodByDay(0)
-	r.Strategy.TodayProfit = int64(win)
-	r.Strategy.TodayTurnover = int64(turnover)
+	r.Strategy.TodayProfit = win
+	r.Strategy.TodayTurnover = turnover
 
 	// 获取昨日系统水位，计算杀率补偿
 	// 修改逻辑：不再计算差值比率，而是直接存储昨日的绝对值数据，用于后续加权平均
 	winYesterday, turnoverYesterday := modelAdmin.GetStaPeriodByDay(1)
-	r.Strategy.YesterdayProfit = int64(winYesterday)
-	r.Strategy.YesterdayTurnover = int64(turnoverYesterday)
+	r.Strategy.YesterdayProfit = winYesterday
+	r.Strategy.YesterdayTurnover = turnoverYesterday
 	r.Strategy.Log()
 }
 

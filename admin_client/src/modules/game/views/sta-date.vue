@@ -32,12 +32,6 @@ v-model="searchParams.roomLevel" :options="options.qznn_room_level" @change="ref
                     clearable placeholder="全部等级" style="width: 150px" />
             </cl-filter>
 
-            <!-- 房间类型筛选 -->
-            <cl-filter label="">
-                <cl-select
-v-model="searchParams.roomType" :options="options.qznn_room_type" @change="refresh" clearable
-                    placeholder="全部类型" style="width: 150px" />
-            </cl-filter>
         </cl-row>
 
         <cl-row>
@@ -46,7 +40,6 @@ v-model="searchParams.roomType" :options="options.qznn_room_type" @change="refre
                 <el-radio-button label="app">按APP</el-radio-button>
                 <el-radio-button label="game">按游戏</el-radio-button>
                 <el-radio-button label="roomLevel">按房间等级</el-radio-button>
-                <el-radio-button label="roomType">按房间类型</el-radio-button>
             </el-radio-group>
         </cl-row>
 
@@ -67,7 +60,6 @@ import { useDict } from '/$/dict';
 import { useOptions } from '/$/options';
 import { reactive, ref } from "vue";
 import dayjs from "dayjs";
-import { QznnRoomTypes, getQznnRoomTypeLabel } from "../utils/dict";
 import FormatMoney from "../components/format-money.vue";
 import { dateShortcuts } from "../utils/date-shortcuts";
 
@@ -81,7 +73,6 @@ const options = reactive({
     app_id: optionsStore.get("merchant_app"),
     game_name: dict.get("game_name"),
     qznn_room_level: dict.get("qznn_room_level"),
-    qznn_room_type: QznnRoomTypes,
 });
 
 // 日期范围默认最近30天
@@ -98,13 +89,12 @@ const searchParams = reactive({
     gameName: "",
     showType: "date",
     roomLevel: "",
-    roomType: "",
 });
 
 // 自定义Service
 const crudService = {
     page: async (params: any) => {
-        const { app, showType, startDate, endDate, gameName, roomLevel, roomType } = searchParams;
+        const { app, showType, startDate, endDate, gameName, roomLevel } = searchParams;
         const { sort, order } = params;
         const res = await service.game.staPeriod.getDateStats({
             startDate,
@@ -115,7 +105,6 @@ const crudService = {
             sort,
             order,
             roomLevel,
-            roomType
         });
 
         const list = res || [];
@@ -149,9 +138,6 @@ const Table = useTable({
                 }
                 if (searchParams.showType === "roomLevel") {
                     return options.qznn_room_level.find(i => String(row.title) === String(i.value))?.label || row.title || '未知';
-                }
-                if (searchParams.showType === "roomType") {
-                    return getQznnRoomTypeLabel(row.title);
                 }
                 return row.title;
             },

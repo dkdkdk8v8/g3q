@@ -20,19 +20,19 @@ export class StaUserEntity extends BaseEntity {
   @Column({ comment: '充值次数', default: 0 })
   depositCount: number;
 
-  @Column({ comment: '充值金额', default: 0 })
+  @Column({ comment: '充值金额', type: 'bigint', default: 0 })
   depositAmount: number;
 
   @Column({ comment: '提现次数', default: 0 })
   withdrawCount: number;
 
-  @Column({ comment: '提现金额', default: 0 })
+  @Column({ comment: '提现金额', type: 'bigint', default: 0 })
   withdrawAmount: number;
 
   @Column({ comment: '投注次数', default: 0 })
   betCount: number;
 
-  @Column({ comment: '投注金额', default: 0 })
+  @Column({ comment: '投注金额', type: 'bigint', default: 0 })
   betAmount: number;
 
   @Column({ comment: '胜利次数', default: 0 })
@@ -41,6 +41,6 @@ export class StaUserEntity extends BaseEntity {
   @Column({ comment: '当庄次数', default: 0 })
   bankerCount: number;
 
-  @Column({ comment: '输赢金额', default: 0 })
+  @Column({ comment: '输赢金额', type: 'bigint', default: 0 })
   betWin: number;
 }

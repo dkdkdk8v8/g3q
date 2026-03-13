@@ -52,7 +52,11 @@ func saveRobotsToRedis() {
 			Level:      action.Level,
 			BankerType: action.BankerType,
 		}
-		b, _ := json.Marshal(entry)
+		b, err := json.Marshal(entry)
+		if err != nil {
+			logrus.WithField("uid", uid).WithError(err).Error("Robot - Failed to marshal state entry")
+			continue
+		}
 		p.HSet(RedisKeyRobotMap, uid, string(b))
 	}
 	if err := p.Do(); err != nil {

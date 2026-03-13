@@ -24,15 +24,6 @@
     <!-- Filter Bar -->
     <div class="filter-bar">
       <div class="filter-group">
-        <span class="filter-label">游戏玩法</span>
-        <div class="filter-chips">
-          <button
-v-for="gt in gameTypes" :key="gt.value" class="chip"
-            :class="{ active: filterType === gt.value }" @click="filterType = gt.value">{{ gt.label }}
-            <span class="chip-count">{{ gameTypeRoomCount[gt.value] || 0 }}</span></button>
-        </div>
-      </div>
-      <div class="filter-group">
         <span class="filter-label">房间等级</span>
         <div class="filter-chips">
           <button class="chip" :class="{ active: filterLevel === '' }" @click="filterLevel = ''">全部</button>
@@ -58,12 +49,10 @@ class="room-list" v-infinite-scroll="loadMore" :infinite-scroll-distance="200"
             {{ group.title }}
           </div>
           <div class="room-grid">
-            <div v-for="item in group.rooms" :key="item.ID" class="room-card" :class="getRoomClass(item.ID)">
+            <div v-for="item in group.rooms" :key="item.ID" class="room-card">
               <!-- Card Header -->
               <div class="room-card-header">
                 <div class="header-tags">
-                  <span class="tag tag-type" :class="'tag-' + getRoomTagType(item.ID)">{{
-                    getRoomInfo(item.ID).type }}</span>
                   <span class="tag tag-level">{{ getRoomInfo(item.ID).level }}</span>
                 </div>
                 <el-tooltip placement="top">
@@ -156,7 +145,6 @@ import { Refresh, CopyDocument } from "@element-plus/icons-vue";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/zh-cn";
 import { getCardResult } from "../utils/card";
-import { QznnRoomTypes, getQznnRoomTypeLabel } from "../utils/dict";
 import PokerCard from "../components/poker-card.vue";
 
 dayjs.extend(relativeTime);
@@ -166,9 +154,6 @@ const { dict } = useDict();
 const list = ref<any>({});
 const errorMessage = ref("");
 const filterLevel = ref("");
-const filterType = ref("0");
-
-const gameTypes = QznnRoomTypes.map((i) => ({ value: String(i.value), label: i.label }));
 
 const levelMap = computed(() => {
   const map: Record<string, string> = {};
@@ -189,48 +174,25 @@ const levelRoomCount = computed(() => {
   levelOptions.value.forEach((lv) => (counts[lv.value] = 0));
   Object.values(list.value).forEach((room: any) => {
     const raw = getRoomRawParts(room.ID);
-    if (filterType.value && raw.type !== filterType.value) return;
     if (counts[raw.level] !== undefined) counts[raw.level]++;
   });
   return counts;
 });
 
 function getRoomInfo(id: string) {
-  if (!id) return { level: "", type: "" };
+  if (!id) return { level: "" };
   const parts = id.split("_");
   if (parts.length >= 3) {
     return {
       level: levelMap.value[parts[2]] || "未知",
-      type: getQznnRoomTypeLabel(parts[1]),
     };
   }
-  return { level: "未知", type: "未知" };
+  return { level: "未知" };
 }
 
-function getRoomClass(id: string) {
-  if (!id) return "";
-  const parts = id.split("_");
-  if (parts.length < 2) return "";
-  const typeStr = parts[1];
-  let typeCode = 0;
-  for (let i = 0; i < typeStr.length; i++) {
-    typeCode += typeStr.charCodeAt(i);
-  }
-  return `room-variant-${typeCode % 6}`;
-}
 
-function getRoomTagType(id: string) {
-  if (!id) return "info";
-  const parts = id.split("_");
-  if (parts.length < 2) return "info";
-  const typeStr = parts[1];
-  let typeCode = 0;
-  for (let i = 0; i < typeStr.length; i++) {
-    typeCode += typeStr.charCodeAt(i);
-  }
-  const types = ['primary', 'success', 'warning', 'danger', 'info', 'primary'];
-  return types[typeCode % 6];
-}
+
+
 
 function getResultClass(result: string) {
   if (!result) return "";
@@ -252,9 +214,8 @@ const filteredList = computed<any[]>(() => {
   const all = Object.values(list.value);
   return all.filter((item: any) => {
     const raw = getRoomRawParts(item.ID);
-    const matchType = filterType.value ? raw.type === filterType.value : true;
     const matchLevel = filterLevel.value ? raw.level === filterLevel.value : true;
-    return matchType && matchLevel;
+    return matchLevel;
   });
 });
 
@@ -353,15 +314,7 @@ const playerStats = computed(() => {
   return { user, robot };
 });
 
-const gameTypeRoomCount = computed(() => {
-  const counts: Record<string, number> = {};
-  gameTypes.forEach((gt) => (counts[gt.value] = 0));
-  Object.values(list.value).forEach((room: any) => {
-    const raw = getRoomRawParts(room.ID);
-    if (counts[raw.type] !== undefined) counts[raw.type]++;
-  });
-  return counts;
-});
+
 
 const copyGameID = (id: any) => {
   navigator.clipboard.writeText(String(id));
@@ -378,7 +331,7 @@ const loadMore = () => {
   displayedRoomsCount.value += 50;
 };
 
-watch([filterLevel, filterType], () => {
+watch([filterLevel], () => {
   displayedRoomsCount.value = 20;
 });
 

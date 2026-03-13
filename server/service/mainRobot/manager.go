@@ -3,6 +3,7 @@ package mainRobot
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"math/rand"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"service/mainClient/game/qznn"
 	"service/modelClient"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -31,10 +33,11 @@ func StartRobot() {
 
 // RobotRuntime 机器人运行时状态
 type RobotRuntime struct {
-	Cancel    context.CancelFunc
-	Action    RobotAction
-	UserId    string
-	StartedAt time.Time // 启动时间，用于僵尸检测
+	Cancel      context.CancelFunc
+	Action      RobotAction
+	UserId      string
+	StartedAt   time.Time    // 启动时间，用于僵尸检测
+	ShouldLeave atomic.Bool  // 配置变化时标记，机器人在下次结算后主动退出
 }
 
 var (
@@ -178,8 +181,65 @@ func cleanupZombieRobots(rooms []*RoomDataSimple) {
 	}
 }
 
+// cleanupExcessRobots 当 RobotsPerRoom 上限减少时，清理房间内多余的机器人
+func cleanupExcessRobots(rooms []*RoomDataSimple) {
+	_, maxRobots := getRobotsPerRoomRange()
+
+	for _, room := range rooms {
+		var robotPlayerIds []string
+		realCount := 0
+		for _, p := range room.Players {
+			if p != nil {
+				if p.IsRobot {
+					robotPlayerIds = append(robotPlayerIds, p.ID)
+				} else {
+					realCount++
+				}
+			}
+		}
+
+		// 只处理有真人的房间
+		if realCount == 0 {
+			continue
+		}
+
+		// 房间内机器人数量超过上限时，取消多余的
+		excess := len(robotPlayerIds) - maxRobots
+		if excess <= 0 {
+			continue
+		}
+
+		activeRobotsMu.Lock()
+		var toCancel []*RobotRuntime
+		for _, pid := range robotPlayerIds {
+			if len(toCancel) >= excess {
+				break
+			}
+			if rt, ok := activeRobots[pid]; ok {
+				toCancel = append(toCancel, rt)
+			}
+		}
+		activeRobotsMu.Unlock()
+
+		for _, rt := range toCancel {
+			if !rt.ShouldLeave.Load() {
+				logrus.WithFields(logrus.Fields{
+					"uid":       rt.UserId,
+					"roomId":    room.ID,
+					"maxRobots": maxRobots,
+					"current":   len(robotPlayerIds),
+				}).Info("Robot - Marking excess robot for graceful leave")
+				rt.ShouldLeave.Store(true)
+			}
+		}
+	}
+}
+
 // managerRound 执行一轮调度
 func managerRound() {
+	// 检测配置变化
+	checkConfigChanges()
+
 	// 1. 读取全部房间数据
 	rooms, err := fetchRooms()
 	if err != nil {
@@ -192,6 +252,9 @@ func managerRound() {
 
 	// 清理僵尸机器人(在 activeRobots 中但不在任何房间)
 	cleanupZombieRobots(rooms)
+
+	// 清理超出 RobotsPerRoom 上限的多余机器人（配置减少时实时响应）
+	cleanupExcessRobots(rooms)
 
 	// 2. 统计每个房间已派发但尚未进入的"在途"机器人数
 	pendingPerRoom := make(map[string]int)
@@ -255,10 +318,11 @@ func managerRound() {
 }
 
 // planActions 根据房间状态生成调度计划
-// 每个房间最多 MAX_ROBOTS_PER_ROOM 个机器人，每个机器人等待 2-5 秒再进入
 // pendingPerRoom: 每个房间已派发但尚未进入的"在途"机器人数（从 activeRobots 统计）
 func planActions(rooms []*RoomDataSimple, pendingPerRoom map[string]int) []RobotAction {
 	var actions []RobotAction
+	_, maxRobots := getRobotsPerRoomRange()
+	delayMin, delayMax := getJoinDelayRange()
 
 	for _, room := range rooms {
 		playerCount := 0
@@ -290,7 +354,7 @@ func planActions(rooms []*RoomDataSimple, pendingPerRoom map[string]int) []Robot
 			continue
 		}
 		// 跳过已达机器人上限的房间
-		if robotCount >= MAX_ROBOTS_PER_ROOM {
+		if robotCount >= maxRobots {
 			continue
 		}
 		// 跳过没有真人的房间
@@ -301,21 +365,23 @@ func planActions(rooms []*RoomDataSimple, pendingPerRoom map[string]int) []Robot
 		if room.LastRealPlayerJoinAt.IsZero() {
 			continue
 		}
-		// 真人加入后至少等 ROBOT_JOIN_DELAY_MIN 秒
-		if time.Since(room.LastRealPlayerJoinAt) < time.Duration(ROBOT_JOIN_DELAY_MIN)*time.Second {
+		// 真人加入后至少等 delayMin 秒
+		if time.Since(room.LastRealPlayerJoinAt) < time.Duration(delayMin)*time.Second {
 			continue
 		}
 
 		// 计算还需要多少个机器人（不超过空位数）
 		emptySeats := 5 - playerCount
-		needRobots := MAX_ROBOTS_PER_ROOM - robotCount
+		needRobots := maxRobots - robotCount
 		if needRobots > emptySeats {
 			needRobots = emptySeats
 		}
 
 		for i := 0; i < needRobots; i++ {
-			// 第 N 个机器人等待 (N+1) * random(2,5) 秒
-			delay := (i + 1) * (ROBOT_JOIN_DELAY_MIN + rand.Intn(ROBOT_JOIN_DELAY_MAX-ROBOT_JOIN_DELAY_MIN+1))
+			delay := delayMin
+			if delayMax > delayMin {
+				delay = delayMin + rand.Intn(delayMax-delayMin+1) + i*2
+			}
 			actions = append(actions, RobotAction{
 				Level:      room.Config.Level,
 				BankerType: room.Config.BankerType,
@@ -366,6 +432,8 @@ func fetchIdleRobots(count int) []*modelClient.ModelUser {
 	return result
 }
 
+var httpClient = &http.Client{Timeout: HTTP_FETCH_TIMEOUT * time.Second}
+
 // fetchRooms 获取房间列表
 func fetchRooms() ([]*RoomDataSimple, error) {
 	u := url.URL{
@@ -373,11 +441,15 @@ func fetchRooms() ([]*RoomDataSimple, error) {
 		Host:   targetHost,
 		Path:   PATH_RPC_DATA,
 	}
-	resp, err := http.Get(u.String())
+	resp, err := httpClient.Get(u.String())
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("fetchRooms: unexpected status %d", resp.StatusCode)
+	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -385,22 +457,17 @@ func fetchRooms() ([]*RoomDataSimple, error) {
 	}
 
 	var result struct {
-		Code int    `json:"code"`
-		Msg  string `json:"msg"`
-		Data string `json:"data"`
+		Code int                        `json:"code"`
+		Msg  string                     `json:"msg"`
+		Data map[string]*RoomDataSimple `json:"data"`
 	}
 
 	if err := json.Unmarshal(body, &result); err != nil {
 		return nil, err
 	}
 
-	var roomMap map[string]*RoomDataSimple
-	if err := json.Unmarshal([]byte(result.Data), &roomMap); err != nil {
-		return nil, err
-	}
-
 	var rooms []*RoomDataSimple
-	for _, r := range roomMap {
+	for _, r := range result.Data {
 		rooms = append(rooms, r)
 	}
 	return rooms, nil

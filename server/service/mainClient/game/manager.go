@@ -4,6 +4,7 @@ import (
 	"compoment/jsondiytag"
 	"compoment/uid"
 	"compoment/util"
+	"encoding/json"
 	"fmt"
 	"service/mainClient/game/brnn"
 	"service/mainClient/game/qznn"
@@ -226,18 +227,12 @@ func (rm *RoomManager) cleanupLoop() {
 }
 
 // GetAllRooms 获取所有房间信息（用于管理端查询）
-func (rm *RoomManager) GetAllRooms() string {
-	rooms := syncOp(rm, func(s *managerState) map[string]*qznn.QZNNRoom {
-		// Create a shallow copy of the map to return
-		rooms := make(map[string]*qznn.QZNNRoom, len(s.rooms))
-		for k, v := range s.rooms {
-			rooms[k] = v
-		}
-		return rooms
+// 在 syncOp 内完成序列化，避免房间指针逃逸后产生并发读写
+func (rm *RoomManager) GetAllRooms() json.RawMessage {
+	return syncOp(rm, func(s *managerState) json.RawMessage {
+		allRooms, _ := jsondiytag.MarshalWithCustomTag(s.rooms)
+		return json.RawMessage(allRooms)
 	})
-
-	allRooms, _ := jsondiytag.MarshalWithCustomTag(rooms)
-	return string(allRooms)
 }
 
 // CheckPlayerInBRNN 遍历所有 BRNN 房间，查找玩家所在房间

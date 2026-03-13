@@ -156,3 +156,19 @@ func (s *SysParamManager) GetStringArray(key string, defaultValue []string) []st
 	}
 	return result
 }
+
+func (s *SysParamManager) GetIntArray(key string, defaultValue []int) []int {
+	strs := s.GetStringArray(key, nil)
+	if len(strs) == 0 {
+		return defaultValue
+	}
+	result := make([]int, 0, len(strs))
+	for _, str := range strs {
+		v, err := strconv.Atoi(str)
+		if err != nil {
+			return defaultValue
+		}
+		result = append(result, v)
+	}
+	return result
+}

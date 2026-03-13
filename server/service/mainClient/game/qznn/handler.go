@@ -194,14 +194,16 @@ func HandlePlayerReady(r *QZNNRoom, userID string) error {
 		return comm.NewMyError("无效用户")
 	}
 
+	// 先读房间状态（RoomMu.RLock），再锁玩家（p.Mu），保持与 resetOb 一致的加锁顺序
+	isObState := r.CheckPlayerIsOb()
+
 	p.Mu.Lock()
 	if p.IsReady {
 		p.Mu.Unlock()
 		return comm.NewMyError("已确认坐桌")
 	}
 	p.IsReady = true
-	// 根据当前房间状态决定是否立即取消OB
-	if !r.CheckPlayerIsOb() {
+	if !isObState {
 		p.IsOb = false
 	}
 	p.Mu.Unlock()

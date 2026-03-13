@@ -32,13 +32,13 @@ export class StaPeriodEntity extends BaseEntity {
   @Column({ comment: '投注次数', default: 0 })
   betCount: number;
 
-  @Column({ comment: '投注金额', default: 0 })
+  @Column({ comment: '投注金额', type: 'bigint', default: 0 })
   betAmount: number;
 
-  @Column({ comment: '平台盈亏', default: 0 })
+  @Column({ comment: '平台盈亏', type: 'bigint', default: 0 })
   gameWin: number;
 
-  @Column({ comment: '税收金额', default: 0 })
+  @Column({ comment: '税收金额', type: 'bigint', default: 0 })
   taxAmount: number;
 
   @Column({ comment: '首次游戏人数', default: 0 })

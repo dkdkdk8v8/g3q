@@ -386,17 +386,22 @@ export class MerchantApiService extends BaseService {
       .getManyAndCount();
 
     return {
-      list: list.map(r => ({
-        id: r.id,
-        playerId: r.user_id.replace(appId, ''),
-        recordType: r.record_type,
-        validBet: cents(r.valid_bet),
-        payout: cents(r.balance_after) - cents(r.balance_before),
-        balanceBefore: cents(r.balance_before),
-        balanceAfter: cents(r.balance_after),
-        gameName: (r as any).gameRecord?.game_name || '',
-        createAt: r.create_at,
-      })),
+      list: list.map(r => {
+        const gameName = (r as any).gameRecord?.game_name || '';
+        const gameDataStr = (r as any).gameRecord?.game_data || '';
+        return {
+          id: r.id,
+          playerId: r.user_id.replace(appId, ''),
+          recordType: r.record_type,
+          validBet: cents(r.valid_bet),
+          payout: cents(r.balance_after) - cents(r.balance_before),
+          balanceBefore: cents(r.balance_before),
+          balanceAfter: cents(r.balance_after),
+          gameName,
+          gameData: this.parseGameDataForMerchant(gameName, gameDataStr),
+          createAt: r.create_at,
+        };
+      }),
       pagination: { page, size, total },
     };
   }
@@ -542,6 +547,53 @@ export class MerchantApiService extends BaseService {
       return { gameCode, onlineCount: count };
     } catch {
       return { gameCode, onlineCount: 0 };
+    }
+  }
+
+  /**
+   * 解析 game_data 为商户可见的游戏数据
+   */
+  private parseGameDataForMerchant(gameName: string, gameDataStr: string): any {
+    if (!gameDataStr) return {};
+    const qznnGames = ['qznn', 'qznn3', 'qznn4'];
+    if (!qznnGames.includes(gameName)) return {};
+
+    try {
+      const parsed = JSON.parse(gameDataStr);
+      const room = parsed?.Room;
+      if (!room) return {};
+
+      const activePlayers = (room.Players || []).filter((p: any) => p != null && !p.IsOb);
+
+      // 用 Players 中的 AppUserID 建立 ID→AppUserID 映射，用于解析 bankerID
+      const idMap: Record<string, string> = {};
+      for (const p of activePlayers) {
+        if (p.ID && p.AppUserID) idMap[p.ID] = p.AppUserID;
+      }
+
+      const players = activePlayers.map((p: any) => ({
+        id: p.AppUserID || p.ID,
+        nickName: p.NickName,
+        seatNum: p.SeatNum,
+        cards: p.Cards,
+        callMult: p.CallMult,
+        betMult: p.BetMult,
+        balanceChange: p.BalanceChange,
+        validBet: p.ValidBet,
+      }));
+
+      return {
+        gameId: room.GameID,
+        bankerID: idMap[room.BankerID] || room.BankerID,
+        players,
+        config: {
+          level: room.Config?.Level,
+          name: room.Config?.Name,
+          baseBet: room.Config?.BaseBet,
+        },
+      };
+    } catch {
+      return {};
     }
   }
 

@@ -41,6 +41,7 @@ func joinRoom(roomId string, excludeRoomId string, userId string, connWrap *ws.W
 	//player初始化完成，看房间
 	p := qznn.NewPlayer()
 	p.ID = userId
+	p.AppUserID = user.AppUserId
 	p.IsRobot = user.IsRobot
 	p.ConnWrap = connWrap
 	p.GameCount = user.GameCount
@@ -241,6 +242,17 @@ func handleSaveSetting(userId string, data []byte) error {
 		return err
 	}
 	return nil
+}
+
+func handlePlayerReady(userId string, data []byte) error {
+	var req struct {
+		RoomId string
+	}
+	if err := json.Unmarshal(data, &req); err != nil {
+		return comm.ErrClientParam
+	}
+	room := game.GetMgr().GetRoomByRoomId(req.RoomId)
+	return qznn.HandlePlayerReady(room, userId)
 }
 
 func handlerPlayerTalk(userId string, data []byte) error {

@@ -159,9 +159,9 @@ export class StaPeriodJob implements IJob {
       entity.gameUserCount += stats.gameUserCount;
       entity.gameCount += stats.gameCount;
       entity.betCount += stats.betCount;
-      entity.betAmount += stats.betAmount;
-      entity.gameWin += stats.gameWin;
-      entity.taxAmount += stats.taxAmount;
+      entity.betAmount = (Number(entity.betAmount) || 0) + stats.betAmount;
+      entity.gameWin = (Number(entity.gameWin) || 0) + stats.gameWin;
+      entity.taxAmount = (Number(entity.taxAmount) || 0) + stats.taxAmount;
       entity.firstGameUserCount += stats.firstGameUserCount;
 
       const existingIds = Array.isArray(entity.firstGameUserIds) ? entity.firstGameUserIds : [];

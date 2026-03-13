@@ -51,6 +51,7 @@ type CardResult struct {
 // PlayerData 包含玩家的游戏数据，分离出来以方便拷贝且避免拷贝锁
 type PlayerData struct {
 	ID            string
+	AppUserID     string
 	NickName      string
 	Avatar        string
 	Balance       int64      // 玩家余额,单位分
@@ -61,6 +62,7 @@ type PlayerData struct {
 	SeatNum       int        // 座位号
 	CardResult    CardResult `json:"-"`
 	IsOb          bool       // 是否观众
+	IsReady       bool       // 是否确认坐桌（准备参与游戏）
 	BalanceChange int64      // 本局输赢(税后)
 	Tax           int64      // 本局税收
 	ValidBet      int64      //有效投注流水
@@ -123,7 +125,7 @@ func (p *Player) ResetGameData() {
 	p.CardResult = CardResult{}
 	p.BalanceChange = 0
 	p.Tax = 0
-	p.IsOb = false
+	p.IsOb = !p.IsReady // 根据IsReady决定OB状态
 	p.ValidBet = 0
 }
 
@@ -181,11 +183,11 @@ type QZNNRoom struct {
 	Strategy      *RoomStrategy        // 新增字段
 
 	// --- 热更新快照支持 ---
-	inGame          atomic.Bool    `json:"-"` // startGame/gameLoop 协程是否在运行
-	strategyApplied bool           `json:"-"` // 本局策略换牌是否已执行
-	snapshotReq     chan struct{}  `json:"-"` // 协调器发送快照请求 (buffered 1)
-	snapshotReadyCh chan struct{}  `json:"-"` // 房间信号: 已到安全点 (buffered 1)
-	snapshotRelCh   chan struct{}  `json:"-"` // 协调器信号: 快照完成可继续
+	inGame          atomic.Bool   `json:"-"` // startGame/gameLoop 协程是否在运行
+	strategyApplied bool          `json:"-"` // 本局策略换牌是否已执行
+	snapshotReq     chan struct{} `json:"-"` // 协调器发送快照请求 (buffered 1)
+	snapshotReadyCh chan struct{} `json:"-"` // 房间信号: 已到安全点 (buffered 1)
+	snapshotRelCh   chan struct{} `json:"-"` // 协调器信号: 快照完成可继续
 }
 
 // IsInGame returns true if a startGame/gameLoop goroutine is running.
@@ -244,7 +246,10 @@ func (r *QZNNRoom) resetOb() {
 	for _, p := range r.Players {
 		if p != nil {
 			p.Mu.Lock()
-			p.IsOb = false
+			if p.IsReady {
+				p.IsOb = false
+			}
+			// 未 ready 的玩家保持 OB
 			p.Mu.Unlock()
 		}
 	}

@@ -235,7 +235,8 @@ func (s *StressUser) handlePush(pushType comm.PushType, data []byte) {
 		if d.Router == znet.Lobby {
 			// 回到大厅时先补充余额，防止输完钱后无法加入房间
 			if err := modelClient.ReplenishStressBalance(s.Uid, STRESS_REPLENISH_BALANCE); err != nil {
-				logrus.WithField("uid", s.Uid).Errorf("Stress: Replenish balance failed: %v", err)
+				logrus.WithField("uid", s.Uid).Errorf("Stress: Replenish balance failed, skip join: %v", err)
+				return
 			}
 			// 随机加入房间
 			joinReq := map[string]interface{}{
@@ -258,7 +259,15 @@ func (s *StressUser) handlePush(pushType comm.PushType, data []byte) {
 				s.mu.Lock()
 				s.RoomId = room.ID
 				s.mu.Unlock()
-				s.handleGameState(room.State, room.Config)
+				// 进入房间后延迟发送准备（模拟真人）
+				roomID := room.ID
+				roomState := room.State
+				roomConfig := room.Config
+				go func() {
+					time.Sleep(randomActionDelay())
+					s.send(qznn.CmdPlayerReady, map[string]interface{}{"RoomId": roomID})
+					s.handleGameState(roomState, roomConfig)
+				}()
 			}
 		}
 
@@ -289,8 +298,8 @@ func (s *StressUser) handlePush(pushType comm.PushType, data []byte) {
 // handleGameState 根据游戏状态执行操作(模拟真人行为)
 func (s *StressUser) handleGameState(state qznn.RoomState, config qznn.LobbyConfig) {
 	go func() {
-		// 模拟真人随机等待 1-3 秒
-		time.Sleep(time.Duration(rand.Intn(3)+1) * time.Second)
+		// 模拟真人随机等待
+		time.Sleep(randomActionDelay())
 
 		s.mu.Lock()
 		roomId := s.RoomId

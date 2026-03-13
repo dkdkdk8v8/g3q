@@ -376,11 +376,8 @@ func (r *QZNNRoom) kickOffByWsDisconnect() ([]string, bool) {
 		if p == nil {
 			continue
 		}
-		if p.IsOb {
-			continue
-		}
 
-		// 安全地检查连接状态
+		// 安全地检查连接状态（包括未 Ready 的 OB 玩家，掉线后也应踢出）
 		p.Mu.RLock()
 		conn := p.ConnWrap
 		p.Mu.RUnlock()
@@ -489,7 +486,14 @@ func (r *QZNNRoom) AddPlayer(p *Player) (int, error) {
 
 	p.Mu.Lock()
 	p.SeatNum = emptySeat
-	p.IsOb = bIsObState
+	// 机器人自动ready，真人需要手动确认坐桌
+	if p.IsRobot {
+		p.IsReady = true
+		p.IsOb = bIsObState
+	} else {
+		p.IsReady = false
+		p.IsOb = true // 未确认坐桌，强制OB
+	}
 	p.Mu.Unlock()
 
 	r.Players[emptySeat] = p
@@ -1523,14 +1527,14 @@ func (r *QZNNRoom) doPostSettlement() {
 func (r *QZNNRoom) UpdateStrategyParams() {
 	// 获取今日系统水位
 	win, turnover := modelAdmin.GetStaPeriodByDay(0)
-	r.Strategy.TodayProfit = int64(win)
-	r.Strategy.TodayTurnover = int64(turnover)
+	r.Strategy.TodayProfit = win
+	r.Strategy.TodayTurnover = turnover
 
 	// 获取昨日系统水位，计算杀率补偿
 	// 修改逻辑：不再计算差值比率，而是直接存储昨日的绝对值数据，用于后续加权平均
 	winYesterday, turnoverYesterday := modelAdmin.GetStaPeriodByDay(1)
-	r.Strategy.YesterdayProfit = int64(winYesterday)
-	r.Strategy.YesterdayTurnover = int64(turnoverYesterday)
+	r.Strategy.YesterdayProfit = winYesterday
+	r.Strategy.YesterdayTurnover = turnoverYesterday
 	r.Strategy.Log()
 }
 

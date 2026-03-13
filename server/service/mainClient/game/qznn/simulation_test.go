@@ -86,10 +86,10 @@ type SimStats struct {
 
 // SessionResult 单个玩家的一次游戏会话结果
 type SessionResult struct {
-	PlayerID   string
-	Rounds     int   // 玩了几局
-	PnL        int64 // 税后盈亏
-	IsNewbie   bool  // 是否新手（首次进入）
+	PlayerID string
+	Rounds   int   // 玩了几局
+	PnL      int64 // 税后盈亏
+	IsNewbie bool  // 是否新手（首次进入）
 }
 
 // SimPlayer 模拟玩家
@@ -279,7 +279,7 @@ func runSimulation(t *testing.T, cfg SimConfig) *SimStats {
 	mgr := strategy.NewStrategyManager(strategyCfg)
 
 	// 房间级策略数据
-	var systemProfit int64  // 系统累计盈利（真人输的+税收-真人赢的）
+	var systemProfit int64   // 系统累计盈利（真人输的+税收-真人赢的）
 	var systemTurnover int64 // 系统累计流水
 	userDataMap := make(map[string]*UserStrategyData)
 	for _, sp := range simPlayers {
@@ -336,6 +336,7 @@ func runSimulation(t *testing.T, cfg SimConfig) *SimStats {
 		for i, sp := range activePlayers {
 			p := NewPlayer()
 			p.ID = sp.ID
+			p.AppUserID = sp.ID // 模拟中AppUserID与ID相同，实际可根据需要调整
 			p.Balance = sp.Balance
 			p.IsRobot = sp.IsRobot
 			p.GameCount = sp.GameCount
@@ -623,19 +624,19 @@ func simCalculateAndAdjust(room *QZNNRoom, players []*Player, bankerIdx int,
 
 		// 构造策略上下文
 		ctx := &strategy.StrategyContext{
-			UserID:            p.ID,
-			TotalProfit:       ud.TotalProfit,
-			PendingCompensate: ud.PendingCompensate,
-			BaseBet:           room.Config.BaseBet,
-			TotalMult:         totalMult,
-			IsRobot:           p.IsRobot,
-			IsNewbie:          p.GameCount < strategyCfg.NewbieTier2MaxGames+20,
-			GameCount:         p.GameCount,
-			WinningStreak:     ud.WinningStreak,
-			LosingStreak:      ud.LosingStreak,
-			SessionLossRate:   ud.SessionLossRate,
+			UserID:                    p.ID,
+			TotalProfit:               ud.TotalProfit,
+			PendingCompensate:         ud.PendingCompensate,
+			BaseBet:                   room.Config.BaseBet,
+			TotalMult:                 totalMult,
+			IsRobot:                   p.IsRobot,
+			IsNewbie:                  p.GameCount < strategyCfg.NewbieTier2MaxGames+20,
+			GameCount:                 p.GameCount,
+			WinningStreak:             ud.WinningStreak,
+			LosingStreak:              ud.LosingStreak,
+			SessionLossRate:           ud.SessionLossRate,
 			TurnoverTodayAndYesterday: room.Strategy.TodayTurnover + room.Strategy.YesterdayTurnover,
-			KillRateToday:           0,
+			KillRateToday:             0,
 		}
 
 		// 计算杀率
@@ -1031,7 +1032,7 @@ func printStats(t *testing.T, cfg SimConfig, stats *SimStats, strategyCfg ...str
 					bar += "-"
 				}
 			}
-			t.Logf("  [%5dk] %.4f%% %s", (i+1), rate*100, bar)
+			t.Logf("  [%5dk] %.4f%% %s", (i + 1), rate*100, bar)
 		}
 	}
 
@@ -1056,11 +1057,11 @@ func printStats(t *testing.T, cfg SimConfig, stats *SimStats, strategyCfg ...str
 		var winTotalRounds, loseTotalRounds int
 		// 按局数分组统计
 		type bracket struct {
-			label    string
-			minR     int
-			maxR     int
-			total    int
-			wins     int
+			label string
+			minR  int
+			maxR  int
+			total int
+			wins  int
 		}
 		brackets := []bracket{
 			{"10-20局", 10, 20, 0, 0},

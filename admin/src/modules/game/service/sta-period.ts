@@ -31,7 +31,7 @@ export class StaPeriodService extends BaseService {
     /**
      * 获取对应时间内的统计数据
      */
-    async getDateStats(startDate: string, endDate: string, app: string, showType: 'app' | 'date' | 'game' | 'roomLevel' | 'roomType', sort: string, order: string, gameName?: string, roomLevel?: string, roomType?: string) {
+    async getDateStats(startDate: string, endDate: string, app: string, showType: 'app' | 'date' | 'game' | 'roomLevel', sort: string, order: string, gameName?: string, roomLevel?: string) {
         const start = moment(startDate).startOf('day').toDate();
         const end = moment(endDate).endOf('day').toDate();
 
@@ -47,9 +47,7 @@ export class StaPeriodService extends BaseService {
         if (roomLevel !== undefined && roomLevel !== null && String(roomLevel) !== '') {
             where.roomLevel = roomLevel;
         }
-        if (roomType !== undefined && roomType !== null && String(roomType) !== '') {
-            where.roomType = roomType;
-        }
+
 
         const list = await this.staPeriodEntity.find({
             where,
@@ -65,8 +63,6 @@ export class StaPeriodService extends BaseService {
                 key = item.gameName || '';
             } else if (showType === 'roomLevel') {
                 key = String(item.roomLevel);
-            } else if (showType === 'roomType') {
-                key = String(item.roomType);
             } else {
                 key = moment(item.timeKey).format('YYYY-MM-DD');
             }
@@ -87,9 +83,9 @@ export class StaPeriodService extends BaseService {
             data.gameUserCount += item.gameUserCount;
             data.gameCount += item.gameCount;
             data.betCount += item.betCount;
-            data.betAmount += item.betAmount;
-            data.gameWin += item.gameWin;
-            data.taxAmount += item.taxAmount || 0;
+            data.betAmount += Number(item.betAmount) || 0;
+            data.gameWin += Number(item.gameWin) || 0;
+            data.taxAmount += Number(item.taxAmount) || 0;
             data.firstGameUserCount += item.firstGameUserCount;
         }
 

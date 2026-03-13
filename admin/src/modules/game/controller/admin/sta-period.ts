@@ -16,13 +16,12 @@ export class StaPeriodController extends BaseController {
         @Query('endDate') endDate: string,
         @Query('app') app: string,
         @Query('gameName') gameName: string,
-        @Query('showType') showType: 'app' | 'date' | 'game' | 'roomLevel' | 'roomType',
+        @Query('showType') showType: 'app' | 'date' | 'game' | 'roomLevel',
         @Query('sort') sort: string,
         @Query('order') order: string,
         @Query('roomLevel') roomLevel: string,
-        @Query('roomType') roomType: string,
     ) {
-        return this.staPeriodService.getDateStats(startDate, endDate, app, showType, sort, order, gameName, roomLevel, roomType);
+        return this.staPeriodService.getDateStats(startDate, endDate, app, showType, sort, order, gameName, roomLevel);
     }
 
     @Get('/getUserStats', { summary: '某个时间段的统计数据(按用户)' })

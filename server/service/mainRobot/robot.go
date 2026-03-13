@@ -156,7 +156,7 @@ func (r *Robot) Run() {
 	// 进房超时保护：30秒内未成功进入房间则关闭连接，防止僵尸机器人
 	go func() {
 		select {
-		case <-time.After(30 * time.Second):
+		case <-time.After(JOIN_ROOM_TIMEOUT * time.Second):
 			r.mu.Lock()
 			roomId := r.RoomId
 			r.mu.Unlock()
@@ -299,7 +299,14 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 					"uid":     r.Uid,
 					"balance": bal,
 				}).Info("Robot - Successfully synced room entry")
-				r.handleStateChange(room.State)
+				// 进入房间后延迟发送准备（模拟真人）
+				roomID := room.ID
+				roomState := room.State
+				go func() {
+					time.Sleep(randomActionDelay())
+					r.Send(qznn.CmdPlayerReady, map[string]interface{}{"RoomId": roomID})
+					r.handleStateChange(roomState)
+				}()
 			}
 		}
 
@@ -450,8 +457,8 @@ func (r *Robot) handleStateChange(state qznn.RoomState) {
 			}
 		}()
 
-		// 模拟用户随机等待 1-3 秒
-		time.Sleep(time.Duration(rand.Intn(3)+1) * time.Second)
+		// 模拟用户随机等待
+		time.Sleep(randomActionDelay())
 
 		// 检查机器人是否已关闭，避免往已断开的连接发消息
 		r.mu.Lock()
@@ -529,6 +536,22 @@ func (r *Robot) handleStateChange(state qznn.RoomState) {
 				r.gamesPlayed++
 			}
 			r.mu.Unlock()
+
+			// 检查是否因配置变化需要主动退出
+			activeRobotsMu.Lock()
+			rt, exists := activeRobots[r.Uid]
+			shouldLeave := exists && rt.ShouldLeave.Load()
+			activeRobotsMu.Unlock()
+			if shouldLeave {
+				logrus.WithFields(logrus.Fields{
+					"roomId": currentRoomId,
+					"uid":    r.Uid,
+				}).Info("Robot - Graceful leave due to RobotsPerRoom config change")
+				r.Send(qznn.CmdPlayerLeave, map[string]interface{}{"RoomId": currentRoomId})
+				r.Close()
+				return
+			}
+
 			r.checkLeave()
 		}
 	}()
@@ -543,8 +566,8 @@ func (r *Robot) checkLeave() {
 			}
 		}()
 
-		// 随机等待 1-3 秒
-		time.Sleep(time.Duration(rand.Intn(3)+1) * time.Second)
+		// 随机等待
+		time.Sleep(randomActionDelay())
 
 		r.mu.Lock()
 		if r.isClosing {
@@ -590,6 +613,7 @@ func (r *Robot) checkLeave() {
 
 		if prob > 0 && rand.Float64() < prob {
 			// 检查房间内机器人数量是否会低于下限
+			minRobots, _ := getRobotsPerRoomRange()
 			activeRobotsMu.Lock()
 			robotsInRoom := 0
 			for _, rt := range activeRobots {
@@ -598,12 +622,12 @@ func (r *Robot) checkLeave() {
 				}
 			}
 			activeRobotsMu.Unlock()
-			if robotsInRoom <= MIN_ROBOTS_PER_ROOM {
+			if robotsInRoom <= minRobots {
 				logrus.WithFields(logrus.Fields{
 					"roomId":       roomId,
 					"uid":          r.Uid,
 					"robotsInRoom": robotsInRoom,
-					"min":          MIN_ROBOTS_PER_ROOM,
+					"min":          minRobots,
 				}).Info("Robot - Skip leaving, would drop below minimum robots")
 				return
 			}

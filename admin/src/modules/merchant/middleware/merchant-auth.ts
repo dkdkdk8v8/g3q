@@ -51,6 +51,8 @@ export class MerchantAuthMiddleware
       log.reqBody = JSON.stringify(body);
       log.clientIp = clientIp;
       log.appId = appId || '';
+      log.createTime = new Date();
+      log.updateTime = new Date();
 
       const fail = async (code: number, message: string) => {
         const rsp = { code, message };
@@ -58,7 +60,7 @@ export class MerchantAuthMiddleware
         log.statusCode = code;
         log.rspBody = JSON.stringify(rsp);
         log.costMs = Date.now() - startTime;
-        await this.apiLogEntity.save(log).catch(() => {});
+        await this.apiLogEntity.insert(log).catch(() => {});
       };
 
       // 验证必填参数
@@ -124,7 +126,7 @@ export class MerchantAuthMiddleware
       log.statusCode = (ctx.body as any)?.code ?? 0;
       log.rspBody = JSON.stringify(ctx.body);
       log.costMs = Date.now() - startTime;
-      await this.apiLogEntity.save(log).catch(() => {});
+      await this.apiLogEntity.insert(log).catch(() => {});
     };
   }
 

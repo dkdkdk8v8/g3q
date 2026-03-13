@@ -11,6 +11,8 @@ const isActive = ref(false);
 const cardId = ref(0);
 const showBackdrop = ref(false);
 const foldSize = ref(0); // 0~75，代表折叠深度（百分比）
+const flipAngle = ref(0); // 0~180，3D翻转角度
+const isFlipping = ref(false); // 是否正在翻转阶段
 
 const cardModules = import.meta.glob('../assets/card/card_*.png', { eager: true, import: 'default' });
 const cardImages = {};
@@ -81,20 +83,28 @@ const foldImgStyle = computed(() => {
 // ===== 动画 =====
 const delay = (ms) => new Promise(r => setTimeout(r, ms));
 
-function tweenTo(target, duration) {
+function tween(refObj, target, duration, easeFn) {
     return new Promise(resolve => {
-        const from = foldSize.value;
+        const from = refObj.value;
         const start = performance.now();
+        const ease = easeFn || easeInOut;
         const tick = (now) => {
             let t = Math.min((now - start) / duration, 1);
-            // ease-in-out
-            t = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-            foldSize.value = from + (target - from) * t;
+            t = ease(t);
+            refObj.value = from + (target - from) * t;
             if (t < 1) requestAnimationFrame(tick);
             else resolve();
         };
         requestAnimationFrame(tick);
     });
+}
+
+function easeInOut(t) {
+    return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+}
+
+function easeOut(t) {
+    return 1 - Math.pow(1 - t, 3);
 }
 
 const startTest = async () => {
@@ -104,23 +114,31 @@ const startTest = async () => {
     cardId.value = ids[Math.floor(Math.random() * ids.length)];
 
     foldSize.value = 0;
+    flipAngle.value = 0;
+    isFlipping.value = false;
     isActive.value = true;
     showBackdrop.value = true;
 
     await nextTick();
     await delay(100);
 
-    // 慢慢折开
-    await tweenTo(40, 1400);
-    // 继续折更大
-    await tweenTo(70, 800);
-    // 停留
-    await delay(800);
+    // 1. 慢慢折开小角
+    await tween(foldSize, 40, 1400);
+    // 2. 继续折更大
+    await tween(foldSize, 70, 800);
+    // 3. 停留一下让玩家看清
+    await delay(400);
+    // 4. 快速收回折角
+    await tween(foldSize, 0, 300, easeOut);
+    // 5. 整体3D翻转
+    isFlipping.value = true;
+    await tween(flipAngle, 180, 600, easeInOut);
+    // 6. 展示完整牌面
+    await delay(1000);
 
     showBackdrop.value = false;
     await delay(300);
     isActive.value = false;
-    foldSize.value = 0;
 };
 
 defineExpose({ startTest });
@@ -132,16 +150,26 @@ defineExpose({ startTest });
             <div class="test-backdrop" :class="{ visible: showBackdrop }"></div>
 
             <div class="test-card" :style="cardStyle" @click.stop>
-                <!-- 牌背：裁掉右上角 -->
-                <div class="card-back" :style="{ clipPath: backClip }"></div>
+                <div class="card-flipper" :style="{ transform: `perspective(800px) rotateY(${flipAngle}deg)` }">
+                    <!-- 牌背面（默认可见） -->
+                    <div class="card-back-side">
+                        <!-- 牌背：裁掉右上角 -->
+                        <div class="card-back" :style="{ clipPath: backClip }"></div>
 
-                <!-- 折角：叠在牌背上，里面是精确变换的牌面 -->
-                <div class="fold-corner" :style="{ clipPath: foldClip }">
-                    <img v-if="cardImgUrl"
-                        :src="cardImgUrl"
-                        class="fold-face-img"
-                        :style="foldImgStyle" />
-                    <div class="fold-shade"></div>
+                        <!-- 折角：叠在牌背上，里面是精确变换的牌面 -->
+                        <div v-if="foldSize > 0" class="fold-corner" :style="{ clipPath: foldClip }">
+                            <img v-if="cardImgUrl"
+                                :src="cardImgUrl"
+                                class="fold-face-img"
+                                :style="foldImgStyle" />
+                            <div class="fold-shade"></div>
+                        </div>
+                    </div>
+
+                    <!-- 牌正面（翻转后可见） -->
+                    <div class="card-face-side">
+                        <img v-if="cardImgUrl" :src="cardImgUrl" class="card-face-img" />
+                    </div>
                 </div>
             </div>
 
@@ -177,6 +205,37 @@ defineExpose({ startTest });
 .test-card {
     position: absolute;
     overflow: visible;
+}
+
+.card-flipper {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+}
+
+.card-back-side {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+}
+
+.card-face-side {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    transform: rotateY(180deg);
+    border-radius: 2vw;
+    overflow: hidden;
+}
+
+.card-face-img {
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+    display: block;
 }
 
 .card-back {

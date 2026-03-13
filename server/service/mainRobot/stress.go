@@ -259,6 +259,8 @@ func (s *StressUser) handlePush(pushType comm.PushType, data []byte) {
 				s.mu.Lock()
 				s.RoomId = room.ID
 				s.mu.Unlock()
+				// 进入房间后立即发送准备
+				s.send(qznn.CmdPlayerReady, map[string]interface{}{"RoomId": room.ID})
 				s.handleGameState(room.State, room.Config)
 			}
 		}

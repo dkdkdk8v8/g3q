@@ -376,11 +376,8 @@ func (r *QZNNRoom) kickOffByWsDisconnect() ([]string, bool) {
 		if p == nil {
 			continue
 		}
-		if p.IsOb {
-			continue
-		}
 
-		// 安全地检查连接状态
+		// 安全地检查连接状态（包括未 Ready 的 OB 玩家，掉线后也应踢出）
 		p.Mu.RLock()
 		conn := p.ConnWrap
 		p.Mu.RUnlock()

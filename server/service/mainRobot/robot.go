@@ -299,6 +299,8 @@ func (r *Robot) handlePush(pushType comm.PushType, data []byte) {
 					"uid":     r.Uid,
 					"balance": bal,
 				}).Info("Robot - Successfully synced room entry")
+				// 进入房间后立即发送准备
+				r.Send(qznn.CmdPlayerReady, map[string]interface{}{"RoomId": room.ID})
 				r.handleStateChange(room.State)
 			}
 		}

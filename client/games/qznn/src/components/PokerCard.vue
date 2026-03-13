@@ -1,12 +1,21 @@
 <script setup>
 import { watch, computed, onMounted, ref, nextTick } from 'vue';
 
+import cardBackDefault from '@/assets/common/card_back.png';
+import cardBackGreen from '@/assets/common/card_back_green.png';
+import cardBackPurple from '@/assets/common/card_back_purple.png';
+
+const cardBackMap = { 0: cardBackDefault, 1: cardBackGreen, 2: cardBackPurple };
+
 const props = defineProps({
   card: Object, // 如果没有card，显示背面
   isSmall: Boolean,
   peekReveal: Boolean, // 咪牌模式：牌背从左往右折叠翻开
-  skipAnimation: Boolean // 跳过翻牌动画，直接显示正面
+  skipAnimation: Boolean, // 跳过翻牌动画，直接显示正面
+  gameMode: { type: Number, default: 0 }, // 0:不看牌, 1:看三张, 2:看四张
 });
+
+const cardBackUrl = computed(() => cardBackMap[props.gameMode] || cardBackDefault);
 
 // 控制卡片是否翻转显示正面
 const isFlipped = ref(false);
@@ -70,7 +79,7 @@ watch(() => props.card, async (newVal) => {
             {{ card ? card.label : '?' }}
         </div>
       </div>
-      <div class="card-back-face">
+      <div class="card-back-face" :style="{ backgroundImage: `url(${cardBackUrl})` }">
         <div class="back-pattern"></div>
       </div>
     </div>
@@ -83,7 +92,7 @@ watch(() => props.card, async (newVal) => {
             {{ card ? card.label : '?' }}
         </div>
       </div>
-      <div class="peek-back" :class="{ 'is-peeking': isPeeking }"></div>
+      <div class="peek-back" :class="{ 'is-peeking': isPeeking }" :style="{ backgroundImage: `url(${cardBackUrl})` }"></div>
     </div>
   </div>
 </template>
@@ -157,7 +166,8 @@ watch(() => props.card, async (newVal) => {
 }
 
 .card-back-face {
-  background: url('@/assets/common/card_back.png') no-repeat center center;
+  background-repeat: no-repeat;
+  background-position: center center;
   background-size: 100% 100%;
   transform: rotateY(180deg);
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
@@ -189,7 +199,8 @@ watch(() => props.card, async (newVal) => {
   position: absolute;
   width: 100%;
   height: 100%;
-  background: url('@/assets/common/card_back.png') no-repeat center center;
+  background-repeat: no-repeat;
+  background-position: center center;
   background-size: 100% 100%;
   border-radius: 1.6vw;
   box-sizing: border-box;

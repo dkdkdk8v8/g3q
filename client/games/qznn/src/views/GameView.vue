@@ -1507,6 +1507,7 @@ const startDealingAnimation = (isSupplemental = false) => {
                                     card,
                                     rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
                                     hintList: savedHintList.value,
+                                    mode: store.gameMode,
                                 });
                             }
                         }
@@ -2103,6 +2104,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
                                 :is-small="false"
                                 :peek-reveal="false"
                                 :skip-animation="idx === 4 && peekAnimationDone"
+                                :game-mode="store.gameMode"
                                 :class="{ 'hand-card': true, 'bull-card-overlay': isBullPart(idx), 'selected': selectedCardIndices.includes(idx) }"
                                 :style="{
                                     marginLeft: idx === 0 ? '0' : '5px',

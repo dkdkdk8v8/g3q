@@ -1,11 +1,18 @@
 <script setup>
 import { ref, computed, nextTick } from 'vue';
 
+import cardBackDefault from '@/assets/common/card_back.png';
+import cardBackGreen from '@/assets/common/card_back_green.png';
+import cardBackPurple from '@/assets/common/card_back_purple.png';
+
+const cardBackMap = { 0: cardBackDefault, 1: cardBackGreen, 2: cardBackPurple };
+
 const emit = defineEmits(['complete']);
 
 const isActive = ref(false);
 const showHint = ref(false);
 const snapshotHintList = ref([]);
+const gameMode = ref(0);
 const phase = ref(''); // 'init', 'move-center', 'peek', 'flip', 'move-back'
 const cardData = ref(null);
 const originRect = ref(null);
@@ -17,6 +24,8 @@ const cardImgUrl = computed(() => {
     if (!cardData.value || cardData.value.rawId === undefined) return null;
     return new URL(`../assets/card/card_${cardData.value.rawId}.png`, import.meta.url).href;
 });
+
+const cardBackImg = computed(() => cardBackMap[gameMode.value] || cardBackDefault);
 
 const targetWidth = computed(() => window.innerWidth / 3);
 const targetHeight = computed(() => targetWidth.value * (21.4667 / 16));
@@ -114,9 +123,10 @@ function easeOut(t) {
 }
 
 // ===== 主流程 =====
-const startPeekAnimation = async ({ card, rect, hintList }) => {
+const startPeekAnimation = async ({ card, rect, hintList, mode }) => {
     cardData.value = card;
     originRect.value = rect;
+    gameMode.value = mode || 0;
     foldSize.value = 0;
     flipAngle.value = 0;
     snapshotHintList.value = hintList || [];
@@ -192,7 +202,7 @@ defineExpose({ startPeekAnimation });
                 <div class="card-flipper" :style="{ transform: `perspective(800px) rotateY(${flipAngle}deg)` }">
                     <!-- 牌背面（默认可见） -->
                     <div class="card-back-side">
-                        <div class="peek-card-back" :style="{ clipPath: backClip }"></div>
+                        <div class="peek-card-back" :style="{ clipPath: backClip, backgroundImage: `url(${cardBackImg})` }"></div>
 
                         <div v-if="foldSize > 0" class="fold-corner" :style="{ clipPath: foldClip }">
                             <img v-if="cardImgUrl"
@@ -235,7 +245,7 @@ defineExpose({ startPeekAnimation });
 }
 
 .peek-backdrop.visible {
-    background: rgba(0, 0, 0, 0.55);
+    background: rgba(0, 0, 0, 0.75);
 }
 
 .peek-card {
@@ -272,7 +282,8 @@ defineExpose({ startPeekAnimation });
     position: absolute;
     width: 100%;
     height: 100%;
-    background: url('@/assets/common/card_back.png') no-repeat center center;
+    background-repeat: no-repeat;
+    background-position: center center;
     background-size: 100% 100%;
     border-radius: 2vw;
 }

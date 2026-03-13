@@ -1,5 +1,14 @@
 <script setup>
-import { ref, nextTick } from 'vue';
+import { ref, nextTick, computed } from 'vue';
+import { useGameStore } from '../stores/game.js';
+
+import cardBackDefault from '@/assets/common/card_back.png';
+import cardBackGreen from '@/assets/common/card_back_green.png';
+import cardBackPurple from '@/assets/common/card_back_purple.png';
+
+const store = useGameStore();
+const cardBackMap = { 0: cardBackDefault, 1: cardBackGreen, 2: cardBackPurple };
+const cardBackUrl = computed(() => cardBackMap[store.gameMode] || cardBackDefault);
 
 // 飞行的卡片列表
 const flyingCards = ref([]);
@@ -179,7 +188,7 @@ defineExpose({
             zIndex: card.zIndex
         }"
     >
-        <div class="card-back">
+        <div class="card-back" :style="{ backgroundImage: `url(${cardBackUrl})` }">
             <div class="back-pattern"></div>
         </div>
     </div>
@@ -208,7 +217,8 @@ defineExpose({
 .card-back {
   width: 100%;
   height: 100%;
-  background: url('@/assets/common/card_back.png') no-repeat center center;
+  background-repeat: no-repeat;
+  background-position: center center;
   background-size: 100% 100%;
   border-radius: 6px; /* Match PokerCard radius */
   box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1), 0 2px 6px rgba(0,0,0,0.2); /* Match PokerCard inset border + drop shadow */

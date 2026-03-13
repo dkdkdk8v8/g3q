@@ -242,7 +242,7 @@ defineExpose({ startTest });
     position: absolute;
     width: 100%;
     height: 100%;
-    background: url('@/assets/common/card_back.png') no-repeat center center;
+    background: url('@/assets/common/card_back_purple.png') no-repeat center center;
     background-size: 100% 100%;
     border-radius: 2vw;
 }

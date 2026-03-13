@@ -834,8 +834,13 @@ watch([
         }, 800);
     }
 });
+// 凑牛提示快照：在阶段变化清除前保存，供咪牌动画使用
+const savedHintList = ref([]);
 watch(() => store.currentPhase, (phase) => {
     if (!hintAllowedPhases.has(phase)) {
+        if (earlyBullReady.value && neededCardsList.value.length > 0) {
+            savedHintList.value = JSON.parse(JSON.stringify(neededCardsList.value));
+        }
         earlyBullReady.value = false;
         if (earlyBullTimer) { clearTimeout(earlyBullTimer); earlyBullTimer = null; }
     }
@@ -1500,7 +1505,8 @@ const startDealingAnimation = (isSupplemental = false) => {
                             if (card) {
                                 peekOverlay.value.startPeekAnimation({
                                     card,
-                                    rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height }
+                                    rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
+                                    hintList: savedHintList.value,
                                 });
                             }
                         }

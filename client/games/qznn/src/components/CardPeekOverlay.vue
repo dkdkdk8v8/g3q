@@ -4,6 +4,8 @@ import { ref, computed, nextTick } from 'vue';
 const emit = defineEmits(['complete']);
 
 const isActive = ref(false);
+const showHint = ref(false);
+const snapshotHintList = ref([]);
 const phase = ref(''); // 'init', 'move-center', 'peek', 'flip', 'move-back'
 const cardData = ref(null);
 const originRect = ref(null);
@@ -112,11 +114,12 @@ function easeOut(t) {
 }
 
 // ===== 主流程 =====
-const startPeekAnimation = async ({ card, rect }) => {
+const startPeekAnimation = async ({ card, rect, hintList }) => {
     cardData.value = card;
     originRect.value = rect;
     foldSize.value = 0;
     flipAngle.value = 0;
+    snapshotHintList.value = hintList || [];
     phase.value = 'init';
     isActive.value = true;
 
@@ -128,6 +131,9 @@ const startPeekAnimation = async ({ card, rect }) => {
         showBackdrop.value = true;
     });
     await delay(700);
+
+    // 移到中心后显示凑牛提示
+    showHint.value = true;
 
     // 2. 咪牌：折开小角
     phase.value = 'peek';
@@ -145,6 +151,7 @@ const startPeekAnimation = async ({ card, rect }) => {
     await delay(800);
 
     // 8. 移回手牌位置 + 缩小 + 遮罩渐出
+    showHint.value = false;
     phase.value = 'move-back';
     showBackdrop.value = false;
     await delay(550);
@@ -165,6 +172,17 @@ defineExpose({ startPeekAnimation });
             <div class="peek-backdrop" :class="{ visible: showBackdrop }"></div>
 
             <div class="peek-card" :style="cardStyle">
+                <!-- 凑牛提示：牌上方 -->
+                <div v-if="showHint && snapshotHintList.length > 0" class="peek-hint" :class="{ visible: showHint }">
+                    <div v-for="item in snapshotHintList" :key="item.type" class="peek-hint-row">
+                        <span class="peek-hint-type">凑出<span class="peek-hint-highlight">{{ item.name }}</span>需:</span>
+                        <span class="peek-hint-cards">
+                            <span v-for="(c, i) in item.cards" :key="c.rawId" class="peek-hint-card">{{ c.display }}<span
+                                    v-if="i < item.cards.length - 1" class="peek-hint-sep">·</span></span>
+                        </span>
+                    </div>
+                </div>
+
                 <div class="card-flipper" :style="{ transform: `perspective(800px) rotateY(${flipAngle}deg)` }">
                     <!-- 牌背面（默认可见） -->
                     <div class="card-back-side">
@@ -284,5 +302,68 @@ defineExpose({ startPeekAnimation });
     height: 100%;
     background: rgba(0, 0, 0, 0.04);
     pointer-events: none;
+}
+
+/* 凑牛提示 */
+.peek-hint {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 16px;
+    background: radial-gradient(ellipse at 50% 40%, rgba(140, 120, 255, 0.22), rgba(60, 40, 120, 0.3) 70%, rgba(20, 10, 50, 0.25));
+    border: 1px solid rgba(180, 160, 255, 0.18);
+    border-radius: 22px;
+    white-space: nowrap;
+    box-shadow: 0 0 14px rgba(140, 120, 255, 0.12), 0 0 30px rgba(100, 80, 200, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(8px);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+}
+
+.peek-hint.visible {
+    opacity: 1;
+}
+
+.peek-hint-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.peek-hint-type {
+    color: #d4b0ff;
+    margin-right: 4px;
+    text-shadow: 0 0 5px rgba(180, 140, 255, 0.4);
+}
+
+.peek-hint-highlight {
+    color: #e8d0ff;
+    font-weight: bold;
+    text-shadow: 0 0 5px rgba(200, 170, 255, 0.5);
+}
+
+.peek-hint-cards {
+    color: rgba(255, 255, 255, 0.82);
+}
+
+.peek-hint-card {
+    font-weight: bold;
+    font-size: 11px;
+    color: #f0e4ff;
+    text-shadow: 0 0 4px rgba(200, 180, 255, 0.45);
+}
+
+.peek-hint-sep {
+    margin: 0 2px;
+    opacity: 0.4;
 }
 </style>

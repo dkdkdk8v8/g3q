@@ -41,6 +41,7 @@ func joinRoom(roomId string, excludeRoomId string, userId string, connWrap *ws.W
 	//player初始化完成，看房间
 	p := qznn.NewPlayer()
 	p.ID = userId
+	p.AppUserID = user.AppUserId
 	p.IsRobot = user.IsRobot
 	p.ConnWrap = connWrap
 	p.GameCount = user.GameCount

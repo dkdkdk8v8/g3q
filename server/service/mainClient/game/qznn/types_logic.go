@@ -51,6 +51,7 @@ type CardResult struct {
 // PlayerData 包含玩家的游戏数据，分离出来以方便拷贝且避免拷贝锁
 type PlayerData struct {
 	ID            string
+	AppUserID     string
 	NickName      string
 	Avatar        string
 	Balance       int64      // 玩家余额,单位分
@@ -182,11 +183,11 @@ type QZNNRoom struct {
 	Strategy      *RoomStrategy        // 新增字段
 
 	// --- 热更新快照支持 ---
-	inGame          atomic.Bool    `json:"-"` // startGame/gameLoop 协程是否在运行
-	strategyApplied bool           `json:"-"` // 本局策略换牌是否已执行
-	snapshotReq     chan struct{}  `json:"-"` // 协调器发送快照请求 (buffered 1)
-	snapshotReadyCh chan struct{}  `json:"-"` // 房间信号: 已到安全点 (buffered 1)
-	snapshotRelCh   chan struct{}  `json:"-"` // 协调器信号: 快照完成可继续
+	inGame          atomic.Bool   `json:"-"` // startGame/gameLoop 协程是否在运行
+	strategyApplied bool          `json:"-"` // 本局策略换牌是否已执行
+	snapshotReq     chan struct{} `json:"-"` // 协调器发送快照请求 (buffered 1)
+	snapshotReadyCh chan struct{} `json:"-"` // 房间信号: 已到安全点 (buffered 1)
+	snapshotRelCh   chan struct{} `json:"-"` // 协调器信号: 快照完成可继续
 }
 
 // IsInGame returns true if a startGame/gameLoop goroutine is running.

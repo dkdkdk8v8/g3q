@@ -126,9 +126,15 @@ const startPeekAnimation = async ({ card, rect, hintList }) => {
     await nextTick();
 
     // 1. 移到屏幕中央 + 放大 + 遮罩渐入
-    requestAnimationFrame(() => {
-        phase.value = 'move-center';
-        showBackdrop.value = true;
+    // 双重 rAF 确保 init 位置先渲染，再触发 transition
+    await new Promise(r => {
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                phase.value = 'move-center';
+                showBackdrop.value = true;
+                r();
+            });
+        });
     });
     await delay(700);
 

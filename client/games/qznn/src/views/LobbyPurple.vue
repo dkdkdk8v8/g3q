@@ -1,10 +1,14 @@
 <script setup>
-import { onMounted, onUnmounted, onActivated, onDeactivated } from 'vue';
+import { ref, onMounted, onUnmounted, onActivated, onDeactivated } from 'vue';
 import { useLobby } from '../composables/useLobby.js';
 import HistoryModal from '../components/HistoryModal.vue';
 import SettingsModal from '../components/SettingsModal.vue';
 import HelpModal from '../components/HelpModal.vue';
 import LobbyBackgroundAnimation from '../components/LobbyBackgroundAnimation.vue';
+import PeekTestOverlay from '../components/PeekTestOverlay.vue';
+
+const peekTest = ref(null);
+const testPeek = () => peekTest.value?.startTest();
 
 // Assets
 import avatarFrameImg from '@/assets/common/avatar_circle.png';
@@ -143,9 +147,13 @@ onUnmounted(stopMusic);
         <LobbyBackgroundAnimation :mode="2" class="purple-lobby-anim" />
         <div class="lobby-full-glass"></div>
 
+        <!-- 咪牌测试按钮 -->
+        <div class="peek-test-btn" @click="testPeek">咪牌测试</div>
+
         <HistoryModal v-model:visible="showHistory" />
         <SettingsModal v-model:visible="showSettings" />
         <HelpModal v-model:visible="showHelp" :mode="currentMode" />
+        <PeekTestOverlay ref="peekTest" />
     </div>
 </template>
 
@@ -578,6 +586,29 @@ onUnmounted(stopMusic);
 
 .purple-lobby-anim {
     bottom: 20px !important;
+}
+
+/* 咪牌测试按钮 */
+.peek-test-btn {
+    position: fixed;
+    bottom: 15px;
+    right: 15px;
+    z-index: 8000;
+    background: linear-gradient(135deg, #9b59b6, #8e44ad);
+    color: white;
+    font-size: 13px;
+    font-weight: bold;
+    padding: 8px 16px;
+    border-radius: 20px;
+    box-shadow: 0 2px 10px rgba(142, 68, 173, 0.5);
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.peek-test-btn:active {
+    transform: scale(0.92);
+    opacity: 0.85;
 }
 
 .lobby-full-glass {

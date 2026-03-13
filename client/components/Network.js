@@ -90,7 +90,9 @@ export class GameClient {
             const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             this.url = `${proto}//${window.location.host}${this.apiBasePath}/ws?${query}`;
         } else {
-            this.url = `wss://${host}/ws?${query}`;
+            const isIP = /^(\d{1,3}\.){3}\d{1,3}(:\d+)?$/.test(host);
+            const proto = isIP ? 'ws:' : 'wss:';
+            this.url = `${proto}//${host}/ws?${query}`;
         }
         this.isManualClose = false;
         this._initWebSocket();

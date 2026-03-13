@@ -28,6 +28,6 @@ export class GameRpcService extends BaseService {
         if (!data) {
             return {};
         }
-        return JSON.parse(data);
+        return typeof data === 'string' ? JSON.parse(data) : data;
     }
 }

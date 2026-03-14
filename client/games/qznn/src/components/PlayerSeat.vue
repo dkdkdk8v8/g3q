@@ -455,7 +455,8 @@ const showSpeechBubble = computed(() => {
                 <div v-if="player.isReady && store.currentPhase === 'READY_COUNTDOWN'" class="ready-badge">✔ 准备</div>
 
                 <!-- Observer Badge -->
-                <div v-if="player.isObserver" class="observer-badge">等待下一局</div>
+                <div v-if="player.isObserver && player.isReady" class="observer-badge">等待下一局</div>
+                <div v-else-if="player.isObserver && !player.isReady" class="observer-badge observer-badge-watching">观战中</div>
             </div>
 
             <div class="info-box" :style="{ '--bg-img': `url(${userInfoBgImg})` }"

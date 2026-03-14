@@ -2139,6 +2139,13 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
 
 
+            <!-- 加入座位按钮（OB状态时显示在头像上方） -->
+            <div v-if="myPlayer.isObserver && !myPlayer.isReady && !store.joinSeatPending" class="join-seat-wrapper">
+                <div class="join-seat-btn" :class="'join-seat-mode-' + store.gameMode" @click="store.playerReady()">
+                    <span class="join-seat-text">加入座位</span>
+                </div>
+            </div>
+
             <!-- 3. My Personal Info + Chat Button -->
 
             <div class="my-player-info-row">
@@ -2307,7 +2314,7 @@ const shouldMoveStatusToHighPosition = computed(() => {
                 </div>
 
                 <!-- Observer Waiting Text -->
-                <div v-show="myPlayer.isObserver" class="observer-waiting-banner">
+                <div v-show="myPlayer.isObserver && myPlayer.isReady" class="observer-waiting-banner">
                     请耐心等待下一局<span class="loading-dots"></span>
                 </div>
 
@@ -2993,6 +3000,8 @@ const shouldMoveStatusToHighPosition = computed(() => {
     background: linear-gradient(to top, rgba(0, 0, 0, 0.6) 0%, transparent 100%);
     width: 100%;
     padding-bottom: 30px;
+    position: relative;
+    z-index: 300;
 }
 
 /* GameView.vue specific styles for myPlayer components */
@@ -3183,6 +3192,64 @@ const shouldMoveStatusToHighPosition = computed(() => {
     /* Doubled size */
     object-fit: contain;
     vertical-align: middle;
+}
+
+/* 加入座位按钮 */
+.join-seat-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 8px;
+    position: relative;
+    z-index: 500;
+}
+
+.join-seat-btn {
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 20px;
+    padding: 8px 28px;
+    cursor: pointer;
+    animation: join-seat-pulse 2s ease-in-out infinite;
+    user-select: none;
+    --seat-color: 217, 119, 6;
+    background: linear-gradient(180deg, rgba(var(--seat-color), 1) 0%, rgba(var(--seat-color), 0.8) 100%);
+    box-shadow: 0 2px 8px rgba(var(--seat-color), 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* 不看牌 — 绿色 */
+.join-seat-btn.join-seat-mode-0 {
+    --seat-color: 34, 139, 34;
+}
+
+/* 看三张 — 蓝色 */
+.join-seat-btn.join-seat-mode-1 {
+    --seat-color: 59, 130, 246;
+}
+
+/* 看四张 — 紫色 */
+.join-seat-btn.join-seat-mode-2 {
+    --seat-color: 139, 92, 246;
+}
+
+.join-seat-btn:active {
+    transform: scale(0.95);
+    filter: brightness(0.9);
+}
+
+.join-seat-text {
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    letter-spacing: 2px;
+}
+
+@keyframes join-seat-pulse {
+    0%, 100% {
+        box-shadow: 0 2px 8px rgba(var(--seat-color), 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    }
+    50% {
+        box-shadow: 0 2px 16px rgba(var(--seat-color), 0.7), 0 0 20px rgba(var(--seat-color), 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    }
 }
 
 .my-player-info-row {

@@ -572,9 +572,20 @@ export const useGameStore = defineStore('game', () => {
         baseBet.value = 0;
     };
 
-    // 玩家操作：准备
-
-    // ...
+    // 玩家操作：加入座位（从OB变为参战玩家）
+    const joinSeatPending = ref(false);
+    const playerReady = () => {
+        if (roomId.value && !joinSeatPending.value) {
+            joinSeatPending.value = true;
+            gameClient.send(QZNN_Prefix + "PlayerReady", { RoomId: roomId.value });
+        }
+    };
+    // 监听 PlayerReady 响应，失败时恢复按钮
+    gameClient.on(QZNN_Prefix + "PlayerReady", (msg) => {
+        if (msg.code !== 0) {
+            joinSeatPending.value = false;
+        }
+    });
 
 
 
@@ -782,6 +793,8 @@ export const useGameStore = defineStore('game', () => {
         bankerMult,
         betMult,
         roomJoinedPromise, // Export roomJoinedPromise
+        playerReady, // Export playerReady
+        joinSeatPending, // Export joinSeatPending
         resetState, // Export resetState
         sendPlayerTalk, // Export sendPlayerTalk
         playerSpeechQueue, // Export speech queue

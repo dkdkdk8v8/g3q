@@ -2140,11 +2140,14 @@ const shouldMoveStatusToHighPosition = computed(() => {
 
 
             <!-- 加入座位按钮（OB状态时显示在头像上方） -->
-            <div v-if="myPlayer.isObserver && !myPlayer.isReady && !store.joinSeatPending" class="join-seat-wrapper">
-                <div class="join-seat-btn" :class="'join-seat-mode-' + store.gameMode" @click="store.playerReady()">
-                    <span class="join-seat-text">加入座位</span>
+            <Transition name="join-seat-appear">
+                <div v-if="myPlayer.isObserver && !myPlayer.isReady && !store.joinSeatPending" class="join-seat-wrapper">
+                    <div class="join-seat-btn" :class="'join-seat-mode-' + store.gameMode" @click="store.playerReady()">
+                        <div class="join-seat-shine"></div>
+                        <span class="join-seat-text">加入牌局</span>
+                    </div>
                 </div>
-            </div>
+            </Transition>
 
             <!-- 3. My Personal Info + Chat Button -->
 
@@ -3194,6 +3197,37 @@ const shouldMoveStatusToHighPosition = computed(() => {
     vertical-align: middle;
 }
 
+/* 加入座位按钮 — 入场/离场过渡 */
+.join-seat-appear-enter-active {
+    animation: join-seat-enter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.join-seat-appear-leave-active {
+    animation: join-seat-leave 0.3s ease-in forwards;
+}
+
+@keyframes join-seat-enter {
+    0% {
+        opacity: 0;
+        transform: translateY(20px) scale(0.8);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes join-seat-leave {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.6);
+    }
+}
+
 /* 加入座位按钮 */
 .join-seat-wrapper {
     display: flex;
@@ -3204,52 +3238,77 @@ const shouldMoveStatusToHighPosition = computed(() => {
 }
 
 .join-seat-btn {
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    --seat-color: 217, 119, 6;
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.25);
     border-radius: 20px;
     padding: 8px 28px;
     cursor: pointer;
-    animation: join-seat-pulse 2s ease-in-out infinite;
     user-select: none;
-    --seat-color: 217, 119, 6;
-    background: linear-gradient(180deg, rgba(var(--seat-color), 1) 0%, rgba(var(--seat-color), 0.8) 100%);
-    box-shadow: 0 2px 8px rgba(var(--seat-color), 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    overflow: hidden;
+    background: linear-gradient(180deg, rgba(var(--seat-color), 1) 0%, rgba(var(--seat-color), 0.65) 60%, rgba(var(--seat-color), 0.45) 100%);
+    box-shadow: 0 2px 10px rgba(var(--seat-color), 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    animation: join-seat-float 3s ease-in-out infinite;
 }
 
 /* 不看牌 — 绿色 */
-.join-seat-btn.join-seat-mode-0 {
-    --seat-color: 34, 139, 34;
-}
-
+.join-seat-btn.join-seat-mode-0 { --seat-color: 34, 139, 34; }
 /* 看三张 — 蓝色 */
-.join-seat-btn.join-seat-mode-1 {
-    --seat-color: 59, 130, 246;
-}
-
+.join-seat-btn.join-seat-mode-1 { --seat-color: 59, 130, 246; }
 /* 看四张 — 紫色 */
-.join-seat-btn.join-seat-mode-2 {
-    --seat-color: 139, 92, 246;
+.join-seat-btn.join-seat-mode-2 { --seat-color: 139, 92, 246; }
+
+/* 流光扫过效果 */
+.join-seat-shine {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(
+        105deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.25) 45%,
+        rgba(255, 255, 255, 0.4) 50%,
+        rgba(255, 255, 255, 0.25) 55%,
+        transparent 70%
+    );
+    animation: join-seat-shine-sweep 4.5s ease-in-out infinite;
+    pointer-events: none;
 }
 
 .join-seat-btn:active {
-    transform: scale(0.95);
-    filter: brightness(0.9);
+    transform: scale(0.93) !important;
+    filter: brightness(0.85);
+    transition: transform 0.1s, filter 0.1s;
 }
 
 .join-seat-text {
+    position: relative;
     color: white;
     font-size: 14px;
     font-weight: bold;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
     letter-spacing: 2px;
 }
 
-@keyframes join-seat-pulse {
+/* 柔和浮动 */
+@keyframes join-seat-float {
     0%, 100% {
-        box-shadow: 0 2px 8px rgba(var(--seat-color), 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        transform: translateY(0);
+        box-shadow: 0 2px 10px rgba(var(--seat-color), 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
     }
     50% {
-        box-shadow: 0 2px 16px rgba(var(--seat-color), 0.7), 0 0 20px rgba(var(--seat-color), 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        transform: translateY(-3px);
+        box-shadow: 0 6px 18px rgba(var(--seat-color), 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.25);
     }
+}
+
+/* 流光扫过（仅从左到右） */
+@keyframes join-seat-shine-sweep {
+    0% { left: -100%; }
+    50% { left: 150%; }
+    100% { left: 150%; }
 }
 
 .my-player-info-row {

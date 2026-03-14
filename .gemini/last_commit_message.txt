@@ -1,1 +1,0 @@
-style(client): center title in HostingModal header using flex spacers

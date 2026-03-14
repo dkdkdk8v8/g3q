@@ -310,6 +310,10 @@ func (s *StressUser) handleGameState(state qznn.RoomState, config qznn.LobbyConf
 		}
 
 		switch state {
+		case qznn.StateWaiting, qznn.StatePrepare:
+			// 每轮开始时重新发送准备，确保从观看状态恢复参与
+			s.send(qznn.CmdPlayerReady, map[string]interface{}{"RoomId": roomId})
+
 		case qznn.StateBanking:
 			mult := int64(1)
 			if len(config.BankerMult) > 0 {

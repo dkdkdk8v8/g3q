@@ -356,6 +356,12 @@ export class StaPeriodJob implements IJob {
           continue;
         }
 
+        if (!record.game_data) {
+          this.logger.warn(`record #${record.id} game_data 为空，跳过`);
+          if (record.id > newLastId) newLastId = record.id;
+          continue;
+        }
+
         const gameData = JSON.parse(record.game_data);
         const parsed = parser.parse(gameData);
         for (const player of parsed.players) {

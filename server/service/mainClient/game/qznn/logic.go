@@ -1394,18 +1394,22 @@ func (r *QZNNRoom) doSettlement() {
 	}
 	nGameRecordId := int64(0)
 	if r.CanLog() {
-		roomBytes, _ := json.Marshal(qznnGameData{Room: r})
-		var err1 error
-		nGameRecordId, err1 = modelClient.InsertGameRecord(&modelClient.ModelGameRecord{
-			GameId:   r.GameID,
-			GameName: GetGameNameByBankerType(r.Config.BankerType),
-			RoomId:   r.ID,
-			GameData: string(roomBytes),
-		})
-		if err1 != nil {
-			logrus.WithField("gameId", r.GameID).WithError(err1).Error("InsertGameRecord-Fail")
+		roomBytes, errMarshal := json.Marshal(qznnGameData{Room: r})
+		if errMarshal != nil {
+			logrus.WithField("gameId", r.GameID).WithError(errMarshal).Error("InsertGameRecord-MarshalFail")
 		} else {
-			logrus.WithField("gameId", r.GameID).WithField("recordId", nGameRecordId).Info("InsertGameRecord-Success")
+			var err1 error
+			nGameRecordId, err1 = modelClient.InsertGameRecord(&modelClient.ModelGameRecord{
+				GameId:   r.GameID,
+				GameName: GetGameNameByBankerType(r.Config.BankerType),
+				RoomId:   r.ID,
+				GameData: string(roomBytes),
+			})
+			if err1 != nil {
+				logrus.WithField("gameId", r.GameID).WithError(err1).Error("InsertGameRecord-Fail")
+			} else {
+				logrus.WithField("gameId", r.GameID).WithField("recordId", nGameRecordId).Info("InsertGameRecord-Success")
+			}
 		}
 	}
 
